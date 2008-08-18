@@ -1,7 +1,7 @@
 import datetime
 import numpy
 from numpy import linalg
-#from pytools import wcsutil
+from pytools import fileutil
 
 from makewcs import MakeWCS
 from dgeo import DGEO
@@ -40,23 +40,47 @@ class TDDCorr(object):
         if self.wcsobj.instrument == 'ACS' and self.wcsobj.detector == 'WFC':
             newkw = ['TDDALPHA', 'TDDBETA']
             self.set_alpha_beta()
+            self.applyTDD()
             self.updatehdr(newkeywords=newkw)
             
         else:
             pass
+    
+    def applyTDD(self):
+        """
+        Applies TDD to the idctab coefficients of a ACS/WFC observation.
+        This should be always the first correction.
+        """
+        theta_v2v3 = 2.234529
+        idctheta = theta_v2v3
+        idcrad = fileutil.DEGTORAD(idctheta)
+        mrotp = fileutil.buildRotMatrix(idctheta)
+        mrotn = fileutil.buildRotMatrix(-idctheta)
+        abmat = numpy.array([[self.TDDBETA,self.TDDALPHA],[self.TDDALPHA,self.TDDBETA]])
+        tdd_mat = numpy.array([[1+(self.TDDBETA/2048.), self.TDDALPHA/2048.],[self.TDDALPHA/2048.,1-(self.TDDBETA/2048.)]],numpy.float64)
+        abmat1 = numpy.dot(tdd_mat, mrotn)
+        abmat2 = numpy.dot(mrotp,abmat1)
+        xshape, yshape = self.wcsobj.idcmodel.cx.shape, self.wcsobj.idcmodel.cy.shape
+        icxy = numpy.dot(abmat2,[self.wcsobj.idcmodel.cx.ravel(),self.wcsobj.idcmodel.cy.ravel()])
+        self.wcsobj.idcmodel.cx = icxy[0]
+        self.wcsobj.idcmodel.cy = icxy[1]
+        self.wcsobj.idcmodel.cx.shape = xshape
+        self.wcsobj.idcmodel.cy.shape = yshape
         
     def set_alpha_beta(self):
-        # Compute the time dependent distortion skew terms
-        # default date of 2004.5 = 2004-7-1
-        
-        datedefault = datetime.datetime(2004,7,1)
+        """
+        Compute the time dependent distortion skew terms
+        default date of 2004.5 = 2004-7-1
+        """
+        dday = 2004.5
         year,month,day = self.wcsobj.date_obs.split('-')
         rdate = datetime.datetime(int(year),int(month),int(day))
-        self.TDDALPHA = 0.095+0.090*((rdate-datedefault).days/365.25)/2.5
-        self.TDDBETA = -0.029-0.030*((rdate-datedefault).days/365.25)/2.5
-        self.TDDALPHA = 0.0
-        self.TDDBETA = 0.0
-        
+        rday = float(rdate.strftime("%j"))/365.25 + rdate.year
+        alpha = 0.095 + 0.090*(rday-dday)/2.5
+        beta = -0.029 - 0.030*(rday-dday)/2.5
+        self.TDDALPHA = alpha
+        self.TDDBETA = beta
+
     def updatehdr(self, newkeywords=None):
         
         for kw in newkeywords:
