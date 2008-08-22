@@ -4,12 +4,13 @@ import pyfits
 from hstwcs.wcsutil import HSTWCS
 from hstwcs.mappings import allowed_corrections
 #from .. mappings import allowed_corrections
+from hstwcs import utils
 import corrections, makewcs
 import dgeo
 import time
 from pytools import parseinput, fileutil
 
-#NB! the order of corrections matters
+#Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
 
@@ -52,19 +53,30 @@ def updatewcs(input, vacorr=True, tddcorr=True, checkfiles=True):
             print 'No valid input, quitting ...\n'
             return
     for f in files:
-        instr = pyfits.getval(f, 'INSTRUME')
+        instrument = pyfits.getval(f, 'INSTRUME')
+        if instrument == 'ACS' and pyfits.getval(f, 'DETECTOR')== 'WFC':
+            try:
+                tdc = pyfits.getval(f, 'TDDCORR')
+                if tdc == 'PERFORM':
+                    tddcorr = True
+                else:
+                    tddcorr = False
+            except KeyError:
+                tddcorr = True
         try:
-            acorr = setCorrections(instr,vacorr=vacorr, tddcorr=tddcorr)
+            #define which corrections will be performed
+            acorr = setCorrections(instrument,vacorr=vacorr, tddcorr=tddcorr)
         except KeyError:
             print 'Unsupported instrument %s ' %instr
             print 'Removing %s from list of processed files\n' % f
             files.remove(f)
             continue
-        
+        #restore the original WCS keywords
+        utils.restoreWCS(f)
         makecorr(f, acorr)
     return files
 
-def makecorr(fname, acorr):
+def makecorr(fname, allowed_corr):
     """
     Purpose
     =======
@@ -78,23 +90,26 @@ def makecorr(fname, acorr):
             
     """
     f = pyfits.open(fname, mode='update')
+    #Determine the reference chip and make a copy of its restored header.
     nrefchip, nrefext = getNrefchip(f)
     primhdr = f[0].header
-    
+    ref_hdr = f[nrefext].header.copy()
+    utils.write_archive(ref_hdr)
     
     for extn in f:
-        refwcs = HSTWCS(primhdr, f[nrefext].header)
-        refwcs.archive_kw()
-        refwcs.readModel()
+        # Perhaps all ext headers should be corrected (to be consistent)
         if extn.header.has_key('extname') and extn.header['extname'].lower() == 'sci':
+            refwcs = HSTWCS(primhdr, ref_hdr, fobj=f)
+            refwcs.readModel(ref_hdr)
             hdr = extn.header
-            owcs = HSTWCS(primhdr, hdr)
-            owcs.archive_kw()
-            owcs.readModel()
-            for c in acorr:
-                owcs.__setattr__('DO'+c, 'PERFORM')
+            owcs = HSTWCS(primhdr, hdr, fobj=f)
+            utils.write_archive(hdr)
+            owcs.readModel(hdr)
+            for c in allowed_corr:
                 corr_klass = corrections.__getattribute__(c)
-                corr_klass(owcs, refwcs)
+                kw2update = corr_klass.updateWCS(owcs, refwcs)
+                for kw in kw2update:
+                    hdr.update(kw, kw2update[kw])
             
             
     

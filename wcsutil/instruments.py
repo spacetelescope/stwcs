@@ -71,13 +71,11 @@ class ACSWCS(InstrWCS):
         InstrWCS.__init__(self,hdr0, hdr)
         self.set_ins_spec_kw()
     
-    
     def set_parity(self):
         parity = {'WFC':[[1.0,0.0],[0.0,-1.0]],
                 'HRC':[[-1.0,0.0],[0.0,1.0]],
                 'SBC':[[-1.0,0.0],[0.0,1.0]]}
         detector = self.primhdr.get('detector', None)  
-        print 'detector', detector   
         self.parity = parity[detector]
     
         
