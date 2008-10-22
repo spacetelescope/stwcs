@@ -99,15 +99,15 @@ def makecorr(fname, allowed_corr):
     for extn in f:
         # Perhaps all ext headers should be corrected (to be consistent)
         if extn.header.has_key('extname') and extn.header['extname'].lower() == 'sci':
-            refwcs = HSTWCS(primhdr, ref_hdr, fobj=f)
-            refwcs.readModel(ref_hdr)
+            ref_wcs = HSTWCS(primhdr, ref_hdr, fobj=f)
+            ref_wcs.readModel(ref_hdr)
             hdr = extn.header
-            owcs = HSTWCS(primhdr, hdr, fobj=f)
+            ext_wcs = HSTWCS(primhdr, hdr, fobj=f)
             utils.write_archive(hdr)
-            owcs.readModel(hdr)
+            ext_wcs.readModel(hdr)
             for c in allowed_corr:
                 corr_klass = corrections.__getattribute__(c)
-                kw2update = corr_klass.updateWCS(owcs, refwcs)
+                kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                 for kw in kw2update:
                     hdr.update(kw, kw2update[kw])
             

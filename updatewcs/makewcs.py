@@ -19,72 +19,72 @@ class MakeWCS(object):
     
     """
  
-    def updateWCS(cls, wcs, refwcs):    
+    def updateWCS(cls, ext_wcs, ref_wcs):    
         """
         recomputes the basic WCS kw 
         """
-        ltvoff, offshift = cls.getOffsets(wcs)
+        ltvoff, offshift = cls.getOffsets(ext_wcs)
             
-        cls.uprefwcs(wcs, refwcs, ltvoff, offshift)
-        cls.upextwcs(wcs, refwcs, ltvoff, offshift)
+        cls.uprefwcs(ext_wcs, ref_wcs, ltvoff, offshift)
+        cls.upextwcs(ext_wcs, ref_wcs, ltvoff, offshift)
         
-        kw2update = {'CD1_1': wcs.cd[0,0],
-                    'CD1_2': wcs.cd[0,1],
-                    'CD2_1': wcs.cd[1,0],
-                    'CD2_2': wcs.cd[1,1],
-                    'CRVAL1': wcs.crval[0],
-                    'CRVAL2': wcs.crval[1],
-                    'CRPIX1': wcs.crpix[0],
-                    'CRPIX2': wcs.crpix[1],
+        kw2update = {'CD1_1': ext_wcs.wcs.cd[0,0],
+                    'CD1_2': ext_wcs.wcs.cd[0,1],
+                    'CD2_1': ext_wcs.wcs.cd[1,0],
+                    'CD2_2': ext_wcs.wcs.cd[1,1],
+                    'CRVAL1': ext_wcs.wcs.crval[0],
+                    'CRVAL2': ext_wcs.wcs.crval[1],
+                    'CRPIX1': ext_wcs.wcs.crpix[0],
+                    'CRPIX2': ext_wcs.wcs.crpix[1],
             }
         return kw2update
     
     updateWCS = classmethod(updateWCS)
     
-    def upextwcs(self, wcs, refwcs, loff, offsh):
+    def upextwcs(self, ext_wcs, ref_wcs, loff, offsh):
         """
         updates an extension wcs
         """  
         ltvoffx, ltvoffy = loff[0], loff[1]
         offshiftx, offshifty = offsh[0], offsh[1]
-        ltv1 = wcs.ltv1
-        ltv2 = wcs.ltv2
+        ltv1 = ext_wcs.ltv1
+        ltv2 = ext_wcs.ltv2
         
         if ltv1 != 0. or ltv2 != 0.:
-            offsetx = backup_wcs['CRPIX1'] - ltv1 - wcs.idcmodel.refpix['XREF']
-            offsety = backup_wcs['CRPIX2'] - ltv2 - wcs.idcmodel.refpix['YREF']
-            fx,fy = wcs.idcmodel.shift(wcs.idcmodel.cx,wcs.idcmodel.cy,offsetx,offsety)
+            offsetx = backup_wcs['CRPIX1'] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
+            offsety = backup_wcs['CRPIX2'] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
+            fx,fy = ext_wcs.idcmodel.shift(ext_wcs.idcmodel.cx,ext_wcs.idcmodel.cy,offsetx,offsety)
         else:
-            fx, fy = wcs.idcmodel.cx, wcs.idcmodel.cy
+            fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
         
-        ridcmodel = refwcs.idcmodel
-        v2 = wcs.idcmodel.refpix['V2REF']
-        v3 = wcs.idcmodel.refpix['V3REF']
-        v2ref = refwcs.idcmodel.refpix['V2REF']
+        ridcmodel = ref_wcs.idcmodel
+        v2 = ext_wcs.idcmodel.refpix['V2REF']
+        v3 = ext_wcs.idcmodel.refpix['V3REF']
+        v2ref = ref_wcs.idcmodel.refpix['V2REF']
 
-        v3ref = refwcs.idcmodel.refpix['V3REF']
-        R_scale = refwcs.idcmodel.refpix['PSCALE']/3600.0
+        v3ref = ref_wcs.idcmodel.refpix['V3REF']
+        R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
         off = sqrt((v2-v2ref)**2 + (v3-v3ref)**2)/(R_scale*3600.0)
         if v3 == v3ref:
            theta=0.0
         else:
-           theta = atan2(wcs.parity[0][0]*(v2-v2ref), wcs.parity[1][1]*(v3-v3ref))
+           theta = atan2(ext_wcs.parity[0][0]*(v2-v2ref), ext_wcs.parity[1][1]*(v3-v3ref))
         
-        if refwcs.idcmodel.refpix['THETA']: theta += refwcs.idcmodel.refpix['THETA']*pi/180.0
+        if ref_wcs.idcmodel.refpix['THETA']: theta += ref_wcs.idcmodel.refpix['THETA']*pi/180.0
 
         dX=(off*sin(theta)) + offshiftx
         dY=(off*cos(theta)) + offshifty
         px = numpy.array([[dX,dY]])
-        newcrval = refwcs.pixel2world_fits(px)[0]
-        newcrpix = numpy.array([wcs.idcmodel.refpix['XREF'] + ltvoffx, 
-                                wcs.idcmodel.refpix['YREF'] + ltvoffy])
-        wcs.crval = newcrval
-        wcs.crpix = newcrpix
+        newcrval = ref_wcs.all_pix2sky_fits(px)[0]
+        newcrpix = numpy.array([ext_wcs.idcmodel.refpix['XREF'] + ltvoffx, 
+                                ext_wcs.idcmodel.refpix['YREF'] + ltvoffy])
+        ext_wcs.wcs.crval = newcrval
+        ext_wcs.wcs.crpix = newcrpix
         
         # Account for subarray offset
         # Angle of chip relative to chip
-        if wcs.idcmodel.refpix['THETA']:
-           dtheta = wcs.idcmodel.refpix['THETA'] - refwcs.idcmodel.refpix['THETA']
+        if ext_wcs.idcmodel.refpix['THETA']:
+           dtheta = ext_wcs.idcmodel.refpix['THETA'] - ref_wcs.idcmodel.refpix['THETA']
         else:
            dtheta = 0.0
         
@@ -109,13 +109,13 @@ class MakeWCS(object):
         px = numpy.array([[dX+dXX,dY+dYX]])
         
         # Transform to sky coordinates
-        wc = refwcs.pixel2world_fits(px)
+        wc = ref_wcs.all_pix2sky_fits(px)
         
         a = wc[0,0]
         b = wc[0,1]
         px = numpy.array([[dX+dXY,dY+dYY]])
         
-        wc = refwcs.pixel2world_fits(px)
+        wc = ref_wcs.all_pix2sky_fits(px)
         c = wc[0,0]
         d = wc[0,1]
 
@@ -125,58 +125,60 @@ class MakeWCS(object):
         cd21 = utils.diff_angles(b,newcrval[1])
         cd22 = utils.diff_angles(d,newcrval[1])
         cd = numpy.array([[cd11, cd12], [cd21, cd22]])
-        wcs.cd = cd
+        ext_wcs.wcs.cd = cd  #???
         
     upextwcs = classmethod(upextwcs)
         
-    def uprefwcs(self, wcs, refwcs, loff, offsh):
+    def uprefwcs(self, ext_wcs, ref_wcs, loff, offsh):
         """
         Updates the reference chip
         """
         ltvoffx, ltvoffy = loff[0], loff[1]
         offshift = offsh
-        dec = refwcs.crval[1]
+        dec = ref_wcs.wcs.crval[1]
         # Get an approximate reference position on the sky
-        rref = numpy.array([[refwcs.idcmodel.refpix['XREF']+ltvoffx, 
-                            refwcs.idcmodel.refpix['YREF']+ltvoffy]])
+        rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx, 
+                            ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
         
-        crval = refwcs.pixel2world_fits(rref)
+        crval = ref_wcs.all_pix2sky_fits(rref)
         # Convert the PA_V3 orientation to the orientation at the aperture
         # This is for the reference chip only - we use this for the
         # reference tangent plane definition
         # It has the same orientation as the reference chip
-        pv = troll(wcs.pav3,dec,refwcs.idcmodel.refpix['V2REF'],
-                    refwcs.idcmodel.refpix['V3REF'])
+        pv = troll(ext_wcs.pav3,dec,ref_wcs.idcmodel.refpix['V2REF'],
+                    ref_wcs.idcmodel.refpix['V3REF'])
         # Add the chip rotation angle
-        if refwcs.idcmodel.refpix['THETA']:
-            pv += refwcs.idcmodel.refpix['THETA']
+        if ref_wcs.idcmodel.refpix['THETA']:
+            pv += ref_wcs.idcmodel.refpix['THETA']
             
         
         # Set values for the rest of the reference WCS
-        refwcs.crval = crval[0]
-        refwcs.crpix = numpy.array([0.0,0.0])+offsh
-        parity = refwcs.parity
-        R_scale = refwcs.idcmodel.refpix['PSCALE']/3600.0
+        ref_wcs.wcs.crval = crval[0]
+        ref_wcs.wcs.crpix = numpy.array([0.0,0.0])+offsh
+        parity = ref_wcs.parity
+        R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
         cd11 = parity[0][0] *  cos(pv*pi/180.0)*R_scale
         cd12 = parity[0][0] * -sin(pv*pi/180.0)*R_scale
         cd21 = parity[1][1] *  sin(pv*pi/180.0)*R_scale
         cd22 = parity[1][1] *  cos(pv*pi/180.0)*R_scale
+        
         rcd = numpy.array([[cd11, cd12], [cd21, cd22]])
-        refwcs.cd = rcd
-        refwcs.set()
+        print 'cd shape', rcd.shape, ref_wcs.wcs.cd.shape
+        ref_wcs.wcs.cd = rcd
+        ref_wcs.wcs.set()
         
     uprefwcs = classmethod(uprefwcs)
         
 
-    def getOffsets(cls, wcs):
-        ltv1 = wcs.ltv1
-        ltv2 = wcs.ltv2
+    def getOffsets(cls, ext_wcs):
+        ltv1 = ext_wcs.ltv1
+        ltv2 = ext_wcs.ltv2
         
-        offsetx = wcs.crpix[0] - ltv1 - wcs.idcmodel.refpix['XREF']
-        offsety = wcs.crpix[1] - ltv2 - wcs.idcmodel.refpix['YREF']
+        offsetx = ext_wcs.wcs.crpix[0] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
+        offsety = ext_wcs.wcs.crpix[1] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
         
-        shiftx = wcs.idcmodel.refpix['XREF'] + ltv1
-        shifty = wcs.idcmodel.refpix['YREF'] + ltv2
+        shiftx = ext_wcs.idcmodel.refpix['XREF'] + ltv1
+        shifty = ext_wcs.idcmodel.refpix['YREF'] + ltv2
         if ltv1 != 0. or ltv2 != 0.:
             ltvoffx = ltv1 + offsetx
             ltvoffy = ltv2 + offsety

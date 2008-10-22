@@ -1,5 +1,5 @@
 #from .. pywcs.sip import SIP
-from pywcs.sip import SIP
+from pywcs import WCS
 import pyfits
 import instruments
 #from .. distortion import models
@@ -12,7 +12,7 @@ from hstwcs.mappings import basic_wcs, prim_hdr_kw
 
 __docformat__ = 'restructuredtext'
 
-class HSTWCS(SIP):
+class HSTWCS(WCS):
     """
     Purpose
     =======
@@ -32,7 +32,7 @@ class HSTWCS(SIP):
         `fobj`: PyFITS HDUList object or None
                 pyfits file object
         """
-        SIP.__init__(self, ehdr, fobj=fobj)
+        WCS.__init__(self, ehdr, fobj=fobj)
         self.setHDR0kw(hdr0)
         self.detector = self.setDetector(hdr0)
         self.inst_kw = ins_spec_kw
@@ -76,14 +76,14 @@ class HSTWCS(SIP):
         # Calculates the plate scale from the cd matrix
         # this may not be needed now and shoufl probably be done after all 
         # corrections
-        cd11 = self.cd[0][0]
-        cd21 = self.cd[1][0]
+        cd11 = self.wcs.cd[0][0]
+        cd21 = self.wcs.cd[1][0]
         return N.sqrt(N.power(cd11,2)+N.power(cd21,2)) * 3600.
     
     def setOrient(self):
         # Recompute ORIENTAT
-        cd12 = self.cd[0][1]
-        cd22 = self.cd[1][1]
+        cd12 = self.wcs.cd[0][1]
+        cd22 = self.wcs.cd[1][1]
         return RADTODEG(N.arctan2(cd12,cd22))
     
     def verifyPa_V3(self):
