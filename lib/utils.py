@@ -57,13 +57,14 @@ def write_archive(header):
     """
     backup_kw = get_archive(header)
     if backup_kw != {}:
-        print "Archive already exists\n."
+        #print "Archive already exists\n"
         return
     else:
         cmt = 'archived value'
         for kw in basic_wcs:
             nkw = 'O'+kw
-            header.update(nkw[:7], header[kw], comment=cmt)
+            header.update(nkw[:8], header[kw], comment=cmt)
+        header.update('WCSCDATE', fileutil.getLTime(), comment='Local time the WCS kw were archived')
     
 
 def diff_angles(a,b):
