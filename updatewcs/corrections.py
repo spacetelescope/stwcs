@@ -6,7 +6,7 @@ from hstwcs.utils import diff_angles
 import makewcs, dgeo
 
 MakeWCS = makewcs.MakeWCS
-DGEO = dgeo.DGEO
+DGEOCorr = dgeo.DGEOCorr
 
 class TDDCorr(object):
     """
@@ -32,9 +32,11 @@ class TDDCorr(object):
         - sets TDDCORR to COMPLETE
         """
         
-        alpha, beta = cls.set_alpha_beta(ext_wcs)
+        alpha, beta = cls.compute_alpha_beta(ext_wcs)
         cls.apply_tdd2idc(ext_wcs, alpha, beta)
-        newkw = {'TDDALPHA': alpha, 'TDDBETA':beta, 'TDDCORR': 'COMPLETE'}
+        ext_wcs.idcmodel.refpix['TDDALPHA'] = alpha
+        ext_wcs.idcmodel.refpix['TDDBETA'] = beta
+        newkw = {'TDDALPHA': alpha, 'TDDBETA':beta}
         
         return newkw
     updateWCS = classmethod(updateWCS)
@@ -45,11 +47,8 @@ class TDDCorr(object):
         This should be always the first correction.
         """
         theta_v2v3 = 2.234529
-        idctheta = theta_v2v3
-        idcrad = fileutil.DEGTORAD(idctheta)
-        mrotp = fileutil.buildRotMatrix(idctheta)
-        mrotn = fileutil.buildRotMatrix(-idctheta)
-        abmat = numpy.array([[beta,alpha],[alpha,beta]])
+        mrotp = fileutil.buildRotMatrix(theta_v2v3)
+        mrotn = fileutil.buildRotMatrix(-theta_v2v3)
         tdd_mat = numpy.array([[1+(beta/2048.), alpha/2048.],[alpha/2048.,1-(beta/2048.)]],numpy.float64)
         abmat1 = numpy.dot(tdd_mat, mrotn)
         abmat2 = numpy.dot(mrotp,abmat1)
@@ -59,11 +58,11 @@ class TDDCorr(object):
         ext_wcs.idcmodel.cy = icxy[1]
         ext_wcs.idcmodel.cx.shape = xshape
         ext_wcs.idcmodel.cy.shape = yshape
-        ext_wcs.wcs.set()
+        #ext_wcs.wcs.set()
         
     apply_tdd2idc = classmethod(apply_tdd2idc)
         
-    def set_alpha_beta(cls, ext_wcs):
+    def compute_alpha_beta(cls, ext_wcs):
         """
         Compute the time dependent distortion skew terms
         default date of 2004.5 = 2004-7-1
@@ -77,7 +76,7 @@ class TDDCorr(object):
         
         return alpha, beta
 
-    set_alpha_beta = classmethod(set_alpha_beta)
+    compute_alpha_beta = classmethod(compute_alpha_beta)
     
         
 class VACorr(object):
@@ -92,10 +91,8 @@ class VACorr(object):
     def updateWCS(cls, ext_wcs, ref_wcs):
         if ext_wcs.vafactor != 1:
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
-            crval1 = ext_wcs.wcs.crval[0]
-            crval2 = ext_wcs.wcs.crval[1]
-            ext_wcs.wcs.crval[0] = ext_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], crval1) 
-            ext_wcs.wcs.crval[1] = ext_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1], crval2) 
+            ext_wcs.wcs.crval[0] = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], ref_wcs.wcs.crval[0]) 
+            ext_wcs.wcs.crval[1] = ref_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1], ref_wcs.wcs.crval[1]) 
             
             kw2update={'CD1_1': ext_wcs.wcs.cd[0,0], 'CD1_2':ext_wcs.wcs.cd[0,1], 
                     'CD2_1':ext_wcs.wcs.cd[1,0], 'CD2_2':ext_wcs.wcs.cd[1,1], 

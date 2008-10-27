@@ -2,7 +2,7 @@ import pyfits
 from pytools import fileutil
 from hstwcs.mappings import dgeo_vals
 
-class DGEO(object):
+class DGEOCorr(object):
     """
     Purpose
     =======
@@ -18,8 +18,11 @@ class DGEO(object):
     - Add a keyword 'DGEOFILE' to the science extension header, whose
       value is the reference file used to create the WCSVARR extension
     
+    If WCSDVARR extensions exist, subsequent updates will overwrite them. 
+    If not, they will be added to the file object.
+    
     """
-    def __init__(self, fobj):
+    def updateWCS(cls, fobj):
         """
         :Parameters:
         `fobj`: pyfits object
@@ -27,11 +30,16 @@ class DGEO(object):
                 
         """
         assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
-        self.fobj = fobj
-        self.applyDgeoCorr()
+        #self.fobj = fobj
+        cls.applyDgeoCorr(fobj)
+        dgfile = fobj[0].header['DGEOFILE']
         
-        
-    def applyDgeoCorr(self):
+        new_kw = {'DGEOFIEL': dgfile}
+        return new_kw
+    
+    updateWCS = classmethod(updateWCS)        
+
+    def applyDgeoCorr(cls,fobj):
         """
         For each science extension in a pyfits file object:
             - create a WCSDVARR extension
@@ -40,9 +48,10 @@ class DGEO(object):
         """
         
         dgeover = 0
-        dgfile = fileutil.osfn(self.fobj[0].header['DGEOFILE'])
-        wcsdvarr_ind = self.getwcsindex()
-        for ext in self.fobj:
+        dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
+        instrument = fobj[0].header.get('INSTRUME', None)
+        wcsdvarr_ind = cls.getWCSIndex(fobj)
+        for ext in fobj:
             try:
                 extname = ext.header['EXTNAME'].lower()
             except KeyError:
@@ -52,33 +61,34 @@ class DGEO(object):
                 for ename in ['DX', 'DY']:
                     dgeover +=1
                               
-                    self.addSciExtKw(ext.header, extver=dgeover, ename=ename)
-                    hdu = self.createDgeoHDU(dgeofile=dgfile, dgeover=dgeover,ename=ename, extver=extversion)
+                    cls.addSciExtKw(ext.header, extver=dgeover, ename=ename)
+                    hdu = cls.createDgeoHDU(instrument, dgeofile=dgfile, dgeover=dgeover,ename=ename, extver=extversion)
                     if wcsdvarr_ind:
-                        self.fobj[wcsdvarr_ind[dgeover]] = hdu
+                        fobj[wcsdvarr_ind[dgeover]] = hdu
                     else:
-                        self.fobj.append(hdu)
-                self.updateDGEOkw(ext.header)
+                        fobj.append(hdu)
                 
-    def getwcsindex(self):
+    applyDgeoCorr = classmethod(applyDgeoCorr)
+                
+    def getWCSIndex(cls, fobj):
         """
-        Returns the index of a WCSDVARR extension in a pyfits file object if it exists.
-        If it exists subsequent updates will overwrite it. If not, it will be
-        added to the file object.
+        Returns a mapping of WCSDVARR 'EXTVER' and pyfits.HDUList indeces.
+        
         """
         wcsd = {}
-        for e in range(len(self.fobj)):
+        for e in range(len(fobj)):
             try:
-                ename = self.fobj[e].header['EXTNAME']
+                ename = fobj[e].header['EXTNAME']
             except KeyError:
                 continue
             if ename == 'WCSDVARR':
-                wcsd[self.fobj[e].header['EXTVER']] = e
+                wcsd[fobj[e].header['EXTVER']] = e
+        
         return wcsd
         
-        return self.fobj.index_of(('WCSDVARR', dgeover))
+    getWCSIndex = classmethod(getWCSIndex)
     
-    def addSciExtKw(self, hdr, extver=None, ename=None):
+    def addSciExtKw(cls, hdr, extver=None, ename=None):
         """
         Adds kw to sci extension to define dgeo correction extensions
         kw to be added to sci ext:
@@ -114,36 +124,37 @@ class DGEO(object):
         for key in keys:
             hdr.update(key=key, value=values[key], comment=comments[key], before='HISTORY')
         
-        dgfile = self.fobj[0].header['DGEOFILE']
-        hdr.update(key='DGEOFILE', value=dgfile, comment='DGEOFILE used to create WCSDVARR extensions', before='HISTORY')
-        
-        
-    def getDgeoData(self, dgfile=None, ename=None, extver=1):
+    addSciExtKw = classmethod(addSciExtKw)
+    
+    def getDgeoData(cls, dgfile=None, ename=None, extver=1):
         """
         Given a dgeo file name, creates an array to be used 
         as a data array in the dgeo extension.
         """ 
         return pyfits.getdata(dgfile, ext=(ename,extver))
+
+    getDgeoData = classmethod(getDgeoData)
             
-    def createDgeoHDU(self, dgeofile=None, dgeover=1, ename=None,extver=1):
+    def createDgeoHDU(cls, instrument, dgeofile=None, dgeover=1, ename=None,extver=1):
         """
         Creates an HDU to be added to the file object.
         """
         dgeokw = {'naxis1':None, 'naxis2':None, 'extver':dgeover, 'crpix1':None, 
                 'crpix2':None, 'cdelt1':None, 'cdelt2':None, 'crval1':None, 'crval2':None}
-        hdr = self.createDgeoHdr(**dgeokw)
-        data = self.getDgeoData(dgfile=dgeofile, ename=ename, extver=extver)
+        hdr = cls.createDgeoHdr(instrument, **dgeokw)
+        data = cls.getDgeoData(dgfile=dgeofile, ename=ename, extver=extver)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
+    createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDgeoHdr(self, **kw):
+    def createDgeoHdr(cls, instr, **kw):
         """
         Creates a header for the dgeo extension based on dgeo file 
         and sci extension header.
         **kw = {'naxis1':None, 'naxis2':None, 'extver':None, 'crpix1':None, 
                     'crpix2':None, 'cdelt1':None, 'cdelt2':None, 'crval1':None, 'crval2':None}
         """
-        instr = self.fobj[0].header['INSTRUME']
+        #instr = self.fobj[0].header['INSTRUME']
         instr_vals = dgeo_vals[instr]
         naxis1 = kw['naxis1'] or instr_vals['naxis1']
         naxis2 = kw['naxis2'] or instr_vals['naxis2']
@@ -199,8 +210,6 @@ class DGEO(object):
 
         hdr = pyfits.Header(cards=cdl)
         return hdr
-        
-    def updateDGEOkw(self, hdr):
-        dgfile = self.fobj[0].header['DGEOFILE']
-        hdr.update(key='DGEOFILE', value=dgfile, comment='DGEOFILE used to create WCSDVARR extensions', before='HISTORY')
-        
+    
+    createDgeoHdr = classmethod(createDgeoHdr)
+    

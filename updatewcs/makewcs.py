@@ -163,7 +163,6 @@ class MakeWCS(object):
         cd22 = parity[1][1] *  cos(pv*pi/180.0)*R_scale
         
         rcd = numpy.array([[cd11, cd12], [cd21, cd22]])
-        print 'cd shape', rcd.shape, ref_wcs.wcs.cd.shape
         ref_wcs.wcs.cd = rcd
         ref_wcs.wcs.set()
         

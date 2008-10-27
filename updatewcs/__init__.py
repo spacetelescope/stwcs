@@ -2,20 +2,21 @@ import os
 import pyfits
 #from .. wcsutil import HSTWCS
 from hstwcs.wcsutil import HSTWCS
-from hstwcs.mappings import allowed_corrections
+
 #from .. mappings import allowed_corrections
 from hstwcs import utils
 import corrections, makewcs
 import dgeo
 import time
 from pytools import parseinput, fileutil
+import apply_corrections
 
 #Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
 
 
-def updatewcs(input, vacorr=True, tddcorr=True, checkfiles=True):
+def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True):
     """
     Purpose
     =======
@@ -39,7 +40,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, checkfiles=True):
     `vacorr`: boolean
               If True, vecocity aberration correction will be applied
     `tddcorr`: boolean
-              If True, time dependen correction will be applied to the distortion model
+              If True, time dependent distortion correction will be applied 
     `checkfiles`: boolean
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
@@ -53,24 +54,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, checkfiles=True):
             print 'No valid input, quitting ...\n'
             return
     for f in files:
-        instrument = pyfits.getval(f, 'INSTRUME')
-        if instrument == 'ACS' and pyfits.getval(f, 'DETECTOR')== 'WFC':
-            try:
-                tdc = pyfits.getval(f, 'TDDCORR')
-                if tdc == 'PERFORM':
-                    tddcorr = True
-                else:
-                    tddcorr = False
-            except KeyError:
-                tddcorr = True
-        try:
-            #define which corrections will be performed
-            acorr = setCorrections(instrument,vacorr=vacorr, tddcorr=tddcorr)
-        except KeyError:
-            print 'Unsupported instrument %s ' %instr
-            print 'Removing %s from list of processed files\n' % f
-            files.remove(f)
-            continue
+        acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,dgeocorr=dgeocorr)
         #restore the original WCS keywords
         utils.restoreWCS(f)
         makecorr(f, acorr)
@@ -80,7 +64,7 @@ def makecorr(fname, allowed_corr):
     """
     Purpose
     =======
-    Applies corrections to a single file
+    Applies corrections to the WCS of a single file
     
     :Parameters:
     `fname`: string
@@ -106,99 +90,18 @@ def makecorr(fname, allowed_corr):
             utils.write_archive(hdr)
             ext_wcs.readModel(hdr)
             for c in allowed_corr:
-                corr_klass = corrections.__getattribute__(c)
-                kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
-                for kw in kw2update:
-                    hdr.update(kw, kw2update[kw])
+                if c != 'DGEOCorr':
+                    corr_klass = corrections.__getattribute__(c)
+                    kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
+                    for kw in kw2update:
+                        hdr.update(kw, kw2update[kw])
+        
+    if 'DGEOCorr' in allowed_corr:
+        kw2update = dgeo.DGEOCorr.updateWCS(f)
+        for kw in kw2update:
+            f[1].header.update(kw, kw2update[kw])
             
-            
-    
-    #always do dgeo correction
-    if applyDgeoCorr(fname):
-        dgeo.DGEO(f)
     f.close()
-
-        
-def setCorrections(instrument, vacorr=True, tddcorr=True):
-    """
-    Purpose
-    =======
-    Creates a list of corrections to be applied to a file.
-    based on user input paramters and allowed corrections
-    for the instrument, which are defined in mappings.py.
-    """
-    acorr = allowed_corrections[instrument]
-    if 'VACorr' in acorr and not vacorr:  acorr.remove('VACorr')
-    if 'TDDCorr' in acorr and not tddcorr: acorr.remove('TDDCorr')
-    if 'DGEOCorr' in acorr and not dgeocorr: acorr.remove('DGEOCorr')
-
-    return acorr
-
-
-
-def applyDgeoCorr(fname):
-    """
-    Purpose
-    =======
-    Adds dgeo extensions to files based on the DGEOFILE keyword in the primary 
-    header. This is a default correction and will always run in the pipeline.
-    The file used to generate the extensions is 
-    recorded in the DGEOFILE keyword in each science extension.
-    If 'DGEOFILE' in the primary header is different from 'DGEOFILE' in the 
-    extension header and the file exists on disk and is a 'new type' dgeofile, 
-    then the dgeo extensions will be updated.
-    """
-    applyDGEOCorr = True
-    try:
-        # get DGEOFILE kw from primary header
-        fdgeo0 = pyfits.getval(fname, 'DGEOFILE')
-        fdgeo0 = fileutil.osfn(fdgeo0)
-        if not fileutil.findFile(fdgeo0):
-            print 'Kw DGEOFILE exists in primary header but file %s not found\n' % fdgeo0
-            print 'DGEO correction will not be applied\n'
-            applyDGEOCorr = False
-            return applyDGEOCorr 
-        try:
-            # get DGEOFILE kw from first extension header
-            fdgeo1 = pyfits.getval(fname, 'DGEOFILE', ext=1)
-            fdgeo1 = fileutil.osfn(fdgeo1)
-            if fdgeo1 and fileutil.findFile(fdgeo1):
-                if fdgeo0 != fdgeo1:
-                    applyDGEOCorr = True
-                else:
-                    applyDGEOCorr = False
-            else: 
-                # dgeo file defined in first extension may not be found
-                # but if a valid kw exists in the primary header, dgeo should be applied.
-                applyDGEOCorr = True
-        except KeyError:
-            # the case of DGEOFILE kw present in primary header but missing 
-            # in first extension header
-            applyDGEOCorr = True
-    except KeyError:
-
-        print 'DGEOFILE keyword not found in primary header'
-        applyDGEOCorr = False
-    
-    if isOldStyleDGEO(fname, fdgeo0):
-        applyDGEOCorr = False
-        
-    return applyDGEOCorr
-
-def isOldStyleDGEO(fname, dgname):
-    # checks if the file defined in a DGEOFILE kw is a full size 
-    # (old style) image
-    
-    sci_naxis1 = pyfits.getval(fname, 'NAXIS1', ext=1)
-    sci_naxis2 = pyfits.getval(fname, 'NAXIS2', ext=1)
-    dg_naxis1 = pyfits.getval(dgname, 'NAXIS1', ext=1)
-    dg_naxis2 = pyfits.getval(dgname, 'NAXIS2', ext=1)
-    if sci_naxis1 <= dg_naxis1 or sci_naxis2 <= dg_naxis2:
-        print 'Only full size (old style) XY file was found.'
-        print 'DGEO correction will not be applied.\n'
-        return True
-    else:
-        return False
     
 def getNrefchip(fobj):
     """
