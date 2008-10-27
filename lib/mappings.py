@@ -13,8 +13,8 @@ RADTODEG = fileutil.RADTODEG
 # A dictionary which lists the allowed corrections for each instrument.
 # These are the default corrections applied also in the pipeline.
 #Dgeo correction is applied separately.
-allowed_corrections={'WFPC2': ['MakeWCS','CompSIP'],
-                    'ACS': ['TDDCorr', 'MakeWCS','CompSIP', 'VACorr']
+allowed_corrections={'WFPC2': ['MakeWCS','CompSIP', 'VACorr', 'DGEOCorr'],
+                    'ACS': ['TDDCorr', 'MakeWCS','CompSIP', 'VACorr', 'DGEOCorr']
                     }
 
 # A list of instrument specific keywords
@@ -30,7 +30,7 @@ prim_hdr_kw = ['detector', 'offtab', 'idctab', 'date-obs',
 
 # These are the keywords which are archived before MakeWCS is run
 basic_wcs = ['CD1_1', 'CD1_2', 'CD2_1', 'CD2_2', 'CRVAL1','CRVAL2','CTYPE1', 'CTYPE2',
-            'CRPIX1', 'CRPIX2', 'CTYPE1', 'CTYPE2', 'ORIENTAT']
+            'CRPIX1', 'CRPIX2', 'CTYPE1', 'CTYPE2', 'ORIENTAT', 'NAXIS1', 'NAXIS2']
             
 dgeo_vals = {'ACS':
                 {'naxis1':65, 'naxis2':33, 'extver':1, 'crpix1':33.5, 'crpix2':16.5, 
