@@ -29,19 +29,22 @@ class TDDCorr(object):
         """
         - Calculates alpha and beta for ACS/WFC data.
         - Writes 2 new kw to the extension header: TDDALPHA and TDDBETA
-        - sets TDDCORR to COMPLETE
         """
         
         alpha, beta = cls.compute_alpha_beta(ext_wcs)
+        cls.apply_tdd2idc(ref_wcs, alpha, beta)
         cls.apply_tdd2idc(ext_wcs, alpha, beta)
         ext_wcs.idcmodel.refpix['TDDALPHA'] = alpha
         ext_wcs.idcmodel.refpix['TDDBETA'] = beta
+        ref_wcs.idcmodel.refpix['TDDALPHA'] = alpha
+        ref_wcs.idcmodel.refpix['TDDBETA'] = beta
+        
         newkw = {'TDDALPHA': alpha, 'TDDBETA':beta}
         
         return newkw
     updateWCS = classmethod(updateWCS)
     
-    def apply_tdd2idc(cls,ext_wcs, alpha, beta):
+    def apply_tdd2idc(cls, hwcs, alpha, beta):
         """
         Applies TDD to the idctab coefficients of a ACS/WFC observation.
         This should be always the first correction.
@@ -52,13 +55,12 @@ class TDDCorr(object):
         tdd_mat = numpy.array([[1+(beta/2048.), alpha/2048.],[alpha/2048.,1-(beta/2048.)]],numpy.float64)
         abmat1 = numpy.dot(tdd_mat, mrotn)
         abmat2 = numpy.dot(mrotp,abmat1)
-        xshape, yshape = ext_wcs.idcmodel.cx.shape, ext_wcs.idcmodel.cy.shape
-        icxy = numpy.dot(abmat2,[ext_wcs.idcmodel.cx.ravel(),ext_wcs.idcmodel.cy.ravel()])
-        ext_wcs.idcmodel.cx = icxy[0]
-        ext_wcs.idcmodel.cy = icxy[1]
-        ext_wcs.idcmodel.cx.shape = xshape
-        ext_wcs.idcmodel.cy.shape = yshape
-        #ext_wcs.wcs.set()
+        xshape, yshape = hwcs.idcmodel.cx.shape, hwcs.idcmodel.cy.shape
+        icxy = numpy.dot(abmat2,[hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
+        hwcs.idcmodel.cx = icxy[0]
+        hwcs.idcmodel.cy = icxy[1]
+        hwcs.idcmodel.cx.shape = xshape
+        hwcs.idcmodel.cy.shape = yshape
         
     apply_tdd2idc = classmethod(apply_tdd2idc)
         
@@ -93,11 +95,11 @@ class VACorr(object):
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
             ext_wcs.wcs.crval[0] = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], ref_wcs.wcs.crval[0]) 
             ext_wcs.wcs.crval[1] = ref_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1], ref_wcs.wcs.crval[1]) 
+            ext_wcs.wcs.set()
             
             kw2update={'CD1_1': ext_wcs.wcs.cd[0,0], 'CD1_2':ext_wcs.wcs.cd[0,1], 
                     'CD2_1':ext_wcs.wcs.cd[1,0], 'CD2_2':ext_wcs.wcs.cd[1,1], 
-                    'CRVAL1':ext_wcs.wcs.crval[0], 'CRVAL2':ext_wcs.wcs.crval[1]}
-            ext_wcs.wcs.set()
+                    'CRVAL1':ext_wcs.wcs.crval[0], 'CRVAL2':ext_wcs.wcs.crval[1]}            
         else:
             pass
         return kw2update
@@ -137,6 +139,8 @@ class CompSIP(object):
                     Bkey="B_%d_%d" % (m,n-m)
                     kw2update[Akey] = sipval[0,0]
                     kw2update[Bkey] = sipval[1,0]
+        #kw2update['CTYPE1'] = 'RA---TAN-SIP'
+        #kw2update['CTYPE2'] = 'DEC--TAN-SIP'
         return kw2update
     
     updateWCS = classmethod(updateWCS)

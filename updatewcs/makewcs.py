@@ -4,6 +4,7 @@ import numpy
 from numpy import math 
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 from hstwcs import utils
+from pytools import fileutil
 
 class MakeWCS(object):
     """
@@ -18,16 +19,18 @@ class MakeWCS(object):
     - update extension header
     
     """
- 
+    tdd_xyref = {1: [2048, 3072], 2:[2048, 1024]}
     def updateWCS(cls, ext_wcs, ref_wcs):    
         """
         recomputes the basic WCS kw 
         """
         ltvoff, offshift = cls.getOffsets(ext_wcs)
-            
-        cls.uprefwcs(ext_wcs, ref_wcs, ltvoff, offshift)
-        cls.upextwcs(ext_wcs, ref_wcs, ltvoff, offshift)
+        v23_corr = cls.zero_point_corr(ext_wcs)
+        rv23_corr = cls.zero_point_corr(ref_wcs)
+        cls.uprefwcs(ext_wcs, ref_wcs, rv23_corr, ltvoff, offshift)
+        cls.upextwcs(ext_wcs, ref_wcs, v23_corr, rv23_corr, ltvoff, offshift)
         
+
         kw2update = {'CD1_1': ext_wcs.wcs.cd[0,0],
                     'CD1_2': ext_wcs.wcs.cd[0,1],
                     'CD2_1': ext_wcs.wcs.cd[1,0],
@@ -41,7 +44,7 @@ class MakeWCS(object):
     
     updateWCS = classmethod(updateWCS)
     
-    def upextwcs(self, ext_wcs, ref_wcs, loff, offsh):
+    def upextwcs(cls, ext_wcs, ref_wcs, v23_corr, rv23_corr, loff, offsh):
         """
         updates an extension wcs
         """  
@@ -58,13 +61,15 @@ class MakeWCS(object):
             fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
         
         ridcmodel = ref_wcs.idcmodel
-        v2 = ext_wcs.idcmodel.refpix['V2REF']
-        v3 = ext_wcs.idcmodel.refpix['V3REF']
-        v2ref = ref_wcs.idcmodel.refpix['V2REF']
-
-        v3ref = ref_wcs.idcmodel.refpix['V3REF']
+        
+        v2 = ext_wcs.idcmodel.refpix['V2REF'] + v23_corr[0,0]
+        v3 = ext_wcs.idcmodel.refpix['V3REF'] - v23_corr[1,0]
+        v2ref = ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr[0,0]
+        v3ref = ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr[1,0]
+        
         R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
         off = sqrt((v2-v2ref)**2 + (v3-v3ref)**2)/(R_scale*3600.0)
+        
         if v3 == v3ref:
            theta=0.0
         else:
@@ -74,13 +79,14 @@ class MakeWCS(object):
 
         dX=(off*sin(theta)) + offshiftx
         dY=(off*cos(theta)) + offshifty
+        
         px = numpy.array([[dX,dY]])
-        newcrval = ref_wcs.all_pix2sky_fits(px)[0]
+        newcrval = ref_wcs.wcs.p2s_fits(px)['world'][0]
         newcrpix = numpy.array([ext_wcs.idcmodel.refpix['XREF'] + ltvoffx, 
                                 ext_wcs.idcmodel.refpix['YREF'] + ltvoffy])
         ext_wcs.wcs.crval = newcrval
         ext_wcs.wcs.crpix = newcrpix
-        
+        ext_wcs.wcs.set()
         # Account for subarray offset
         # Angle of chip relative to chip
         if ext_wcs.idcmodel.refpix['THETA']:
@@ -96,7 +102,7 @@ class MakeWCS(object):
         delYX=fy[1,1]/R_scale/3600.
         delXY=fx[1,0]/R_scale/3600.
         delYY=fy[1,0]/R_scale/3600.
-
+        
         # Convert to radians
         rr=dtheta*pi/180.0
         
@@ -106,54 +112,59 @@ class MakeWCS(object):
 
         dXY = cos(rr)*delXY - sin(rr)*delYY
         dYY = sin(rr)*delXY + cos(rr)*delYY
+        
         px = numpy.array([[dX+dXX,dY+dYX]])
         
         # Transform to sky coordinates
-        wc = ref_wcs.all_pix2sky_fits(px)
+        wc = ref_wcs.wcs.p2s_fits(px)['world']
         
         a = wc[0,0]
         b = wc[0,1]
         px = numpy.array([[dX+dXY,dY+dYY]])
         
-        wc = ref_wcs.all_pix2sky_fits(px)
+        wc = ref_wcs.wcs.p2s_fits(px)['world']
+        
         c = wc[0,0]
         d = wc[0,1]
-
+        
         # Calculate the new CDs and convert to degrees
         cd11 = utils.diff_angles(a,newcrval[0])*cos(newcrval[1]*pi/180.0)
         cd12 = utils.diff_angles(c,newcrval[0])*cos(newcrval[1]*pi/180.0)
         cd21 = utils.diff_angles(b,newcrval[1])
         cd22 = utils.diff_angles(d,newcrval[1])
         cd = numpy.array([[cd11, cd12], [cd21, cd22]])
-        ext_wcs.wcs.cd = cd  #???
-        
+        ext_wcs.wcs.cd = cd  
+        ext_wcs.wcs.set()
     upextwcs = classmethod(upextwcs)
         
-    def uprefwcs(self, ext_wcs, ref_wcs, loff, offsh):
+    def uprefwcs(cls, ext_wcs, ref_wcs, rv23_corr_tdd, loff, offsh):
         """
         Updates the reference chip
         """
         ltvoffx, ltvoffy = loff[0], loff[1]
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
+        
+        rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr_tdd[0,0], 
+            ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr_tdd[1,0]]
         # Get an approximate reference position on the sky
-        rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx, 
+        rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
                             ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
         
-        crval = ref_wcs.all_pix2sky_fits(rref)
+        crval = ref_wcs.wcs.p2s_fits(rref)['world'][0]
         # Convert the PA_V3 orientation to the orientation at the aperture
         # This is for the reference chip only - we use this for the
         # reference tangent plane definition
         # It has the same orientation as the reference chip
-        pv = troll(ext_wcs.pav3,dec,ref_wcs.idcmodel.refpix['V2REF'],
-                    ref_wcs.idcmodel.refpix['V3REF'])
+        pv = troll(ext_wcs.pav3,dec,rv23[0], rv23[1])
+        
         # Add the chip rotation angle
         if ref_wcs.idcmodel.refpix['THETA']:
             pv += ref_wcs.idcmodel.refpix['THETA']
             
         
         # Set values for the rest of the reference WCS
-        ref_wcs.wcs.crval = crval[0]
+        ref_wcs.wcs.crval = crval
         ref_wcs.wcs.crpix = numpy.array([0.0,0.0])+offsh
         parity = ref_wcs.parity
         R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
@@ -168,7 +179,23 @@ class MakeWCS(object):
         
     uprefwcs = classmethod(uprefwcs)
         
-
+    def zero_point_corr(cls,hwcs):
+        try:
+            alpha = hwcs.idcmodel.refpix['TDDALPHA']
+            beta = hwcs.idcmodel.refpix['TDDBETA']
+        except KeyError:
+            return numpy.array([[0., 0.],[0.,0.]])
+        
+        tdd = numpy.array([[beta, alpha], [alpha, -beta]])
+        mrotp = fileutil.buildRotMatrix(2.234529)/2048.
+        xy0 = numpy.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
+        
+        v23_corr = numpy.dot(mrotp,numpy.dot(tdd,xy0)) * 0.05
+        
+        return v23_corr 
+    
+    zero_point_corr = classmethod(zero_point_corr)
+        
     def getOffsets(cls, ext_wcs):
         ltv1 = ext_wcs.ltv1
         ltv2 = ext_wcs.ltv2

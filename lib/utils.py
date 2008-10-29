@@ -35,6 +35,11 @@ def restoreWCS(fnames):
                             nkw = ('O'+kw)[:7]
                             if backup.has_key(kw):
                                 hdr.update(kw, hdr[nkw])
+                    tddalpha = hdr.get('TDDALPHA', None)
+                    tddbeta = hdr.get('TDDBETA', None)
+                    if tddalpha or tddbeta:
+                        hdr.update('TDDALPHA', 0.0)
+                        hdr.update('TDDBETA', 0.0)
             fobj.close()
 
 def get_archive(header):
@@ -74,7 +79,7 @@ def diff_angles(a,b):
     """
     
     diff = a - b
-
+    
     if diff > 180.0:
        diff -= 360.0
 
