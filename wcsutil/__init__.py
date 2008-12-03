@@ -22,7 +22,7 @@ class HSTWCS(WCS):
     instrument specific attributes needed by the correction classes.
     """
     
-    def __init__(self, hdr0, ehdr, fobj=None):
+    def __init__(self, hdr0=None, ehdr=None, fobj=None, instrument=None):
         """
         :Parameters:
         `hdr0`: Pyfits Header
@@ -33,13 +33,24 @@ class HSTWCS(WCS):
                 pyfits file object
         """
         WCS.__init__(self, ehdr, fobj=fobj)
-        self.setHDR0kw(hdr0)
-        self.detector = self.setDetector(hdr0)
         self.inst_kw = ins_spec_kw
-        self.setInstrSpecKw(hdr0, ehdr)
-        self.pscale = self.setPscale()
-        self.orientat = self.setOrient()
         
+        if hdr0 == None and ehdr == None and instrument != None:
+            #default HSTWCS objectbased on instrument only
+            self.instrument = instrument
+            self.setInstrSpecKw()
+            
+        elif instrument == None:
+            assert isinstance (hdr0, pyfits.Header)
+            assert isinstance (ehdr, pyfits.Header)
+            
+            self.setHDR0kw(hdr0)
+            self.detector = self.setDetector(hdr0)
+            
+            self.setInstrSpecKw(hdr0, ehdr)
+            self.pscale = self.setPscale()
+            self.orientat = self.setOrient()
+            self.readIDCCoeffs(ehdr)
         
        
     def setHDR0kw(self, primhdr):
@@ -60,7 +71,15 @@ class HSTWCS(WCS):
         else:
             return None
         
-    def setInstrSpecKw(self, prim_hdr, ext_hdr):
+    def readIDCCoeffs(self, header):
+        """
+        Reads in first order IDCTAB coefficients if present in the header
+        """
+        coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
+        for c in coeffs:
+            self.__setattr__(c, header.get(c, None))
+            
+    def setInstrSpecKw(self, prim_hdr=None, ext_hdr=None):
         # Based on the instrument kw creates an instalnce of an instrument WCS class
         # and sets attributes from instrument specific kw 
         if self.instrument in inst_mappings.keys():
@@ -119,8 +138,8 @@ class HSTWCS(WCS):
         ext_hdr.update('OCY11', self.idcmodel.cy[1,1])
         ext_hdr.update('IDCSCALE', self.idcmodel.refpix['PSCALE'])
         ext_hdr.update('IDCTHETA', self.idcmodel.refpix['THETA'])
-        #ext_hdr.update('IDCXREF', self.idcmodel.refpix['XREF'])
-        #ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
+        ext_hdr.update('IDCXREF', self.idcmodel.refpix['XREF'])
+        ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
         ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
         #ext_hdr.update('IDCXSIZE', self.idcmodel.refpix['XSIZE'])

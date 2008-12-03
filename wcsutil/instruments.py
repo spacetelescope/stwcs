@@ -9,7 +9,7 @@ class InstrWCS(object):
     It prvides a default implementation (modeled by ACS) for
     all set_kw methods.
     """
-    def __init__(self, hdr0, hdr):
+    def __init__(self, hdr0=None, hdr=None):
         self.exthdr = hdr   
         self.primhdr = hdr0
         
@@ -31,31 +31,52 @@ class InstrWCS(object):
         self.set_parity()
         
     def set_filter1(self):
-        self.filter1 = self.primhdr.get('FILTER1', None)
-        
+        try:
+            self.filter1 = self.primhdr.get('FILTER1', None)
+        except:
+            self.filter1 = None
     def set_filter2(self):
-        self.filter2 = self.primhdr.get('FILTER2', None) 
-               
+        try:
+            self.filter2 = self.primhdr.get('FILTER2', None) 
+        except:
+            self.filter2 = None
     def set_vafactor(self):
-        self.vafactor = self.exthdr.get('vafactor', 1) 
-    
+        try:
+            self.vafactor = self.exthdr.get('vafactor', 1) 
+        except:
+            self.vafactor = 1.
     def set_naxis1(self):
-        self.naxis1 = self.exthdr.get('naxis1', None)
-        
+        try:
+            self.naxis1 = self.exthdr.get('naxis1', None)
+        except:
+            self.naxis1 = None
     def set_naxis2(self):
-        self.naxis2 = self.exthdr.get('naxis2', None)
-        
+        try:
+            self.naxis2 = self.exthdr.get('naxis2', None)
+        except:
+            self.naxis2 = None
     def set_ltv1(self):
-        self.ltv1 = self.exthdr.get('ltv1', 0.0)
+        try:
+            self.ltv1 = self.exthdr.get('ltv1', 0.0)
+        except:
+            self.ltv1 = 0.0
         
     def set_ltv2(self):
-        self.ltv2 = self.exthdr.get('ltv2', 0.0)
+        try:
+            self.ltv2 = self.exthdr.get('ltv2', 0.0)
+        except:
+            self.ltv2 = 0.0
         
     def set_binned(self):
-        self.binned = self.exthdr.get('BINAXIS1', 1)
-
+        try:
+            self.binned = self.exthdr.get('BINAXIS1', 1)
+        except:
+            self.binned = 1
     def set_chip(self):
-        self.chip = self.exthdr.get('CCDCHIP', 1)
+        try:
+            self.chip = self.exthdr.get('CCDCHIP', 1)
+        except:
+            self.chip = 1
     
     def set_parity(self):
         self.parity = [[1.0,0.0],[0.0,-1.0]]
@@ -75,8 +96,14 @@ class ACSWCS(InstrWCS):
         parity = {'WFC':[[1.0,0.0],[0.0,-1.0]],
                 'HRC':[[-1.0,0.0],[0.0,1.0]],
                 'SBC':[[-1.0,0.0],[0.0,1.0]]}
-        detector = self.primhdr.get('detector', None)  
-        self.parity = parity[detector]
+        try:
+            detector = self.primhdr.get('detector', None)  
+        except:
+            detector = None
+        if detector not in parity.keys():
+            parity = InstrWCS.set_parity(self)
+        else:
+            self.parity = parity[detector]
     
         
 class WFPC2WCS(InstrWCS):   
