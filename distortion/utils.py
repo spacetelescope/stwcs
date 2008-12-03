@@ -6,53 +6,42 @@ from numpy import sqrt, arctan2
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
     fra_dec = np.vstack([w.footprint for w in list_of_wcsobj])
-    """
-    ra_min = np.array(fra_dec[:,0]).min()
-    dec_min = np.array(fra_dec[:,1]).min()
-    ra_max = np.array(fra_dec[:,0]).max()
-    dec_max = np.array(fra_dec[:,1]).max()
-                   
-    output_footprint=np.zeros(shape=(4,2),dtype=np.float64)
-    output_footprint[0,0]=ra_min
-    output_footprint[0,1]=dec_min
-    output_footprint[1,0]=ra_min
-    output_footprint[1,1]=dec_max
-    output_footprint[2,0]=ra_max
-    output_footprint[2,1]=dec_max
-    output_footprint[3,0]=ra_max
-    output_footprint[3,1]=dec_min
-    """
+    
+    delta_fdec = (fra_dec[:,1].max()-fra_dec[:,1].min())
+    crval2 = fra_dec[:,1].min()+ delta_fdec/2.
+    delta_fra = (fra_dec[:,0].max()-fra_dec[:,0].min())
+    min_ind = fra_dec[:,0].argmin()
+    crval1 = (fra_dec[min_ind,0]+ (delta_fra/2.)*np.cos((fra_dec[min_ind,1]-crval2)*np.pi/180))
+    
+    crval = np.array([crval1,crval2])
     if outwcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0]
             
         outwcs = undistortWCS(ref_wcs)
-        outwcs.wcs.crpix = ref_wcs.wcs.crpix
-        outwcs.wcs.crval = ref_wcs.wcs.crval
+        outwcs.wcs.crval = crval
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     else:
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     
-    #out_px = outwcs.wcs.s2p_fits(output_footprint)['pixcrd']
-    out_px = outwcs.wcs.s2p_fits(fra_dec)['pixcrd']
-    outwcs.naxis1 = int(np.ceil(out_px[:,0].max()) - np.floor(out_px[:,0].min()))
-    outwcs.naxis2 = int(np.ceil(out_px[:,1].max()) - np.floor(out_px[:,1].min()))
-    outwcs.recenter()
+    corners = np.array([[fra_dec[:,0].min(),fra_dec[:,1].min()],
+                        [fra_dec[:,0].min(),fra_dec[:,1].max()],
+                        [fra_dec[:,0].max(),fra_dec[:,1].max()],
+                        [fra_dec[:,0].max(),fra_dec[:,1].min()]])
+    tanpix = outwcs.wcs.s2p(corners)['pixcrd']
+
+    outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
+    outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
+    outwcs.wcs.crpix[0] = outwcs.naxis1/2.
+    outwcs.wcs.crpix[1] = outwcs.naxis2/2.
     
     return outwcs
 
 def  undistortWCS(wcsobj):
     assert isinstance(wcsobj, pywcs.WCS)
-    #if wcsobj.idcmodel == None:
-    #    return
-
-    # get the sip coefficients and the first order IDC coeffs
-    # reconstruct the idc model
-    # apply the idc model
-    
-    from hstwcs.distortion import coeff_converter
+    import coeff_converter
     
     cx, cy = coeff_converter.sip2idc(wcsobj)
     crpix1 = wcsobj.wcs.crpix[0]
@@ -81,7 +70,6 @@ def  undistortWCS(wcsobj):
     #lin_wcsobj = wcsutil.HSTWCS(instrument=wcsobj.instrument)
     lin_wcsobj = pywcs.WCS()    #instrument=wcsobj.instrument)
     cd_inv = np.linalg.inv(cd_mat)
-    print 'inv_cd', cd_inv
     lin_wcsobj.wcs.cd = np.dot(wcsobj.wcs.cd, cd_inv)
     
     lin_wcsobj.orientat = arctan2(lin_wcsobj.wcs.cd[0,1],lin_wcsobj.wcs.cd[1,1]) * 180./np.pi
@@ -124,102 +112,4 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
 
     return  c
 
-def sip2idc(wcs):
-    """
-    Converts SIP style coefficients to IDCTAB coefficients.
-    
-    :Parameters:
-    `wcs`: pyfits.Header or pywcs.WCS object
-    """
-    if isinstance(wcs,pyfits.Header):
-        ocx10 = wcs.get('OCX10', None)
-        ocx11 = wcs.get('OCX11', None)
-        ocy10 = wcs.get('OCY10', None)
-        ocy11 = wcs.get('OCY11', None)
-        order = hdr.get('A_ORDER', None)
-        sipa, sipb = read_sip_kw(header)
-        if sipa == None or sipb == None:
-            print 'SIP coefficients are not available.\n'
-            print 'Cannot convert SIP to IDC coefficients.\n'
-            return
-    elif isinstance(wcs,pywcs.WCS):
-        try:
-            ocx10 = wcs.ocx10
-            ocx11 = wcs.ocx11
-            ocy10 = wcs.ocy10
-            ocy11 = wcs.ocy11
-        except AttributeError:
-            print 'First order IDCTAB coefficients are not available.\n'
-            print 'Cannot convert SIP to IDC coefficients.\n'
-            return
-        try:
-            sipa = wcs.sip.a
-            sipb = wcs.sip.b
-        except AttributeError:
-            print 'SIP coefficients are not available.\n'
-            print 'Cannot convert SIP to IDC coefficients.\n'
-            return
-    else:
-        print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
-        return
-    
-    try:
-        order = wcs.sip.a_order
-    except AttributeError:
-        print 'SIP model order unknown, exiting ...\n'
-        return
-
-    if None in [ocx10, ocx11, ocy10, ocy11]:
-        print 'First order IDC coefficients not found, exiting ...\n'
-        return
-    idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
-    cx = np.zeros((order+1,order+1), dtype=np.double)
-    cy = np.zeros((order+1,order+1), dtype=np.double)
-    for n in range(order+1):
-        for m in range(order+1):
-            if n >= m and n>=2:
-                sipval = np.array([[sipa[m,n-m]],[sipb[m,n-m]]])
-                idcval = np.dot(idc_coeff, sipval)
-                cx[n,m] = idcval[0]
-                cy[n,m] = idcval[1]
-    
-    cx[1,0] = ocx10
-    cx[1,1] = ocx11
-    cy[1,0] = ocy10
-    cy[1,1] = ocy11
-                
-    return cx, cy
-
-def read_sip_kw(header):
-    """
-    Reads SIP header keywords and returns an array of coefficients.
-
-    If no SIP header keywords are found, None is returned.
-    """
-    if header.has_key("A_ORDER"):
-        if not header.has_key("B_ORDER"):
-            raise ValueError(
-                "A_ORDER provided without corresponding B_ORDER "
-                "keyword for SIP distortion")
-
-        m = int(header["A_ORDER"])
-        a = np.zeros((m+1, m+1), np.double)
-        for i in range(m+1):
-            for j in range(m-i+1):
-                a[i, j] = header.get("A_%d_%d" % (i, j), 0.0)
-
-        m = int(header["B_ORDER"])
-        b = np.zeros((m+1, m+1), np.double)
-        for i in range(m+1):
-            for j in range(m-i+1):
-                b[i, j] = header.get("B_%d_%d" % (i, j), 0.0)
-    elif header.has_key("B_ORDER"):
-        raise ValueError(
-            "B_ORDER provided without corresponding A_ORDER "
-            "keyword for SIP distortion")
-    else:
-        a = None
-        b = None
-            
-    return a , b
 
