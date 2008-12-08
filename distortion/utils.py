@@ -26,17 +26,17 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     
-    corners = np.array([[fra_dec[:,0].min(),fra_dec[:,1].min()],
-                        [fra_dec[:,0].min(),fra_dec[:,1].max()],
-                        [fra_dec[:,0].max(),fra_dec[:,1].max()],
-                        [fra_dec[:,0].max(),fra_dec[:,1].min()]])
-    tanpix = outwcs.wcs.s2p(corners)['pixcrd']
-
+    tanpix = outwcs.wcs.s2p(fra_dec)['pixcrd']
+    
     outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
     outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
-    outwcs.wcs.crpix[0] = outwcs.naxis1/2.
-    outwcs.wcs.crpix[1] = outwcs.naxis2/2.
+    crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.])
+    outwcs.wcs.crpix = crpix
     
+    tanpix = outwcs.wcs.s2p(fra_dec)['pixcrd']
+    newcrpix = np.array([crpix[0]-np.ceil(tanpix[:,0].min()), crpix[1]-np.ceil(tanpix[:,1].min())])
+    newcrval = outwcs.wcs.p2s([newcrpix])['world'][0]
+    outwcs.wcs.crval = newcrval
     return outwcs
 
 def  undistortWCS(wcsobj):
@@ -49,11 +49,11 @@ def  undistortWCS(wcsobj):
     xy = np.array([(crpix1,crpix2),(crpix1+1.,crpix2),(crpix1,crpix2+1.)],dtype=np.double)
     offsets = np.array([wcsobj.ltv1, wcsobj.ltv2])
     px = xy + offsets
-    order = wcsobj.sip.a_order
+    #order = wcsobj.sip.a_order
     pscale = wcsobj.idcscale
     #pixref = np.array([wcsobj.sip.SIPREF1, wcsobj.sip.SIPREF2])
     
-    tan_pix = apply_idc(px, cx, cy, wcsobj.wcs.crpix, pscale, order)
+    tan_pix = apply_idc(px, cx, cy, wcsobj.wcs.crpix, pscale, order=1)
     xc = tan_pix[:,0]
     yc = tan_pix[:,1]
     am = xc[1] - xc[0]
