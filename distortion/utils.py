@@ -34,7 +34,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
     outwcs.wcs.crpix = crpix
     
     tanpix = outwcs.wcs.s2p(fra_dec)['pixcrd']
-    newcrpix = np.array([crpix[0]-np.ceil(tanpix[:,0].min()), crpix[1]-np.ceil(tanpix[:,1].min())])
+    newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+np.ceil(tanpix[:,1].min())])
     newcrval = outwcs.wcs.p2s([newcrpix])['world'][0]
     outwcs.wcs.crval = newcrval
     return outwcs
