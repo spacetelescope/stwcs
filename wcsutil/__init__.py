@@ -151,6 +151,29 @@ class HSTWCS(WCS):
         cd22 = self.wcs.cd[1][1]
         return RADTODEG(N.arctan2(cd12,cd22))
     
+    def updatePscale(self, pscale):
+        """Given a plate scale, update the CD matrix"""
+        old_pscale = self.pscale
+        self.pscale = pscale
+        self.wcs.cd = self.wcs.cd * pscale/old_pscale
+        self.naxis1 = self.naxis1 * old_pscale/ pscale 
+        self.naxis2 = self.naxis2 * old_pscale/ pscale 
+        self.wcs.crpix = self.wcs.crpix *old_pscale/pscale
+        
+    def updateOrient(self, orient):
+        """Given n angle update the CD matrix"""
+        if self.orientat == orient:
+            return
+        old_orient = self.orientat
+        self.orientat = orient
+        angle = fileutil.DEGTORAD(orient)
+        cd11 = -N.cos(angle)
+        cd12 = N.sin(angle)
+        cd21 = cd12
+        cd22 = -cd11
+        cdmat = N.array([[cd11, cd12],[cd21,cd22]])
+        self.wcs.cd = cdmat * self.pscale/3600
+        
     def verifyPa_V3(self):
         """make sure PA_V3 is populated"""    
         
@@ -162,10 +185,18 @@ class HSTWCS(WCS):
         Purpose
         =======
         Read distortion model from idc table.
-        Save some of the information as kw needed later by pydrizzle
+        Save some of the information as kw needed for interpreting the distortion
         
-        list of kw - to be revised later
         """
+        if self.idctab == None or self.date_obs == None:
+            print 'idctab or date_obs not available\n'
+            self.idcmodel = None
+            return
+        if self.filter1 ==None and self.filter2 == None:
+            'No filter information available\n'
+            self.idcmodel = None
+            return
+        
         self.idcmodel = models.IDCModel(self.idctab,
                     chip=self.chip, direction='forward', date=self.date_obs,
                     filter1=self.filter1, filter2=self.filter2, 
@@ -188,11 +219,6 @@ class HSTWCS(WCS):
         ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
         ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
-        #ext_hdr.update('IDCXSIZE', self.idcmodel.refpix['XSIZE'])
-        #ext_hdr.update('IDCYSIZE', self.idcmodel.refpix['YSIZE'])
-        #ext_hdr.update('IDCXDELT', self.idcmodel.refpix['XDELTA'])
-        #ext_hdr.update('IDCYDELT', self.idcmodel.refpix['YDELTA'])
-        #ext_hdr.update('CENTERED', self.idcmodel.refpix['centered'])
         
     
     def help(self):
