@@ -1,7 +1,6 @@
 #from .. mappings import DEGTORAD, RADTODEG
 from hstwcs.mappings import DEGTORAD, RADTODEG
 import numpy
-from numpy import math 
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 from hstwcs import utils
 from pytools import fileutil
@@ -10,13 +9,25 @@ class MakeWCS(object):
     """
     Purpose
     =======
-    Recompute WCS keywords based on PA_V3 and distortion model.
+    Recompute basic WCS keywords based on PA_V3 and distortion model.
     
     Algorithm
     =========
     - update reference chip wcs
+        
+        -- CRVAL: reference chip model zero point (XREF/YREF) on the sky
+        -- PA_V3 is calculated at the target position and adjusted 
+           for each chip orientation
+        -- CD: PA_V3 and the model scale are used to cnstruct a CD matrix
+        
     - update extension wcs
-    - update extension header
+
+        -- CRVAL: - the distance between the zero points of the two 
+                  chip models on the sky
+        -- CD matrix: first order coefficients are added to the components 
+            of this distance and transfered on the sky. The difference 
+            between CRVAL and these vectors is the new CD matrix for each chip.
+        -- CRPIX: chip's model zero point in pixel space (XREF/YREF)
     
     """
     tdd_xyref = {1: [2048, 3072], 2:[2048, 1024]}
@@ -60,12 +71,11 @@ class MakeWCS(object):
         else:
             fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
         
-        ridcmodel = ref_wcs.idcmodel
-        
-        v2 = ext_wcs.idcmodel.refpix['V2REF'] + v23_corr[0,0]
-        v3 = ext_wcs.idcmodel.refpix['V3REF'] - v23_corr[1,0]
-        v2ref = ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr[0,0]
-        v3ref = ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr[1,0]
+        tddscale = (ref_wcs.pscale/fx[1,1])
+        v2 = ext_wcs.idcmodel.refpix['V2REF'] + v23_corr[0,0] * tddscale
+        v3 = ext_wcs.idcmodel.refpix['V3REF'] - v23_corr[1,0] * tddscale
+        v2ref = ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr[0,0] * tddscale
+        v3ref = ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr[1,0] * tddscale
         
         R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
         off = sqrt((v2-v2ref)**2 + (v3-v3ref)**2)/(R_scale*3600.0)
@@ -87,54 +97,34 @@ class MakeWCS(object):
         ext_wcs.wcs.crval = newcrval
         ext_wcs.wcs.crpix = newcrpix
         ext_wcs.wcs.set()
+        
+        # Create a small vector, in reference image pixel scale
+        delmat = numpy.array([[fx[1,1], fy[1,1]], \
+                              [fx[1,0], fy[1,0]]]) / R_scale/3600.
+                            
         # Account for subarray offset
         # Angle of chip relative to chip
         if ext_wcs.idcmodel.refpix['THETA']:
            dtheta = ext_wcs.idcmodel.refpix['THETA'] - ref_wcs.idcmodel.refpix['THETA']
         else:
-           dtheta = 0.0
-        
-        
-        # Create a small vector, in reference image pixel scale
-        # There is no parity effect here ???
-        
-        delXX=fx[1,1]/R_scale/3600.
-        delYX=fy[1,1]/R_scale/3600.
-        delXY=fx[1,0]/R_scale/3600.
-        delYY=fy[1,0]/R_scale/3600.
-        
+           dtheta = 0.0                    
         # Convert to radians
         rr=dtheta*pi/180.0
+        rrmat = fileutil.buildRotMatrix(rr)
         
         # Rotate the vectors
-        dXX = cos(rr)*delXX - sin(rr)*delYX
-        dYX = sin(rr)*delXX + cos(rr)*delYX
-
-        dXY = cos(rr)*delXY - sin(rr)*delYY
-        dYY = sin(rr)*delXY + cos(rr)*delYY
-        
-        px = numpy.array([[dX+dXX,dY+dYX]])
-        
-        # Transform to sky coordinates
-        wc = ref_wcs.wcs.p2s_fits(px)['world']
-        
-        a = wc[0,0]
-        b = wc[0,1]
-        px = numpy.array([[dX+dXY,dY+dYY]])
-        
-        wc = ref_wcs.wcs.p2s_fits(px)['world']
-        
-        c = wc[0,0]
-        d = wc[0,1]
+        dxy = numpy.dot(rrmat, delmat)
+        wc = ref_wcs.wcs.p2s_fits(px + dxy)['world']
         
         # Calculate the new CDs and convert to degrees
-        cd11 = utils.diff_angles(a,newcrval[0])*cos(newcrval[1]*pi/180.0)
-        cd12 = utils.diff_angles(c,newcrval[0])*cos(newcrval[1]*pi/180.0)
-        cd21 = utils.diff_angles(b,newcrval[1])
-        cd22 = utils.diff_angles(d,newcrval[1])
+        cd11 = utils.diff_angles(wc[0,0],newcrval[0])*cos(newcrval[1]*pi/180.0)
+        cd12 = utils.diff_angles(wc[1,0],newcrval[0])*cos(newcrval[1]*pi/180.0)
+        cd21 = utils.diff_angles(wc[0,1],newcrval[1])
+        cd22 = utils.diff_angles(wc[1,1],newcrval[1])
         cd = numpy.array([[cd11, cd12], [cd21, cd22]])
         ext_wcs.wcs.cd = cd  
         ext_wcs.wcs.set()
+
     upextwcs = classmethod(upextwcs)
         
     def uprefwcs(cls, ext_wcs, ref_wcs, rv23_corr_tdd, loff, offsh):
@@ -144,9 +134,9 @@ class MakeWCS(object):
         ltvoffx, ltvoffy = loff[0], loff[1]
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
-        
-        rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr_tdd[0,0], 
-            ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr_tdd[1,0]]
+        tddscale = (ref_wcs.pscale/ext_wcs.idcmodel.cx[1,1])
+        rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr_tdd[0,0] *tddscale, 
+            ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr_tdd[1,0]] * tddscale
         # Get an approximate reference position on the sky
         rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
                             ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
@@ -157,7 +147,6 @@ class MakeWCS(object):
         # reference tangent plane definition
         # It has the same orientation as the reference chip
         pv = troll(ext_wcs.pav3,dec,rv23[0], rv23[1])
-        
         # Add the chip rotation angle
         if ref_wcs.idcmodel.refpix['THETA']:
             pv += ref_wcs.idcmodel.refpix['THETA']
@@ -189,7 +178,6 @@ class MakeWCS(object):
         tdd = numpy.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.
         xy0 = numpy.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
-        
         v23_corr = numpy.dot(mrotp,numpy.dot(tdd,xy0)) * 0.05
         
         return v23_corr 
