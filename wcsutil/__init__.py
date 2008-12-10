@@ -5,6 +5,7 @@ import instruments
 #from .. distortion import models
 from hstwcs.distortion import models
 import numpy as N
+from pytools import fileutil
 
 #from .. mappings import inst_mappings, ins_spec_kw, DEGTORAD, RADTODEG, basic_wcs
 from hstwcs.mappings import inst_mappings, ins_spec_kw, DEGTORAD, RADTODEG
@@ -22,55 +23,100 @@ class HSTWCS(WCS):
     instrument specific attributes needed by the correction classes.
     """
     
-    def __init__(self, hdr0=None, ehdr=None, fobj=None, instrument=None):
+    def __init__(self, hdr0=None, ehdr=None, fobj=None, fname=None, instrument=None):
         """
         :Parameters:
+        `fname`: string
+                file/extension name
+                filename[EXTNAME,EXTNUM]
+                filename[extension_number]
         `hdr0`: Pyfits Header
                 primary header
         `ehdr`: Pyfits Header
                extension header
         `fobj`: PyFITS HDUList object or None
                 pyfits file object
+        `instrument`: string
+                one of 'ACS', 'NICMOS', 'WFPC2', 'STIS', 'WFC3' 
         """
-        WCS.__init__(self, ehdr, fobj=fobj)
+        
         self.inst_kw = ins_spec_kw
         
-        if hdr0 == None and ehdr == None and instrument != None:
-            #default HSTWCS objectbased on instrument only
+        if fname == None and hdr0 == None and ehdr == None and instrument != None:
+            # create a default HSTWCS object based on instrument only
             self.instrument = instrument
             self.setInstrSpecKw()
-            
-        elif instrument == None:
-            assert isinstance (hdr0, pyfits.Header)
-            assert isinstance (ehdr, pyfits.Header)
-            
-            self.setHDR0kw(hdr0)
-            self.detector = self.setDetector(hdr0)
-            
-            self.setInstrSpecKw(hdr0, ehdr)
-            self.pscale = self.setPscale()
-            self.orientat = self.setOrient()
-            self.readIDCCoeffs(ehdr)
+        elif fname != None:
+            # create an HSTWCS object from a filename
+            filename, extname = fileutil.parseFilename(fname)
+            self.filename = filename
+            self.extname = extname
+            if extname == None:
+                #data may be in the primary array
+                ehdr = pyfits.getheader(filename)
+                hdr0 = None
+            else:
+                ext = fileutil.parseExtn(extname)
+                hdr0 = pyfits.getheader(filename)
+                try:
+                    ehdr = pyfits.getheader(filename, ext=ext)
+                except:
+                    print 'Unable to get extension header based on filename %s. /n' % fname
+        elif fname == None and  instrument == None:
+            # hdr0 may be None, a WCS object will still be created
+            if hdr0 == None and ehdr == None:
+                print 'Not enough information to create a WCS object\n'
+                self.help()
+                return
+            if hdr0 != None:
+                assert isinstance (hdr0, pyfits.Header)
+            if ehdr != None:
+                assert isinstance (ehdr, pyfits.Header)
+                
+        WCS.__init__(self, ehdr, fobj=fobj)    
+        self.setHDR0kw(hdr0, ehdr)
+        #self.detector = self.setDetector(hdr0)
         
-       
-    def setHDR0kw(self, primhdr):
+        self.setInstrSpecKw(hdr0, ehdr)
+        self.pscale = self.setPscale()
+        self.orientat = self.setOrient()
+        self.readIDCCoeffs(ehdr)
+        # if input was not a file name, try to get it from the primary header
+        self.filename = hdr0.get('FILENAME', "")
+        extname = ehdr.get('EXTNAME', "")
+        extnum = ehdr.get('EXTVER', None)
+        self.extname = (extname, extnum)
+            
+        
+        
+    def setHDR0kw(self, primhdr, ehdr):
+        if primhdr == None:
+            # we are given only an extension header
+            header = ehdr
+        elif ehdr == None:
+            header = primhdr
+        else:
+            hcards = primhdr.ascardlist()
+            hcards.extend(ehdr.ascardlist())
+            header = pyfits.Header(cards = hcards)
         # Set attributes from kw defined in the primary header.
-        self.instrument = primhdr.get('INSTRUME', None)
-        self.offtab = primhdr.get('OFFTAB', None) 
-        self.idctab = primhdr.get('IDCTAB', None)
-        self.date_obs = primhdr.get('DATE-OBS', None)
-        self.pav3 = primhdr.get('PA_V3', None)
-        self.ra_targ = primhdr.get('RA_TARG', None)
-        self.dec_targ = primhdr.get('DEC_TARG', None)
-    
-    
+        self.instrument = header.get('INSTRUME', None)
+        self.offtab = header.get('OFFTAB', None) 
+        self.idctab = header.get('IDCTAB', None)
+        self.date_obs = header.get('DATE-OBS', None)
+        self.pav3 = header.get('PA_V3', None)
+        self.ra_targ = header.get('RA_TARG', None)
+        self.dec_targ = header.get('DEC_TARG', None)
+        self.detector = header.get('DETECTOR', None)
+        self.filename = header.get('FILENAME', "")
+    """
     def setDetector(self, header):
         # Set detector attribute for instuments which have more than one detector
         if self.instrument in ['ACS', 'WFC3']:
             return header.get('DETECTOR', None)
         else:
             return None
-        
+    """
     def readIDCCoeffs(self, header):
         """
         Reads in first order IDCTAB coefficients if present in the header
@@ -149,4 +195,20 @@ class HSTWCS(WCS):
         #ext_hdr.update('CENTERED', self.idcmodel.refpix['centered'])
         
     
+    def help(self):
+        print 'How to create an HSTWCS object:\n\n'
+        print """ \
+        1. Create an HSTWCS object using pyfits.Header objects. \n
+        Example:\n
+        hdr0 = pyfits.getheader('j9irw4b1q_flt.fits', ext=0)\n
+        hdr1 = pyfits.getheader('j9irw4b1q_flt.fits', ext=1)\n
+        f = pyfits.open('j9irw4b1q_flt.fits')\n
+        f is required only if a lookup table distortion is available.\n
+        w = wcsutil.HSTWCS(hdr0, hdr1,f)\n\n
+        
+        2. Create an HSTWCS object using a qualified file name. \n
+        Example:\n
+        w = wcsutil.HSTWCS('j9irw4b1q_flt.fits[sci,1]')\n\n
+        """
+        
     
