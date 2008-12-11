@@ -180,13 +180,14 @@ class HSTWCS(WCS):
     def verifyKw(self):
         """verify that all required kw have meaningful values"""
             
-    def readModel(self, header):
+    def readModel(self, update=False, header=None):
         """
         Purpose
         =======
         Read distortion model from idc table.
         Save some of the information as kw needed for interpreting the distortion
-        
+        If header is provided and update is true, some IDC model kw 
+        will be recorded in the header.
         """
         if self.idctab == None or self.date_obs == None:
             print 'idctab or date_obs not available\n'
@@ -202,8 +203,12 @@ class HSTWCS(WCS):
                     filter1=self.filter1, filter2=self.filter2, 
                     offtab=self.offtab, binned=self.binned)
         
-        
-        self.updatehdr(header)
+        if update:
+            if header==None:
+                print 'Update header with IDC model kw requested but header was not provided\n.'
+                return
+            else:
+                self.updatehdr(header)
                    
     
     def updatehdr(self, ext_hdr, newkeywords=None):

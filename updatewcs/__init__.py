@@ -84,11 +84,11 @@ def makecorr(fname, allowed_corr):
         # Perhaps all ext headers should be corrected (to be consistent)
         if extn.header.has_key('extname') and extn.header['extname'].lower() == 'sci':
             ref_wcs = HSTWCS(primhdr, ref_hdr, fobj=f)
-            ref_wcs.readModel(ref_hdr)
+            ref_wcs.readModel(update=True, header=ref_hdr)
             hdr = extn.header
             ext_wcs = HSTWCS(primhdr, hdr, fobj=f)
             utils.write_archive(hdr)
-            ext_wcs.readModel(hdr)
+            ext_wcs.readModel(update=True,header=hdr)
             for c in allowed_corr:
                 if c != 'DGEOCorr':
                     corr_klass = corrections.__getattribute__(c)

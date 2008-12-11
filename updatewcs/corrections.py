@@ -39,7 +39,9 @@ class TDDCorr(object):
         ref_wcs.idcmodel.refpix['TDDALPHA'] = alpha
         ref_wcs.idcmodel.refpix['TDDBETA'] = beta
         
-        newkw = {'TDDALPHA': alpha, 'TDDBETA':beta}
+        newkw = {'TDDALPHA': alpha, 'TDDBETA':beta, 'OCX10':ext_wcs.idcmodel.cx[1,0],
+                'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
+                'OCY11':ext_wcs.idcmodel.cy[1,1],}
         
         return newkw
     updateWCS = classmethod(updateWCS)
