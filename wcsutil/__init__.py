@@ -117,7 +117,15 @@ class HSTWCS(WCS):
             inst_kl = instruments.__dict__[inst_kl]
             insobj = inst_kl(prim_hdr, ext_hdr)
             for key in self.inst_kw:
-                self.__setattr__(key, insobj.__getattribute__(key))
+                try:
+                    self.__setattr__(key, insobj.__getattribute__(key))
+                except AttributeError:
+                    # Some of the instrument's attributes are recorded in the primary header and
+                    # were already set, (e.g. 'DETECTOR'), the code below is a check for that case.
+                    if not self.__getattribute__(key):
+                        print '%s object has no attribute %s' % (insobj.__class__.__name__, key)
+                    else:
+                        raise
         else:
             raise KeyError, "Unsupported instrument - %s" %self.instrument
     

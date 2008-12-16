@@ -29,7 +29,7 @@ class InstrWCS(object):
         self.set_binned()
         self.set_chip()
         self.set_parity()
-        self.set_extver()
+        self.set_detector()
         
     def set_filter1(self):
         try:
@@ -79,14 +79,13 @@ class InstrWCS(object):
         except:
             self.chip = 1
             
-    def set_extver(self):
-        try:
-            self.extver = self.exthdr.get('EXTVER', 1)
-        except:
-            self.extver = 1
-            
     def set_parity(self):
         self.parity = [[1.0,0.0],[0.0,-1.0]]
+    
+    def set_detector(self):
+        # each instrument has a different kw for detector and it can be 
+        # in a different header, so this is to be handled by the instrument classes 
+        pass
         
 class ACSWCS(InstrWCS):
     """
@@ -146,4 +145,5 @@ class WFPC2WCS(InstrWCS):
     def set_parity(self):
         self.parity = [[-1.0,0.],[0.,1.0]]
         
-    
+    def set_detector(self):
+        self.detector = self.exthdr.get('DETECTOR', None)
