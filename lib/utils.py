@@ -1,6 +1,6 @@
 from pytools import parseinput, fileutil
 import pyfits
-from mappings import basic_wcs
+from wcsutil.mappings import basic_wcs
 
 def restoreWCS(fnames):
     """

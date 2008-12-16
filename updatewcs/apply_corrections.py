@@ -1,13 +1,20 @@
 import os
 import pyfits
-from hstwcs.mappings import allowed_corrections
+#import allowed_corrections
 import time
 from pytools import fileutil
 import os.path
 #Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
-        
+
+# A dictionary which lists the allowed corrections for each instrument.
+# These are the default corrections applied also in the pipeline.
+
+allowed_corrections={'WFPC2': ['MakeWCS','CompSIP', 'VACorr', 'DGEOCorr'],
+                    'ACS': ['TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr']
+                    }
+                            
 def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True):
     """
     Purpose
@@ -19,11 +26,11 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True):
     instrument = pyfits.getval(fname, 'INSTRUME')
     tddcorr = applyTDDCorr(fname, tddcorr)
     dgeocorr = applyDgeoCorr(fname, dgeocorr)
-    acorr = allowed_corrections[instrument]
-    if 'VACorr' in acorr and not vacorr:  acorr.remove('VACorr')
-    if 'TDDCorr' in acorr and not tddcorr: acorr.remove('TDDCorr')
-    if 'DGEOCorr' in acorr and not dgeocorr: acorr.remove('DGEOCorr')
-    
+    # make a copy of this list !
+    acorr = allowed_corrections[instrument][:]
+    if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
+    if 'TDDCorr' in acorr and tddcorr==False: acorr.remove('TDDCorr')
+    if 'DGEOCorr' in acorr and dgeocorr==False: acorr.remove('DGEOCorr')
     return acorr
 
 def applyTDDCorr(fname, utddcorr):
@@ -103,8 +110,7 @@ def applyDgeoCorr(fname, udgeocorr):
         applyDGEOCorr = False
     
     if isOldStyleDGEO(fname, fdgeo0):
-        applyDGEOCorr = False
-    print 'udgeocorr', udgeocorr, applyDGEOCorr    
+        applyDGEOCorr = False   
     return (applyDGEOCorr and udgeocorr)
 
 def isOldStyleDGEO(fname, dgname):

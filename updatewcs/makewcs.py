@@ -1,5 +1,5 @@
 #from .. mappings import DEGTORAD, RADTODEG
-from hstwcs.mappings import DEGTORAD, RADTODEG
+from hstwcs import DEGTORAD, RADTODEG
 import numpy
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 from hstwcs import utils

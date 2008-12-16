@@ -1,7 +1,7 @@
 import pyfits
 import numpy as N
 #from .. mappings import ins_spec_kw
-from hstwcs.mappings import ins_spec_kw, prim_hdr_kw
+from mappings import ins_spec_kw, prim_hdr_kw
     
 class InstrWCS(object):
     """
@@ -29,6 +29,7 @@ class InstrWCS(object):
         self.set_binned()
         self.set_chip()
         self.set_parity()
+        self.set_extver()
         
     def set_filter1(self):
         try:
@@ -77,7 +78,13 @@ class InstrWCS(object):
             self.chip = self.exthdr.get('CCDCHIP', 1)
         except:
             self.chip = 1
-    
+            
+    def set_extver(self):
+        try:
+            self.extver = self.exthdr.get('EXTVER', 1)
+        except:
+            self.extver = 1
+            
     def set_parity(self):
         self.parity = [[1.0,0.0],[0.0,-1.0]]
         

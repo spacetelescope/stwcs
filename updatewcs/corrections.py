@@ -19,9 +19,9 @@ class TDDCorr(object):
     Solution of the WFC 
     
     :Parameters:
-    `owcs`: HSTWCS object
+    `ext_wcs`: HSTWCS object
             An extension HSTWCS object to be modified
-    `refwcs`: HSTWCS object
+    `ref_wcs`: HSTWCS object
              A reference HSTWCS object
     """
     
@@ -141,8 +141,8 @@ class CompSIP(object):
                     Bkey="B_%d_%d" % (m,n-m)
                     kw2update[Akey] = sipval[0,0]
                     kw2update[Bkey] = sipval[1,0]
-        #kw2update['CTYPE1'] = 'RA---TAN-SIP'
-        #kw2update['CTYPE2'] = 'DEC--TAN-SIP'
+        kw2update['CTYPE1'] = 'RA---TAN-SIP'
+        kw2update['CTYPE2'] = 'DEC--TAN-SIP'
         return kw2update
     
     updateWCS = classmethod(updateWCS)

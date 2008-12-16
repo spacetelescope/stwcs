@@ -6,10 +6,12 @@ import instruments
 from hstwcs.distortion import models
 import numpy as N
 from pytools import fileutil
+from pytools.fileutil import DEGTORAD, RADTODEG
 
 #from .. mappings import inst_mappings, ins_spec_kw, DEGTORAD, RADTODEG, basic_wcs
-from hstwcs.mappings import inst_mappings, ins_spec_kw, DEGTORAD, RADTODEG
-from hstwcs.mappings import basic_wcs, prim_hdr_kw
+import mappings
+from mappings import inst_mappings, ins_spec_kw
+from mappings import basic_wcs, prim_hdr_kw
 
 __docformat__ = 'restructuredtext'
 
@@ -75,8 +77,6 @@ class HSTWCS(WCS):
                 
         WCS.__init__(self, ehdr, fobj=fobj)    
         self.setHDR0kw(hdr0, ehdr)
-        #self.detector = self.setDetector(hdr0)
-        
         self.setInstrSpecKw(hdr0, ehdr)
         self.pscale = self.setPscale()
         self.orientat = self.setOrient()
@@ -90,33 +90,17 @@ class HSTWCS(WCS):
         
         
     def setHDR0kw(self, primhdr, ehdr):
-        if primhdr == None:
-            # we are given only an extension header
-            header = ehdr
-        elif ehdr == None:
-            header = primhdr
-        else:
-            hcards = primhdr.ascardlist()
-            hcards.extend(ehdr.ascardlist())
-            header = pyfits.Header(cards = hcards)
         # Set attributes from kw defined in the primary header.
-        self.instrument = header.get('INSTRUME', None)
-        self.offtab = header.get('OFFTAB', None) 
-        self.idctab = header.get('IDCTAB', None)
-        self.date_obs = header.get('DATE-OBS', None)
-        self.pav3 = header.get('PA_V3', None)
-        self.ra_targ = header.get('RA_TARG', None)
-        self.dec_targ = header.get('DEC_TARG', None)
-        self.detector = header.get('DETECTOR', None)
-        self.filename = header.get('FILENAME', "")
-    """
-    def setDetector(self, header):
-        # Set detector attribute for instuments which have more than one detector
-        if self.instrument in ['ACS', 'WFC3']:
-            return header.get('DETECTOR', None)
-        else:
-            return None
-    """
+        self.instrument = primhdr.get('INSTRUME', None)
+        self.offtab = primhdr.get('OFFTAB', None) 
+        self.idctab = primhdr.get('IDCTAB', None)
+        self.date_obs = primhdr.get('DATE-OBS', None)
+        self.pav3 = primhdr.get('PA_V3', None)
+        self.ra_targ = primhdr.get('RA_TARG', None)
+        self.dec_targ = primhdr.get('DEC_TARG', None)
+        self.filename = primhdr.get('FILENAME', "")
+        self.detector = primhdr.get('DETECTOR', None)
+
     def readIDCCoeffs(self, header):
         """
         Reads in first order IDCTAB coefficients if present in the header
