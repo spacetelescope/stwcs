@@ -47,8 +47,16 @@ def applyTDDCorr(fname, utddcorr):
         detector = pyfits.getval(fname, 'DETECTOR')
     except KeyError:
         detector = None
-    
-    if instrument == 'ACS' and detector == 'WFC' and utddcorr == True:
+    try:
+        tddcorr = pyfits.getval(fname, 'TDDCORR')
+        if tddcorr == 'PERFORM': 
+            tddcorr = True
+        else:
+            tddcorr = False
+    except KeyError:
+        tddcorr = None
+        
+    if instrument == 'ACS' and detector == 'WFC' and tddcorr== True and utddcorr == True:
         tddcorr = True
         try:
             idctab = pyfits.getval(fname, 'IDCTAB')    
