@@ -100,7 +100,8 @@ class HSTWCS(WCS):
         self.dec_targ = primhdr.get('DEC_TARG', None)
         self.filename = primhdr.get('FILENAME', "")
         self.detector = primhdr.get('DETECTOR', None)
-
+    
+    
     def readIDCCoeffs(self, header):
         """
         Reads in first order IDCTAB coefficients if present in the header
@@ -123,9 +124,9 @@ class HSTWCS(WCS):
                     # Some of the instrument's attributes are recorded in the primary header and
                     # were already set, (e.g. 'DETECTOR'), the code below is a check for that case.
                     if not self.__getattribute__(key):
-                        print '%s object has no attribute %s' % (insobj.__class__.__name__, key)
-                    else:
                         raise
+                    else:
+                        pass
         else:
             raise KeyError, "Unsupported instrument - %s" %self.instrument
     

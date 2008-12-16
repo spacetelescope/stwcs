@@ -36,8 +36,10 @@ class MakeWCS(object):
         recomputes the basic WCS kw 
         """
         ltvoff, offshift = cls.getOffsets(ext_wcs)
+        
         v23_corr = cls.zero_point_corr(ext_wcs)
         rv23_corr = cls.zero_point_corr(ref_wcs)
+        
         cls.uprefwcs(ext_wcs, ref_wcs, rv23_corr, ltvoff, offshift)
         cls.upextwcs(ext_wcs, ref_wcs, v23_corr, rv23_corr, ltvoff, offshift)
         
@@ -135,8 +137,8 @@ class MakeWCS(object):
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
         tddscale = (ref_wcs.pscale/ext_wcs.idcmodel.cx[1,1])
-        rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + rv23_corr_tdd[0,0] *tddscale, 
-            ref_wcs.idcmodel.refpix['V3REF'] - rv23_corr_tdd[1,0]] * tddscale
+        rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + (rv23_corr_tdd[0,0] *tddscale), 
+            ref_wcs.idcmodel.refpix['V3REF'] - (rv23_corr_tdd[1,0] * tddscale)]
         # Get an approximate reference position on the sky
         rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
                             ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
