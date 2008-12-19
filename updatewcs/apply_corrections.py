@@ -89,6 +89,8 @@ def applyDgeoCorr(fname, udgeocorr):
     try:
         # get DGEOFILE kw from primary header
         fdgeo0 = pyfits.getval(fname, 'DGEOFILE')
+        if fdgeo0 == 'N/A':
+            return False
         fdgeo0 = fileutil.osfn(fdgeo0)
         if not fileutil.findFile(fdgeo0):
             print 'Kw DGEOFILE exists in primary header but file %s not found\n' % fdgeo0
