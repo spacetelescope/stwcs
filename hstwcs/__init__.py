@@ -1,10 +1,10 @@
 import os
 import pyfits
 #from .. wcsutil import HSTWCS
-from hstwcs.wcsutil import HSTWCS
+from updatewcs.wcsutil import HSTWCS
 
 #from .. mappings import allowed_corrections
-from hstwcs import utils
+from updatewcs import utils
 import corrections, makewcs
 import dgeo
 import time

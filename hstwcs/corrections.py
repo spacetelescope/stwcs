@@ -2,7 +2,7 @@ import datetime
 import numpy
 from numpy import linalg
 from pytools import fileutil
-from hstwcs.utils import diff_angles
+from updatewcs.utils import diff_angles
 import makewcs, dgeo
 
 MakeWCS = makewcs.MakeWCS
