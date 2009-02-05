@@ -14,6 +14,8 @@ from mappings import inst_mappings, ins_spec_kw
 from mappings import basic_wcs, prim_hdr_kw
 
 __docformat__ = 'restructuredtext'
+__version__ = '0.3'
+
 
 class HSTWCS(WCS):
     """

@@ -64,8 +64,8 @@ def apply_shifts(asndict, outwcs):
                 extver = extn.header['extver']
                 owcs = pywcs.WCS(extn.header, f)
                 crvals = np.array([owcs.wcs.crval])
-                px = outwcs.wcs.s2p_fits(crvals)['pixcrd'] + shifts
-                ncrvals = outwcs.all_pix2sky_fits(px)
+                px = outwcs.wcs.s2p(crvals, 1)['pixcrd'] + shifts
+                ncrvals = outwcs.all_pix2sky(px, 1)
                 pyfits.setval(filename, 'CRVAL1', value=ncrvals[0,0], ext=extver)
                 pyfits.setval(filename, 'CRVAL2', value=ncrvals[0,1], ext=extver)
                 print 'Updated %s with shifts ' % filename, shifts

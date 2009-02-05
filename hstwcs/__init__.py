@@ -15,6 +15,7 @@ import apply_corrections
 
 __docformat__ = 'restructuredtext'
 
+__version__ = '0.3'
 
 def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True):
     """

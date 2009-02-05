@@ -97,8 +97,6 @@ def applyDgeoCorr(fname, udgeocorr):
             print 'DGEO correction will not be applied\n'
             applyDGEOCorr = False
             return applyDGEOCorr 
-        if isOldStyleDGEO(fname, fdgeo0):
-            applyDGEOCorr = False       
         try:
             # get DGEOFILE kw from first extension header
             fdgeo1 = pyfits.getval(fname, 'DGEOFILE', ext=1)
@@ -120,7 +118,8 @@ def applyDgeoCorr(fname, udgeocorr):
 
         print 'DGEOFILE keyword not found in primary header'
         applyDGEOCorr = False
-    
+    if isOldStyleDGEO(fname, fdgeo0):
+            applyDGEOCorr = False       
     return (applyDGEOCorr and udgeocorr)
 
 def isOldStyleDGEO(fname, dgname):

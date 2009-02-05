@@ -93,7 +93,7 @@ class MakeWCS(object):
         dY=(off*cos(theta)) + offshifty
         
         px = numpy.array([[dX,dY]])
-        newcrval = ref_wcs.wcs.p2s_fits(px)['world'][0]
+        newcrval = ref_wcs.wcs.p2s(px, 1)['world'][0]
         newcrpix = numpy.array([ext_wcs.idcmodel.refpix['XREF'] + ltvoffx, 
                                 ext_wcs.idcmodel.refpix['YREF'] + ltvoffy])
         ext_wcs.wcs.crval = newcrval
@@ -116,7 +116,7 @@ class MakeWCS(object):
         
         # Rotate the vectors
         dxy = numpy.dot(rrmat, delmat)
-        wc = ref_wcs.wcs.p2s_fits(px + dxy)['world']
+        wc = ref_wcs.wcs.p2s((px + dxy), 1)['world']
         
         # Calculate the new CDs and convert to degrees
         cd11 = utils.diff_angles(wc[0,0],newcrval[0])*cos(newcrval[1]*pi/180.0)
@@ -143,7 +143,7 @@ class MakeWCS(object):
         rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
                             ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
         
-        crval = ref_wcs.wcs.p2s_fits(rref)['world'][0]
+        crval = ref_wcs.wcs.p2s(rref, 1)['world'][0]
         # Convert the PA_V3 orientation to the orientation at the aperture
         # This is for the reference chip only - we use this for the
         # reference tangent plane definition
