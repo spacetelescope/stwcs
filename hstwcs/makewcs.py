@@ -1,4 +1,3 @@
-#from .. mappings import DEGTORAD, RADTODEG
 from updatewcs import DEGTORAD, RADTODEG
 import numpy
 from math import sin, sqrt, pow, cos, asin, atan2,pi
@@ -42,7 +41,6 @@ class MakeWCS(object):
         
         cls.uprefwcs(ext_wcs, ref_wcs, rv23_corr, ltvoff, offshift)
         cls.upextwcs(ext_wcs, ref_wcs, v23_corr, rv23_corr, ltvoff, offshift)
-        
 
         kw2update = {'CD1_1': ext_wcs.wcs.cd[0,0],
                     'CD1_2': ext_wcs.wcs.cd[0,1],

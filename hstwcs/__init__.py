@@ -75,20 +75,20 @@ def makecorr(fname, allowed_corr):
             
     """
     f = pyfits.open(fname, mode='update')
-    #Determine the reference chip and make a copy of its restored header.
+    #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
-    primhdr = f[0].header
-    ref_hdr = f[nrefext].header.copy()
-    utils.write_archive(ref_hdr)
-    
-    for extn in f:
+    ref_wcs = HSTWCS(fobj=f, ext=nrefext)
+    ref_wcs.readModel(update=True,header=f[nrefext].header)
+    utils.write_archive(f[nrefext].header)
+            
+    for i in range(len(f))[1:]:
         # Perhaps all ext headers should be corrected (to be consistent)
+        extn = f[i]
         if extn.header.has_key('extname') and extn.header['extname'].lower() == 'sci':
-            ref_wcs = HSTWCS(primhdr, ref_hdr, fobj=f)
-            ref_wcs.readModel(update=True, header=ref_hdr)
+            ref_wcs.restore(f[nrefext].header)
             hdr = extn.header
-            ext_wcs = HSTWCS(primhdr, hdr, fobj=f)
             utils.write_archive(hdr)
+            ext_wcs = HSTWCS(fobj=f, ext=i)
             ext_wcs.readModel(update=True,header=hdr)
             for c in allowed_corr:
                 if c != 'DGEOCorr':
@@ -103,7 +103,6 @@ def makecorr(fname, allowed_corr):
             f[1].header.update(kw, kw2update[kw])
             
     f.close()
-    
 def getNrefchip(fobj):
     """
     This handles the fact that WFPC2 subarray observations
