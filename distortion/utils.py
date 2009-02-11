@@ -26,16 +26,16 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     
-    tanpix = outwcs.wcs.s2p(fra_dec)['pixcrd']
+    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
     
     outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
     outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
     crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.])
     outwcs.wcs.crpix = crpix
     
-    tanpix = outwcs.wcs.s2p(fra_dec)['pixcrd']
+    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
     newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+np.ceil(tanpix[:,1].min())])
-    newcrval = outwcs.wcs.p2s([newcrpix])['world'][0]
+    newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
     return outwcs
 
