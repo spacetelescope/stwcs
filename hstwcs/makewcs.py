@@ -63,10 +63,9 @@ class MakeWCS(object):
         offshiftx, offshifty = offsh[0], offsh[1]
         ltv1 = ext_wcs.ltv1
         ltv2 = ext_wcs.ltv2
-        
         if ltv1 != 0. or ltv2 != 0.:
-            offsetx = backup_wcs['CRPIX1'] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
-            offsety = backup_wcs['CRPIX2'] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
+            offsetx = ext_wcs.wcs.crpix[0] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
+            offsety = ext_wcs.wcs.crpix[1] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
             fx,fy = ext_wcs.idcmodel.shift(ext_wcs.idcmodel.cx,ext_wcs.idcmodel.cy,offsetx,offsety)
         else:
             fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
