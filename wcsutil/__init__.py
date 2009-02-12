@@ -103,11 +103,19 @@ class HSTWCS(WCS):
         self.offtab = primhdr.get('OFFTAB', None) 
         self.idctab = primhdr.get('IDCTAB', None)
         self.date_obs = primhdr.get('DATE-OBS', None)
-        self.pav3 = primhdr.get('PA_V3', None)
         self.ra_targ = primhdr.get('RA_TARG', None)
         self.dec_targ = primhdr.get('DEC_TARG', None)
-        self.filename = primhdr.get('FILENAME', "")
-        self.detector = primhdr.get('DETECTOR', None)
+        #self.detector = primhdr.get('DETECTOR', None)
+        
+        try:
+            self.pav3 = primhdr['PA_V3']
+        
+        except KeyError:
+            print 'Kw PA_V3 not found in primary header.'
+            print 'This is typical for some old files. Please retrieve the files fromthe archive again.'
+            print 'Quitting ...'
+            raise
+        
     
     
     def readIDCCoeffs(self, header):
@@ -174,8 +182,7 @@ class HSTWCS(WCS):
         cd22 = -cd11
         cdmat = N.array([[cd11, cd12],[cd21,cd22]])
         self.wcs.cd = cdmat * self.pscale/3600
-        
-
+            
             
     def readModel(self, update=False, header=None):
         """

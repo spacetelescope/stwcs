@@ -12,7 +12,10 @@ __docformat__ = 'restructuredtext'
 # These are the default corrections applied also in the pipeline.
 
 allowed_corrections={'WFPC2': ['MakeWCS','CompSIP', 'VACorr', 'DGEOCorr'],
-                    'ACS': ['TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr']
+                    'ACS': ['TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr'],
+                    'STIS': ['MakeWCS', 'CompSIP','VACorr'],
+                    'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
+                    'WFC3': ['MakeWCS', 'CompSIP','VACorr'],
                     }
                             
 def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True):
@@ -115,9 +118,10 @@ def applyDgeoCorr(fname, udgeocorr):
             # in first extension header
             applyDGEOCorr = True
     except KeyError:
-
         print 'DGEOFILE keyword not found in primary header'
         applyDGEOCorr = False
+        return applyDGEOCorr 
+    
     if isOldStyleDGEO(fname, fdgeo0):
             applyDGEOCorr = False       
     return (applyDGEOCorr and udgeocorr)

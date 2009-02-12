@@ -4,15 +4,18 @@
 # The instrument class handles instrument specific keywords
 
 inst_mappings={'WFPC2': 'WFPC2WCS',
-                'ACS': 'ACSWCS'
+                'ACS': 'ACSWCS',
+                'NICMOS': 'NICMOSWCS',
+                'STIS': 'STISWCS',
+                'WFC3': 'WFC3WCS'
                 }
 
 
 # A list of instrument specific keywords
 # Every instrument class must have methods which define each of these
 # as class attributes.
-ins_spec_kw = ['ltv1', 'ltv2', 'parity', 'binned','vafactor', 'chip', 
-            'naxis1', 'naxis2', 'filter1', 'filter2', 'detector']
+ins_spec_kw = [ 'detector', 'ltv1', 'ltv2', 'parity', 'binned','vafactor', 'chip', 
+            'naxis1', 'naxis2', 'filter1', 'filter2']
 
 # A list of keywords defined in the primary header.
 # The HSTWCS class sets this as attributes 

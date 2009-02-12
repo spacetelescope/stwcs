@@ -129,6 +129,14 @@ def getNrefchip(fobj):
             Nrefchip = 1
     elif instrument == 'NICMOS':
         Nrefchip = fobj[0].header['CAMERA']
+    elif instrument == 'WFC3':
+        detector = fobj[0].header['DETECTOR']
+        if detector == 'UVIS':
+            Nrefchip =2
+        else:
+            Nrefchip = 1
+    else:
+        Nrefchip = 1
     return Nrefchip, Nrefext
 
 def checkFiles(input):
@@ -136,9 +144,9 @@ def checkFiles(input):
     Purpose
     =======
     Checks that input files are in the correct format.
-    Converts geis and waiver fits files to multietension fits.
+    Converts geis and waiver fits files to multiextension fits.
     """
-    from pytools.check_files import geis2mef, waiver2mef
+    from pytools.check_files import geis2mef, waiver2mef, checkFiles
     removed_files = []
     newfiles = []
     for file in input:
@@ -176,5 +184,8 @@ def checkFiles(input):
         print 'The following files will be removed from the list of files to be processed :\n'
         for f in removed_files:
             print f
+            
+    newfiles = checkFiles(newfiles)[0]
+    
     return newfiles
 
