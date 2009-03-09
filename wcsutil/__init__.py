@@ -28,7 +28,7 @@ class HSTWCS(WCS):
     instrument specific attributes needed by the correction classes.
     """
     
-    def __init__(self, fobj=None, ext=None, instrument=None, detector=None):
+    def __init__(self, input=None, ext=None, instrument=None, detector=None):
         """
         :Parameters:
         `fobj`: string or PyFITS HDUList object or None
@@ -49,7 +49,7 @@ class HSTWCS(WCS):
         self.inst_kw = ins_spec_kw
         
         if instrument == None:
-            filename, hdr0, ehdr = self.parseInput(fobj=fobj, ext=ext)
+            filename, hdr0, ehdr, fobj = self.parseInput(f=input, ext=ext)
             self.filename = filename
             WCS.__init__(self, ehdr, fobj=fobj)
             self.setHDR0kw(hdr0, ehdr)
@@ -67,14 +67,15 @@ class HSTWCS(WCS):
             self.detector = detector
             self.setInstrSpecKw()
         
-    def parseInput(self, fobj=None, ext=None):
-        if isinstance(fobj, str):
+    def parseInput(self, f=None, ext=None):
+        if isinstance(f, str):
             # create an HSTWCS object from a filename
+            fobj = pyfits.open(f)
             if ext != None:
-                filename = fobj
+                filename = f
                 extnum = ext
             elif ext == None:
-                filename, extname = fileutil.parseFilename(fobj)
+                filename, extname = fileutil.parseFilename(f)
                 if extname == None:
                     #data may be in the primary array
                     extnum = 0
@@ -86,16 +87,17 @@ class HSTWCS(WCS):
             except IndexError:
                 print 'Unable to get extension %d. /n' % ext
             
-        elif isinstance(fobj, pyfits.HDUList):
+        elif isinstance(f, pyfits.HDUList):
+            fobj = f
             if ext == None:
                 extnum = 0
             else:
                 extnum = ext
-            ehdr = fobj[extnum].header
-            hdr0 = fobj[0].header    
+            ehdr = f[extnum].header
+            hdr0 = f[0].header    
             filename = hdr0.get('FILENAME', "")
         
-        return filename, hdr0, ehdr
+        return filename, hdr0, ehdr, fobj
             
     def setHDR0kw(self, primhdr, ehdr):
         # Set attributes from kw defined in the primary header.
@@ -213,6 +215,8 @@ class HSTWCS(WCS):
                 return
             else:
                 self.updatehdr(header)
+    
+        
                    
     def restore(self, header=None):
         """
