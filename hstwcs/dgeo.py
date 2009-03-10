@@ -149,7 +149,7 @@ class DGEOCorr(object):
         """
         coeffs = cls.getCoeffs(header)
         idcscale = header['IDCSCALE']
-        sclcoeffs = numpy.linalg.inv(coeffs)/idcscale
+        sclcoeffs = numpy.linalg.inv(coeffs/idcscale)
         ndx, ndy = numpy.dot(sclcoeffs, [dx.ravel(), dy.ravel()])
         ndx.shape = dx.shape
         ndy.shape=dy.shape
