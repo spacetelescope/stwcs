@@ -235,7 +235,7 @@ class DGEOCorr(object):
                 'CRPIX1': crpix1,
                 'CDELT1': cdelt1,
                 'CRVAL1': crval1,
-                'CRPIX2': crpix1,
+                'CRPIX2': crpix2,
                 'CDELT2': cdelt2,
                 'CRVAL2': crval2
                 }
