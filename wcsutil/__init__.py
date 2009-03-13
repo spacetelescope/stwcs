@@ -1,5 +1,5 @@
 #from .. pywcs.sip import SIP
-from pywcs import WCS
+from pywcs import WCS, DistortionLookupTable
 import pyfits
 import instruments
 #from .. distortion import models
@@ -51,8 +51,9 @@ class HSTWCS(WCS):
         if instrument == None:
             filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
             self.filename = filename
-            WCS.__init__(self, ehdr, fobj=phdu)
             self.setHDR0kw(hdr0, ehdr)
+            WCS.__init__(self, ehdr, fobj=phdu)
+            
             self.setInstrSpecKw(hdr0, ehdr)
             self.setPscale()
             self.setOrient()
@@ -109,7 +110,8 @@ class HSTWCS(WCS):
         self.ra_targ = primhdr.get('RA_TARG', None)
         self.dec_targ = primhdr.get('DEC_TARG', None)
         #self.detector = primhdr.get('DETECTOR', None)
-        
+        self.det2imfile = primhdr.get('D2IMFILE', None)
+        self.det2imext = primhdr.get('D2IMEXT', None)
         try:
             self.pav3 = primhdr['PA_V3']
         
@@ -216,9 +218,64 @@ class HSTWCS(WCS):
                 return
             else:
                 self.updatehdr(header)
+    """
+    def all_pix2sky(self, *args, **kwargs):
+        xy, origin = self.get_inpix_origin(*args)
+        if self.det2imfile != None:
+            return WCS.all_pix2sky(self, self.det2im(xy, origin),origin )
+        else:
+            return WCS.all_pix2sky(self, *args)
     
+    def pix2foc(self, *args, **kwargs):
+        if self.det2imfile != None:
+            return WCS.all_pix2sky(self.det2im(*args), **kwargs)
+        else:
+            return WCS.all_pix2sky(*args, **kwargs)
         
-                   
+    def get_inpix_origin(self, *args):
+        if len(args) == 2:
+            xy, origin = args
+            try:
+                xy = N.asarray(xy)
+                origin = int(origin)
+            except:
+                raise TypeError(
+                    "When providing two arguments, they must be (xy, origin)")
+        elif len(args) == 3:
+            x, y, origin = args
+            try:
+                x = N.asarray(x)
+                y = N.asarray(y)
+                origin = int(origin)
+            except:
+                raise TypeError(
+                    "When providing three arguments, they must be (x, y, origin)")
+            if len(x) != len(y):
+                raise ValueError("x and y arrays are not the same size")
+            length = len(x)
+            xy = N.hstack((x.reshape((length, 1)),
+                            y.reshape((length, 1))))
+        return xy, origin
+    
+    def det2im(self, xy, origin):
+        
+        cpdis2 = self.get_d2im_lookup()
+        d2im_wcs = WCS()
+        d2im_wcs.cpdis2 = cpdis2
+        
+        return d2im_wcs.p4_pix2foc(xy,origin)
+    
+    def get_d2im_lookup(self):
+        d2im_data = pyfits.getdata(self.filename, ext=self.det2imext)
+        d2im_data = d2im_data[:,N.newaxis]
+        d2im_hdr = pyfits.getheader(self.filename, ext=self.det2imext)
+        
+        crpix = (d2im_hdr['CRPIX1'],d2im_hdr['CRPIX2'])
+        crval = (d2im_hdr['CRVAL1'],d2im_hdr['CRVAL2'])
+        cdelt = (d2im_hdr['CDELT1'],d2im_hdr['CDELT2'])
+
+        return DistortionLookupTable(d2im_data, crpix, crval, cdelt)
+    """
     def restore(self, header=None):
         """
         Restore a WCS archive in memory and update the WCS object.
