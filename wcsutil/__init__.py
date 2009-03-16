@@ -28,7 +28,7 @@ class HSTWCS(WCS):
     instrument specific attributes needed by the correction classes.
     """
     
-    def __init__(self, fobj=None, ext=None, instrument=None, detector=None):
+    def __init__(self, fobj=None, ext=None, instrument=None, detector=None, minerr=0.0):
         """
         :Parameters:
         `fobj`: string or PyFITS HDUList object or None
@@ -52,7 +52,7 @@ class HSTWCS(WCS):
             filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
             self.filename = filename
             self.setHDR0kw(hdr0, ehdr)
-            WCS.__init__(self, ehdr, fobj=phdu)
+            WCS.__init__(self, ehdr, fobj=phdu, minerr=minerr)
             # If input was a pyfits HDUList object, it's the user's 
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
@@ -114,7 +114,6 @@ class HSTWCS(WCS):
         self.date_obs = primhdr.get('DATE-OBS', None)
         self.ra_targ = primhdr.get('RA_TARG', None)
         self.dec_targ = primhdr.get('DEC_TARG', None)
-        #self.detector = primhdr.get('DETECTOR', None)
         self.det2imfile = primhdr.get('D2IMFILE', None)
         self.det2imext = primhdr.get('D2IMEXT', None)
         try:
@@ -158,8 +157,7 @@ class HSTWCS(WCS):
     
     def setPscale(self):
         # Calculates the plate scale from the cd matrix
-        # this may not be needed now and shoufl probably be done after all 
-        # corrections
+       
         cd11 = self.wcs.cd[0][0]
         cd21 = self.wcs.cd[1][0]
         self.pscale = N.sqrt(N.power(cd11,2)+N.power(cd21,2)) * 3600.
@@ -223,19 +221,34 @@ class HSTWCS(WCS):
                 return
             else:
                 self.updatehdr(header)
-    """
+    
     def all_pix2sky(self, *args, **kwargs):
         xy, origin = self.get_inpix_origin(*args)
         if self.det2imfile != None:
             return WCS.all_pix2sky(self, self.det2im(xy, origin),origin )
         else:
-            return WCS.all_pix2sky(self, *args)
+            return WCS.all_pix2sky(self, xy, origin)
     
     def pix2foc(self, *args, **kwargs):
+        xy, origin = self.get_inpix_origin(*args)
         if self.det2imfile != None:
-            return WCS.all_pix2sky(self.det2im(*args), **kwargs)
+            return WCS.pix2foc(self, self.det2im(xy, origin), origin)
         else:
-            return WCS.all_pix2sky(*args, **kwargs)
+            return WCS.pix2foc(self, xy, origin)
+        
+    def p4_pix2foc(self, *args, **kwargs):
+        xy, origin = self.get_inpix_origin(*args)
+        if self.det2imfile != None:
+            return WCS.p4_pix2foc(self, self.det2im(xy, origin), origin)
+        else:
+            return WCS.p4_pix2foc(self, xy, origin)
+
+    def wcs_pix2sky(self, *args, **kwargs):
+        xy, origin = self.get_inpix_origin(*args)
+        if self.det2imfile != None:
+            return WCS.wcs_pix2sky(self, self.det2im(xy, origin), origin)
+        else:
+            return WCS.wcs_pix2sky(self, xy, origin)
         
     def get_inpix_origin(self, *args):
         if len(args) == 2:
@@ -272,15 +285,16 @@ class HSTWCS(WCS):
     
     def get_d2im_lookup(self):
         d2im_data = pyfits.getdata(self.filename, ext=self.det2imext)
-        d2im_data = d2im_data[:,N.newaxis]
+        #d2im_data = d2im_data[:,N.newaxis]
+        d2im_data = N.array([d2im_data])
         d2im_hdr = pyfits.getheader(self.filename, ext=self.det2imext)
         
         crpix = (d2im_hdr['CRPIX1'],d2im_hdr['CRPIX2'])
         crval = (d2im_hdr['CRVAL1'],d2im_hdr['CRVAL2'])
         cdelt = (d2im_hdr['CDELT1'],d2im_hdr['CDELT2'])
-
+        
         return DistortionLookupTable(d2im_data, crpix, crval, cdelt)
-    """
+    
     def restore(self, header=None):
         """
         Restore a WCS archive in memory and update the WCS object.
