@@ -53,7 +53,11 @@ class HSTWCS(WCS):
             self.filename = filename
             self.setHDR0kw(hdr0, ehdr)
             WCS.__init__(self, ehdr, fobj=phdu)
-            
+            # If input was a pyfits HDUList object, it's the user's 
+            # responsibility to close it, otherwise, it's closed here.
+            if not isinstance(fobj, pyfits.HDUList):
+                phdu.close()
+                
             self.setInstrSpecKw(hdr0, ehdr)
             self.setPscale()
             self.setOrient()
@@ -67,6 +71,7 @@ class HSTWCS(WCS):
             self.instrument = instrument
             self.detector = detector
             self.setInstrSpecKw()
+        
         
     def parseInput(self, f=None, ext=None):
         if isinstance(f, str):
