@@ -223,34 +223,47 @@ class HSTWCS(WCS):
                 self.updatehdr(header)
     
     def all_pix2sky(self, *args, **kwargs):
-        xy, origin = self.get_inpix_origin(*args)
+        origin = self.get_origin(*args)
         if self.det2imfile != None:
-            return WCS.all_pix2sky(self, self.det2im(xy, origin),origin )
+            return WCS.all_pix2sky(self, self.det2im(*args),origin )
         else:
-            return WCS.all_pix2sky(self, xy, origin)
+            return WCS.all_pix2sky(self, *args)
     
     def pix2foc(self, *args, **kwargs):
-        xy, origin = self.get_inpix_origin(*args)
+        origin = self.get_origin(*args)
         if self.det2imfile != None:
-            return WCS.pix2foc(self, self.det2im(xy, origin), origin)
+            return WCS.pix2foc(self, self.det2im(*args), origin)
         else:
-            return WCS.pix2foc(self, xy, origin)
+            return WCS.pix2foc(self, *args)
         
     def p4_pix2foc(self, *args, **kwargs):
-        xy, origin = self.get_inpix_origin(*args)
+        origin = self.get_origin(*args)
         if self.det2imfile != None:
-            return WCS.p4_pix2foc(self, self.det2im(xy, origin), origin)
+            return WCS.p4_pix2foc(self, self.det2im(*args), origin)
         else:
-            return WCS.p4_pix2foc(self, xy, origin)
+            return WCS.p4_pix2foc(self, *args)
 
     def wcs_pix2sky(self, *args, **kwargs):
-        xy, origin = self.get_inpix_origin(*args)
+        origin = self.get_origin(*args)
         if self.det2imfile != None:
-            return WCS.wcs_pix2sky(self, self.det2im(xy, origin), origin)
+            return WCS.wcs_pix2sky(self, self.det2im(*args), origin)
         else:
-            return WCS.wcs_pix2sky(self, xy, origin)
+            return WCS.wcs_pix2sky(self, *args)
+    
+    def get_origin(self, *args):
+        if len(args) == 2:
+            origin = args[1]
+        elif len(args) == 3:
+            origin = args[2]
+            
+        return origin
+    
+   
+    def det2im(self, *args):
+        cpdis2 = self.get_d2im_lookup()
+        d2im_wcs = WCS()
+        d2im_wcs.cpdis2 = cpdis2
         
-    def get_inpix_origin(self, *args):
         if len(args) == 2:
             xy, origin = args
             try:
@@ -259,6 +272,7 @@ class HSTWCS(WCS):
             except:
                 raise TypeError(
                     "When providing two arguments, they must be (xy, origin)")
+            return d2im_wcs.p4_pix2foc(xy,origin)
         elif len(args) == 3:
             x, y, origin = args
             try:
@@ -273,15 +287,10 @@ class HSTWCS(WCS):
             length = len(x)
             xy = N.hstack((x.reshape((length, 1)),
                             y.reshape((length, 1))))
-        return xy, origin
-    
-    def det2im(self, xy, origin):
+     
+            img = d2im_wcs.p4_pix2foc(xy,origin)
         
-        cpdis2 = self.get_d2im_lookup()
-        d2im_wcs = WCS()
-        d2im_wcs.cpdis2 = cpdis2
-        
-        return d2im_wcs.p4_pix2foc(xy,origin)
+            return [img[:, i] for i in range(img.shape[1])]
     
     def get_d2im_lookup(self):
         d2im_data = pyfits.getdata(self.filename, ext=self.det2imext)
