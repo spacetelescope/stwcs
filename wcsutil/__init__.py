@@ -224,28 +224,28 @@ class HSTWCS(WCS):
     
     def all_pix2sky(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imfile != None:
+        if self.det2imext != None:
             return WCS.all_pix2sky(self, self.det2im(*args),origin )
         else:
             return WCS.all_pix2sky(self, *args)
     
     def pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imfile != None:
+        if self.det2imext != None:
             return WCS.pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.pix2foc(self, *args)
         
     def p4_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imfile != None:
+        if self.det2imext != None:
             return WCS.p4_pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.p4_pix2foc(self, *args)
 
     def wcs_pix2sky(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imfile != None:
+        if self.det2imext != None:
             return WCS.wcs_pix2sky(self, self.det2im(*args), origin)
         else:
             return WCS.wcs_pix2sky(self, *args)

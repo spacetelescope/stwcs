@@ -105,6 +105,10 @@ class ACSWCS(InstrWCS):
         except KeyError:
             print 'ERROR: Detector kw not found.\n'
             raise
+        except TypeError:
+            #this is the case of creating a default HSTWCS object by 
+            #providing 'instrument' and 'detector'
+            pass
     
     def set_parity(self):
         parity = {'WFC':[[1.0,0.0],[0.0,-1.0]],

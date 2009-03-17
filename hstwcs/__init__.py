@@ -6,7 +6,7 @@ from updatewcs.wcsutil import HSTWCS
 #from .. mappings import allowed_corrections
 from updatewcs import utils
 import corrections, makewcs
-import dgeo
+import dgeo, det2im
 import time
 from pytools import parseinput, fileutil
 import apply_corrections
@@ -80,6 +80,11 @@ def makecorr(fname, allowed_corr):
     ref_wcs = HSTWCS(fobj=f, ext=nrefext)
     ref_wcs.readModel(update=True,header=f[nrefext].header)
     utils.write_archive(f[nrefext].header)
+    
+    if 'DET2IMCorr' in allowed_corr:
+        kw2update = det2im.DET2IMCorr.updateWCS(f)
+        for kw in kw2update:
+            f[1].header.update(kw, kw2update[kw])
             
     for i in range(len(f))[1:]:
         # Perhaps all ext headers should be corrected (to be consistent)
@@ -91,7 +96,7 @@ def makecorr(fname, allowed_corr):
             ext_wcs = HSTWCS(fobj=f, ext=i)
             ext_wcs.readModel(update=True,header=hdr)
             for c in allowed_corr:
-                if c != 'DGEOCorr':
+                if c != 'DGEOCorr' and c != 'DET2IMCorr':
                     corr_klass = corrections.__getattribute__(c)
                     kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                     for kw in kw2update:

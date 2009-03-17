@@ -52,7 +52,6 @@ class DGEOCorr(object):
             - add/update DGEOEXT keyword
         """
         dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
-        instrument = fobj[0].header.get('INSTRUME', None)
         # Map WCSDVARR EXTVER numbers to extension numbers
         wcsdvarr_ind = cls.getWCSIndex(fobj)
         for ext in fobj:
@@ -209,7 +208,7 @@ class DGEOCorr(object):
                         
         comments = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
-                    'NAXIS': 'Number of image columns',
+                    'NAXIS': 'Number of axes',
                     'NAXIS1': 'Number of image columns',
                     'NAXIS2': 'Number of image rows',
                     'EXTNAME': 'WCS distortion array',

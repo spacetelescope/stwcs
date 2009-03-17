@@ -12,13 +12,13 @@ __docformat__ = 'restructuredtext'
 # These are the default corrections applied also in the pipeline.
 
 allowed_corrections={'WFPC2': ['MakeWCS','CompSIP', 'VACorr', 'DGEOCorr'],
-                    'ACS': ['TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr'],
+                    'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr'],
                     'STIS': ['MakeWCS', 'CompSIP','VACorr'],
                     'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
                     'WFC3': ['MakeWCS', 'CompSIP','VACorr'],
                     }
                             
-def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True):
+def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True):
     """
     Purpose
     =======
@@ -29,11 +29,14 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True):
     instrument = pyfits.getval(fname, 'INSTRUME')
     tddcorr = applyTDDCorr(fname, tddcorr)
     dgeocorr = applyDgeoCorr(fname, dgeocorr)
+    d2imcorr = applyD2ImCorr(fname, d2imcorr)
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr and tddcorr==False: acorr.remove('TDDCorr')
     if 'DGEOCorr' in acorr and dgeocorr==False: acorr.remove('DGEOCorr')
+    if 'DET2IMCorr' in acorr and d2imcorr==False: acorr.remove('DET2IMCorr')
+    
     return acorr
 
 def applyTDDCorr(fname, utddcorr):
@@ -140,4 +143,39 @@ def isOldStyleDGEO(fname, dgname):
         return True
     else:
         return False
+    
+def applyD2ImCorr(fname, d2imcorr):
+    applyD2IMCorr = True
+    try:
+        # get DGEOFILE kw from primary header
+        fd2im0 = pyfits.getval(fname, 'D2IMFILE')
+        if fd2im0 == 'N/A':
+            return False
+        fd2im0 = fileutil.osfn(fd2im0)
+        if not fileutil.findFile(fd2im0):
+            print 'Kw D2IMFILE exists in primary header but file %s not found\n' % fd2im0
+            print 'DGEO correction will not be applied\n'
+            applyD2IMCorr = False
+            return applyD2IMCorr 
+        try:
+            # get DGEOEXT kw from first extension header
+            fd2imext = pyfits.getval(fname, 'D2IMEXT', ext=0)
+            fd2imext = fileutil.osfn(fd2imext)
+            if fd2imext and fileutil.findFile(fd2imext):
+                if fd2im0 != fd2imext:
+                    applyD2IMCorr = True
+                else:
+                    applyD2IMCorr = False
+            else: 
+                # dgeo file defined in first extension may not be found
+                # but if a valid kw exists in the primary header, dgeo should be applied.
+                applyD2IMCorr = True
+        except KeyError:
+            # the case of DGEOFILE kw present in primary header but DGEOEXT missing 
+            # in first extension header
+            applyD2IMCorr = True
+    except KeyError:
+        print 'D2IMFILE keyword not found in primary header'
+        applyD2IMCorr = False
+        return applyD2IMCorr 
     
