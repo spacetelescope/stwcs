@@ -83,8 +83,8 @@ def applyDgeoCorr(fname, udgeocorr):
     Adds dgeo extensions to files based on the DGEOFILE keyword in the primary 
     header. This is a default correction and will always run in the pipeline.
     The file used to generate the extensions is 
-    recorded in the DGEOFILE keyword in each science extension.
-    If 'DGEOFILE' in the primary header is different from 'DGEOFILE' in the 
+    recorded in the DGEOEXT keyword in each science extension.
+    If 'DGEOFILE' in the primary header is different from 'DGEOEXT' in the 
     extension header and the file exists on disk and is a 'new type' dgeofile, 
     then the dgeo extensions will be updated.
     """
@@ -101,8 +101,8 @@ def applyDgeoCorr(fname, udgeocorr):
             applyDGEOCorr = False
             return applyDGEOCorr 
         try:
-            # get DGEOFILE kw from first extension header
-            fdgeo1 = pyfits.getval(fname, 'DGEOFILE', ext=1)
+            # get DGEOEXT kw from first extension header
+            fdgeo1 = pyfits.getval(fname, 'DGEOEXT', ext=1)
             fdgeo1 = fileutil.osfn(fdgeo1)
             if fdgeo1 and fileutil.findFile(fdgeo1):
                 if fdgeo0 != fdgeo1:
@@ -114,7 +114,7 @@ def applyDgeoCorr(fname, udgeocorr):
                 # but if a valid kw exists in the primary header, dgeo should be applied.
                 applyDGEOCorr = True
         except KeyError:
-            # the case of DGEOFILE kw present in primary header but missing 
+            # the case of DGEOFILE kw present in primary header but DGEOEXT missing 
             # in first extension header
             applyDGEOCorr = True
     except KeyError:

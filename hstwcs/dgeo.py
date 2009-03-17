@@ -39,7 +39,7 @@ class DGEOCorr(object):
         cls.applyDgeoCorr(fobj)
         dgfile = fobj[0].header['DGEOFILE']
         
-        new_kw = {'DGEOFILE': dgfile}
+        new_kw = {'DGEOEXT': dgfile}
         return new_kw
     
     updateWCS = classmethod(updateWCS)        
@@ -49,7 +49,7 @@ class DGEOCorr(object):
         For each science extension in a pyfits file object:
             - create a WCSDVARR extension
             - update science header
-            - add/update DGEOFILE keyword
+            - add/update DGEOEXT keyword
         """
         dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
         instrument = fobj[0].header.get('INSTRUME', None)
