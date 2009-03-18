@@ -108,7 +108,7 @@ class DET2IMCorr(object):
                     'CRPIX2': 'Distortion array reference pixel',
                     'CDELT2': 'Grid step size in second coordinate',
                     'CRVAL2': 'Image array pixel coordinate',
-                    'AXISCORR': 'Direction in which to apply the det2im correction'}
+                    'AXISCORR': 'Direction in which the det2im correction is applied'}
         
         values = {'XTENSION': 'IMAGE',
                 'BITPIX': -32,
