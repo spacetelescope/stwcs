@@ -116,6 +116,7 @@ class HSTWCS(WCS):
         self.dec_targ = primhdr.get('DEC_TARG', None)
         self.det2imfile = primhdr.get('D2IMFILE', None)
         self.det2imext = primhdr.get('D2IMEXT', None)
+        self.axiscorr = primhdr.get('AXISCORR', None)
         try:
             self.pav3 = primhdr['PA_V3']
         
@@ -260,10 +261,12 @@ class HSTWCS(WCS):
     
    
     def det2im(self, *args):
-        cpdis2 = self.get_d2im_lookup()
+        cpdis = self.get_d2im_lookup()
         d2im_wcs = WCS()
-        d2im_wcs.cpdis2 = cpdis2
-        
+        if self.axiscorr == 1:
+            d2im_wcs.cpdis1 = cpdis
+        else:
+            d2im_wcs.cpdis2 = cpdis
         if len(args) == 2:
             xy, origin = args
             try:
@@ -293,10 +296,9 @@ class HSTWCS(WCS):
             return [img[:, i] for i in range(img.shape[1])]
     
     def get_d2im_lookup(self):
-        d2im_data = pyfits.getdata(self.filename, ext=self.det2imext)
-        #d2im_data = d2im_data[:,N.newaxis]
+        d2im_data = pyfits.getdata(self.filename, ext=('D2IMARR', 1))
         d2im_data = N.array([d2im_data])
-        d2im_hdr = pyfits.getheader(self.filename, ext=self.det2imext)
+        d2im_hdr = pyfits.getheader(self.filename, ext=('D2IMARR', 1))
         
         crpix = (d2im_hdr['CRPIX1'],d2im_hdr['CRPIX2'])
         crval = (d2im_hdr['CRVAL1'],d2im_hdr['CRVAL2'])

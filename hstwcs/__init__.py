@@ -84,7 +84,8 @@ def makecorr(fname, allowed_corr):
     if 'DET2IMCorr' in allowed_corr:
         kw2update = det2im.DET2IMCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
+            #these kw are written to the primary header
+            f[0].header.update(kw, kw2update[kw])
             
     for i in range(len(f))[1:]:
         # Perhaps all ext headers should be corrected (to be consistent)
@@ -106,6 +107,9 @@ def makecorr(fname, allowed_corr):
         kw2update = dgeo.DGEOCorr.updateWCS(f)
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])
+    
+    
+            
             
     f.close()
 def getNrefchip(fobj):
