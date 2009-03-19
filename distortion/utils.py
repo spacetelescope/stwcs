@@ -5,7 +5,7 @@ from updatewcs import wcsutil
 from numpy import sqrt, arctan2
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
-    fra_dec = np.vstack([w.calculateFootprint for w in list_of_wcsobj])
+    fra_dec = np.vstack([w.calcFootprint for w in list_of_wcsobj])
     
     delta_fdec = (fra_dec[:,1].max()-fra_dec[:,1].min())
     crval2 = fra_dec[:,1].min()+ delta_fdec/2.
