@@ -107,12 +107,10 @@ class MakeWCS(object):
            dtheta = ext_wcs.idcmodel.refpix['THETA'] - ref_wcs.idcmodel.refpix['THETA']
         else:
            dtheta = 0.0                    
-        # Convert to radians
-        rr=dtheta*pi/180.0
-        rrmat = fileutil.buildRotMatrix(rr)
         
+        rrmat = fileutil.buildRotMatrix(dtheta)
         # Rotate the vectors
-        dxy = numpy.dot(rrmat, delmat)
+        dxy = numpy.dot(delmat, rrmat)
         wc = ref_wcs.wcs.p2s((px + dxy), 1)['world']
         
         # Calculate the new CDs and convert to degrees
