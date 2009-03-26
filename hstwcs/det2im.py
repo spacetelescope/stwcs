@@ -14,10 +14,11 @@ class DET2IMCorr(object):
         
         d2imfile = fobj[0].header['D2IMFILE']
         axiscorr = cls.getAxisCorr(d2imfile)
+        d2imerr = pyfits.getdata(d2imfile, ext=1).max()
         if axiscorr == None:
             new_kw = {}
         else:
-            new_kw = {'D2IMEXT': d2imfile, 'AXISCORR': axiscorr}
+            new_kw = {'D2IMEXT': d2imfile, 'AXISCORR': axiscorr, 'D2IMERR': d2imerr}
             cls.applyDet2ImCorr(fobj, axiscorr)
         return new_kw
     

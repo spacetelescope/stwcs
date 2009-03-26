@@ -52,7 +52,7 @@ class HSTWCS(WCS):
         """
         
         self.inst_kw = ins_spec_kw
-        
+        self.minerr = minerr
         if instrument == None:
             filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
             self.filename = filename
@@ -122,6 +122,7 @@ class HSTWCS(WCS):
         self.det2imfile = primhdr.get('D2IMFILE', None)
         self.det2imext = primhdr.get('D2IMEXT', None)
         self.axiscorr = primhdr.get('AXISCORR', None)
+        self.d2imerr = primhdr.get('D2IMERR', 0.0)
         try:
             self.pav3 = primhdr['PA_V3']
         
@@ -234,10 +235,8 @@ class HSTWCS(WCS):
     this correction is applied before the corrsponding PyWCS method is called.
     """
     def all_pix2sky(self, *args, **kwargs):
-        
-        
         origin = self.get_origin(*args)
-        if self.det2imext != None:
+        if self.det2imext != None and self.d2imerr > self.minerr:
             return WCS.all_pix2sky(self, self.det2im(*args),origin )
         else:
             return WCS.all_pix2sky(self, *args)
@@ -250,7 +249,7 @@ class HSTWCS(WCS):
         
     def pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imext != None:
+        if self.det2imext != None and self.d2imerr > self.minerr:
             return WCS.pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.pix2foc(self, *args)
@@ -264,7 +263,7 @@ class HSTWCS(WCS):
            
     def p4_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imext != None:
+        if self.det2imext != None and self.d2imerr > self.minerr:
             return WCS.p4_pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.p4_pix2foc(self, *args)
@@ -278,7 +277,7 @@ class HSTWCS(WCS):
         
     def sip_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
-        if self.det2imext != None:
+        if self.det2imext != None and self.d2imerr > self.minerr:
             return WCS.sip_pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.sip_pix2foc(self, *args)
