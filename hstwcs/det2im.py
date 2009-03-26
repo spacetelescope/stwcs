@@ -1,8 +1,5 @@
 import pyfits
 from pytools import fileutil
-#from hstwcs.mappings import dgeo_vals
-import numpy
-
 
 class DET2IMCorr(object):
     def updateWCS(cls, fobj):

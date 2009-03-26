@@ -7,7 +7,6 @@ from updatewcs.wcsutil import HSTWCS
 from updatewcs import utils
 import corrections, makewcs
 import dgeo, det2im
-import time
 from pytools import parseinput, fileutil
 import apply_corrections
 
@@ -17,7 +16,7 @@ __docformat__ = 'restructuredtext'
 
 __version__ = '0.3'
 
-def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True):
+def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, d2imcorr=True):
     """
     Purpose
     =======
@@ -33,7 +32,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True):
     `pytools`
     `pyfits`
     `pywcs`
-    `numpy`
 
     :Parameters:
     `input`: a python list of file names or a string (wild card characters allowed)
@@ -47,15 +45,16 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True):
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
     """
-    
     files = parseinput.parseinput(input)[0]
     if checkfiles:
         files = checkFiles(files)
         if not files:
             print 'No valid input, quitting ...\n'
-            return
+            return 
     for f in files:
-        acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,dgeocorr=dgeocorr)
+        acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
+            tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
+        
         #restore the original WCS keywords
         utils.restoreWCS(f)
         makecorr(f, acorr)

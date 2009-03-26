@@ -1,5 +1,5 @@
 from updatewcs import DEGTORAD, RADTODEG
-import numpy
+import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 from updatewcs import utils
 from pytools import fileutil
@@ -89,16 +89,16 @@ class MakeWCS(object):
         dX=(off*sin(theta)) + offshiftx
         dY=(off*cos(theta)) + offshifty
         
-        px = numpy.array([[dX,dY]])
+        px = np.array([[dX,dY]])
         newcrval = ref_wcs.wcs.p2s(px, 1)['world'][0]
-        newcrpix = numpy.array([ext_wcs.idcmodel.refpix['XREF'] + ltvoffx, 
+        newcrpix = np.array([ext_wcs.idcmodel.refpix['XREF'] + ltvoffx, 
                                 ext_wcs.idcmodel.refpix['YREF'] + ltvoffy])
         ext_wcs.wcs.crval = newcrval
         ext_wcs.wcs.crpix = newcrpix
         ext_wcs.wcs.set()
         
         # Create a small vector, in reference image pixel scale
-        delmat = numpy.array([[fx[1,1], fy[1,1]], \
+        delmat = np.array([[fx[1,1], fy[1,1]], \
                               [fx[1,0], fy[1,0]]]) / R_scale/3600.
                             
         # Account for subarray offset
@@ -110,7 +110,7 @@ class MakeWCS(object):
         
         rrmat = fileutil.buildRotMatrix(dtheta)
         # Rotate the vectors
-        dxy = numpy.dot(delmat, rrmat)
+        dxy = np.dot(delmat, rrmat)
         wc = ref_wcs.wcs.p2s((px + dxy), 1)['world']
         
         # Calculate the new CDs and convert to degrees
@@ -118,7 +118,7 @@ class MakeWCS(object):
         cd12 = utils.diff_angles(wc[1,0],newcrval[0])*cos(newcrval[1]*pi/180.0)
         cd21 = utils.diff_angles(wc[0,1],newcrval[1])
         cd22 = utils.diff_angles(wc[1,1],newcrval[1])
-        cd = numpy.array([[cd11, cd12], [cd21, cd22]])
+        cd = np.array([[cd11, cd12], [cd21, cd22]])
         ext_wcs.wcs.cd = cd  
         ext_wcs.wcs.set()
 
@@ -135,7 +135,7 @@ class MakeWCS(object):
         rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + (rv23_corr_tdd[0,0] *tddscale), 
             ref_wcs.idcmodel.refpix['V3REF'] - (rv23_corr_tdd[1,0] * tddscale)]
         # Get an approximate reference position on the sky
-        rref = numpy.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
+        rref = np.array([[ref_wcs.idcmodel.refpix['XREF']+ltvoffx , 
                             ref_wcs.idcmodel.refpix['YREF']+ltvoffy]])
         
         crval = ref_wcs.wcs.p2s(rref, 1)['world'][0]
@@ -151,7 +151,7 @@ class MakeWCS(object):
         
         # Set values for the rest of the reference WCS
         ref_wcs.wcs.crval = crval
-        ref_wcs.wcs.crpix = numpy.array([0.0,0.0])+offsh
+        ref_wcs.wcs.crpix = np.array([0.0,0.0])+offsh
         parity = ref_wcs.parity
         R_scale = ref_wcs.idcmodel.refpix['PSCALE']/3600.0
         cd11 = parity[0][0] *  cos(pv*pi/180.0)*R_scale
@@ -159,7 +159,7 @@ class MakeWCS(object):
         cd21 = parity[1][1] *  sin(pv*pi/180.0)*R_scale
         cd22 = parity[1][1] *  cos(pv*pi/180.0)*R_scale
         
-        rcd = numpy.array([[cd11, cd12], [cd21, cd22]])
+        rcd = np.array([[cd11, cd12], [cd21, cd22]])
         ref_wcs.wcs.cd = rcd
         ref_wcs.wcs.set()
         
@@ -170,12 +170,12 @@ class MakeWCS(object):
             alpha = hwcs.idcmodel.refpix['TDDALPHA']
             beta = hwcs.idcmodel.refpix['TDDBETA']
         except KeyError:
-            return numpy.array([[0., 0.],[0.,0.]])
+            return np.array([[0., 0.],[0.,0.]])
         
-        tdd = numpy.array([[beta, alpha], [alpha, -beta]])
+        tdd = np.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.
-        xy0 = numpy.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
-        v23_corr = numpy.dot(mrotp,numpy.dot(tdd,xy0)) * 0.05
+        xy0 = np.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
+        v23_corr = np.dot(mrotp,np.dot(tdd,xy0)) * 0.05
         
         return v23_corr 
     
@@ -201,8 +201,8 @@ class MakeWCS(object):
             offshiftx = 0.
             offshifty = 0.
             
-        ltvoff = numpy.array([ltvoffx, ltvoffy])
-        offshift = numpy.array([offshiftx, offshifty])
+        ltvoff = np.array([ltvoffx, ltvoffy])
+        offshift = np.array([offshiftx, offshifty])
         return ltvoff, offshift
     
     getOffsets = classmethod(getOffsets)

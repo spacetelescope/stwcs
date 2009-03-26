@@ -1,7 +1,6 @@
 import pyfits
 from pytools import fileutil
-#from hstwcs.mappings import dgeo_vals
-import numpy
+import numpy as np
 
 class DGEOCorr(object):
     """
@@ -148,8 +147,8 @@ class DGEOCorr(object):
         """
         coeffs = cls.getCoeffs(header)
         idcscale = header['IDCSCALE']
-        sclcoeffs = numpy.linalg.inv(coeffs/idcscale)
-        ndx, ndy = numpy.dot(sclcoeffs, [dx.ravel(), dy.ravel()])
+        sclcoeffs = np.linalg.inv(coeffs/idcscale)
+        ndx, ndy = np.dot(sclcoeffs, [dx.ravel(), dy.ravel()])
         ndx.shape = dx.shape
         ndy.shape=dy.shape
         return ndx, ndy
@@ -168,7 +167,7 @@ class DGEOCorr(object):
             print 'First order IDCTAB coefficients are not available.\n'
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None
-        return numpy.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=numpy.float32)
+        return np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
     
     getCoeffs = classmethod(getCoeffs)
     
