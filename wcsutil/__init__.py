@@ -4,7 +4,7 @@ import pyfits
 import instruments
 #from .. distortion import models
 from updatewcs.distortion import models
-import numpy as N
+import numpy as np
 from pytools import fileutil
 from pytools.fileutil import DEGTORAD, RADTODEG
 
@@ -25,7 +25,7 @@ class HSTWCS(WCS):
     Create a WCS object based on the instrument.
     It has all basic WCS kw as attribbutes (set by pywcs).
     It also uses the primary and extension header to define 
-    instrument specific attributes needed by the correction classes.
+    instrument specific attributes.
     """
     
     def __init__(self, fobj=None, ext=None, instrument=None, detector=None, minerr=0.0):
@@ -40,10 +40,15 @@ class HSTWCS(WCS):
                 if ext==None, it is assumed the data is in the primary hdu
         `instrument`: string
                 one of 'ACS', 'NICMOS', 'WFPC2', 'STIS', 'WFC3' 
+                Used only to define a default HSTWCS object, when fobj==None
         `detector`:  string
                 for example 'WFC'
-                If instrument and detector parameters are give, a default HSTWCS 
-                instrument is created.
+                If instrument and detector parameters are given, a default HSTWCS 
+                instrument is created. Used only with fobj==None
+        `minerr`: float
+                minimum value a distortion correction must have in order to be applied. 
+                If CPERRja, CQERRja are smaller than minerr, the corersponding 
+                distortion is not applied.
         """
         
         self.inst_kw = ins_spec_kw
@@ -121,10 +126,10 @@ class HSTWCS(WCS):
             self.pav3 = primhdr['PA_V3']
         
         except KeyError:
-            print 'Kw PA_V3 not found in primary header.'
-            print 'This is typical for some old files. Please retrieve the files fromthe archive again.'
-            print 'Quitting ...'
-            raise
+            print 'Keyword PA_V3 not found in primary header.'
+            print 'This is typical for some old files. Please retrieve the files from the archive again.'
+            #print 'Quitting ...'
+            #raise
         
     
     
@@ -161,13 +166,13 @@ class HSTWCS(WCS):
        
         cd11 = self.wcs.cd[0][0]
         cd21 = self.wcs.cd[1][0]
-        self.pscale = N.sqrt(N.power(cd11,2)+N.power(cd21,2)) * 3600.
+        self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
     
     def setOrient(self):
         # Recompute ORIENTAT
         cd12 = self.wcs.cd[0][1]
         cd22 = self.wcs.cd[1][1]
-        self.orientat = RADTODEG(N.arctan2(cd12,cd22))
+        self.orientat = RADTODEG(np.arctan2(cd12,cd22))
     
     def updatePscale(self, pscale):
         """Given a plate scale, update the CD matrix"""
@@ -185,11 +190,11 @@ class HSTWCS(WCS):
         old_orient = self.orientat
         self.orientat = orient
         angle = fileutil.DEGTORAD(orient)
-        cd11 = -N.cos(angle)
-        cd12 = N.sin(angle)
+        cd11 = -np.cos(angle)
+        cd12 = np.sin(angle)
         cd21 = cd12
         cd22 = -cd11
-        cdmat = N.array([[cd11, cd12],[cd21,cd22]])
+        cdmat = np.array([[cd11, cd12],[cd21,cd22]])
         self.wcs.cd = cdmat * self.pscale/3600
             
             
@@ -222,14 +227,27 @@ class HSTWCS(WCS):
                 return
             else:
                 self.updatehdr(header)
-    
+    """
+    The next four methods overwrite the corresponding PyWCS methods
+    If detector to image correction is specified in the primary science
+    header and a correction extension exists (D2IMEXT keyword) then 
+    this correction is applied before the corrsponding PyWCS method is called.
+    """
     def all_pix2sky(self, *args, **kwargs):
+        
+        
         origin = self.get_origin(*args)
         if self.det2imext != None:
             return WCS.all_pix2sky(self, self.det2im(*args),origin )
         else:
             return WCS.all_pix2sky(self, *args)
-    
+    all_pix2sky.__doc__ = """
+        Applies detector to image correction before it does the 
+        following pixel transformations:
+        
+        %s
+        """ % (WCS.all_pix2sky.__doc__)
+        
     def pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None:
@@ -237,30 +255,56 @@ class HSTWCS(WCS):
         else:
             return WCS.pix2foc(self, *args)
         
+    pix2foc.__doc__ =  """
+        Applies detector to image correction before it does the 
+        following pixel transformations:
+        
+        %s
+        """ % (WCS.pix2foc.__doc__)
+           
     def p4_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None:
             return WCS.p4_pix2foc(self, self.det2im(*args), origin)
         else:
             return WCS.p4_pix2foc(self, *args)
-
-    def wcs_pix2sky(self, *args, **kwargs):
+    
+    p4_pix2foc.__doc__ =  """
+        Applies detector to image correction before it does the 
+        following pixel transformations:
+        
+        %s
+        """ % (WCS.p4_pix2foc.__doc__)
+        
+    def sip_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None:
-            return WCS.wcs_pix2sky(self, self.det2im(*args), origin)
+            return WCS.sip_pix2foc(self, self.det2im(*args), origin)
         else:
-            return WCS.wcs_pix2sky(self, *args)
+            return WCS.sip_pix2foc(self, *args)
     
+    sip_pix2foc.__doc__ =  """
+        Applies detector to image correction before it does the 
+        following pixel transformations:
+        
+        %s
+        """ % (WCS.sip_pix2foc.__doc__)
+        
     def get_origin(self, *args):
+        # Parse the arguments to get the origin of the 
+        #transformation: 0 or 1
         if len(args) == 2:
-            origin = args[1]
+            return args[1]
         elif len(args) == 3:
-            origin = args[2]
-            
-        return origin
+            return args[2]
+        raise TypeError("Expected 2 or 3 arguments, %d given" % len(args))
+        
     
    
     def det2im(self, *args):
+        """
+        Convert detector to image coordinates
+        """
         cpdis = self.get_d2im_lookup()
         d2im_wcs = WCS()
         if self.axiscorr == 1:
@@ -270,7 +314,7 @@ class HSTWCS(WCS):
         if len(args) == 2:
             xy, origin = args
             try:
-                xy = N.asarray(xy)
+                xy = np.asarray(xy)
                 origin = int(origin)
             except:
                 raise TypeError(
@@ -279,8 +323,8 @@ class HSTWCS(WCS):
         elif len(args) == 3:
             x, y, origin = args
             try:
-                x = N.asarray(x)
-                y = N.asarray(y)
+                x = np.asarray(x)
+                y = np.asarray(y)
                 origin = int(origin)
             except:
                 raise TypeError(
@@ -288,7 +332,7 @@ class HSTWCS(WCS):
             if len(x) != len(y):
                 raise ValueError("x and y arrays are not the same size")
             length = len(x)
-            xy = N.hstack((x.reshape((length, 1)),
+            xy = np.hstack((x.reshape((length, 1)),
                             y.reshape((length, 1))))
      
             img = d2im_wcs.p4_pix2foc(xy,origin)
@@ -296,8 +340,11 @@ class HSTWCS(WCS):
             return [img[:, i] for i in range(img.shape[1])]
     
     def get_d2im_lookup(self):
+        """
+        Create a paper IV type lookup table from a reference file
+        """
         d2im_data = pyfits.getdata(self.filename, ext=('D2IMARR', 1))
-        d2im_data = N.array([d2im_data])
+        d2im_data = np.array([d2im_data])
         d2im_hdr = pyfits.getheader(self.filename, ext=('D2IMARR', 1))
         
         crpix = (d2im_hdr['CRPIX1'],d2im_hdr['CRPIX2'])

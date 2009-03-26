@@ -1,5 +1,4 @@
 import pyfits
-import numpy as N
 #from .. mappings import ins_spec_kw
 from mappings import ins_spec_kw, prim_hdr_kw
     
@@ -87,6 +86,8 @@ class InstrWCS(object):
         # each instrument has a different kw for detector and it can be 
         # in a different header, so this is to be handled by the instrument classes 
         pass
+        
+
         
 class ACSWCS(InstrWCS):
     """
@@ -220,11 +221,7 @@ class NICMOSWCS(InstrWCS):
     def set_filter2(self):
         #Nicmos idc tables do not allow 2 filters.
         self.filter2 = 'CLEAR'
-        """
-        self.filter2 = self.primhdr.get('FILTER2', None)
-        if self.filter2 == " " or self.filter2 == None:
-            self.filter2 = 'CLEAR2'
-        """
+        
     def set_chip(self):
         self.chip = self.detector
             
@@ -237,7 +234,7 @@ class NICMOSWCS(InstrWCS):
     
 class STISWCS(InstrWCS):
     """
-    Create a NICMOS specific class
+    A STIS specific class
     """
     
     def __init__(self, hdr0, hdr):
@@ -245,7 +242,7 @@ class STISWCS(InstrWCS):
         self.exthdr = hdr
         InstrWCS.__init__(self,hdr0, hdr)
         self.set_ins_spec_kw()
-    
+        
     def set_parity(self):
         self.parity = [[-1.0,0.],[0.,1.0]]
         
@@ -265,3 +262,4 @@ class STISWCS(InstrWCS):
         except KeyError:
             print 'ERROR: Detector kw not found.\n'
             raise
+        
