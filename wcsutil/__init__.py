@@ -336,8 +336,8 @@ class HSTWCS(WCS):
      
             img = d2im_wcs.p4_pix2foc(xy,origin)
         
-            return [img[:, i] for i in range(img.shape[1])]
-    
+            return np.asarray([img[:, i] for i in range(img.shape[1])]).T
+        
     def get_d2im_lookup(self):
         """
         Create a paper IV type lookup table from a reference file
