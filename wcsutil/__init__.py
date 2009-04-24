@@ -237,7 +237,11 @@ class HSTWCS(WCS):
     def all_pix2sky(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None and self.d2imerr > self.minerr:
-            return WCS.all_pix2sky(self, self.det2im(*args),origin )
+            img =  WCS.all_pix2sky(self, self.det2im(*args),origin )
+            if len(args) == 3:
+                return [img[:, i] for i in range(img.shape[1])]
+            else:
+                return img
         else:
             return WCS.all_pix2sky(self, *args)
     all_pix2sky.__doc__ = """
@@ -250,7 +254,11 @@ class HSTWCS(WCS):
     def pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None and self.d2imerr > self.minerr:
-            return WCS.pix2foc(self, self.det2im(*args), origin)
+            img = WCS.pix2foc(self, self.det2im(*args), origin)
+            if len(args)==3:
+                return [img[:, i] for i in range(img.shape[1])]
+            else:
+                return img
         else:
             return WCS.pix2foc(self, *args)
         
@@ -264,7 +272,11 @@ class HSTWCS(WCS):
     def p4_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None and self.d2imerr > self.minerr:
-            return WCS.p4_pix2foc(self, self.det2im(*args), origin)
+            img = WCS.p4_pix2foc(self, self.det2im(*args), origin)
+            if len(args)==3:
+                return [img[:, i] for i in range(img.shape[1])]
+            else:
+                return img
         else:
             return WCS.p4_pix2foc(self, *args)
     
@@ -278,7 +290,11 @@ class HSTWCS(WCS):
     def sip_pix2foc(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None and self.d2imerr > self.minerr:
-            return WCS.sip_pix2foc(self, self.det2im(*args), origin)
+            img = WCS.sip_pix2foc(self, self.det2im(*args), origin)
+            if len(args)==3:
+                return [img[:, i] for i in range(img.shape[1])]
+            else:
+                return img
         else:
             return WCS.sip_pix2foc(self, *args)
     
