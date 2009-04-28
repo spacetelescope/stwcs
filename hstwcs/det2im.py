@@ -20,7 +20,7 @@ class DET2IMCorr(object):
         else:
             new_kw = {'D2IMEXT': d2imfile, 'AXISCORR': axiscorr, 'D2IMERR': d2imerr}
             cls.applyDet2ImCorr(fobj, axiscorr)
-        return new_kw
+        cls.updatehdr(fobj, new_kw)
     
     updateWCS = classmethod(updateWCS)        
     
@@ -135,4 +135,21 @@ class DET2IMCorr(object):
         return hdr
     
     createDet2ImHdr = classmethod(createDet2ImHdr)
+    
+    def updatehdr(cls, fobj, kwdict):
+        """
+        Update extension headers to keep record of the files used for the 
+        detector to image correction.
+        """
+        for ext in fobj:
+            try:
+                extname = ext.header['EXTNAME'].lower()
+            except KeyError:
+                continue
+            if extname == 'sci':
+                for kw in kwdict:
+                    ext.header.update(kw, kwdict[kw])
+            else:
+                continue
+    updatehdr = classmethod(updatehdr)
     

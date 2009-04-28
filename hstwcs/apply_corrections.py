@@ -159,7 +159,7 @@ def applyD2ImCorr(fname, d2imcorr):
             return applyD2IMCorr 
         try:
             # get DGEOEXT kw from first extension header
-            fd2imext = pyfits.getval(fname, 'D2IMEXT', ext=0)
+            fd2imext = pyfits.getval(fname, 'D2IMEXT', ext=1)
             fd2imext = fileutil.osfn(fd2imext)
             if fd2imext and fileutil.findFile(fd2imext):
                 if fd2im0 != fd2imext:

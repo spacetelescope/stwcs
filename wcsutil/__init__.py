@@ -119,7 +119,7 @@ class HSTWCS(WCS):
         self.ra_targ = primhdr.get('RA_TARG', None)
         self.dec_targ = primhdr.get('DEC_TARG', None)
         self.det2imfile = primhdr.get('D2IMFILE', None)
-        self.det2imext = primhdr.get('D2IMEXT', None)
+        self.det2imext = ehdr.get('D2IMEXT', None)
         self.axiscorr = primhdr.get('AXISCORR', None)
         self.d2imerr = primhdr.get('D2IMERR', 0.0)
         try:
@@ -346,7 +346,12 @@ class HSTWCS(WCS):
         """
         Create a paper IV type lookup table from a reference file
         """
-        d2im_data = pyfits.getdata(self.filename, ext=('D2IMARR', 1))
+        if self.det2imext in [None, "", 'N/A']:
+            return None
+        try:
+            d2im_data = pyfits.getdata(self.filename, ext=('D2IMARR', 1))
+        except KeyError:
+            return None
         d2im_data = np.array([d2im_data])
         d2im_hdr = pyfits.getheader(self.filename, ext=('D2IMARR', 1))
         

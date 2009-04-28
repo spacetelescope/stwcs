@@ -81,11 +81,8 @@ def makecorr(fname, allowed_corr):
     utils.write_archive(f[nrefext].header)
     
     if 'DET2IMCorr' in allowed_corr:
-        kw2update = det2im.DET2IMCorr.updateWCS(f)
-        for kw in kw2update:
-            #these kw are written to the primary header
-            f[0].header.update(kw, kw2update[kw])
-            
+        det2im.DET2IMCorr.updateWCS(f)
+        
     for i in range(len(f))[1:]:
         # Perhaps all ext headers should be corrected (to be consistent)
         extn = f[i]
