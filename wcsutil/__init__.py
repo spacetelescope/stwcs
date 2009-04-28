@@ -17,7 +17,6 @@ from mappings import basic_wcs, prim_hdr_kw
 __docformat__ = 'restructuredtext'
 __version__ = '0.3'
 
-
 class HSTWCS(WCS):
     """
     Purpose
@@ -27,7 +26,6 @@ class HSTWCS(WCS):
     It also uses the primary and extension header to define 
     instrument specific attributes.
     """
-    
     def __init__(self, fobj=None, ext=None, instrument=None, detector=None, minerr=0.0):
         """
         :Parameters:
@@ -63,6 +61,7 @@ class HSTWCS(WCS):
             if not isinstance(fobj, pyfits.HDUList):
                 phdu.close()
                 
+            
             self.setInstrSpecKw(hdr0, ehdr)
             self.setPscale()
             self.setOrient()
@@ -70,13 +69,13 @@ class HSTWCS(WCS):
             extname = ehdr.get('EXTNAME', "")
             extnum = ehdr.get('EXTVER', None)
             self.extname = (extname, extnum)
+            self.d2imcorr = self.get_d2im_lookup()    
         else:
             # create a default HSTWCS object based on 
             #instrument and detector parameters
             self.instrument = instrument
             self.detector = detector
             self.setInstrSpecKw()
-        
         
     def parseInput(self, f=None, ext=None):
         if isinstance(f, str):
@@ -110,7 +109,7 @@ class HSTWCS(WCS):
             filename = hdr0.get('FILENAME', "")
         
         return filename, hdr0, ehdr, phdu
-            
+
     def setHDR0kw(self, primhdr, ehdr):
         # Set attributes from kw defined in the primary header.
         self.instrument = primhdr.get('INSTRUME', None)
@@ -141,7 +140,7 @@ class HSTWCS(WCS):
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
         for c in coeffs:
             self.__setattr__(c, header.get(c, None))
-            
+
     def setInstrSpecKw(self, prim_hdr=None, ext_hdr=None):
         # Based on the instrument kw creates an instalnce of an instrument WCS class
         # and sets attributes from instrument specific kw 
@@ -237,7 +236,7 @@ class HSTWCS(WCS):
     def all_pix2sky(self, *args, **kwargs):
         origin = self.get_origin(*args)
         if self.det2imext != None and self.d2imerr > self.minerr:
-            img =  WCS.all_pix2sky(self, self.det2im(*args),origin )
+            img = WCS.all_pix2sky(self,self.det2im(*args) ,origin )
             if len(args) == 3:
                 return [img[:, i] for i in range(img.shape[1])]
             else:
@@ -304,7 +303,7 @@ class HSTWCS(WCS):
         
         %s
         """ % (WCS.sip_pix2foc.__doc__)
-        
+
     def get_origin(self, *args):
         # Parse the arguments to get the origin of the 
         #transformation: 0 or 1
@@ -314,18 +313,10 @@ class HSTWCS(WCS):
             return args[2]
         raise TypeError("Expected 2 or 3 arguments, %d given" % len(args))
         
-    
-   
     def det2im(self, *args):
         """
         Convert detector to image coordinates
         """
-        cpdis = self.get_d2im_lookup()
-        d2im_wcs = WCS()
-        if self.axiscorr == 1:
-            d2im_wcs.cpdis1 = cpdis
-        else:
-            d2im_wcs.cpdis2 = cpdis
         if len(args) == 2:
             xy, origin = args
             try:
@@ -334,7 +325,7 @@ class HSTWCS(WCS):
             except:
                 raise TypeError(
                     "When providing two arguments, they must be (xy, origin)")
-            return d2im_wcs.p4_pix2foc(xy,origin)
+            return self.d2imcorr.p4_pix2foc(xy,origin)
         elif len(args) == 3:
             x, y, origin = args
             try:
@@ -349,11 +340,8 @@ class HSTWCS(WCS):
             length = len(x)
             xy = np.hstack((x.reshape((length, 1)),
                             y.reshape((length, 1))))
-     
-            img = d2im_wcs.p4_pix2foc(xy,origin)
-        
+            img = self.d2imcorr.p4_pix2foc(xy,origin)
             return np.asarray([img[:, i] for i in range(img.shape[1])]).T
-        
     def get_d2im_lookup(self):
         """
         Create a paper IV type lookup table from a reference file
@@ -365,8 +353,13 @@ class HSTWCS(WCS):
         crpix = (d2im_hdr['CRPIX1'],d2im_hdr['CRPIX2'])
         crval = (d2im_hdr['CRVAL1'],d2im_hdr['CRVAL2'])
         cdelt = (d2im_hdr['CDELT1'],d2im_hdr['CDELT2'])
-        
-        return DistortionLookupTable(d2im_data, crpix, crval, cdelt)
+        cpdis = DistortionLookupTable(d2im_data, crpix, crval, cdelt)
+        d2im_wcs = WCS()
+        if self.axiscorr == 1:
+            d2im_wcs.cpdis1 = cpdis
+        else:
+            d2im_wcs.cpdis2 = cpdis
+        return d2im_wcs
     
     def restore(self, header=None):
         """
