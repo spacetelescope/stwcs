@@ -1,7 +1,7 @@
 import numpy as np
 import pywcs
 import pyfits
-from updatewcs import wcsutil
+from stwcs import wcsutil
 from numpy import sqrt, arctan2
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):

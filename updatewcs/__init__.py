@@ -1,10 +1,10 @@
 import os
 import pyfits
 #from .. wcsutil import HSTWCS
-from updatewcs.wcsutil import HSTWCS
+from stwcs.wcsutil import HSTWCS
 
 #from .. mappings import allowed_corrections
-from updatewcs import utils
+from stwcs import utils
 import corrections, makewcs
 import dgeo, det2im
 from pytools import parseinput, fileutil

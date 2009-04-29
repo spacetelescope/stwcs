@@ -3,7 +3,7 @@ from pywcs import WCS, DistortionLookupTable
 import pyfits
 import instruments
 #from .. distortion import models
-from updatewcs.distortion import models
+from stwcs.distortion import models
 import numpy as np
 from pytools import fileutil
 from pytools.fileutil import DEGTORAD, RADTODEG

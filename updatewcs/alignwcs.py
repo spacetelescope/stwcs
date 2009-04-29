@@ -2,9 +2,9 @@
 
 from pydrizzle import process_input
 import pywcs, pyfits, numpy as np
-from updatewcs.distortion import utils
+from stwcs.distortion import utils
 from pytools import fileutil as fu
-from updatewcs import wcsutil
+from stwcs import wcsutil
 
 
 def align_wcs(input, shiftfile=None, writeasn=False, asnname=None):

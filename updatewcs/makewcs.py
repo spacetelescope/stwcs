@@ -1,7 +1,7 @@
-from updatewcs import DEGTORAD, RADTODEG
+from stwcs import DEGTORAD, RADTODEG
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
-from updatewcs import utils
+from stwcs import utils
 from pytools import fileutil
 
 class MakeWCS(object):
