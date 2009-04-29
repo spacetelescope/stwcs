@@ -24,7 +24,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, 
     
     Example
     =======
-    >>>from hstwcs import updatewcs
+    >>>from stwcs import updatewcs
     >>>updatewcs.updatewcs(filename)
     
     Dependencies 
