@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 import sys
 
 pkg =  ["stwcs", 'stwcs.updatewcs', 'stwcs.wcsutil', 'stwcs.distortion']
