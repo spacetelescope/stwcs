@@ -36,7 +36,6 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     if 'TDDCorr' in acorr and tddcorr==False: acorr.remove('TDDCorr')
     if 'DGEOCorr' in acorr and dgeocorr==False: acorr.remove('DGEOCorr')
     if 'DET2IMCorr' in acorr and d2imcorr==False: acorr.remove('DET2IMCorr')
-    
     return acorr
 
 def applyTDDCorr(fname, utddcorr):
@@ -47,22 +46,17 @@ def applyTDDCorr(fname, utddcorr):
     - the detector is WFC
     - the idc table specified in the primary header is available.
     """
-    
     instrument = pyfits.getval(fname, 'INSTRUME')
     try:
         detector = pyfits.getval(fname, 'DETECTOR')
     except KeyError:
         detector = None
     try:
-        tddcorr = pyfits.getval(fname, 'TDDCORR')
-        if tddcorr == 'PERFORM': 
-            tddcorr = True
-        else:
-            tddcorr = False
+        tddswitch = pyfits.getval(fname, 'TDDCORR')
     except KeyError:
-        tddcorr = None
+        tddswitch = 'PERFORM'
         
-    if instrument == 'ACS' and detector == 'WFC' and tddcorr== True and utddcorr == True:
+    if instrument == 'ACS' and detector == 'WFC' and utddcorr == True and tddswitch == 'PERFORM':
         tddcorr = True
         try:
             idctab = pyfits.getval(fname, 'IDCTAB')    
