@@ -119,8 +119,6 @@ class HSTWCS(WCS):
         self.dec_targ = primhdr.get('DEC_TARG', None)
         self.det2imfile = primhdr.get('D2IMFILE', None)
         self.det2imext = ehdr.get('D2IMEXT', None)
-        self.axiscorr = primhdr.get('AXISCORR', None)
-        self.d2imerr = primhdr.get('D2IMERR', 0.0)
         try:
             self.pav3 = primhdr['PA_V3']
 
@@ -226,16 +224,8 @@ class HSTWCS(WCS):
                 return
             else:
                 self.updatehdr(header)
-
-    def get_origin(self, *args):
-        # Parse the arguments to get the origin of the
-        #transformation: 0 or 1
-        if len(args) == 2:
-            return args[1]
-        elif len(args) == 3:
-            return args[2]
-        raise TypeError("Expected 2 or 3 arguments, %d given" % len(args))
-
+    
+    
     def restore(self, header=None):
         """
         Restore a WCS archive in memory and update the WCS object.

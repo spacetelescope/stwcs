@@ -197,8 +197,8 @@ class DGEOCorr(object):
         extver = dgeo_header['extver'] 
         crpix1 = naxis1/2.
         crpix2 = naxis2/2.
-        cdelt1 = sci_naxis1/naxis1 
-        cdelt2 = sci_naxis2/naxis2 
+        cdelt1 = float(sci_naxis1)/naxis1 
+        cdelt2 = float(sci_naxis2)/naxis2 
         crval1 = sci_crpix1
         crval2 = sci_crpix2
         keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
