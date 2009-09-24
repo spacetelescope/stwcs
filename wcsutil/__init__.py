@@ -61,7 +61,7 @@ class HSTWCS(WCS):
             if not isinstance(fobj, pyfits.HDUList):
                 phdu.close()
 
-
+            self.instrument ='DEFAULT'
             self.setInstrSpecKw(hdr0, ehdr)
             self.setPscale()
             self.setOrient()
@@ -82,20 +82,27 @@ class HSTWCS(WCS):
 
             if ext != None:
                 filename = f
-                extnum = ext
-            elif ext == None:
-                filename, extname = fileutil.parseFilename(f)
-                if extname == None:
-                    #data may be in the primary array
-                    extnum = 0
+                if isinstance(ext,tuple):
+                    if ext[0] == '':
+                        extnum = ext[1] # handle ext=('',1)
+                    else:
+                        extnum = ext
                 else:
-                    extnum = fileutil.parseExtn(extname)
+                    extnum = int(ext)
+            elif ext == None:
+                filename, ext = fileutil.parseFilename(f)
+                ext = fileutil.parseExtn(ext)
+                if ext[0] == '':
+                    extnum = int(ext[1]) #handle ext=('',extnum)
+                else:
+                    extnum = ext
             phdu = pyfits.open(filename)
             hdr0 = pyfits.getheader(filename)
             try:
                 ehdr = pyfits.getheader(filename, ext=extnum)
-            except IndexError:
-                print 'Unable to get extension %d. /n' % ext
+            except (IndexError,KeyError):
+                print 'Unable to get extension.', extnum
+                raise
 
         elif isinstance(f, pyfits.HDUList):
             phdu = f

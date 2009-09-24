@@ -7,7 +7,8 @@ inst_mappings={'WFPC2': 'WFPC2WCS',
                 'ACS': 'ACSWCS',
                 'NICMOS': 'NICMOSWCS',
                 'STIS': 'STISWCS',
-                'WFC3': 'WFC3WCS'
+                'WFC3': 'WFC3WCS',
+                'DEFAULT': 'InstrWCS'
                 }
 
 

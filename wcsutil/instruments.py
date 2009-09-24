@@ -11,6 +11,7 @@ class InstrWCS(object):
     def __init__(self, hdr0=None, hdr=None):
         self.exthdr = hdr   
         self.primhdr = hdr0
+        self.set_ins_spec_kw()
         
     def set_ins_spec_kw(self):
         """
@@ -32,62 +33,49 @@ class InstrWCS(object):
         
         
     def set_filter1(self):
-        try:
-            self.filter1 = self.primhdr.get('FILTER1', None)
-        except:
-            self.filter1 = None
+        self.filter1 = self.primhdr.get('FILTER1', None)
+        
     def set_filter2(self):
-        try:
-            self.filter2 = self.primhdr.get('FILTER2', None) 
-        except:
-            self.filter2 = None
+        self.filter2 = self.primhdr.get('FILTER2', None) 
+        
     def set_vafactor(self):
-        try:
-            self.vafactor = self.exthdr.get('vafactor', 1) 
-        except:
-            self.vafactor = 1.
+        self.vafactor = self.exthdr.get('vafactor', 1) 
+        
     def set_naxis1(self):
         try:
-            self.naxis1 = self.exthdr.get('naxis1', None)
+            self.naxis1 = self.exthdr['naxis1']
         except:
-            self.naxis1 = None
+            try:
+                self.naxis1 = self.exthdr['npix1']
+            except:
+                self.naxis1 = None
     def set_naxis2(self):
         try:
-            self.naxis2 = self.exthdr.get('naxis2', None)
+            self.naxis2 = self.exthdr['naxis2']
         except:
-            self.naxis2 = None
+            try:
+                self.naxis2 = self.exthdr['npix2']
+            except:
+                self.naxis2 = None
     def set_ltv1(self):
-        try:
-            self.ltv1 = self.exthdr.get('ltv1', 0.0)
-        except:
-            self.ltv1 = 0.0
+        self.ltv1 = self.exthdr.get('ltv1', 0.0)
         
     def set_ltv2(self):
-        try:
-            self.ltv2 = self.exthdr.get('ltv2', 0.0)
-        except:
-            self.ltv2 = 0.0
-        
+        self.ltv2 = self.exthdr.get('ltv2', 0.0)
+                
     def set_binned(self):
-        try:
-            self.binned = self.exthdr.get('BINAXIS1', 1)
-        except:
-            self.binned = 1
+        self.binned = self.exthdr.get('BINAXIS1', 1)
+        
     def set_chip(self):
-        try:
-            self.chip = self.exthdr.get('CCDCHIP', 1)
-        except:
-            self.chip = 1
-            
+        self.chip = self.exthdr.get('CCDCHIP', 1)
+                  
     def set_parity(self):
         self.parity = [[1.0,0.0],[0.0,-1.0]]
     
     def set_detector(self):
         # each instrument has a different kw for detector and it can be 
         # in a different header, so this is to be handled by the instrument classes 
-        pass
-        
-
+        self.detector = 'DEFAULT'
         
 class ACSWCS(InstrWCS):
     """
