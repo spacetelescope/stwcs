@@ -12,7 +12,7 @@ class DET2IMCorr(object):
         """
         assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
         
-        d2imfile = fobj[0].header['D2IMFILE']
+        d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)
         d2imerr = pyfits.getdata(d2imfile, ext=1).max()
         if axiscorr == None:
