@@ -184,23 +184,36 @@ class DGEOCorr(object):
     def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, extver):
         """
         Creates a header for the WCSDVARR extension based on the DGEO reference file 
-        and sci extension header.
+        and sci extension header. The goal is to always work in image coordinates
+        (also for subarrays and binned images. The WCS for the WCSDVARR extension 
+        i ssuch that a full size dgeo table is created and then shifted or scaled 
+        if the science image is a subarray or binned image.
         """
         dgeo_header = pyfits.getheader(dgeofile, ext=(dgeoname,extver))
-        sci_naxis1 = sciheader['NAXIS1']
-        sci_naxis2 = sciheader['NAXIS2']
-        sci_crpix1 = sciheader['CRPIX1']
-        sci_crpix2 = sciheader['CRPIX2']
+        
+        #LTV1/2 are needed to map correctly dgeo files into subarray coordinates
+        ltv1 = sciheader.get('LTV1', 0.0)
+        ltv2 = sciheader.get('LTV2', 0.0)
+        
+        # This is the size of the full dgeo chip
+        # recorded in the small dgeo table and needed in order to map to full dgeo
+        # chip coordinates.
+        chip_size1 = dgeo_header['ONAXIS1'] 
+        chip_size2 = dgeo_header['ONAXIS2'] 
         
         naxis1 = dgeo_header['naxis1']
         naxis2 = dgeo_header['naxis2'] 
         extver = dgeo_header['extver'] 
         crpix1 = naxis1/2.
         crpix2 = naxis2/2.
-        cdelt1 = float(sci_naxis1)/naxis1 
-        cdelt2 = float(sci_naxis2)/naxis2 
-        crval1 = sci_crpix1
-        crval2 = sci_crpix2
+        cdelt1 = float(chip_size1)/naxis1 
+        cdelt2 = float(chip_size2)/naxis2 
+        
+        # CRVAL1/2 of the small dgeo table is the shifted center of the full
+        # dgeo chip.
+        crval1 = chip_size1/2. +ltv1
+        crval2 = chip_size2/2. + ltv2
+        
         keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
               'EXTNAME','EXTVER','PCOUNT','GCOUNT','CRPIX1',
                         'CDELT1','CRVAL1','CRPIX2','CDELT2','CRVAL2']
