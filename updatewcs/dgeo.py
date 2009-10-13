@@ -60,9 +60,10 @@ class DGEOCorr(object):
                 continue
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
+                ccdchip = cls.get_ccdchip(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file and transform them for use with SIP
-                dx,dy = cls.getData(dgfile, extversion)
+                dx,dy = cls.getData(dgfile, ccdchip)
                 ndx, ndy = cls.transformData(header, dx,dy)
                 # determine EXTVER for the WCSDVARR extension from the DGEO file (EXTNAME, EXTVER) kw
                 wcsdvarr_x_version = 2 * extversion -1
@@ -70,7 +71,7 @@ class DGEOCorr(object):
                 
                 for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[ndx, ndy]):
                     cls.addSciExtKw(header, wdvarr_ver=ename[1], dgeo_name=ename[0])
-                    hdu = cls.createDgeoHDU(header, dgeofile=dgfile, wdvarr_ver=ename[1],dgeo_name=ename[0], data=ename[2],extver=extversion)
+                    hdu = cls.createDgeoHDU(header, dgeofile=dgfile, wdvarr_ver=ename[1],dgeo_name=ename[0], data=ename[2],ccdchip=ccdchip)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
@@ -171,17 +172,17 @@ class DGEOCorr(object):
     
     getCoeffs = classmethod(getCoeffs)
     
-    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_name=None,data = None, extver=1):
+    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_name=None,data = None, ccdchip=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dgeoname=dgeo_name, extver=extver)
+        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dgeoname=dgeo_name, ccdchip=ccdchip)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
     
     createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, extver):
+    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, ccdchip):
         """
         Creates a header for the WCSDVARR extension based on the DGEO reference file 
         and sci extension header. The goal is to always work in image coordinates
@@ -189,7 +190,7 @@ class DGEOCorr(object):
         i ssuch that a full size dgeo table is created and then shifted or scaled 
         if the science image is a subarray or binned image.
         """
-        dgeo_header = pyfits.getheader(dgeofile, ext=(dgeoname,extver))
+        dgeo_header = pyfits.getheader(dgeofile, ext=(dgeoname,ccdchip))
         
         #LTV1/2 are needed to map correctly dgeo files into subarray coordinates
         ltv1 = sciheader.get('LTV1', 0.0)
@@ -261,3 +262,14 @@ class DGEOCorr(object):
     
     createDgeoHdr = classmethod(createDgeoHdr)
     
+    def get_ccdchip(cls, fobj, extver):
+        if fobj[0].header['INSTRUME'] == 'ACS':
+            return fobj[extver].header['CCDCHIP']
+        elif obj[0].header['INSTRUME'] == 'WFC3':
+            return fobj[extver].header['CCDCHIP']
+        elif fobj[0].header['INSTRUME'] == 'WFPC2':
+            return fobj[0].header['DETECTOR']
+        elif fobj[0].header['INSTRUME'] == 'STIS':
+            return fobj[extver].header['CCDCHIP']
+        
+    get_ccdchip = classmethod(get_ccdchip)
