@@ -65,7 +65,8 @@ class DGEOCorr(object):
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(dgfile, ccdchip)
                 ndx, ndy = cls.transformData(header, dx,dy)
-                # determine EXTVER for the WCSDVARR extension from the DGEO file (EXTNAME, EXTVER) kw
+                # Determine EXTVER for the WCSDVARR extension from the DGEO file (EXTNAME, EXTVER) kw.
+                # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion 
                 
@@ -81,11 +82,12 @@ class DGEOCorr(object):
     applyDgeoCorr = classmethod(applyDgeoCorr)
               
     def getWCSIndex(cls, fobj):
+       
         """
         If fobj has WCSDVARR extensions: 
-            returns a mapping of their EXTVER kw are mapped to extension numbers
+            returns a mapping of their EXTVER kw to file object extension numbers
         if fobj does not have WCSDVARR extensions:
-            an empty dictionary is returned.
+            an empty dictionary is returned
         """
         wcsd = {}
         for e in range(len(fobj)):
@@ -133,12 +135,24 @@ class DGEOCorr(object):
         
     addSciExtKw = classmethod(addSciExtKw)
     
-    def getData(cls,dgfile, extver):
+    def getData(cls,dgfile, ccdchip):
         """
         Get the data arrays from the reference DGEO files
+        Make sure 'CCDCHIP' in the dgeo file matches "CCDCHIP' in the science file.
         """
-        xdata = pyfits.getdata(dgfile, ext=('DX',extver))
-        ydata = pyfits.getdata(dgfile, ext=('DY',extver))
+        dgf = pyfits.open(dgfile)
+        for ext in dgf:
+            dgextname  = ext.header.get('EXTNAME',"")
+            dgccdchip  = ext.header.get('CCDCHIP',0)
+            if dgextname == 'DX' and dgccdchip == ccdchip:
+                xdata = ext.data.copy()
+                continue
+            elif dgextname == 'DY' and dgccdchip == ccdchip:
+                ydata = ext.data.copy()
+                continue
+            else:
+                continue
+        dgf.close()
         return xdata, ydata
     getData = classmethod(getData)
     
@@ -190,8 +204,16 @@ class DGEOCorr(object):
         i ssuch that a full size dgeo table is created and then shifted or scaled 
         if the science image is a subarray or binned image.
         """
-        dgeo_header = pyfits.getheader(dgeofile, ext=(dgeoname,ccdchip))
-        
+        dgf = pyfits.open(dgeofile)
+        for ext in dgf:
+            dgextname = ext.header.get('EXTNAME', "")
+            dgccdchip = ext.header.get('CCDCHIP', 0)
+            if dgextname == dgeoname and dgccdchip == ccdchip:
+                dgeo_header = ext.header
+                break
+            else:
+                continue
+        dgf.close()
         #LTV1/2 are needed to map correctly dgeo files into subarray coordinates
         ltv1 = sciheader.get('LTV1', 0.0)
         ltv2 = sciheader.get('LTV2', 0.0)
@@ -201,6 +223,7 @@ class DGEOCorr(object):
         # chip coordinates.
         chip_size1 = dgeo_header['ONAXIS1'] 
         chip_size2 = dgeo_header['ONAXIS2'] 
+        ccdchip = dgeo_header['CCDCHIP']
         
         naxis1 = dgeo_header['naxis1']
         naxis2 = dgeo_header['naxis2'] 
@@ -216,7 +239,7 @@ class DGEOCorr(object):
         crval2 = chip_size2/2. + ltv2
         
         keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
-              'EXTNAME','EXTVER','PCOUNT','GCOUNT','CRPIX1',
+              'EXTNAME','EXTVER','PCOUNT','GCOUNT','CCDCHIP', 'CRPIX1',
                         'CDELT1','CRVAL1','CRPIX2','CDELT2','CRVAL2']
                         
         comments = {'XTENSION': 'Image extension',
@@ -228,6 +251,7 @@ class DGEOCorr(object):
                     'EXTVER': 'Distortion array version number',
                     'PCOUNT': 'Special data area of size 0',
                     'GCOUNT': 'One data group',
+                    'CCDCHIP': 'CCDCHIP number',
                     'CRPIX1': 'Distortion array reference pixel',
                     'CDELT1': 'Grid step size in first coordinate',
                     'CRVAL1': 'Image array pixel coordinate',
@@ -244,6 +268,7 @@ class DGEOCorr(object):
                 'EXTVER':  wdvarr_ver,
                 'PCOUNT': 0,
                 'GCOUNT': 1,
+                'CCDCHIP': ccdchip,
                 'CRPIX1': crpix1,
                 'CDELT1': cdelt1,
                 'CRVAL1': crval1,
@@ -263,13 +288,23 @@ class DGEOCorr(object):
     createDgeoHdr = classmethod(createDgeoHdr)
     
     def get_ccdchip(cls, fobj, extver):
+        """
+        Currently this is only needed for ACS, since this is the only instrument
+        with DGEO correction. The rest is here for completeness.
+        """
+        dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
         if fobj[0].header['INSTRUME'] == 'ACS':
-            return fobj[extver].header['CCDCHIP']
+            return fobj['SCI', extver].header['CCDCHIP']
         elif obj[0].header['INSTRUME'] == 'WFC3':
-            return fobj[extver].header['CCDCHIP']
+            return  fobj['SCI', extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFPC2':
             return fobj[0].header['DETECTOR']
         elif fobj[0].header['INSTRUME'] == 'STIS':
-            return fobj[extver].header['CCDCHIP']
+            return fobj['SCI', extver].header['DETECTOR']
+        elif fobj[0].header['INSTRUME'] == 'NICMOS':
+            return fobj['SCI', extver].header['CAMERA']
+        
         
     get_ccdchip = classmethod(get_ccdchip)
+    
+   
