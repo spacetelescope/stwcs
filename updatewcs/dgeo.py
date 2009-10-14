@@ -61,6 +61,7 @@ class DGEOCorr(object):
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
                 ccdchip = cls.get_ccdchip(fobj, extversion)
+                binned = cls.getBinning(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(dgfile, ccdchip)
@@ -72,7 +73,8 @@ class DGEOCorr(object):
                 
                 for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[ndx, ndy]):
                     cls.addSciExtKw(header, wdvarr_ver=ename[1], dgeo_name=ename[0])
-                    hdu = cls.createDgeoHDU(header, dgeofile=dgfile, wdvarr_ver=ename[1],dgeo_name=ename[0], data=ename[2],ccdchip=ccdchip)
+                    hdu = cls.createDgeoHDU(header, dgeofile=dgfile, \
+                        wdvarr_ver=ename[1], dgeo_name=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
@@ -186,17 +188,17 @@ class DGEOCorr(object):
     
     getCoeffs = classmethod(getCoeffs)
     
-    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_name=None,data = None, ccdchip=1):
+    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_name=None,data = None, ccdchip=1, binned=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dgeoname=dgeo_name, ccdchip=ccdchip)
+        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dgeoname=dgeo_name, ccdchip=ccdchip, binned=binned)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
     
     createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, ccdchip):
+    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, ccdchip, binned):
         """
         Creates a header for the WCSDVARR extension based on the DGEO reference file 
         and sci extension header. The goal is to always work in image coordinates
@@ -214,6 +216,7 @@ class DGEOCorr(object):
             else:
                 continue
         dgf.close()
+        
         #LTV1/2 are needed to map correctly dgeo files into subarray coordinates
         ltv1 = sciheader.get('LTV1', 0.0)
         ltv2 = sciheader.get('LTV2', 0.0)
@@ -230,8 +233,8 @@ class DGEOCorr(object):
         extver = dgeo_header['extver'] 
         crpix1 = naxis1/2.
         crpix2 = naxis2/2.
-        cdelt1 = float(chip_size1)/naxis1 
-        cdelt2 = float(chip_size2)/naxis2 
+        cdelt1 = float(chip_size1)*binned/naxis1 
+        cdelt2 = float(chip_size2)*binned/naxis2 
         
         # CRVAL1/2 of the small dgeo table is the shifted center of the full
         # dgeo chip.
@@ -307,4 +310,14 @@ class DGEOCorr(object):
         
     get_ccdchip = classmethod(get_ccdchip)
     
-   
+    def getBinning(cls, fobj, extver):
+        # Return the binning factor
+        binned = 1
+        if fobj[0].header['INSTRUME'] == 'WFPC2':
+            mode = fobj[0].header.get('MODE', "")
+            if mode == 'AREA': binned = 2
+        else:
+            binned = fobj['SCI', extver].header.get('BINAXIS',1)
+        return binned
+    
+    getBinning = classmethod(getBinning)
