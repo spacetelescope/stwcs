@@ -1,5 +1,6 @@
 import pyfits
 from pytools import fileutil
+from stwcs import utils
 
 class DET2IMCorr(object):
     def updateWCS(cls, fobj):
@@ -42,8 +43,8 @@ class DET2IMCorr(object):
     getAxisCorr = classmethod(getAxisCorr)
     
     def applyDet2ImCorr(cls,fobj, axiscorr):
-        
-        hdu = cls.createDgeoHDU(fobj, axiscorr)
+        binned = utils.getBinning(fobj)
+        hdu = cls.createDgeoHDU(fobj, axiscorr, binned)
         d2imarr_ind = cls.getD2imIndex(fobj)
         if d2imarr_ind:
             fobj[d2imarr_ind] = hdu
@@ -63,32 +64,33 @@ class DET2IMCorr(object):
         return index
     getD2imIndex = classmethod(getD2imIndex)
     
-    def createDgeoHDU(cls, fobj, axiscorr):
+    def createDgeoHDU(cls, fobj, axiscorr, binned=1):
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         d2im_data = pyfits.getdata(d2imfile, ext=1)
         sci_hdr = fobj['sci',1].header
-        d2im_hdr = cls.createDet2ImHdr(sci_hdr, d2im_data.shape, axiscorr)
+        d2im_hdr = cls.createDet2ImHdr(sci_hdr, d2im_data.shape, axiscorr, binned)
         hdu = pyfits.ImageHDU(header=d2im_hdr, data=d2im_data)
         
         return hdu
     
     createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDet2ImHdr(cls, sci_hdr, data_shape, axiscorr):
+    def createDet2ImHdr(cls, sci_hdr, data_shape, axiscorr, binned=1):
         """
         Creates a header for the D2IMARR extension based on the 
         reference file recorded in D2IMFILE keyword in the primary header.
         """
+        
         ltv1 = sci_hdr.get('LTV1', 0.0)
         ltv2 = sci_hdr.get('LTV2', 0.0)
         naxis1 = data_shape[0]
         naxis2 = 0
         crpix1 = 0.0
         crpix2 = 0.0
-        cdelt1 = 1.0
-        cdelt2 = 1.0
-        crval1 = 0.0 + ltv1
-        crval2 = 0.0 + ltv2
+        cdelt1 = 1.0 / binned
+        cdelt2 = 1.0 / binned
+        crval1 = (0.0 + ltv1) / binned
+        crval2 = (0.0 + ltv2) / binned
         keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
               'EXTNAME','EXTVER','PCOUNT','GCOUNT','CRPIX1',
                         'CDELT1','CRVAL1','CRPIX2','CDELT2','CRVAL2', 'AXISCORR']

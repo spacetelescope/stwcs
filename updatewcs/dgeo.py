@@ -1,5 +1,6 @@
 import pyfits
 from pytools import fileutil
+from stwcs import utils
 import numpy as np
 
 class DGEOCorr(object):
@@ -61,7 +62,7 @@ class DGEOCorr(object):
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
                 ccdchip = cls.get_ccdchip(fobj, extversion)
-                binned = cls.getBinning(fobj, extversion)
+                binned = utils.getBinning(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(dgfile, ccdchip)
@@ -233,13 +234,13 @@ class DGEOCorr(object):
         extver = dgeo_header['extver'] 
         crpix1 = naxis1/2.
         crpix2 = naxis2/2.
-        cdelt1 = float(chip_size1)*binned/naxis1 
-        cdelt2 = float(chip_size2)*binned/naxis2 
+        cdelt1 = float(chip_size1) / (naxis1  * binned)
+        cdelt2 = float(chip_size2) / (naxis2 * binned) 
         
         # CRVAL1/2 of the small dgeo table is the shifted center of the full
         # dgeo chip.
-        crval1 = chip_size1/2. +ltv1
-        crval2 = chip_size2/2. + ltv2
+        crval1 = (chip_size1/2. + ltv1) / binned
+        crval2 = (chip_size2/2. + ltv2) / binned
         
         keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
               'EXTNAME','EXTVER','PCOUNT','GCOUNT','CCDCHIP', 'CRPIX1',
@@ -310,14 +311,3 @@ class DGEOCorr(object):
         
     get_ccdchip = classmethod(get_ccdchip)
     
-    def getBinning(cls, fobj, extver):
-        # Return the binning factor
-        binned = 1
-        if fobj[0].header['INSTRUME'] == 'WFPC2':
-            mode = fobj[0].header.get('MODE', "")
-            if mode == 'AREA': binned = 2
-        else:
-            binned = fobj['SCI', extver].header.get('BINAXIS',1)
-        return binned
-    
-    getBinning = classmethod(getBinning)
