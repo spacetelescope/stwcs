@@ -20,7 +20,7 @@ class DET2IMCorr(object):
             new_kw = {}
         else:
             new_kw = {'D2IMEXT': d2imfile, 'AXISCORR': axiscorr, 'D2IMERR': d2imerr}
-            cls.applyDet2ImCorr(fobj, axiscorr)
+            cls.applyDet2ImCorr(fobj,axiscorr)
         cls.updatehdr(fobj, new_kw)
     
     updateWCS = classmethod(updateWCS)        
@@ -68,73 +68,73 @@ class DET2IMCorr(object):
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         d2im_data = pyfits.getdata(d2imfile, ext=1)
         sci_hdr = fobj['sci',1].header
-        d2im_hdr = cls.createDet2ImHdr(sci_hdr, d2im_data.shape, axiscorr, binned)
+        d2im_hdr = cls.createDet2ImHdr(fobj, binned)
         hdu = pyfits.ImageHDU(header=d2im_hdr, data=d2im_data)
         
         return hdu
     
     createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDet2ImHdr(cls, sci_hdr, data_shape, axiscorr, binned=1):
+    def createDet2ImHdr(cls, fobj, binned=1):        
         """
         Creates a header for the D2IMARR extension based on the 
         reference file recorded in D2IMFILE keyword in the primary header.
-        """
+        fobj - the science  file
         
-        ltv1 = sci_hdr.get('LTV1', 0.0)
-        ltv2 = sci_hdr.get('LTV2', 0.0)
-        naxis1 = data_shape[0]
-        naxis2 = 0
-        crpix1 = 0.0
-        crpix2 = 0.0
-        cdelt1 = 1.0 / binned
-        cdelt2 = 1.0 / binned
-        crval1 = (0.0 + ltv1) / binned
-        crval2 = (0.0 + ltv2) / binned
-        keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
-              'EXTNAME','EXTVER','PCOUNT','GCOUNT','CRPIX1',
-                        'CDELT1','CRVAL1','CRPIX2','CDELT2','CRVAL2', 'AXISCORR']
+        """
+        d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
+        axiscorr = cls.getAxisCorr(d2imfile)
+        sci_hdr = fobj[1].header
+        data_shape = pyfits.getdata(d2imfile, ext=1).shape
+        naxis = pyfits.getval(d2imfile, ext=1, key='NAXIS')
+        
+        kw = { 'NAXIS': 'Size of the axis', 
+                'CRPIX': 'Coordinate system reference pixel', 
+                'CRVAL': 'Coordinate system value at reference pixel',
+                'CDELT': 'Coordinate increment along axis'}
+                
+        kw_comm1 = {}
+        kw_val1 = {}
+        for key in kw.keys():
+            for i in range(1, naxis+1):
+                si = str(i)
+                kw_comm1[key+si] = kw[key]
+                
+        for i in range(1, naxis+1):
+            si = str(i)
+            kw_val1['NAXIS'+si] = data_shape[i-1]
+            kw_val1['CRPIX'+si] = data_shape[i-1]/2.
+            kw_val1['CDELT'+si] = 1./binned
+            kw_val1['CRVAL'+si] = (sci_hdr.get('NAXIS'+si, 1)/2. + \
+                                        sci_hdr.get('LTV'+si, 0.)) / binned
+        
                         
-        comments = {'XTENSION': 'Image extension',
+        kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',
-                    'NAXIS1': 'Number of image columns',
-                    'NAXIS2': 'Number of image rows',
                     'EXTNAME': 'WCS distortion array',
                     'EXTVER': 'Distortion array version number',
                     'PCOUNT': 'Special data area of size 0',
                     'GCOUNT': 'One data group',
-                    'CRPIX1': 'Distortion array reference pixel',
-                    'CDELT1': 'Grid step size in first coordinate',
-                    'CRVAL1': 'Image array pixel coordinate',
-                    'CRPIX2': 'Distortion array reference pixel',
-                    'CDELT2': 'Grid step size in second coordinate',
-                    'CRVAL2': 'Image array pixel coordinate',
                     'AXISCORR': 'Direction in which the det2im correction is applied'}
         
-        values = {'XTENSION': 'IMAGE',
-                'BITPIX': -32,
-                'NAXIS': 1,
-                'NAXIS1': naxis1,
-                'NAXIS2': naxis2,
-                'EXTNAME': 'D2IMARR',
-                'EXTVER':  1,
-                'PCOUNT': 0,
-                'GCOUNT': 1,
-                'CRPIX1': crpix1,
-                'CDELT1': cdelt1,
-                'CRVAL1': crval1,
-                'CRPIX2': crpix2,
-                'CDELT2': cdelt2,
-                'CRVAL2': crval2,
-                'AXISCORR': axiscorr
+        kw_val0 = { 'XTENSION': 'IMAGE',
+                    'BITPIX': -32,
+                    'NAXIS': naxis,
+                    'EXTNAME': 'D2IMARR',
+                    'EXTVER':  1,
+                    'PCOUNT': 0,
+                    'GCOUNT': 1,
+                    'AXISCORR': axiscorr
                 }
                     
         
         cdl = pyfits.CardList()
-        for c in keys:
-            cdl.append(pyfits.Card(key=c, value=values[c], comment=comments[c]))
-
+        for key in kw_comm0.keys():
+            cdl.append(pyfits.Card(key=key, value=kw_val0[key], comment=kw_comm0[key]))
+        for key in kw_comm1.keys():
+            cdl.append(pyfits.Card(key=key, value=kw_val1[key], comment=kw_comm1[key]))
+            
         hdr = pyfits.Header(cards=cdl)
         return hdr
     

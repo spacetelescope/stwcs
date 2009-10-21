@@ -218,75 +218,58 @@ class DGEOCorr(object):
                 continue
         dgf.close()
         
-        #LTV1/2 are needed to map correctly dgeo files into subarray coordinates
-        ltv1 = sciheader.get('LTV1', 0.0)
-        ltv2 = sciheader.get('LTV2', 0.0)
-        
-        # This is the size of the full dgeo chip
-        # recorded in the small dgeo table and needed in order to map to full dgeo
-        # chip coordinates.
-        chip_size1 = dgeo_header['ONAXIS1'] 
-        chip_size2 = dgeo_header['ONAXIS2'] 
+        naxis = pyfits.getval(dgeofile, ext=1, key='NAXIS')
         ccdchip = dgeo_header['CCDCHIP']
         
-        naxis1 = dgeo_header['naxis1']
-        naxis2 = dgeo_header['naxis2'] 
-        extver = dgeo_header['extver'] 
-        crpix1 = naxis1/2.
-        crpix2 = naxis2/2.
-        cdelt1 = float(chip_size1) / (naxis1  * binned)
-        cdelt2 = float(chip_size2) / (naxis2 * binned) 
+        kw = { 'NAXIS': 'Size of the axis', 
+                'CRPIX': 'Coordinate system reference pixel', 
+                'CRVAL': 'Coordinate system value at reference pixel',
+                'CDELT': 'Coordinate increment along axis'}
+                
+        kw_comm1 = {}
+        kw_val1 = {}
+        for key in kw.keys():
+            for i in range(1, naxis+1):
+                si = str(i)
+                kw_comm1[key+si] = kw[key]
+                
+        for i in range(1, naxis+1):
+            si = str(i)
+            kw_val1['NAXIS'+si] = dgeo_header.get('NAXIS'+si)
+            kw_val1['CRPIX'+si] = kw_val1['NAXIS'+si]/2. 
+            kw_val1['CDELT'+si] = float(dgeo_header.get('ONAXIS'+si))/ (kw_val1['NAXIS'+si] * binned)
+            kw_val1['CRVAL'+si] = (dgeo_header.get('ONAXIS'+si)/2. + \
+                                        sciheader.get('LTV'+si, 0.)) / binned
         
-        # CRVAL1/2 of the small dgeo table is the shifted center of the full
-        # dgeo chip.
-        crval1 = (chip_size1/2. + ltv1) / binned
-        crval2 = (chip_size2/2. + ltv2) / binned
-        
-        keys = ['XTENSION','BITPIX','NAXIS','NAXIS1','NAXIS2',
-              'EXTNAME','EXTVER','PCOUNT','GCOUNT','CCDCHIP', 'CRPIX1',
-                        'CDELT1','CRVAL1','CRPIX2','CDELT2','CRVAL2']
                         
-        comments = {'XTENSION': 'Image extension',
+        kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',
-                    'NAXIS1': 'Number of image columns',
-                    'NAXIS2': 'Number of image rows',
                     'EXTNAME': 'WCS distortion array',
                     'EXTVER': 'Distortion array version number',
                     'PCOUNT': 'Special data area of size 0',
                     'GCOUNT': 'One data group',
-                    'CCDCHIP': 'CCDCHIP number',
-                    'CRPIX1': 'Distortion array reference pixel',
-                    'CDELT1': 'Grid step size in first coordinate',
-                    'CRVAL1': 'Image array pixel coordinate',
-                    'CRPIX2': 'Distortion array reference pixel',
-                    'CDELT2': 'Grid step size in second coordinate',
-                    'CRVAL2': 'Image array pixel coordinate'}
+                    }
         
-        values = {'XTENSION': 'IMAGE',
-                'BITPIX': -32,
-                'NAXIS': 2,
-                'NAXIS1': naxis1,
-                'NAXIS2': naxis2,
-                'EXTNAME': 'WCSDVARR',
-                'EXTVER':  wdvarr_ver,
-                'PCOUNT': 0,
-                'GCOUNT': 1,
-                'CCDCHIP': ccdchip,
-                'CRPIX1': crpix1,
-                'CDELT1': cdelt1,
-                'CRVAL1': crval1,
-                'CRPIX2': crpix2,
-                'CDELT2': cdelt2,
-                'CRVAL2': crval2
+        kw_val0 = { 'XTENSION': 'IMAGE',
+                    'BITPIX': -32,
+                    'NAXIS': naxis,
+                    'EXTNAME': 'WCSDVARR',
+                    'EXTVER':  wdvarr_ver,
+                    'PCOUNT': 0,
+                    'GCOUNT': 1,
+                    'CCDCHIP': ccdchip,
                 }
-                    
         
         cdl = pyfits.CardList()
-        for c in keys:
-            cdl.append(pyfits.Card(key=c, value=values[c], comment=comments[c]))
-
+        for key in kw_comm0.keys():
+            cdl.append(pyfits.Card(key=key, value=kw_val0[key], comment=kw_comm0[key]))
+        for key in kw_comm1.keys():
+            cdl.append(pyfits.Card(key=key, value=kw_val1[key], comment=kw_comm1[key]))
+            
+        
         hdr = pyfits.Header(cards=cdl)
+        
         return hdr
     
     createDgeoHdr = classmethod(createDgeoHdr)
