@@ -128,7 +128,7 @@ def getNrefchip(fobj):
             Nrefext = detectors.index(3) + 1
     elif instrument == 'ACS':
         detector = fobj[0].header['DETECTOR']
-        if detector == 'WCS':
+        if detector == 'WFC':
             Nrefchip =2
         else:
             Nrefchip = 1
