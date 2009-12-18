@@ -68,7 +68,10 @@ def write_archive(header):
         cmt = 'archived value'
         for kw in basic_wcs:
             nkw = 'O'+kw
-            header.update(nkw[:8], header[kw], comment=cmt)
+            try:
+                header.update(nkw[:8], header[kw], comment=cmt)
+            except KeyError:  #ORIENTAT is not always present in headers
+                pass
         header.update('WCSCDATE', fileutil.getLTime(), comment='Local time the WCS kw were archived')
     
 

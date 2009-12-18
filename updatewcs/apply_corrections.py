@@ -27,15 +27,18 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     for the instrument, which are defined in mappings.py.
     """
     instrument = pyfits.getval(fname, 'INSTRUME')
-    tddcorr = applyTDDCorr(fname, tddcorr)
-    dgeocorr = applyDgeoCorr(fname, dgeocorr)
-    d2imcorr = applyD2ImCorr(fname, d2imcorr)
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
-    if 'TDDCorr' in acorr and tddcorr==False: acorr.remove('TDDCorr')
-    if 'DGEOCorr' in acorr and dgeocorr==False: acorr.remove('DGEOCorr')
-    if 'DET2IMCorr' in acorr and d2imcorr==False: acorr.remove('DET2IMCorr')
+    if 'TDDCorr' in acorr:
+        tddcorr = applyTDDCorr(fname, tddcorr)
+        if tddcorr == False: acorr.remove('TDDCorr')
+    if 'DGEOCorr' in acorr:
+        dgeocorr = applyDgeoCorr(fname, dgeocorr)
+        if dgeocorr == False: acorr.remove('DGEOCorr')
+    if 'DET2IMCorr' in acorr:
+        d2imcorr = applyD2ImCorr(fname, d2imcorr)
+        if d2imcorr == False: acorr.remove('DET2IMCorr')
     return acorr
 
 def applyTDDCorr(fname, utddcorr):

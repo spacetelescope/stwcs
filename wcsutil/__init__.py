@@ -26,7 +26,7 @@ class HSTWCS(WCS):
     It also uses the primary and extension header to define
     instrument specific attributes.
     """
-    def __init__(self, fobj=None, ext=None, instrument=None, detector=None, minerr=0.0):
+    def __init__(self, fobj='DEFAULT', ext=None, minerr=0.0):
         """
         :Parameters:
         `fobj`: string or PyFITS HDUList object or None
@@ -36,13 +36,7 @@ class HSTWCS(WCS):
         `ext`:  int or None
                 extension number
                 if ext==None, it is assumed the data is in the primary hdu
-        `instrument`: string
-                one of 'ACS', 'NICMOS', 'WFPC2', 'STIS', 'WFC3'
-                Used only to define a default HSTWCS object, when fobj==None
-        `detector`:  string
-                for example 'WFC'
-                If instrument and detector parameters are given, a default HSTWCS
-                instrument is created. Used only with fobj==None
+ 
         `minerr`: float
                 minimum value a distortion correction must have in order to be applied.
                 If CPERRja, CQERRja are smaller than minerr, the corersponding
@@ -51,31 +45,33 @@ class HSTWCS(WCS):
 
         self.inst_kw = ins_spec_kw
         self.minerr = minerr
-        if instrument == None:
+        
+        if fobj != 'DEFAULT':
             filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
             self.filename = filename
-            self.setHDR0kw(hdr0, ehdr)
+            self.instrument = hdr0['INSTRUME']
+            
             WCS.__init__(self, ehdr, fobj=phdu, minerr=minerr)
+            
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
                 phdu.close()
-
-            self.instrument ='DEFAULT'
+                
             self.setInstrSpecKw(hdr0, ehdr)
-            self.setPscale()
-            self.setOrient()
             self.readIDCCoeffs(ehdr)
             extname = ehdr.get('EXTNAME', "")
             extnum = ehdr.get('EXTVER', None)
             self.extname = (extname, extnum)
         else:
-            # create a default HSTWCS object based on
-            #instrument and detector parameters
-            self.instrument = instrument
-            self.detector = detector
+            # create a default HSTWCS object 
+            self.instrument = 'DEFAULT'
+            WCS.__init__(self, minerr=minerr)
             self.setInstrSpecKw()
-
+        
+        self.setPscale()
+        self.setOrient()
+        
     def parseInput(self, f=None, ext=None):
         if isinstance(f, str):
             # create an HSTWCS object from a filename
@@ -115,27 +111,7 @@ class HSTWCS(WCS):
             filename = hdr0.get('FILENAME', "")
 
         return filename, hdr0, ehdr, phdu
-
-    def setHDR0kw(self, primhdr, ehdr):
-        # Set attributes from kw defined in the primary header.
-        self.instrument = primhdr.get('INSTRUME', None)
-        self.offtab = primhdr.get('OFFTAB', None)
-        self.idctab = primhdr.get('IDCTAB', None)
-        self.date_obs = primhdr.get('DATE-OBS', None)
-        self.ra_targ = primhdr.get('RA_TARG', None)
-        self.dec_targ = primhdr.get('DEC_TARG', None)
-        self.det2imfile = primhdr.get('D2IMFILE', None)
-        self.det2imext = ehdr.get('D2IMEXT', None)
-        try:
-            self.pav3 = primhdr['PA_V3']
-
-        except KeyError:
-            print 'Keyword PA_V3 not found in primary header.'
-            print 'This is typical for some old files. Please retrieve the files from the archive again.'
-            #print 'Quitting ...'
-            #raise
-
-
+    
 
     def readIDCCoeffs(self, header):
         """
@@ -152,6 +128,7 @@ class HSTWCS(WCS):
             inst_kl = inst_mappings[self.instrument]
             inst_kl = instruments.__dict__[inst_kl]
             insobj = inst_kl(prim_hdr, ext_hdr)
+            
             for key in self.inst_kw:
                 try:
                     self.__setattr__(key, insobj.__getattribute__(key))
@@ -162,6 +139,7 @@ class HSTWCS(WCS):
                         raise
                     else:
                         pass
+            
         else:
             raise KeyError, "Unsupported instrument - %s" %self.instrument
 
@@ -305,8 +283,8 @@ def help():
     Example:\n
     w = wcsutil.HSTWCS('j9irw4b1q_flt.fits', ext=2)\n\n
 
-    4. Create a template HSTWCS object for an instrument/detector combination.]n
+    4. Create a template HSTWCS object for a DEFAULT object.\n
     Example:\n
-    w = wcsutil.HSTWCS(instrument='ACS', detector='WFC'\n\n
+    w = wcsutil.HSTWCS(instrument='DEFAULT')\n\n
     """
 

@@ -19,6 +19,14 @@ class InstrWCS(object):
         There should be a set_kw method for all kw listed in 
         mappings.ins_spec_kw
         """
+        self.set_idctab()
+        self.set_offtab()
+        self.set_date_obs()
+        self.set_ra_targ()
+        self.set_dec_targ()
+        self.set_pav3()
+        #self.set_d2imfile()
+        
         self.set_detector()
         self.set_filter1()
         self.set_filter2()
@@ -31,43 +39,114 @@ class InstrWCS(object):
         self.set_chip()
         self.set_parity()
         
-        
+    def set_idctab(self):
+        try:
+            self.idctab = self.primhdr['IDCTAB']
+        except (KeyError, TypeError):
+            self.idctab = None
+            
+    def set_offtab(self):
+        try:
+            self.offtab = self.primhdr['OFFTAB']
+        except (KeyError, TypeError):
+            self.offtab = None
+
+    def set_date_obs(self):
+        try:
+            self.date_obs = self.primhdr['DATE-OBS']
+        except (KeyError, TypeError):
+            self.date_obs = None
+            
+    def set_ra_targ(self):
+        try:
+            self.ra_targ = self.primhdr['RA-TARG']
+        except (KeyError, TypeError):
+            self.ra_targ = None
+    
+    def set_dec_targ(self):
+        try:
+            self.dec_targ = self.primhdr['DEC-TARG']
+        except (KeyError, TypeError):
+            self.dec_targ = None
+    """        
+    def set_d2imfile(self):
+        try:
+            self.d2imfile = self.primhdr['D2IMFILE']
+        except (KeyError, TypeError):
+            self.d2imfile = None
+    """
+    def set_pav3(self):
+        try:
+            self.pav3 = self.primhdr['PA_V3']
+        except (KeyError, TypeError):
+            self.pav3 = None
+            
     def set_filter1(self):
-        self.filter1 = self.primhdr.get('FILTER1', None)
-        
+        #self.filter1 = self.primhdr.get('FILTER1', None)
+        try:
+            self.filter1 = self.primhdr['FILTER1']
+        except:
+            self.filter1 = None
+            
     def set_filter2(self):
-        self.filter2 = self.primhdr.get('FILTER2', None) 
-        
+        #self.filter2 = self.primhdr.get('FILTER2', None) 
+        try:
+            self.filter2 = self.primhdr['FILTER2']
+        except (KeyError, TypeError):
+            self.filter2 = None
+            
     def set_vafactor(self):
-        self.vafactor = self.exthdr.get('vafactor', 1) 
-        
+        #self.vafactor = self.exthdr.get('vafactor', 1) 
+        try:
+            self.vafactor = self.exthdr['VAFACTOR']
+        except (KeyError, TypeError):
+            self.vafactor = 1
+            
     def set_naxis1(self):
         try:
             self.naxis1 = self.exthdr['naxis1']
-        except:
+        except (KeyError, TypeError):
             try:
                 self.naxis1 = self.exthdr['npix1']
-            except:
+            except (KeyError, TypeError):
                 self.naxis1 = None
+                
     def set_naxis2(self):
         try:
             self.naxis2 = self.exthdr['naxis2']
-        except:
+        except (KeyError, TypeError):
             try:
                 self.naxis2 = self.exthdr['npix2']
-            except:
+            except (KeyError, TypeError):
                 self.naxis2 = None
+                
     def set_ltv1(self):
-        self.ltv1 = self.exthdr.get('ltv1', 0.0)
+        #self.ltv1 = self.exthdr.get('ltv1', 0.0)
+        try:
+            self.ltv1 = self.exthdr['LTV1']
+        except (KeyError, TypeError):
+            self.ltv1 = 0.0
         
     def set_ltv2(self):
-        self.ltv2 = self.exthdr.get('ltv2', 0.0)
-                
+        #self.ltv2 = self.exthdr.get('ltv2', 0.0)
+        try:
+            self.ltv2 = self.exthdr['LTV2']
+        except (KeyError, TypeError):
+            self.ltv2 = 0.0
+            
     def set_binned(self):
-        self.binned = self.exthdr.get('BINAXIS1', 1)
+        #self.binned = self.exthdr.get('BINAXIS1', 1)
+        try:
+            self.binned = self.exthdr['BINAXIS1']
+        except (KeyError, TypeError):
+            self.binned = 1
         
     def set_chip(self):
-        self.chip = self.exthdr.get('CCDCHIP', 1)
+        #self.chip = self.exthdr.get('CCDCHIP', 1)
+        try:
+            self.chip = self.exthdr['CCDCHIP']
+        except (KeyError, TypeError):
+            self.chip = 1
                   
     def set_parity(self):
         self.parity = [[1.0,0.0],[0.0,-1.0]]
