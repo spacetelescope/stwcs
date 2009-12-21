@@ -11,7 +11,7 @@ __docformat__ = 'restructuredtext'
 # A dictionary which lists the allowed corrections for each instrument.
 # These are the default corrections applied also in the pipeline.
 
-allowed_corrections={'WFPC2': ['MakeWCS','CompSIP', 'VACorr', 'DGEOCorr'],
+allowed_corrections={'WFPC2': ['DET2IMCorr', 'MakeWCS','CompSIP', 'VACorr'],
                     'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr'],
                     'STIS': ['MakeWCS', 'CompSIP','VACorr'],
                     'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
