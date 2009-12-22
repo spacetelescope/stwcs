@@ -57,7 +57,6 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     if 'DET2IMCorr' in acorr:
         d2imcorr = applyD2ImCorr(fname, d2imcorr)
         if d2imcorr == False: acorr.remove('DET2IMCorr')
-    print acorr
     return acorr
 
 def foundIDCTAB(fname):
