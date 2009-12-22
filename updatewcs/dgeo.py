@@ -61,21 +61,24 @@ class DGEOCorr(object):
                 continue
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
-                ccdchip = cls.get_ccdchip(fobj, extversion)
+                ccdchip = cls.get_ccdchip(fobj, extname='SCI', extver=extversion)
                 binned = utils.getBinning(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(dgfile, ccdchip)
-                ndx, ndy = cls.transformData(header, dx,dy)
+                idccoeffs = cls.getIDCCoeffs(header)
+                if idccoeffs != None:
+                    dx, dy = cls.transformData(dx,dy, idccoeffs)
+                    
                 # Determine EXTVER for the WCSDVARR extension from the DGEO file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion 
                 
-                for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[ndx, ndy]):
-                    cls.addSciExtKw(header, wdvarr_ver=ename[1], dgeo_name=ename[0])
+                for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
+                    cls.addSciExtKw(header, wdvarr_ver=ename[1], dgeo_extname=ename[0])
                     hdu = cls.createDgeoHDU(header, dgeofile=dgfile, \
-                        wdvarr_ver=ename[1], dgeo_name=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
+                        wdvarr_ver=ename[1], dgeo_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
@@ -105,12 +108,12 @@ class DGEOCorr(object):
         
     getWCSIndex = classmethod(getWCSIndex)
     
-    def addSciExtKw(cls, hdr, wdvarr_ver=None, dgeo_name=None):
+    def addSciExtKw(cls, hdr, wdvarr_ver=None, dgeo_extname=None):
         """
         Adds kw to sci extension to define WCSDVARR lookup table extensions
         
         """
-        if dgeo_name =='DX':
+        if dgeo_extname =='DX':
             j=1
         else:
             j=2
@@ -146,7 +149,7 @@ class DGEOCorr(object):
         dgf = pyfits.open(dgfile)
         for ext in dgf:
             dgextname  = ext.header.get('EXTNAME',"")
-            dgccdchip  = ext.header.get('CCDCHIP',0)
+            dgccdchip  = ext.header.get('CCDCHIP',1)
             if dgextname == 'DX' and dgccdchip == ccdchip:
                 xdata = ext.data.copy()
                 continue
@@ -159,47 +162,51 @@ class DGEOCorr(object):
         return xdata, ydata
     getData = classmethod(getData)
     
-    def transformData(cls, header, dx, dy):
+    def transformData(cls, dx, dy, coeffs):
         """
         Transform the DGEO data arrays for use with SIP
         """
-        coeffs = cls.getCoeffs(header)
-        idcscale = header['IDCSCALE']
-        sclcoeffs = np.linalg.inv(coeffs/idcscale)
-        ndx, ndy = np.dot(sclcoeffs, [dx.ravel(), dy.ravel()])
+        ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()])
         ndx.shape = dx.shape
         ndy.shape=dy.shape
         return ndx, ndy
+    
     transformData = classmethod(transformData)
     
-    def getCoeffs(cls, header):
+    def getIDCCoeffs(cls, header):
         """
-        Return a matrix of the first order IDC coefficients.
+        Return a matrix of the scaled first order IDC coefficients.
         """
         try:
             ocx10 = header['OCX10']
             ocx11 = header['OCX11']
             ocy10 = header['OCY10']
             ocy11 = header['OCY11']
-        except AttributeError:
+            coeffs = np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
+        except KeyError:
             print 'First order IDCTAB coefficients are not available.\n'
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None
-        return np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
+        try:
+            idcscale = header['IDCSCALE']
+        except KeyError:
+            idcscale = 1
+            
+        return np.linalg.inv(coeffs/idcscale)
     
-    getCoeffs = classmethod(getCoeffs)
+    getIDCCoeffs = classmethod(getIDCCoeffs)
     
-    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_name=None,data = None, ccdchip=1, binned=1):
+    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_extname=None,data = None, ccdchip=1, binned=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dgeoname=dgeo_name, ccdchip=ccdchip, binned=binned)
+        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dg_extname=dgeo_extname, ccdchip=ccdchip, binned=binned)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
     
     createDgeoHDU = classmethod(createDgeoHDU)
     
-    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dgeoname, ccdchip, binned):
+    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dg_extname, ccdchip, binned):
         """
         Creates a header for the WCSDVARR extension based on the DGEO reference file 
         and sci extension header. The goal is to always work in image coordinates
@@ -209,9 +216,15 @@ class DGEOCorr(object):
         """
         dgf = pyfits.open(dgeofile)
         for ext in dgf:
-            dgextname = ext.header.get('EXTNAME', "")
-            dgccdchip = ext.header.get('CCDCHIP', 0)
-            if dgextname == dgeoname and dgccdchip == ccdchip:
+        #for i in range(len(dgf)):
+            try:
+                dgextname = ext.header['EXTNAME']
+                dgextver = ext.header['EXTVER']
+            except KeyError:
+                continue
+            #dgccdchip = ext.header.get('CCDCHIP', 0)
+            dgccdchip = cls.get_ccdchip(dgf, extname=dgextname, extver=dgextver)
+            if dgextname == dg_extname and dgccdchip == ccdchip:
                 dgeo_header = ext.header
                 break
             else:
@@ -219,7 +232,7 @@ class DGEOCorr(object):
         dgf.close()
         
         naxis = pyfits.getval(dgeofile, ext=1, key='NAXIS')
-        ccdchip = dgeo_header['CCDCHIP']
+        ccdchip = dgextname #dgeo_header['CCDCHIP']
         
         kw = { 'NAXIS': 'Size of the axis', 
                 'CRPIX': 'Coordinate system reference pixel', 
@@ -274,23 +287,22 @@ class DGEOCorr(object):
     
     createDgeoHdr = classmethod(createDgeoHdr)
     
-    def get_ccdchip(cls, fobj, extver):
+    def get_ccdchip(cls, fobj, extname, extver):
         """
-        Currently this is only needed for ACS, since this is the only instrument
-        with DGEO correction. The rest is here for completeness.
+        Given a science file or dgeo file determine CCDCHIP
         """
-        dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
-        if fobj[0].header['INSTRUME'] == 'ACS':
-            return fobj['SCI', extver].header['CCDCHIP']
-        elif obj[0].header['INSTRUME'] == 'WFC3':
-            return  fobj['SCI', extver].header['CCDCHIP']
+        ccdchip = 1
+        if fobj[0].header['INSTRUME'] == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC':
+            ccdchip = fobj[extname, extver].header['CCDCHIP']
+        elif fobj[0].header['INSTRUME'] == 'WFC3' and fobj[0].header['DETECTOR'] == 'UVIS':
+            ccdchip =  fobj[extname, extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFPC2':
-            return fobj[0].header['DETECTOR']
+            ccdchip = fobj[extname, extver].header['DETECTOR']
         elif fobj[0].header['INSTRUME'] == 'STIS':
-            return fobj['SCI', extver].header['DETECTOR']
+            ccdchip = fobj[extname, extver].header['DETECTOR']
         elif fobj[0].header['INSTRUME'] == 'NICMOS':
-            return fobj['SCI', extver].header['CAMERA']
-        
+            ccdchip = fobj[extname, extver].header['CAMERA']
+        return ccdchip
         
     get_ccdchip = classmethod(get_ccdchip)
     

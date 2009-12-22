@@ -1,6 +1,5 @@
 import pyfits
-#from .. mappings import ins_spec_kw
-from mappings import ins_spec_kw, prim_hdr_kw
+from mappings import ins_spec_kw
     
 class InstrWCS(object):
     """

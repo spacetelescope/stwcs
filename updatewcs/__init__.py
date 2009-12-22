@@ -1,9 +1,7 @@
 import os
 import pyfits
-#from .. wcsutil import HSTWCS
 from stwcs.wcsutil import HSTWCS
 
-#from .. mappings import allowed_corrections
 from stwcs import utils
 import corrections, makewcs
 import dgeo, det2im

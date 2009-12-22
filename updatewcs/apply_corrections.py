@@ -1,9 +1,9 @@
 import os
 import pyfits
-#import allowed_corrections
 import time
 from pytools import fileutil
 import os.path
+
 #Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
@@ -24,15 +24,26 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     =======
     Creates a list of corrections to be applied to a file.
     based on user input paramters and allowed corrections
-    for the instrument, which are defined in mappings.py.
+    for the instrument.
     """
     instrument = pyfits.getval(fname, 'INSTRUME')
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
+    
+    #First check if idctab was updated
+    if not foundIDCTAB(fname):# and not foundSIP(fname):
+        acorr.remove('TDDCorr')
+        acorr.remove('MakeWCS')
+        acorr.remove('CompSIP')
+    elif not foundIDCTAB(fname) and foundSIP(fname):
+        print 'IDCTAB not found, using SIP coefficients\n'
+        
+    #check if idctab is present on disk
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
         tddcorr = applyTDDCorr(fname, tddcorr)
         if tddcorr == False: acorr.remove('TDDCorr')
+        
     if 'DGEOCorr' in acorr:
         dgeocorr = applyDgeoCorr(fname, dgeocorr)
         if dgeocorr == False: acorr.remove('DGEOCorr')
@@ -41,6 +52,29 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
         if d2imcorr == False: acorr.remove('DET2IMCorr')
     return acorr
 
+def foundIDCTAB(fname):
+    idctab_found = True
+    try:
+        idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
+        if idctab == 'N/A' or idctab == "": 
+            idctab_found = False
+        if os.path.exists(idctab):
+            idctab_found = True
+        else:
+            idctab_found = False
+    except KeyError:
+        idctab_found = False
+    return idctab_found
+
+def foundSIP(fname):
+    sip_found = False
+    try:
+        idcscale = pyfits.getval(fname, 'IDCSCALE')
+        sip_found = True
+    except KeyError:
+        sip_found = False 
+    return sip_found
+    
 def applyTDDCorr(fname, utddcorr):
     """
     The default value of tddcorr for all ACS images is True.

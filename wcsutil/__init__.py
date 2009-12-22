@@ -1,17 +1,15 @@
-#from .. pywcs.sip import SIP
-from pywcs import WCS, DistortionLookupTable
+import os.path
+from pywcs import WCS
 import pyfits
 import instruments
-#from .. distortion import models
-from stwcs.distortion import models
+from stwcs.distortion import models, coeff_converter
 import numpy as np
 from pytools import fileutil
 from pytools.fileutil import DEGTORAD, RADTODEG
 
-#from .. mappings import inst_mappings, ins_spec_kw, DEGTORAD, RADTODEG, basic_wcs
 import mappings
 from mappings import inst_mappings, ins_spec_kw
-from mappings import basic_wcs, prim_hdr_kw
+from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
@@ -181,6 +179,45 @@ class HSTWCS(WCS):
 
 
     def readModel(self, update=False, header=None):
+
+        if self.idctab == None:
+            #Keyword idctab is not present in header - check for sip coefficients
+            if header.has_key('IDCSCALE'):
+                self.readModelFromHeader(header)
+            else:
+                print 'Distortion model is not available\n'
+                return
+        elif not os.path.exists(fileutil.osfn(self.idctab)):
+            if header.has_key('IDCSCALE'):
+                self.readModelFromHeader(header)
+            else:
+                print 'Distortion model is not available\n'
+                return
+        else:
+            self.readModelFromIDCTAB(header=header, update=update)
+            
+    def readModelFromHeader(self, header):
+        # Recreate idc model from SIP coefficients and header kw
+        model = models.GeometryModel()
+        cx, cy = coeff_converter.sip2idc(self)
+        model.cx = cx
+        model.cy = cy
+        model.name = "sip"
+        model.norder = header['A_ORDER']
+        
+        refpix = {}
+        refpix['XREF'] = header['IDCXREF']
+        refpix['YREF'] = header['IDCYREF']
+        refpix['PSCALE'] = header['IDCSCALE']
+        refpix['V2REF'] = header['IDCV2REF']
+        refpix['V3REF'] = header['IDCV3REF']
+        refpix['THETA'] = header['IDCTHETA']
+        model.refpix = refpix
+        
+        self.idcmodel = model
+        
+        
+    def readModelFromIDCTAB(self, header=hdr, update=False):
         """
         Purpose
         =======
@@ -189,11 +226,11 @@ class HSTWCS(WCS):
         If header is provided and update is True, some IDC model kw
         will be recorded in the header.
         """
-        if self.idctab == None or self.date_obs == None:
-            print 'idctab or date_obs not available\n'
+        if self.date_obs == None:
+            print 'date_obs not available\n'
             self.idcmodel = None
             return
-        if self.filter1 ==None and self.filter2 == None:
+        if self.filter1 == None and self.filter2 == None:
             'No filter information available\n'
             self.idcmodel = None
             return
