@@ -18,7 +18,13 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, 
     """
     Purpose
     =======
-    Applies corrections to the WCS keywords.
+    Updates HST science files with the best available calibration information.
+    This allows users to retrieve from the archive self contained science files 
+    which do not require additional reference files.
+    
+    Basic WCS keywords are updated in the process and new keywords (following WCS 
+    Paper IV and the SIP convention) as well as new extensions are added to the science files.
+    
     
     Example
     =======
@@ -192,3 +198,16 @@ def checkFiles(input):
     
     return newfiles
 
+
+def getCorrections(instrument):
+    """
+    Print corrections available for an instrument
+    
+    :Parameters:
+    `instrument`: string, one of 'WFPC2', 'NICMOS', 'STIS', 'ACS', 'WFC3'
+    """
+    acorr = apply_corrections.allowed_corrections[instrument]
+    
+    print "The following corrections will be performed for instrument %s\n" % instrument
+    for c in acorr: print c,': ' ,  apply_corrections.cnames[c]
+    

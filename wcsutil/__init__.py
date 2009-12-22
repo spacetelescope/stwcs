@@ -217,7 +217,7 @@ class HSTWCS(WCS):
         self.idcmodel = model
         
         
-    def readModelFromIDCTAB(self, header=hdr, update=False):
+    def readModelFromIDCTAB(self, header=None, update=False):
         """
         Purpose
         =======

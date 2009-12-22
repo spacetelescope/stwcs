@@ -17,6 +17,14 @@ allowed_corrections={'WFPC2': ['DET2IMCorr', 'MakeWCS','CompSIP', 'VACorr'],
                     'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
                     'WFC3': ['MakeWCS', 'CompSIP','VACorr'],
                     }
+
+cnames = {'DET2IMCorr': 'Detector to Image Correction',
+         'TDDCorr': 'Time Dependent Distortion Correction',
+         'MakeWCS': 'Recalculate basic WCS keywords based on the distortion model',
+         'CompSIP': 'Given IDCTAB distortion model calculate the SIP coefficients',
+         'VACorr':  'Velocity Aberration Correction',
+         'DGEOCorr': 'Lookup Table Distortion'
+         }
                             
 def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True):
     """
@@ -30,15 +38,14 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
     
-    #First check if idctab was updated
-    if not foundIDCTAB(fname):# and not foundSIP(fname):
+    # Check if idctab is present on disk
+    # If kw IDCTAB is present in the header but the file is 
+    # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
+    if not foundIDCTAB(fname):
         acorr.remove('TDDCorr')
         acorr.remove('MakeWCS')
-        acorr.remove('CompSIP')
-    elif not foundIDCTAB(fname) and foundSIP(fname):
-        print 'IDCTAB not found, using SIP coefficients\n'
-        
-    #check if idctab is present on disk
+        acorr.remove('CompSIP')   
+    
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
         tddcorr = applyTDDCorr(fname, tddcorr)
@@ -50,6 +57,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     if 'DET2IMCorr' in acorr:
         d2imcorr = applyD2ImCorr(fname, d2imcorr)
         if d2imcorr == False: acorr.remove('DET2IMCorr')
+    print acorr
     return acorr
 
 def foundIDCTAB(fname):
@@ -65,16 +73,7 @@ def foundIDCTAB(fname):
     except KeyError:
         idctab_found = False
     return idctab_found
-
-def foundSIP(fname):
-    sip_found = False
-    try:
-        idcscale = pyfits.getval(fname, 'IDCSCALE')
-        sip_found = True
-    except KeyError:
-        sip_found = False 
-    return sip_found
-    
+   
 def applyTDDCorr(fname, utddcorr):
     """
     The default value of tddcorr for all ACS images is True.
