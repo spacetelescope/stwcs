@@ -13,7 +13,7 @@ from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
-__version__ = '0.3'
+__version__ = '0.4'
 
 class HSTWCS(WCS):
     """

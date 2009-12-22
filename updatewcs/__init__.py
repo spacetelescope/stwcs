@@ -12,7 +12,7 @@ import apply_corrections
 
 __docformat__ = 'restructuredtext'
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, d2imcorr=True):
     """
