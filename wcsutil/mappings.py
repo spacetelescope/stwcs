@@ -1,4 +1,4 @@
-
+from __future__ import division # confidence high
 
 # This dictionary maps an instrument into an instrument class
 # The instrument class handles instrument specific keywords

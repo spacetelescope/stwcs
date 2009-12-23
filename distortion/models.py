@@ -1,5 +1,6 @@
-import types
+from __future__ import division # confidence high
 
+import types
 # Import PyDrizzle utility modules
 import mutil
 import numpy as N

@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 import os.path
 from pywcs import WCS
 import pyfits

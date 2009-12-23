@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 import pyfits
 from pytools import fileutil
 from stwcs import utils
@@ -128,7 +130,7 @@ class DGEOCorr(object):
         values = {cperror: 0.0, cpdis: 'Lookup',  dpext: wdvarr_ver, dpnaxes: 2,
                 dpaxis1: 1, dpaxis2: 2}
                 
-        comments = {cperror: 'Maximum error of dgeo correction for axis %s' % (wdvarr_ver/2), 
+        comments = {cperror: 'Maximum error of dgeo correction for axis %s' % (wdvarr_ver//2 + 1), 
                     cpdis: 'Prior distortion funcion type',  
                     dpext: 'Version number of WCSDVARR extension containing lookup distortion table', 
                     dpnaxes: 'Number of independent variables in distortion function',

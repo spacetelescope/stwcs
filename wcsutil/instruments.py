@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 import pyfits
 from mappings import ins_spec_kw
     

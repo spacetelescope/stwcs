@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 from pytools import fileutil
 import numpy as N
 import string

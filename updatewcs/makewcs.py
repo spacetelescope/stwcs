@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 from stwcs import DEGTORAD, RADTODEG
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi

@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 from pytools import parseinput, fileutil
 import pyfits
 from wcsutil.mappings import basic_wcs
@@ -84,10 +86,10 @@ def diff_angles(a,b):
     diff = a - b
     
     if diff > 180.0:
-       diff -= 360.0
+        diff -= 360.0
 
     if diff < -180.0:
-       diff += 360.0
+        diff += 360.0
     
     return diff
 

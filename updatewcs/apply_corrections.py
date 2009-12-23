@@ -1,3 +1,5 @@
+from __future__ import division # confidence high
+
 import os
 import pyfits
 import time
