@@ -127,10 +127,10 @@ class CompSIP(object):
         cx = ext_wcs.idcmodel.cx
         cy = ext_wcs.idcmodel.cy
         
-        matr = np.array([[cx[1,1],cx[1,0]], [cy[1,1],cy[1,0]]], dtype=np.float)
+        matr = np.array([[cx[1,1],cx[1,0]], [cy[1,1],cy[1,0]]], dtype=np.float64)
         imatr = linalg.inv(matr)
-        akeys1 = np.zeros((order+1,order+1), dtype=np.float)
-        bkeys1 = np.zeros((order+1,order+1), dtype=np.float)
+        akeys1 = np.zeros((order+1,order+1), dtype=np.float64)
+        bkeys1 = np.zeros((order+1,order+1), dtype=np.float64)
         for n in range(order+1):
             for m in range(order+1):
                 if n >= m and n>=2:
