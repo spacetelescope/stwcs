@@ -130,7 +130,7 @@ class DGEOCorr(object):
         values = {cperror: 0.0, cpdis: 'Lookup',  dpext: wdvarr_ver, dpnaxes: 2,
                 dpaxis1: 1, dpaxis2: 2}
                 
-        comments = {cperror: 'Maximum error of dgeo correction for axis %s' % (wdvarr_ver//2 + 1), 
+        comments = {cperror: 'Maximum error of dgeo correction for axis %s' % j,  
                     cpdis: 'Prior distortion funcion type',  
                     dpext: 'Version number of WCSDVARR extension containing lookup distortion table', 
                     dpnaxes: 'Number of independent variables in distortion function',

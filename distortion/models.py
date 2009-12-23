@@ -3,7 +3,7 @@ from __future__ import division # confidence high
 import types
 # Import PyDrizzle utility modules
 import mutil
-import numpy as N
+import numpy as np
 import mutil
 from mutil import combin
 
@@ -72,8 +72,8 @@ class GeometryModel:
         to the reference position of the chip.
         """
 
-        _cxs = N.zeros(shape=cx.shape,dtype=cx.dtype)
-        _cys = N.zeros(shape=cy.shape,dtype=cy.dtype)
+        _cxs = np.zeros(shape=cx.shape,dtype=cx.dtype)
+        _cys = np.zeros(shape=cy.shape,dtype=cy.dtype)
         _k = self.norder + 1
         # loop over each input coefficient
         for m in xrange(_k):
@@ -219,7 +219,7 @@ class GeometryModel:
         _cy[0,0] = 0.
 
         if isinstance(_p,types.ListType) or isinstance(_p,types.TupleType):
-            _p = N.array(_p,dtype=N.float64)
+            _p = np.array(_p,dtype=np.float64)
             _convert = yes
 
         dxy = _p - (self.refpix['XREF'],self.refpix['YREF'])

@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 
 from pytools import fileutil
-import numpy as N
+import numpy as np
 import string
 import calendar
 
@@ -90,8 +90,8 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     else:
         order = norder
 
-    fx = N.zeros(shape=(order+1,order+1),dtype=N.float64)
-    fy = N.zeros(shape=(order+1,order+1),dtype=N.float64)
+    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
 
     #Determine row from which to get the coefficients.
     # How many rows do we have in the table...
@@ -342,21 +342,21 @@ def readWCSCoeffs(header):
     _yorder = header['b_order']
     order = max(max(_xorder,_yorder),3)
 
-    fx = N.zeros(shape=(order+1,order+1),dtype=N.float64)
-    fy = N.zeros(shape=(order+1,order+1),dtype=N.float64)
+    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
 
     # Read in CD matrix
     _cd11 = header['cd1_1']
     _cd12 = header['cd1_2']
     _cd21 = header['cd2_1']
     _cd22 = header['cd2_2']
-    _cdmat = N.array([[_cd11,_cd12],[_cd21,_cd22]])
-    _theta = N.arctan2(-_cd12,_cd22)
-    _rotmat = N.array([[N.cos(_theta),N.sin(_theta)],
-                      [-N.sin(_theta),N.cos(_theta)]])
-    _rCD = N.dot(_rotmat,_cdmat)
-    _skew = N.arcsin(-_rCD[1][0] / _rCD[0][0])
-    _scale = _rCD[0][0] * N.cos(_skew) * 3600.
+    _cdmat = np.array([[_cd11,_cd12],[_cd21,_cd22]])
+    _theta = np.arctan2(-_cd12,_cd22)
+    _rotmat = np.array([[np.cos(_theta),np.sin(_theta)],
+                      [-np.sin(_theta),np.cos(_theta)]])
+    _rCD = np.dot(_rotmat,_cdmat)
+    _skew = np.arcsin(-_rCD[1][0] / _rCD[0][0])
+    _scale = _rCD[0][0] * np.cos(_skew) * 3600.
     _scale2 = _rCD[1][1] * 3600.
 
     # Set up refpix
@@ -440,17 +440,17 @@ def readTraugerTable(idcfile,wavelength):
     # Now, convert the coefficients into a Numeric array
     # with the right coefficients in the right place.
     # Populate output values now...
-    fx = N.zeros(shape=(order+1,order+1),dtype=N.float64)
-    fy = N.zeros(shape=(order+1,order+1),dtype=N.float64)
+    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
     # Assign the coefficients to their array positions
     fx[0,0] = 0.
-    fx[1] = N.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=N.float64)
-    fx[2] = N.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=N.float64)
-    fx[3] = N.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=N.float64)
+    fx[1] = np.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=np.float64)
+    fx[2] = np.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=np.float64)
+    fx[3] = np.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=np.float64)
     fy[0,0] = 0.
-    fy[1] = N.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=N.float64)
-    fy[2] = N.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=N.float64)
-    fy[3] = N.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=N.float64)
+    fy[1] = np.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=np.float64)
+    fy[2] = np.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=np.float64)
+    fy[3] = np.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=np.float64)
 
     # Used in Pattern.computeOffsets()
     refpix = {}
@@ -517,17 +517,17 @@ def readCubicTable(idcfile):
     # Now, convert the coefficients into a Numeric array
     # with the right coefficients in the right place.
     # Populate output values now...
-    fx = N.zeros(shape=(order+1,order+1),dtype=N.float64)
-    fy = N.zeros(shape=(order+1,order+1),dtype=N.float64)
+    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
     # Assign the coefficients to their array positions
     fx[0,0] = 0.
-    fx[1] = N.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=N.float64)
-    fx[2] = N.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=N.float64)
-    fx[3] = N.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=N.float64)
+    fx[1] = np.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=np.float64)
+    fx[2] = np.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=np.float64)
+    fx[3] = np.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=np.float64)
     fy[0,0] = 0.
-    fy[1] = N.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=N.float64)
-    fy[2] = N.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=N.float64)
-    fy[3] = N.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=N.float64)
+    fy[1] = np.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=np.float64)
+    fy[2] = np.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=np.float64)
+    fy[3] = np.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=np.float64)
 
     # Used in Pattern.computeOffsets()
     refpix = {}
@@ -561,8 +561,8 @@ def defaultModel():
     """
     order = 3
 
-    fx = N.zeros(shape=(order+1,order+1),dtype=N.float64)
-    fy = N.zeros(shape=(order+1,order+1),dtype=N.float64)
+    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
 
     fx[1,1] = 1.
     fy[1,0] = 1.
@@ -588,7 +588,7 @@ def defaultModel():
 # the specified wavelength for use with Trauger coefficients
 def _MgF2(lam):
     _sig = pow((1.0e7/lam),2)
-    return N.sqrt(1.0 + 2.590355e10/(5.312993e10-_sig) +
+    return np.sqrt(1.0 + 2.590355e10/(5.312993e10-_sig) +
         4.4543708e9/(11.17083e9-_sig) + 4.0838897e5/(1.766361e5-_sig))
 
 

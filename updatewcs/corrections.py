@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 
 import datetime
-import numpy
+import numpy as np
 from numpy import linalg
 from pytools import fileutil
 from stwcs.utils import diff_angles
@@ -56,11 +56,11 @@ class TDDCorr(object):
         theta_v2v3 = 2.234529
         mrotp = fileutil.buildRotMatrix(theta_v2v3)
         mrotn = fileutil.buildRotMatrix(-theta_v2v3)
-        tdd_mat = numpy.array([[1+(beta/2048.), alpha/2048.],[alpha/2048.,1-(beta/2048.)]],numpy.float64)
-        abmat1 = numpy.dot(tdd_mat, mrotn)
-        abmat2 = numpy.dot(mrotp,abmat1)
+        tdd_mat = np.array([[1+(beta/2048.), alpha/2048.],[alpha/2048.,1-(beta/2048.)]],np.float64)
+        abmat1 = np.dot(tdd_mat, mrotn)
+        abmat2 = np.dot(mrotp,abmat1)
         xshape, yshape = hwcs.idcmodel.cx.shape, hwcs.idcmodel.cy.shape
-        icxy = numpy.dot(abmat2,[hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
+        icxy = np.dot(abmat2,[hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
         hwcs.idcmodel.cx = icxy[0]
         hwcs.idcmodel.cy = icxy[1]
         hwcs.idcmodel.cx.shape = xshape
@@ -127,15 +127,15 @@ class CompSIP(object):
         cx = ext_wcs.idcmodel.cx
         cy = ext_wcs.idcmodel.cy
         
-        matr = numpy.array([[cx[1,1],cx[1,0]], [cy[1,1],cy[1,0]]], dtype=numpy.float)
+        matr = np.array([[cx[1,1],cx[1,0]], [cy[1,1],cy[1,0]]], dtype=np.float)
         imatr = linalg.inv(matr)
-        akeys1 = numpy.zeros((order+1,order+1), dtype=numpy.float)
-        bkeys1 = numpy.zeros((order+1,order+1), dtype=numpy.float)
+        akeys1 = np.zeros((order+1,order+1), dtype=np.float)
+        bkeys1 = np.zeros((order+1,order+1), dtype=np.float)
         for n in range(order+1):
             for m in range(order+1):
                 if n >= m and n>=2:
-                    idcval = numpy.array([[cx[n,m]],[cy[n,m]]])
-                    sipval = numpy.dot(imatr, idcval)
+                    idcval = np.array([[cx[n,m]],[cy[n,m]]])
+                    sipval = np.dot(imatr, idcval)
                     akeys1[m,n-m] = sipval[0]
                     bkeys1[m,n-m] = sipval[1]
                     Akey="A_%d_%d" % (m,n-m)
