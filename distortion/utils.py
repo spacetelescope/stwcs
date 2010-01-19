@@ -1,12 +1,11 @@
-from __future__ import division # confidence high
-
+from __future__ import division # confidence high 
 import numpy as np
 import pywcs
 import pyfits
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
 
-def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
+def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
     
     delta_fdec = (fra_dec[:,1].max()-fra_dec[:,1].min())
@@ -19,8 +18,10 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
     if outwcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0]
-            
-        outwcs = undistortWCS(ref_wcs)
+        if undistort:    
+            outwcs = undistortWCS(ref_wcs)
+        else:
+            outwcs = ref_wcs.copy()
         outwcs.wcs.crval = crval
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
@@ -42,6 +43,11 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None):
     return outwcs
 
 def  undistortWCS(wcsobj):
+    """
+    Creates an undistorted linear WCS by applying the IDCTAB distortion model
+    to a 3-point square. The new ORIENTAT angle is calculated as well as the 
+    plate scale in the undistorted frame.
+    """
     assert isinstance(wcsobj, pywcs.WCS)
     import coeff_converter
     
