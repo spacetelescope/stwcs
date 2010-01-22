@@ -44,9 +44,10 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     # If kw IDCTAB is present in the header but the file is 
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
     if not foundIDCTAB(fname):
-        acorr.remove('TDDCorr')
-        acorr.remove('MakeWCS')
-        acorr.remove('CompSIP')   
+        if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
+        if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
+        if 'CompSIP' in acorr: acorr.remove('CompSIP')   
+
     
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
