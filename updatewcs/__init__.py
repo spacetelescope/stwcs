@@ -16,7 +16,7 @@ __docformat__ = 'restructuredtext'
 
 __version__ = '0.4'
 
-def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, d2imcorr=True):
+def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, checkfiles=True):
     """
     Purpose
     =======
@@ -46,6 +46,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, checkfiles=True, 
               If True, vecocity aberration correction will be applied
     `tddcorr`: boolean
               If True, time dependent distortion correction will be applied 
+    `dgeocorr`: boolean
+              If True, a Lookup table distortion will be applied
+    `d2imcorr`: boolean
+              If True, detector to image correction will be applied
     `checkfiles`: boolean
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.

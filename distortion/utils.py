@@ -1,9 +1,11 @@
 from __future__ import division # confidence high 
+import os 
 import numpy as np
 import pywcs
 import pyfits
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
+from pytools import fileutil
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
@@ -52,6 +54,18 @@ def  undistortWCS(wcsobj):
     import coeff_converter
     
     cx, cy = coeff_converter.sip2idc(wcsobj)
+    # cx, cy can be None because either there is no model available 
+    # or updatewcs was not run.
+    if cx == None or cy == None:
+        if foundIDCTAB(wcsobj.idctab):
+            m = """IDCTAB is present but distortion model is missing.
+            Run updatewcs() to update the headers or 
+            pass 'undistort=False' keyword to output_wcs().\n
+            """
+            raise RuntimeError, m
+        else:
+            print 'Distortion model is not available, using input reference image for output WCS.\n'
+            return wcsobj.copy()
     crpix1 = wcsobj.wcs.crpix[0]
     crpix2 = wcsobj.wcs.crpix[1]
     xy = np.array([(crpix1,crpix2),(crpix1+1.,crpix2),(crpix1,crpix2+1.)],dtype=np.double)
@@ -75,8 +89,8 @@ def  undistortWCS(wcsobj):
     if ( _det == 0.0):
         print 'Singular matrix in updateWCS, aborting ...'
         return
-    #lin_wcsobj = wcsutil.HSTWCS(instrument=wcsobj.instrument)
-    lin_wcsobj = pywcs.WCS()    #instrument=wcsobj.instrument)
+    
+    lin_wcsobj = pywcs.WCS()    
     cd_inv = np.linalg.inv(cd_mat)
     lin_wcsobj.wcs.cd = np.dot(wcsobj.wcs.cd, cd_inv)
     
@@ -120,4 +134,17 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
 
     return  c
 
+def foundIDCTAB(idctab):
+    idctab_found = True
+    try:
+        idctab = fileutil.osfn(idctab)
+        if idctab == 'N/A' or idctab == "": 
+            idctab_found = False
+        if os.path.exists(idctab):
+            idctab_found = True
+        else:
+            idctab_found = False
+    except KeyError:
+        idctab_found = False
+    return idctab_found
 

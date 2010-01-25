@@ -16,12 +16,11 @@ def sip2idc(wcs):
         ocx11 = wcs.get('OCX11', None)
         ocy10 = wcs.get('OCY10', None)
         ocy11 = wcs.get('OCY11', None)
-        order = hdr.get('A_ORDER', None)
-        sipa, sipb = _read_sip_kw(header)
-        if sipa == None or sipb == None:
-            print 'SIP coefficients are not available.\n'
+        order = wcs.get('A_ORDER', None)
+        sipa, sipb = _read_sip_kw(wcs)
+        if None in [ocx10, ocx11, ocy10, ocy11, sipa, sipb]:
             print 'Cannot convert SIP to IDC coefficients.\n'
-            return
+            return None, None
     elif isinstance(wcs,pywcs.WCS):
         try:
             ocx10 = wcs.ocx10
@@ -31,27 +30,28 @@ def sip2idc(wcs):
         except AttributeError:
             print 'First order IDCTAB coefficients are not available.\n'
             print 'Cannot convert SIP to IDC coefficients.\n'
-            return
+            return None, None
         try:
             sipa = wcs.sip.a
             sipb = wcs.sip.b
         except AttributeError:
-            print 'SIP coefficients are not available.\n'
+            print 'SIP coefficients are not available.'
             print 'Cannot convert SIP to IDC coefficients.\n'
-            return
+            return None, None
+        try:
+            order = wcs.sip.a_order
+        except AttributeError:
+            print 'SIP model order unknown, exiting ...\n'
+            return None, None
+
     else:
         print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
         return
     
-    try:
-        order = wcs.sip.a_order
-    except AttributeError:
-        print 'SIP model order unknown, exiting ...\n'
-        return
-
+    
     if None in [ocx10, ocx11, ocy10, ocy11]:
         print 'First order IDC coefficients not found, exiting ...\n'
-        return
+        return 
     idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
     cx = np.zeros((order+1,order+1), dtype=np.double)
     cy = np.zeros((order+1,order+1), dtype=np.double)
@@ -102,6 +102,8 @@ def _read_sip_kw(header):
         b = None
             
     return a , b
+
+
 """
 def idc2sip(wcsobj, idctab = None):
     if isinstance(wcs,pywcs.WCS):

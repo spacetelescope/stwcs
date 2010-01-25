@@ -181,25 +181,33 @@ class HSTWCS(WCS):
 
 
     def readModel(self, update=False, header=None):
+        """
+        Reads distortion model from IDCTAB.
+        If IDCTAB is not found ('N/A', "", or not found on disk), then
+        if SIP coefficients and first order IDCTAb coefficients are present
+        in the header, restore the idcmodel from the header.
+        If not - assign None to self.idcmodel.
+        """
 
-        if self.idctab == None:
+        if self.idctab == None or self.idctab == ' ':
             #Keyword idctab is not present in header - check for sip coefficients
             if header.has_key('IDCSCALE'):
-                self.readModelFromHeader(header)
+                self._readModelFromHeader(header)
             else:
-                print 'Distortion model is not available\n'
-                return
+                print "Distortion model is not available: IDCTAB=None\n"
+                self.idcmodel = None
         elif not os.path.exists(fileutil.osfn(self.idctab)):
             if header.has_key('IDCSCALE'):
-                self.readModelFromHeader(header)
+                self._readModelFromHeader(header)
             else:
-                print 'Distortion model is not available\n'
-                return
+                print 'Distortion model is not available: IDCTAB file %s not found\n' % self.idctab
+                self.idcmodel = None
         else:
-            self.readModelFromIDCTAB(header=header, update=update)
+            self._readModelFromIDCTAB(header=header, update=update)
             
-    def readModelFromHeader(self, header):
+    def _readModelFromHeader(self, header):
         # Recreate idc model from SIP coefficients and header kw
+        print 'Restoring IDC model from SIP coefficients\n'
         model = models.GeometryModel()
         cx, cy = coeff_converter.sip2idc(self)
         model.cx = cx
@@ -219,7 +227,7 @@ class HSTWCS(WCS):
         self.idcmodel = model
         
         
-    def readModelFromIDCTAB(self, header=None, update=False):
+    def _readModelFromIDCTAB(self, header=None, update=False):
         """
         Purpose
         =======
@@ -245,9 +253,8 @@ class HSTWCS(WCS):
         if update:
             if header==None:
                 print 'Update header with IDC model kw requested but header was not provided\n.'
-                return
             else:
-                self.updatehdr(header)
+                self._updatehdr(header)
     
     
     def restore(self, header=None):
@@ -281,7 +288,7 @@ class HSTWCS(WCS):
         self.setPscale()
         self.setOrient()
 
-    def updatehdr(self, ext_hdr, newkeywords=None):
+    def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
         ext_hdr.update('OCX10', self.idcmodel.cx[1,0])
