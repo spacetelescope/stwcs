@@ -10,7 +10,7 @@ class DGEOCorr(object):
     Purpose
     =======
     Defines a Lookup table prior distortion correction as per WCS paper IV.
-    It uses a reference file defined by the DGEOFILE keyword in the primary header.
+    It uses a reference file defined by the NPLOFILE (suffix 'NPL') keyword in the primary header.
     
     Algorithm
     =========
@@ -18,13 +18,13 @@ class DGEOCorr(object):
       and add it to the file object.
     - Add record-valued keywords which describe the lookup tables to the 
       science extension header
-    - Add a keyword 'DGEOFILE' to the science extension header, whose
-      value is the reference file used to create the WCSVARR extension
+    - Add a keyword 'NPOLEXT' to the science extension header, whose
+      value is the reference file used to create the WCSDVARR extension
     
     If WCSDVARR extensions exist, subsequent updates will overwrite them. 
     If not, they will be added to the file object.
     
-    It is assumed that the DGEO reference files were created to work with IDC tables
+    It is assumed that the NPL reference files were created to work with IDC tables
     but will be applied with SIP coefficients. A transformation is applied to correct 
     for the fact that the lookup tables will be applied before the first order coefficients
     which are in the CD matrix when the SIP convention is used.
@@ -34,26 +34,26 @@ class DGEOCorr(object):
         """
         :Parameters:
         `fobj`: pyfits object
-                Science file, for which a distortion correction in a DGEOFILE is available
+                Science file, for which a distortion correction in a NPOLFILE is available
                 
         """
         assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
-        cls.applyDgeoCorr(fobj)
-        dgfile = fobj[0].header['DGEOFILE']
+        cls.applyNPOLCorr(fobj)
+        nplfile = fobj[0].header['NPOLFILE']
         
-        new_kw = {'DGEOEXT': dgfile}
+        new_kw = {'NPOLEXT': nplfile}
         return new_kw
     
     updateWCS = classmethod(updateWCS)        
 
-    def applyDgeoCorr(cls, fobj):
+    def applyNPOLCorr(cls, fobj):
         """
         For each science extension in a pyfits file object:
             - create a WCSDVARR extension
             - update science header
             - add/update DGEOEXT keyword
         """
-        dgfile = fileutil.osfn(fobj[0].header['DGEOFILE'])
+        nplfile = fileutil.osfn(fobj[0].header['NPOLFILE'])
         # Map WCSDVARR EXTVER numbers to extension numbers
         wcsdvarr_ind = cls.getWCSIndex(fobj)
         for ext in fobj:
@@ -67,27 +67,27 @@ class DGEOCorr(object):
                 binned = utils.getBinning(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file and transform them for use with SIP
-                dx,dy = cls.getData(dgfile, ccdchip)
+                dx,dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
                 if idccoeffs != None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
                     
-                # Determine EXTVER for the WCSDVARR extension from the DGEO file (EXTNAME, EXTVER) kw.
+                # Determine EXTVER for the WCSDVARR extension from the NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion 
                 
                 for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
-                    cls.addSciExtKw(header, wdvarr_ver=ename[1], dgeo_extname=ename[0])
-                    hdu = cls.createDgeoHDU(header, dgeofile=dgfile, \
-                        wdvarr_ver=ename[1], dgeo_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
+                    cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0])
+                    hdu = cls.createNpolHDU(header, npolfile=nplfile, \
+                        wdvarr_ver=ename[1], npl_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
                         fobj.append(hdu)
         
         
-    applyDgeoCorr = classmethod(applyDgeoCorr)
+    applyNPOLCorr = classmethod(applyNPOLCorr)
               
     def getWCSIndex(cls, fobj):
        
@@ -110,12 +110,12 @@ class DGEOCorr(object):
         
     getWCSIndex = classmethod(getWCSIndex)
     
-    def addSciExtKw(cls, hdr, wdvarr_ver=None, dgeo_extname=None):
+    def addSciExtKw(cls, hdr, wdvarr_ver=None, npol_extname=None):
         """
         Adds kw to sci extension to define WCSDVARR lookup table extensions
         
         """
-        if dgeo_extname =='DX':
+        if npol_extname =='DX':
             j=1
         else:
             j=2
@@ -143,24 +143,24 @@ class DGEOCorr(object):
         
     addSciExtKw = classmethod(addSciExtKw)
     
-    def getData(cls,dgfile, ccdchip):
+    def getData(cls,nplfile, ccdchip):
         """
         Get the data arrays from the reference DGEO files
         Make sure 'CCDCHIP' in the dgeo file matches "CCDCHIP' in the science file.
         """
-        dgf = pyfits.open(dgfile)
-        for ext in dgf:
-            dgextname  = ext.header.get('EXTNAME',"")
-            dgccdchip  = ext.header.get('CCDCHIP',1)
-            if dgextname == 'DX' and dgccdchip == ccdchip:
+        npl = pyfits.open(nplfile)
+        for ext in npl:
+            nplextname  = ext.header.get('EXTNAME',"")
+            nplccdchip  = ext.header.get('CCDCHIP',1)
+            if nplextname == 'DX' and nplccdchip == ccdchip:
                 xdata = ext.data.copy()
                 continue
-            elif dgextname == 'DY' and dgccdchip == ccdchip:
+            elif nplextname == 'DY' and nplccdchip == ccdchip:
                 ydata = ext.data.copy()
                 continue
             else:
                 continue
-        dgf.close()
+        npl.close()
         return xdata, ydata
     getData = classmethod(getData)
     
@@ -198,17 +198,17 @@ class DGEOCorr(object):
     
     getIDCCoeffs = classmethod(getIDCCoeffs)
     
-    def createDgeoHDU(cls, sciheader, dgeofile=None, wdvarr_ver=1, dgeo_extname=None,data = None, ccdchip=1, binned=1):
+    def createNpolHDU(cls, sciheader, npolfile=None, wdvarr_ver=1, npl_extname=None,data = None, ccdchip=1, binned=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createDgeoHdr(sciheader, dgeofile=dgeofile, wdvarr_ver=wdvarr_ver, dg_extname=dgeo_extname, ccdchip=ccdchip, binned=binned)
+        hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip, binned=binned)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
     
-    createDgeoHDU = classmethod(createDgeoHDU)
+    createNpolHDU = classmethod(createNpolHDU)
     
-    def createDgeoHdr(cls, sciheader, dgeofile, wdvarr_ver, dg_extname, ccdchip, binned):
+    def createNpolHdr(cls, sciheader, npolfile, wdvarr_ver, npl_extname, ccdchip, binned):
         """
         Creates a header for the WCSDVARR extension based on the DGEO reference file 
         and sci extension header. The goal is to always work in image coordinates
@@ -216,25 +216,25 @@ class DGEOCorr(object):
         i ssuch that a full size dgeo table is created and then shifted or scaled 
         if the science image is a subarray or binned image.
         """
-        dgf = pyfits.open(dgeofile)
-        for ext in dgf:
+        npl = pyfits.open(npolfile)
+        for ext in npl:
         #for i in range(len(dgf)):
             try:
-                dgextname = ext.header['EXTNAME']
-                dgextver = ext.header['EXTVER']
+                nplextname = ext.header['EXTNAME']
+                nplextver = ext.header['EXTVER']
             except KeyError:
                 continue
             #dgccdchip = ext.header.get('CCDCHIP', 0)
-            dgccdchip = cls.get_ccdchip(dgf, extname=dgextname, extver=dgextver)
-            if dgextname == dg_extname and dgccdchip == ccdchip:
-                dgeo_header = ext.header
+            nplccdchip = cls.get_ccdchip(npl, extname=nplextname, extver=nplextver)
+            if nplextname == npl_extname and nplccdchip == ccdchip:
+                npol_header = ext.header
                 break
             else:
                 continue
-        dgf.close()
+        npl.close()
         
-        naxis = pyfits.getval(dgeofile, ext=1, key='NAXIS')
-        ccdchip = dgextname #dgeo_header['CCDCHIP']
+        naxis = pyfits.getval(npolfile, ext=1, key='NAXIS')
+        ccdchip = nplextname #dgeo_header['CCDCHIP']
         
         kw = { 'NAXIS': 'Size of the axis', 
                 'CRPIX': 'Coordinate system reference pixel', 
@@ -250,10 +250,10 @@ class DGEOCorr(object):
                 
         for i in range(1, naxis+1):
             si = str(i)
-            kw_val1['NAXIS'+si] = dgeo_header.get('NAXIS'+si)
+            kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
             kw_val1['CRPIX'+si] = kw_val1['NAXIS'+si]/2. 
-            kw_val1['CDELT'+si] = float(dgeo_header.get('ONAXIS'+si))/ (kw_val1['NAXIS'+si] * binned)
-            kw_val1['CRVAL'+si] = (dgeo_header.get('ONAXIS'+si)/2. + \
+            kw_val1['CDELT'+si] = float(npol_header.get('ONAXIS'+si))/ (kw_val1['NAXIS'+si] * binned)
+            kw_val1['CRVAL'+si] = (npol_header.get('ONAXIS'+si)/2. + \
                                         sciheader.get('LTV'+si, 0.)) / binned
         
                         
@@ -287,7 +287,7 @@ class DGEOCorr(object):
         
         return hdr
     
-    createDgeoHdr = classmethod(createDgeoHdr)
+    createNpolHdr = classmethod(createNpolHdr)
     
     def get_ccdchip(cls, fobj, extname, extver):
         """

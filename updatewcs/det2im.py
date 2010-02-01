@@ -11,7 +11,8 @@ class DET2IMCorr(object):
         `fobj`: pyfits object
                 Science file, for which a detector to image correction 
                 is available
-                
+        Uses a kw 'D2IMFILE' in the primary header to create an extension with 
+        a detector to image correction.
         """
         assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
         
