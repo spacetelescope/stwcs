@@ -10,7 +10,7 @@ class DGEOCorr(object):
     Purpose
     =======
     Defines a Lookup table prior distortion correction as per WCS paper IV.
-    It uses a reference file defined by the NPLOFILE (suffix 'NPL') keyword in the primary header.
+    It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword in the primary header.
     
     Algorithm
     =========
@@ -251,8 +251,8 @@ class DGEOCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
-            kw_val1['CRPIX'+si] = kw_val1['NAXIS'+si]/2. 
-            kw_val1['CDELT'+si] = float(npol_header.get('ONAXIS'+si))/ (kw_val1['NAXIS'+si] * binned)
+            kw_val1['CRPIX'+si] = (kw_val1['NAXIS'+si]-1)/2. 
+            kw_val1['CDELT'+si] = float(npol_header.get('ONAXIS'+si))/ ((kw_val1['NAXIS'+si]-1) * binned)
             kw_val1['CRVAL'+si] = (npol_header.get('ONAXIS'+si)/2. + \
                                         sciheader.get('LTV'+si, 0.)) / binned
         
