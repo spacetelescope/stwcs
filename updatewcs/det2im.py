@@ -14,7 +14,7 @@ class DET2IMCorr(object):
         Uses a kw 'D2IMFILE' in the primary header to create an extension with 
         a detector to image correction.
         """
-        assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
+        assert isinstance(fobj, pyfits.HDUList)
         
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)

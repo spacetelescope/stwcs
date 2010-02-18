@@ -37,7 +37,7 @@ class DGEOCorr(object):
                 Science file, for which a distortion correction in a NPOLFILE is available
                 
         """
-        assert isinstance(fobj, pyfits.NP_pyfits.HDUList)
+        assert isinstance(fobj, pyfits.HDUList)
         cls.applyNPOLCorr(fobj)
         nplfile = fobj[0].header['NPOLFILE']
         
