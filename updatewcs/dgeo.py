@@ -251,8 +251,10 @@ class DGEOCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
-            kw_val1['CRPIX'+si] = (kw_val1['NAXIS'+si]-1)/2. 
-            kw_val1['CDELT'+si] = float(npol_header.get('ONAXIS'+si))/ ((kw_val1['NAXIS'+si]-1) * binned)
+            cdelt = (float(npol_header.get('ONAXIS'+si))/ ((kw_val1['NAXIS'+si]-1) * binned))
+            kw_val1['CDELT'+si] = cdelt
+            if cdelt == 0: cdelt = 1.0
+            kw_val1['CRPIX'+si] = (kw_val1['NAXIS'+si]-1)/2. + 1/cdelt
             kw_val1['CRVAL'+si] = (npol_header.get('ONAXIS'+si)/2. + \
                                         sciheader.get('LTV'+si, 0.)) / binned
         
