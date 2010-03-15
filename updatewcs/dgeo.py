@@ -69,9 +69,10 @@ class DGEOCorr(object):
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
+                """
                 if idccoeffs != None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
-                    
+                """ 
                 # Determine EXTVER for the WCSDVARR extension from the NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
@@ -237,10 +238,11 @@ class DGEOCorr(object):
         ccdchip = nplextname #dgeo_header['CCDCHIP']
         
         kw = { 'NAXIS': 'Size of the axis', 
-                'CRPIX': 'Coordinate system reference pixel', 
-                'CRVAL': 'Coordinate system value at reference pixel',
-                'CDELT': 'Coordinate increment along axis'}
-                
+               'CDELT': 'Coordinate increment along axis',
+               'CRPIX': 'Coordinate system reference pixel', 
+               'CRVAL': 'Coordinate system value at reference pixel',
+               }
+                              
         kw_comm1 = {}
         kw_val1 = {}
         for key in kw.keys():
@@ -251,13 +253,9 @@ class DGEOCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
-            cdelt = (float(npol_header.get('ONAXIS'+si))/ ((kw_val1['NAXIS'+si]-1) * binned))
-            kw_val1['CDELT'+si] = cdelt
-            if cdelt == 0: cdelt = 1.0
-            kw_val1['CRPIX'+si] = (kw_val1['NAXIS'+si]-1)/2. + 1/cdelt
-            kw_val1['CRVAL'+si] = (npol_header.get('ONAXIS'+si)/2. + \
-                                        sciheader.get('LTV'+si, 0.)) / binned
-        
+            kw_val1['CDELT'+si] = npol_header.get('CDELT'+si, 1.0)
+            kw_val1['CRPIX'+si] = npol_header.get('CRPIX'+si, 0.0)
+            kw_val1['CRVAL'+si] = npol_header.get('CRVAL'+si, 0.0)
                         
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
