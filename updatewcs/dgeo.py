@@ -69,10 +69,10 @@ class DGEOCorr(object):
                 # get the data arrays from the reference file and transform them for use with SIP
                 dx,dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
-                """
+                
                 if idccoeffs != None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
-                """ 
+                 
                 # Determine EXTVER for the WCSDVARR extension from the NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
