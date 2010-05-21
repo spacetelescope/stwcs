@@ -77,20 +77,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     # First, read in TDD coeffs if present
     phdr = ftab['PRIMARY'].header
     skew_coeffs = read_tdd_coeffs(phdr)
-    """
-    # Read in ACS TDD correction coefficients
-    if ftab['PRIMARY'].header.has_key('INSTRUME'):
-        instrument = ftab['PRIMARY'].header['INSTRUME']
-    if instrument == 'ACS' and detector == 'WFC':
-        skew_coeffs = None    
-        if phdr.has_key('TDD_DATE'):
-            print 'Reading TDD coefficients from ',tabname
-            skew_coeffs = read_tdd_coeffs(phdr)
-            # Using coefficients read in from IDCTAB Primary header
-            #skew_coeffs = {'TDD_A0':phdr['TDD_A0'],'TDD_A1':phdr["TDD_A1"],
-            #            'TDD_B0':phdr['TDD_B0'],'TDD_B1':phdr['TDD_B1'],
-            #            'TDD_D0':phdr['TDD_D0'],'TDD_DATE':phdr['TDD_DATE']}
-    """
+    
     # Set default filters for SBC
     if detector == 'SBC':
         if filter1 == 'CLEAR':
