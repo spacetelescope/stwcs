@@ -95,7 +95,7 @@ class TDDCorr(object):
             # Using default pre-SM4 coefficients
             skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
                         'TDD_B':[-0.029,-0.030/2.5],
-                        'TDD_DATE':2004.5}
+                        'TDD_DATE':2004.5,'TDDORDER':1}
         
         if not isinstance(ext_wcs.date_obs,float):
             year,month,day = ext_wcs.date_obs.split('-')

@@ -250,7 +250,7 @@ def read_tdd_coeffs(phdr):
         n = int(phdr["TDDORDER"])
     else:
         print 'TDDORDER kw not present, TDD correction will not be applied.'
-        return skew_coeffs
+        return None
     
     a = np.zeros((n+1,), np.float64)
     b = np.zeros((n+1,), np.float64)
