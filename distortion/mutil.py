@@ -249,7 +249,7 @@ def read_tdd_coeffs(phdr):
     if phdr.has_key("TDDORDER"):
         n = int(phdr["TDDORDER"])
     else:
-        print 'TDDORDER kw not present, TDD correction will not be applied.'
+        print 'TDDORDER kw not present, using default TDD correction'
         return None
     
     a = np.zeros((n+1,), np.float64)
