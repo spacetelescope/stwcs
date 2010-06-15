@@ -83,27 +83,29 @@ class TDDCorr(object):
         alpha = 0.095 + 0.090*(rday-dday)/2.5
         beta = -0.029 - 0.030*(rday-dday)/2.5
         """
-        skew_coeffs = ext_wcs.idcmodel.refpix['skew_coeffs']
-        if skew_coeffs is None:
-            err_str =  "------------------------------------------------------------------------  \n"
-            err_str += "WARNING: the IDCTAB geometric distortion file specified in the image      \n"
-            err_str += "         header did not have the time-dependent distortion coefficients.  \n"
-            err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
-            err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
-            err_str +=  "------------------------------------------------------------------------  \n"
-            print err_str
-            # Using default pre-SM4 coefficients
-            skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
-                        'TDD_B':[-0.029,-0.030/2.5],
-                        'TDD_DATE':2004.5,'TDDORDER':1}
-        
         if not isinstance(ext_wcs.date_obs,float):
             year,month,day = ext_wcs.date_obs.split('-')
             rdate = datetime.datetime(int(year),int(month),int(day))
             rday = float(rdate.strftime("%j"))/365.25 + rdate.year
         else:
             rday = ext_wcs.date_obs
-        
+
+        skew_coeffs = ext_wcs.idcmodel.refpix['skew_coeffs']
+        if skew_coeffs is None:
+            # Only print out warning for post-SM4 data where this may matter
+            if rday > 2009.0:
+                err_str =  "------------------------------------------------------------------------  \n"
+                err_str += "WARNING: the IDCTAB geometric distortion file specified in the image      \n"
+                err_str += "         header did not have the time-dependent distortion coefficients.  \n"
+                err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
+                err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
+                err_str +=  "------------------------------------------------------------------------  \n"
+                print err_str
+            # Using default pre-SM4 coefficients
+            skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
+                        'TDD_B':[-0.029,-0.030/2.5],
+                        'TDD_DATE':2004.5,'TDDORDER':1}
+                    
         alpha = 0
         beta = 0
         # Compute skew terms, allowing for non-linear coefficients as well
