@@ -40,14 +40,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     return outwcs
-"""
-    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
-    newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+np.ceil(tanpix[:,1].min())])
-    newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
-    outwcs.wcs.crval = newcrval
-    outwcs.wcs.set()
-    return outwcs
-    """
+
 def  undistortWCS(wcsobj):
     """
     Creates an undistorted linear WCS by applying the IDCTAB distortion model
@@ -97,7 +90,7 @@ def  undistortWCS(wcsobj):
     lin_wcsobj = pywcs.WCS()   
     cd_inv = np.linalg.inv(cd_mat)
     lin_wcsobj.wcs.cd = np.dot(wcsobj.wcs.cd, cd_inv)
-    lin_wcsobj.set()
+    lin_wcsobj.wcs.set()
     lin_wcsobj.orientat = arctan2(lin_wcsobj.wcs.cd[0,1],lin_wcsobj.wcs.cd[1,1]) * 180./np.pi
     lin_wcsobj.pscale = sqrt(lin_wcsobj.wcs.cd[0,0]**2 + lin_wcsobj.wcs.cd[1,0]**2)*3600.
     lin_wcsobj.wcs.crval = np.array([0.,0.])
