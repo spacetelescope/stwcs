@@ -52,7 +52,6 @@ class HSTWCS(WCS):
             self.instrument = hdr0['INSTRUME']
             
             WCS.__init__(self, ehdr, fobj=phdu, minerr=minerr)
-            
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
@@ -67,8 +66,11 @@ class HSTWCS(WCS):
             # create a default HSTWCS object 
             self.instrument = 'DEFAULT'
             WCS.__init__(self, minerr=minerr)
+            self.wcs.cd = np.array([[1.0, 0.0], [0.0, 1.0]], np.double)
+            self.wcs.crval = np.zeros((self.naxis,), np.double)
+            self.wcs.crpix = np.zeros((self.naxis,), np.double)
+            self.wcs.set()
             self.setInstrSpecKw()
-        
         self.setPscale()
         self.setOrient()
         
@@ -178,6 +180,7 @@ class HSTWCS(WCS):
         cd22 = -cd11
         cdmat = np.array([[cd11, cd12],[cd21,cd22]])
         self.wcs.cd = cdmat * self.pscale/3600
+        self.wcs.set()
 
 
     def readModel(self, update=False, header=None):
@@ -283,7 +286,7 @@ class HSTWCS(WCS):
             cdl.append(card)
 
         h = pyfits.Header(cdl)
-        wprm = Wcsprm("".join([str(x) for x in h.ascardlist()]))
+        wprm = Wcsprm(str(h.ascardlist())) 
         self.wcs = wprm
         self.setPscale()
         self.setOrient()

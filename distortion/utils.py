@@ -19,12 +19,13 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     crval = np.array([crval1,crval2])
     if outwcs is None:
         if ref_wcs == None:
-            ref_wcs = list_of_wcsobj[0]
+            ref_wcs = list_of_wcsobj[0].deepcopy()
         if undistort:    
             outwcs = undistortWCS(ref_wcs)
         else:
-            outwcs = ref_wcs.copy()
+            outwcs = ref_wcs.deepcopy()
         outwcs.wcs.crval = crval
+        outwcs.wcs.set()
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     else:
@@ -37,13 +38,16 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
     crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.])
     outwcs.wcs.crpix = crpix
-    
+    outwcs.wcs.set()
+    return outwcs
+"""
     tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
     newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+np.ceil(tanpix[:,1].min())])
     newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
+    outwcs.wcs.set()
     return outwcs
-
+    """
 def  undistortWCS(wcsobj):
     """
     Creates an undistorted linear WCS by applying the IDCTAB distortion model
@@ -90,13 +94,16 @@ def  undistortWCS(wcsobj):
         print 'Singular matrix in updateWCS, aborting ...'
         return
     
-    lin_wcsobj = pywcs.WCS()    
+    lin_wcsobj = pywcs.WCS()   
     cd_inv = np.linalg.inv(cd_mat)
     lin_wcsobj.wcs.cd = np.dot(wcsobj.wcs.cd, cd_inv)
-    
+    lin_wcsobj.set()
     lin_wcsobj.orientat = arctan2(lin_wcsobj.wcs.cd[0,1],lin_wcsobj.wcs.cd[1,1]) * 180./np.pi
     lin_wcsobj.pscale = sqrt(lin_wcsobj.wcs.cd[0,0]**2 + lin_wcsobj.wcs.cd[1,0]**2)*3600.
+    lin_wcsobj.wcs.crval = np.array([0.,0.])
+    lin_wcsobj.wcs.crpix = np.array([0.,0.])
     
+    lin_wcsobj.wcs.set()
     return lin_wcsobj
 
 def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):

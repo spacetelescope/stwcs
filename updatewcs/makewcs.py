@@ -82,9 +82,9 @@ class MakeWCS(object):
         off = sqrt((v2-v2ref)**2 + (v3-v3ref)**2)/(R_scale*3600.0)
         
         if v3 == v3ref:
-           theta=0.0
+            theta=0.0
         else:
-           theta = atan2(ext_wcs.parity[0][0]*(v2-v2ref), ext_wcs.parity[1][1]*(v3-v3ref))
+            theta = atan2(ext_wcs.parity[0][0]*(v2-v2ref), ext_wcs.parity[1][1]*(v3-v3ref))
         
         if ref_wcs.idcmodel.refpix['THETA']: theta += ref_wcs.idcmodel.refpix['THETA']*pi/180.0
 
@@ -106,9 +106,9 @@ class MakeWCS(object):
         # Account for subarray offset
         # Angle of chip relative to chip
         if ext_wcs.idcmodel.refpix['THETA']:
-           dtheta = ext_wcs.idcmodel.refpix['THETA'] - ref_wcs.idcmodel.refpix['THETA']
+            dtheta = ext_wcs.idcmodel.refpix['THETA'] - ref_wcs.idcmodel.refpix['THETA']
         else:
-           dtheta = 0.0                    
+            dtheta = 0.0                    
         
         rrmat = fileutil.buildRotMatrix(dtheta)
         # Rotate the vectors
