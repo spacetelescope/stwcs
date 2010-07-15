@@ -129,8 +129,12 @@ class VACorr(object):
     def updateWCS(cls, ext_wcs, ref_wcs):
         if ext_wcs.vafactor != 1:
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
-            ext_wcs.wcs.crval[0] = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], ref_wcs.wcs.crval[0]) 
-            ext_wcs.wcs.crval[1] = ref_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1], ref_wcs.wcs.crval[1]) 
+            crval0 = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], 
+                                                                         ref_wcs.wcs.crval[0]) 
+            crval1 = ref_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1], 
+                                                                         ref_wcs.wcs.crval[1]) 
+            crval = np.array([crval0,crval1])
+            ext_wcs.wcs.crval = crval            
             ext_wcs.wcs.set()
         else:
             pass
