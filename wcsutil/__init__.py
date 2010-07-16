@@ -286,7 +286,7 @@ class HSTWCS(WCS):
             cdl.append(card)
 
         h = pyfits.Header(cdl)
-        wprm = Wcsprm(str(h.ascardlist())) 
+        wprm = Wcsprm(repr(h.ascard)) 
         self.wcs = wprm
         self.setPscale()
         self.setOrient()

@@ -172,12 +172,12 @@ class CompSIP(object):
                 if n >= m and n>=2:
                     idcval = np.array([[cx[n,m]],[cy[n,m]]])
                     sipval = np.dot(imatr, idcval)
-                    akeys1[m,n-m] = sipval[0] * ext_wcs.binned
-                    bkeys1[m,n-m] = sipval[1] * ext_wcs.binned
+                    akeys1[m,n-m] = sipval[0] 
+                    bkeys1[m,n-m] = sipval[1] 
                     Akey="A_%d_%d" % (m,n-m)
                     Bkey="B_%d_%d" % (m,n-m)
-                    kw2update[Akey] = sipval[0,0]
-                    kw2update[Bkey] = sipval[1,0]
+                    kw2update[Akey] = sipval[0,0] * ext_wcs.binned
+                    kw2update[Bkey] = sipval[1,0] * ext_wcs.binned
         kw2update['CTYPE1'] = 'RA---TAN-SIP'
         kw2update['CTYPE2'] = 'DEC--TAN-SIP'
         return kw2update

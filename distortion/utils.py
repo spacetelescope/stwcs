@@ -16,7 +16,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     min_ind = fra_dec[:,0].argmin()
     crval1 = (fra_dec[min_ind,0]+ (delta_fra/2.)*np.cos((fra_dec[min_ind,1]-crval2)*np.pi/180))
     
-    crval = np.array([crval1,crval2])
+    crval = np.array([crval1,crval2], dtype=np.float64)
     if outwcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
@@ -36,7 +36,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     
     outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
     outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
-    crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.])
+    crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.], dtype=np.float64)
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     return outwcs
@@ -89,7 +89,8 @@ def  undistortWCS(wcsobj):
     
     lin_wcsobj = pywcs.WCS()   
     cd_inv = np.linalg.inv(cd_mat)
-    lin_wcsobj.wcs.cd = np.dot(wcsobj.wcs.cd, cd_inv)
+    cd = np.dot(wcsobj.wcs.cd, cd_inv).astype(np.float64)
+    lin_wcsobj.wcs.cd = cd
     lin_wcsobj.wcs.set()
     lin_wcsobj.orientat = arctan2(lin_wcsobj.wcs.cd[0,1],lin_wcsobj.wcs.cd[1,1]) * 180./np.pi
     lin_wcsobj.pscale = sqrt(lin_wcsobj.wcs.cd[0,0]**2 + lin_wcsobj.wcs.cd[1,0]**2)*3600.
