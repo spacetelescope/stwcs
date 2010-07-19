@@ -96,7 +96,7 @@ def  undistortWCS(wcsobj):
     lin_wcsobj.pscale = sqrt(lin_wcsobj.wcs.cd[0,0]**2 + lin_wcsobj.wcs.cd[1,0]**2)*3600.
     lin_wcsobj.wcs.crval = np.array([0.,0.])
     lin_wcsobj.wcs.crpix = np.array([0.,0.])
-    
+    lin_wcsobj.wcs.ctype = ['RA---TAN', 'DEC--TAN']
     lin_wcsobj.wcs.set()
     return lin_wcsobj
 
