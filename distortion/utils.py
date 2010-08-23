@@ -39,6 +39,12 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.], dtype=np.float64)
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
+    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
+    newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+
+                         np.ceil(tanpix[:,1].min())])
+    newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
+    outwcs.wcs.crval = newcrval
+    outwcs.wcs.set()
     return outwcs
 
 def  undistortWCS(wcsobj):
