@@ -66,7 +66,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, ch
             tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
         
         #restore the original WCS keywords
-        utils.restoreWCS(f)
+        utils.restoreWCS(f, wcskey='O', clobber=True)
         makecorr(f, acorr)
     return files
 
@@ -88,7 +88,7 @@ def makecorr(fname, allowed_corr):
     nrefchip, nrefext = getNrefchip(f)
     ref_wcs = HSTWCS(fobj=f, ext=nrefext)
     ref_wcs.readModel(update=True,header=f[nrefext].header)
-    utils.write_archive(f[nrefext].header)
+    ref_wcs.copyWCS(header=f[nrefext].header, wcskey='O', wcsname='OPUS', clobber=True)
     
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
@@ -96,28 +96,58 @@ def makecorr(fname, allowed_corr):
     for i in range(len(f))[1:]:
         # Perhaps all ext headers should be corrected (to be consistent)
         extn = f[i]
-        if extn.header.has_key('extname') and extn.header['extname'].lower() == 'sci':
-            ref_wcs.restore(f[nrefext].header)
-            hdr = extn.header
-            utils.write_archive(hdr)
-            ext_wcs = HSTWCS(fobj=f, ext=i)
-            ext_wcs.readModel(update=True,header=hdr)
-            for c in allowed_corr:
-                if c != 'DGEOCorr' and c != 'DET2IMCorr':
-                    corr_klass = corrections.__getattribute__(c)
-                    kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
-                    for kw in kw2update:
-                        hdr.update(kw, kw2update[kw])
         
+        if extn.header.has_key('extname'):
+            extname = extn.header['extname'].lower()
+            if  extname == 'sci':
+                
+                sciextver = extn.header['extver']
+                ref_wcs.restore(f[nrefext].header, wcskey="O")
+    
+                hdr = extn.header
+                ext_wcs = HSTWCS(fobj=f, ext=i)
+                ext_wcs.copyWCS(header=hdr, wcskey='O', wcsname='OPUS', clobber=True)
+                ext_wcs.readModel(update=True,header=hdr)
+                for c in allowed_corr:
+                    if c != 'DGEOCorr' and c != 'DET2IMCorr':
+                        corr_klass = corrections.__getattribute__(c)
+                        kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
+                        for kw in kw2update:
+                            hdr.update(kw, kw2update[kw])
+                    
+                
+                idcname = os.path.split(fileutil.osfn(ext_wcs.idctab))[1]
+                wname = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
+                wkey = getKey(hdr, wname)
+                ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=True)
+            elif extname in ['err', 'dq', 'sdq']:
+                cextver = extn.header['extver']
+                if cextver == sciextver:
+                    ext_wcs.copyWCS(header=extn.header, wcskey=" ", wcsname=" ")
+            else:
+                cextver = extn.header['extver']
+                continue
+    
     if 'DGEOCorr' in allowed_corr:
         kw2update = dgeo.DGEOCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
-    
-    
-            
+            f[1].header.update(kw, kw2update[kw])       
             
     f.close()
+
+def getKey(header, wcsname):
+    """
+    If WCSNAME is found in header, return its key, else return 
+    the next available key. This is used to update a specific WCS
+    repeatedly and not generate new keys every time.
+    """
+    wkey = utils.next_wcskey(header)
+    names = utils.wcsnames(header)
+    for item in names.items():
+        if item[1] == wcsname:
+            wkey = item[0]
+    return wkey
+
 def getNrefchip(fobj):
     """
     This handles the fact that WFPC2 subarray observations

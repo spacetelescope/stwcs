@@ -7,6 +7,8 @@ import distortion
 import pywcs
 from pytools import fileutil
 
+__docformat__ = 'restructuredtext'
+
 DEGTORAD = fileutil.DEGTORAD
 RADTODEG = fileutil.RADTODEG
 

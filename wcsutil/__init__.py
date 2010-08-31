@@ -5,6 +5,7 @@ from pywcs import WCS
 import pyfits
 import instruments
 from stwcs.distortion import models, coeff_converter
+from stwcs import utils
 import numpy as np
 from pytools import fileutil
 from pytools.fileutil import DEGTORAD, RADTODEG
@@ -22,11 +23,11 @@ class HSTWCS(WCS):
     Purpose
     =======
     Create a WCS object based on the instrument.
-    It has all basic WCS kw as attribbutes (set by pywcs).
+    It has all basic WCS kw as attributes (set by pywcs).
     It also uses the primary and extension header to define
     instrument specific attributes.
     """
-    def __init__(self, fobj='DEFAULT', ext=None, minerr=0.0):
+    def __init__(self, fobj='DEFAULT', ext=None, minerr=0.0, wcskey=" "):
         """
         :Parameters:
         `fobj`: string or PyFITS HDUList object or None
@@ -45,13 +46,14 @@ class HSTWCS(WCS):
 
         self.inst_kw = ins_spec_kw
         self.minerr = minerr
+        self.wcskey = wcskey
         
         if fobj != 'DEFAULT':
             filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
             self.filename = filename
             self.instrument = hdr0['INSTRUME']
             
-            WCS.__init__(self, ehdr, fobj=phdu, minerr=minerr)
+            WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr, key=self.wcskey)
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
@@ -65,7 +67,7 @@ class HSTWCS(WCS):
         else:
             # create a default HSTWCS object 
             self.instrument = 'DEFAULT'
-            WCS.__init__(self, minerr=minerr)
+            WCS.__init__(self, minerr=self.minerr, key=self.wcskey)
             self.wcs.cd = np.array([[1.0, 0.0], [0.0, 1.0]], np.double)
             self.wcs.crval = np.zeros((self.naxis,), np.double)
             self.wcs.crpix = np.zeros((self.naxis,), np.double)
@@ -260,37 +262,52 @@ class HSTWCS(WCS):
                 self._updatehdr(header)
     
     
-    def restore(self, header=None):
+    def restore(self, header, wcskey):
         """
-        Restore a WCS archive in memory and update the WCS object.
-        Restored are the basic WCS kw as well as pscale and orient.
+        If WCS with wcskey exists - read it in and update the primary WCS.
+        If not, keep the original primary WCS.
         """
         from pywcs import Wcsprm
-        backup = {}
-        if header == None:
-            print 'Need a valid header in order to restore archive\n'
-            return
-
-        for k in basic_wcs:
-            try:
-                nkw = ('O'+k)[:7]
-                backup[k] = header[nkw]
-            except KeyError:
-                pass
-        if backup == {}:
-            print 'No archive was found\n'
-            return
-        cdl=pyfits.CardList()
-        for item in backup.items():
-            card = pyfits.Card(key=item[0], value=item[1])
-            cdl.append(card)
-
-        h = pyfits.Header(cdl)
-        wprm = Wcsprm(repr(h.ascard)) 
+        try:
+            wprm = Wcsprm(repr(header.ascard), key=wcskey)
+        except KeyError:
+            print "Could not restore WCS with key %s" % wcskey
+            return 
         self.wcs = wprm
         self.setPscale()
         self.setOrient()
-
+    
+    def copyWCS(self, header=None, wcskey=None, wcsname=" ", clobber=True):
+        """
+        Copy the current primary WCS as an alternate WCS 
+        using wcskey and WCSNAME. If wcskey = " ", it overwrites the 
+        primary WCS.
+        """
+        assert isinstance(header, pyfits.Header)
+        assert len(wcskey) == 1
+        #if wcskey == " ": wcskey = None
+        if header and not wcskey:
+            print "Please provide a valid wcskey for this WCS"
+        if wcskey not in utils.available_wcskeys(header) and not clobber:
+            print 'wcskey %s is already used in this header.' % wcskey
+            print 'Use "utils.next_wcskey" to obtain a valid wcskey'
+        hwcs = self.to_header()
+        wkey = 'WCSNAME' + wcskey
+        header.update(key=wkey, value=wcsname)
+        if self.wcs.has_pc():
+            for c in ['CD1_1', 'CD1_2', 'CD2_1', 'CD2_2']:
+                del hwcs[c]
+        elif self.wcs.has_cd():
+            for c in ['1_1', '1_2', '2_1', '2_2']:
+                hwcs.update(key='CD'+c, value=hwcs['PC'+c])
+                del hwcs['PC'+c]
+        for k in hwcs.keys():
+            key = k+wcskey
+            header.update(key=key, value = hwcs[k])
+        norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
+        okey = 'ORIENT%s' % wcskey
+        header.update(key=okey, value=norient) 
+        
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
