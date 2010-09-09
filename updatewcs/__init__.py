@@ -16,7 +16,8 @@ __docformat__ = 'restructuredtext'
 
 __version__ = '0.5'
 
-def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, checkfiles=True):
+def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, 
+              checkfiles=True, wcskey=" ", wcsname=" ", clobber=False):
     """
     Purpose
     =======
@@ -54,6 +55,16 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, ch
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
+    `wcskey`: None, one character string A-Z or an empty string of length 1
+              If None - the primary WCS is not archived
+              If an empty string - the next available wcskey is used for the archive
+              A-Z - use this key to archive the WCS
+    `wcsname`: a string
+              The name under which the primary WCS is archived after it is updated.
+              If an empty string (default), the name of the idctable is used as 
+              a base.
+    `clobber`: boolean
+              a flag for reusing the wcskey when archiving the primary WCS
     """
     files = parseinput.parseinput(input)[0]
     if checkfiles:
@@ -67,10 +78,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, ch
         
         #restore the original WCS keywords
         utils.restoreWCS(f, wcskey='O', clobber=True)
-        makecorr(f, acorr)
+        makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
 
-def makecorr(fname, allowed_corr):
+def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     """
     Purpose
     =======
@@ -81,7 +92,16 @@ def makecorr(fname, allowed_corr):
              file name
     `acorr`: list
              list of corrections to be applied
-            
+    `wkey`: None, one character string A-Z or an empty string of length 1
+              If None - the primary WCS is not archived
+              If an empty string - the next available wcskey is used for the archive
+              A-Z - use this key to archive the WCS
+    `wname`: a string
+              The name under which the primary WCS is archived after it is updated.
+              If an empty string (default), the name of the idctable is used as 
+              a base.
+    `clobber`: boolean
+              a flag for reusing the wcskey when archiving the primary WCS
     """
     f = pyfits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
@@ -115,11 +135,18 @@ def makecorr(fname, allowed_corr):
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
                     
-                
-                idcname = os.path.split(fileutil.osfn(ext_wcs.idctab))[1]
-                wname = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
-                wkey = getKey(hdr, wname)
-                ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=True)
+                if wkey is not None:
+                    # archive the updated primary WCS
+                    if wkey == " " :
+                        idcname = os.path.split(fileutil.osfn(ext_wcs.idctab))[1]
+                        wname = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
+                        wkey = getKey(hdr, wname)
+                        #in this case clobber = true, to allow updatewcs to be run repeatedly
+                        ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=True)
+                    else:
+                        #clobber is set to False as a warning to users
+                        ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=False)
+                    
             elif extname in ['err', 'dq', 'sdq']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:

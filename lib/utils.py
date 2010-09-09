@@ -77,7 +77,7 @@ def restoreWCS(fnames, wcskey, clobber=False):
                             fobj[e].header.update(key=key, value = hwcs[k])
                         else:
                             continue
-                    if wcskey == 'O':
+                    if wcskey == 'O' and fobj[e].header.has_key('TDDALPHA'):
                         fobj[e].header['TDDALPHA'] = 0.0
                         fobj[e].header['TDDBETA'] = 0.0
                     if fobj[e].header.has_key('ORIENTAT'):
@@ -103,22 +103,26 @@ def restoreWCS(fnames, wcskey, clobber=False):
                 fobj.writeto(name)
             fobj.close()
 
-def archiveWCS(fname, ext, wcskey, wcsname=" "):
+def archiveWCS(fname, ext, wcskey, wcsname=" ", clobber=False):
     """
     Copy the primary WCS to an alternate WCS 
     with wcskey and name WCSNAME.
     """
-    f = pyfits.open(fname, mode='update')
-    w = pywcs.WCS(f[ext].header, fobj=f)
     assert len(wcskey) == 1
-    if wcskey == " ": 
+    if wcskey == " " and clobber==False: 
         print "Please provide a valid wcskey for this WCS."
         print 'Use "utils.next_wcskey" to obtain a valid wcskey.'
-        print 'Use utils.restoreWCS to write to the primary WCS.'
+        print 'Or use utils.restoreWCS a specific WCS to the primary WCS.'
+        print 'WCS was NOT archived.'
         return
-    if wcskey not in available_wcskeys(f[ext].header):
+    if (wcskey not in available_wcskeys(f[ext].header)) and clobber==False:
         print 'wcskey %s is already used in this header.' % wcskey
         print 'Use "utils.next_wcskey" to obtain a valid wcskey'
+        print 'or use "clobber=True" to overwrite the values.'
+        return
+        
+    f = pyfits.open(fname, mode='update')
+    w = pywcs.WCS(f[ext].header, fobj=f)
     hwcs = w.to_header()
     wkey = 'WCSNAME' + wcskey
     f[ext].header.update(key=wkey, value=wcsname)
@@ -126,8 +130,9 @@ def archiveWCS(fname, ext, wcskey, wcsname=" "):
         for c in ['CD1_1', 'CD1_2', 'CD2_1', 'CD2_2']:
             del hwcs[c]
     elif w.wcs.has_cd():
-        for c in ['PC1_1', 'PC1_2', 'PC2_1', 'PC2_2']:
-            del hwcs[c]
+        for c in ['1_1', '1_2', '2_1', '2_2']:
+            hwcs.update(key='CD'+c, value=hwcs['PC'+c])
+            del hwcs['PC'+c]
     for k in hwcs.keys():
         key = k+wcskey
         f[ext].header.update(key=key, value = hwcs[k])
