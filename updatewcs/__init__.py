@@ -147,12 +147,11 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                         #clobber is set to False as a warning to users
                         ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=False)
                     
-            elif extname in ['err', 'dq', 'sdq']:
+            elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
                     ext_wcs.copyWCS(header=extn.header, wcskey=" ", wcsname=" ")
             else:
-                cextver = extn.header['extver']
                 continue
     
     if 'DGEOCorr' in allowed_corr:
