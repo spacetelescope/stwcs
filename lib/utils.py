@@ -115,8 +115,8 @@ def archiveWCS(fname, ext, wcskey, wcsname=" ", clobber=False):
         print 'Or use utils.restoreWCS a specific WCS to the primary WCS.'
         print 'WCS was NOT archived.'
         return
-    if (wcskey not in available_wcskeys(f[ext].header)) and clobber==False:
-        print 'wcskey %s is already used in this header.' % wcskey
+    if (wcskey not in available_wcskeys(pyfits.getheader(fname, ext=ext))) and clobber==False:
+        print 'Wcskey %s is already used in this header.' % wcskey
         print 'Use "utils.next_wcskey" to obtain a valid wcskey'
         print 'or use "clobber=True" to overwrite the values.'
         return
