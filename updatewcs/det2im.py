@@ -2,7 +2,7 @@ from __future__ import division # confidence high
 
 import pyfits
 from pytools import fileutil
-from stwcs import utils
+import utils
 
 class DET2IMCorr(object):
     def updateWCS(cls, fobj):

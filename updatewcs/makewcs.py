@@ -3,7 +3,7 @@ from __future__ import division # confidence high
 from stwcs import DEGTORAD, RADTODEG
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
-from stwcs import utils
+import utils
 from pytools import fileutil
 
 class MakeWCS(object):

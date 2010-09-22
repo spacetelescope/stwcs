@@ -2,7 +2,7 @@ from __future__ import division # confidence high
 
 import pyfits
 from pytools import fileutil
-from stwcs import utils
+import utils
 import numpy as np
 
 class DGEOCorr(object):

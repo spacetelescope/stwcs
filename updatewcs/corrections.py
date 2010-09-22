@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 from numpy import linalg
 from pytools import fileutil
-from stwcs.utils import diff_angles
+from utils import diff_angles
 import makewcs, dgeo
 
 MakeWCS = makewcs.MakeWCS
