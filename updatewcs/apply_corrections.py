@@ -48,7 +48,17 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
         if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
         if 'CompSIP' in acorr: acorr.remove('CompSIP')   
 
-    
+    # A new IDCTAB means all previously computed WCS's are invalid
+    # We are deleting all of them except the original OPUS WCS.
+    if 'MakeWCS' in acorr and newIDCTAB(fname):
+        print "New IDCTAB file detected. This invalidates all WCS's." 
+        print "Deleting all previous WCS's"
+        keys = utils.wcskeys(pyfits.getheader(fname, ext=1))
+        if 'O' in keys:
+            keys.remove('O')
+        for key in keys:
+            utils.deleteWCS(fname, key)
+            
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
         tddcorr = applyTDDCorr(fname, tddcorr)
@@ -63,18 +73,16 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     return acorr
 
 def foundIDCTAB(fname):
-    idctab_found = True
     try:
         idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
-        if idctab == 'N/A' or idctab == "": 
-            idctab_found = False
-        if os.path.exists(idctab):
-            idctab_found = True
-        else:
-            idctab_found = False
     except KeyError:
-        idctab_found = False
-    return idctab_found
+        return False
+    if idctab == 'N/A' or idctab == "": 
+        return False
+    if os.path.exists(idctab):
+        return True
+    else:
+        return False
    
 def applyTDDCorr(fname, utddcorr):
     """
@@ -214,4 +222,17 @@ def applyD2ImCorr(fname, d2imcorr):
         print 'D2IMFILE keyword not found in primary header'
         applyD2IMCorr = False
         return applyD2IMCorr 
+
+def newIDCTAB(fname):
+    #When this is called we know there's a kw IDCTAB in the header
+    idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
+    try:
+        #check for the presence of IDCTAB in the first extension
+        oldidctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB', ext=1))
+    except KeyError:
+        return False
+    if idctab == oldidctab:
+        return False
+    else:
+        return True
     

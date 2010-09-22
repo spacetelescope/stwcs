@@ -2,9 +2,11 @@ from __future__ import division # confidence high
 
 import os
 import pyfits
+import numpy as np
+from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
+import pywcs
 
-from stwcs import utils
 import corrections, makewcs
 import dgeo, det2im
 from pytools import parseinput, fileutil
@@ -14,7 +16,7 @@ import apply_corrections
 
 __docformat__ = 'restructuredtext'
 
-__version__ = '0.5'
+__version__ = '0.8'
 
 def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, 
               checkfiles=True, wcskey=" ", wcsname=" ", clobber=False):
@@ -77,7 +79,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
             tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
         
         #restore the original WCS keywords
-        utils.restoreWCS(f, wcskey='O', clobber=True)
+        wcsutil.restoreWCS(f, wcskey='O', clobber=True)
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
 
@@ -106,27 +108,28 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     f = pyfits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
-    ref_wcs = HSTWCS(fobj=f, ext=nrefext)
-    ref_wcs.readModel(update=True,header=f[nrefext].header)
-    ref_wcs.copyWCS(header=f[nrefext].header, wcskey='O', wcsname='OPUS', clobber=True)
+    rwcs = HSTWCS(fobj=f, ext=nrefext)
+    rwcs.readModel(update=True,header=f[nrefext].header)
+    wcsutil.archiveWCS(f, 'O', wcsname='OPUS', ext=nrefext, clobber=True)
     
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
-        
+    
+    # get a wcskey and wcsname from the first extension header
+    idcname = fileutil.osfn(rwcs.idctab)
+    key, name = getKeyName(f[1].header, wkey, wname, idcname)
+    
     for i in range(len(f))[1:]:
-        # Perhaps all ext headers should be corrected (to be consistent)
         extn = f[i]
         
         if extn.header.has_key('extname'):
             extname = extn.header['extname'].lower()
             if  extname == 'sci':
-                
                 sciextver = extn.header['extver']
-                ref_wcs.restore(f[nrefext].header, wcskey="O")
-    
+                ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
                 ext_wcs = HSTWCS(fobj=f, ext=i)
-                ext_wcs.copyWCS(header=hdr, wcskey='O', wcsname='OPUS', clobber=True)
+                wcsutil.archiveWCS(f, "O", wcsname="OPUS", ext=[i], clobber=True)
                 ext_wcs.readModel(update=True,header=hdr)
                 for c in allowed_corr:
                     if c != 'DGEOCorr' and c != 'DET2IMCorr':
@@ -134,23 +137,15 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
-                    
-                if wkey is not None:
-                    # archive the updated primary WCS
-                    if wkey == " " :
-                        idcname = os.path.split(fileutil.osfn(ext_wcs.idctab))[1]
-                        wname = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
-                        wkey = getKey(hdr, wname)
-                        #in this case clobber = true, to allow updatewcs to be run repeatedly
-                        ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=True)
-                    else:
-                        #clobber is set to False as a warning to users
-                        ext_wcs.copyWCS(header=hdr, wcskey=wkey, wcsname=wname, clobber=False)
-                    
+                #if wkey is None, do not archive the primary WCS  
+                if key is not None:
+                    wcsutil.archiveWCS(f, key, wcsname=name, ext=[i], clobber=True)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
-                    ext_wcs.copyWCS(header=extn.header, wcskey=" ", wcsname=" ")
+                    hdr = f[('SCI',sciextver)].header
+                    w = pywcs.WCS(hdr, f)
+                    copyWCS(w, extn.header, key, name)
             else:
                 continue
     
@@ -158,22 +153,49 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
         kw2update = dgeo.DGEOCorr.updateWCS(f)
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])       
-            
+        
     f.close()
 
-def getKey(header, wcsname):
-    """
-    If WCSNAME is found in header, return its key, else return 
-    the next available key. This is used to update a specific WCS
-    repeatedly and not generate new keys every time.
-    """
-    wkey = utils.next_wcskey(header)
-    names = utils.wcsnames(header)
-    for item in names.items():
-        if item[1] == wcsname:
-            wkey = item[0]
-    return wkey
+def getKeyName(hdr, wkey, wname, idcname):
+    if wkey is not None: # archive the primary WCS
+        if wkey == " ":
+            if wname == " " :
+                # get the next available key and use the IDCTABLE name as WCSNAME
+                idcname = os.path.split(idcname)[1]
+                name = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
+                key = wcsutil.getKeyFromName(hdr, name)
+                if not key:
+                    key = wcsutil.next_wcskey(hdr)
+            else:
+                #try to get a key from WCSNAME
+                # if not - get the next availabble key
+                name = wname
+                key = wcsutil.getKeyFromName(hdr, wname)
+                if not wkey:
+                    key = wcsutil.next_wcskey(hdr)
+        else:
+            key = wkey
+            name = wname
+    return key, name
 
+def copyWCS(w, hdr, wkey, wname):
+    """
+    This is a convenience function to copy a WCS object 
+    to a header as a primary WCS. It is used only to copy the 
+    WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
+    'TIME' or 'SAMP' extensions.
+    """
+    hwcs = w.to_header()
+    
+    if w.wcs.has_cd():
+        wcsutil.pc2cd(hwcs)
+    for k in hwcs.keys():
+        key = k+wkey
+        hdr.update(key=key, value=hwcs[k])
+    norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
+    okey = 'ORIENT%s' % wkey
+    hdr.update(key=okey, value=norient) 
+    
 def getNrefchip(fobj):
     """
     This handles the fact that WFPC2 subarray observations
