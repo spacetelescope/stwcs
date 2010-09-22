@@ -268,7 +268,7 @@ class HSTWCS(WCS):
         """
         h = self.to_header()
         if self.wcs.has_cd():
-            h = pc2cd(h)
+            h = altwcs.pc2cd(h)
             
         if sip2hdr:
             hwcs = h.ascardlist()

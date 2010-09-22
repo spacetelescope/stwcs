@@ -98,7 +98,6 @@ def archiveWCS(fname, wcskey=" ", wcsname=" ", ext=None, clobber=False):
                     wname = wcsname
         wkey = wcskey 
         wname = wcsname
-        print 'in archivewcs wkey, wname', wkey, wname 
     for e in exts:
         w = pywcs.WCS(f[e].header, fobj=f)
         hwcs = w.to_header()
