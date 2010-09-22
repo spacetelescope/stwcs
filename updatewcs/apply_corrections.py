@@ -5,6 +5,7 @@ import pyfits
 import time
 from pytools import fileutil
 import os.path
+from stwcs.wcsutil import altwcs
 
 #Note: The order of corrections is important
 
@@ -53,11 +54,11 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
     if 'MakeWCS' in acorr and newIDCTAB(fname):
         print "New IDCTAB file detected. This invalidates all WCS's." 
         print "Deleting all previous WCS's"
-        keys = utils.wcskeys(pyfits.getheader(fname, ext=1))
+        keys = altwcs.wcskeys(pyfits.getheader(fname, ext=1))
         if 'O' in keys:
             keys.remove('O')
         for key in keys:
-            utils.deleteWCS(fname, key)
+            altwcs.deleteWCS(fname, key)
             
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:

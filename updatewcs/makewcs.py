@@ -3,7 +3,7 @@ from __future__ import division # confidence high
 from stwcs import DEGTORAD, RADTODEG
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
-import utils
+from stwcs import utils
 from pytools import fileutil
 
 class MakeWCS(object):
@@ -52,6 +52,7 @@ class MakeWCS(object):
                     'CRVAL2': ext_wcs.wcs.crval[1],
                     'CRPIX1': ext_wcs.wcs.crpix[0],
                     'CRPIX2': ext_wcs.wcs.crpix[1],
+                    'IDCTAB': ext_wcs.idctab,
             }
         return kw2update
     
