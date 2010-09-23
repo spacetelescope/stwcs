@@ -2,7 +2,7 @@ from __future__ import division # confidence high
 
 #import all needed modules here to avoid relative imports
 #import mappings
-import utils
+#import utils
 import distortion
 import pywcs
 from pytools import fileutil
