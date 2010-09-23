@@ -78,10 +78,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
             tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
         
-        if 'MakeWCS' in acorr and newIDCTAB(fname):
+        if 'MakeWCS' in acorr and newIDCTAB(f):
             print "New IDCTAB file detected. This invalidates all WCS's." 
             print "Deleting all previous WCS's"
-            cleanWCS(fname)
+            cleanWCS(f)
             
         #restore the original WCS keywords
         #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
@@ -308,11 +308,11 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
-    keys = altwcs.wcskeys(pyfits.getheader(fname, ext=1))
+    keys = wcsutil.wcskeys(pyfits.getheader(fname, ext=1))
     f = pyfits.open(fname, mode='update')
     fext = range(len(f))
     for key in keys:
-        altwcs.deleteWCS(fname, ext=fext,wcskey=key)
+        wcsutil.deleteWCS(fname, ext=fext,wcskey=key)
             
 def getCorrections(instrument):
     """
