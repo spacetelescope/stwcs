@@ -78,6 +78,11 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
             tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
         
+        if 'MakeWCS' in acorr and newIDCTAB(fname):
+            print "New IDCTAB file detected. This invalidates all WCS's." 
+            print "Deleting all previous WCS's"
+            cleanWCS(fname)
+            
         #restore the original WCS keywords
         #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
@@ -287,7 +292,28 @@ def checkFiles(input):
     
     return newfiles
 
-
+def newIDCTAB(fname):
+    #When this is called we know there's a kw IDCTAB in the header
+    idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
+    try:
+        #check for the presence of IDCTAB in the first extension
+        oldidctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB', ext=1))
+    except KeyError:
+        return False
+    if idctab == oldidctab:
+        return False
+    else:
+        return True
+    
+def cleanWCS(fname):
+    # A new IDCTAB means all previously computed WCS's are invalid
+    # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
+    keys = altwcs.wcskeys(pyfits.getheader(fname, ext=1))
+    f = pyfits.open(fname, mode='update')
+    fext = range(len(f))
+    for key in keys:
+        altwcs.deleteWCS(fname, ext=fext,wcskey=key)
+            
 def getCorrections(instrument):
     """
     Print corrections available for an instrument
