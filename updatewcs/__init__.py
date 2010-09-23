@@ -7,7 +7,7 @@ from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import pywcs
 
-import corrections, makewcs
+import utils, corrections, makewcs
 import dgeo, det2im
 from pytools import parseinput, fileutil
 import apply_corrections
@@ -79,7 +79,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
             tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
         
         #restore the original WCS keywords
-        wcsutil.restoreWCS(f, wcskey='O', clobber=True)
+        #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
 
@@ -106,11 +106,15 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
               a flag for reusing the wcskey when archiving the primary WCS
     """
     f = pyfits.open(fname, mode='update')
+    #restore the original WCS keywords
+    #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
+    wcsutil.restoreWCS(f, nrefext, wcskey='O', clobber=True)
     rwcs = HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True,header=f[nrefext].header)
-    wcsutil.archiveWCS(f, 'O', wcsname='OPUS', ext=nrefext, clobber=True)
+    
+    wcsutil.archiveWCS(f, nrefext, 'O', wcsname='OPUS', clobber=True)
     
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
@@ -125,11 +129,12 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
         if extn.header.has_key('extname'):
             extname = extn.header['extname'].lower()
             if  extname == 'sci':
+                wcsutil.restoreWCS(f, ext=i, wcskey='O', clobber=True)
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
                 ext_wcs = HSTWCS(fobj=f, ext=i)
-                wcsutil.archiveWCS(f, "O", wcsname="OPUS", ext=[i], clobber=True)
+                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", clobber=True)
                 ext_wcs.readModel(update=True,header=hdr)
                 for c in allowed_corr:
                     if c != 'DGEOCorr' and c != 'DET2IMCorr':
@@ -139,7 +144,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                             hdr.update(kw, kw2update[kw])
                 #if wkey is None, do not archive the primary WCS  
                 if key is not None:
-                    wcsutil.archiveWCS(f, key, wcsname=name, ext=[i], clobber=True)
+                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, clobber=True)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
