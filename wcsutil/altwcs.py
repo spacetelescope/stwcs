@@ -18,23 +18,22 @@ import pyfits
 """
 
 # file operations
-def archiveWCS(fname, wcskey=" ", wcsname=" ", ext=None, clobber=False):
+def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
     """
     Copy the primary WCS to the hader as an alternate WCS 
-    with wcskey and name WCSNAME.      
+    with wcskey and name WCSNAME. It loops over all extensions in 'ext'   
     
     Parameters
     ----------
     fname:  string or pyfits.HDUList
             a file name or a file object
+    ext:    an int, a tuple, a python list of integers or a python list of tuples (e.g.('sci',1))
+            fits extensions to work with
     wcskey: string "A"-"Z" or " " 
             if " ": get next available key if wcsname is also " " or try 
             to get a key from WCSNAME value 
     wcsname: string
              Name of alternate WCS description
-    ext:     an int, a python list or None
-             if None - it loops over all extensions
-             otherwise works only on the specified extensions
     clobber: boolean
              if Ture - overwrites a WCS with the same key
              
@@ -47,24 +46,32 @@ def archiveWCS(fname, wcskey=" ", wcsname=" ", ext=None, clobber=False):
         f = pyfits.open(fname, mode='update')
     else:
         f = fname
-    assert isinstance(f,pyfits.HDUList)
+    if not isinstance(f,pyfits.HDUList):
+        print "ArchiveWCS requires a fits file object or a file name as input parameter"
+        closefobj(fname, f)
+        return
     try:
         assert (f.fileinfo(0)['filemode'] == 'update')
     except AssertionError:
         print "File must be opened in update mode."
-        f.close()
+        closefobj(fname, f)
         return
 
-    if ext == None: #update all extenstions
-        exts = range(len(f))
-    elif isinstance(ext, int):
+    if isinstance(ext, int) or isinstance(ext, tuple):
         exts = [ext]
+    elif isinstance(ext, list):
+        exts = ext[:]
     else:
-        assert isinstance(ext, list), "Ext must be a list of int extension numbers, \
-        a fits extension number or None (meaning all extensions)"
-        exts = ext
+        print "Ext must be a in, a tuple, a list of int extension numbers, \
+        or a list of tuples representing a fits extension."
+        closefobj(fname, f)
+        return
     
-    assert len(wcskey) == 1, 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+    if len(wcskey) != 1:
+        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+        closefobj(fname, f)
+        return
+    
     if wcskey == " ": 
         # try getting the key from WCSNAME
         if wcsname == " " or wcsname == "":
@@ -113,7 +120,7 @@ def archiveWCS(fname, wcskey=" ", wcsname=" ", ext=None, clobber=False):
         f[e].header.update(key=okey, value=norient) 
     closefobj(fname, f)
 
-def restoreWCS(f, wcskey, wcsname=" ", ext=None, clobber=False):
+def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
     """
     Copy a WCS with key "WCSKEY" to a primary WCS
      
@@ -129,14 +136,14 @@ def restoreWCS(f, wcskey, wcsname=" ", ext=None, clobber=False):
     ----------
     f:       string or pyfits.HDUList object
              a file name or a file object
+    ext:     an int, a tuple, a python list of integers or a python list 
+             of tuples (e.g.('sci',1)) 
+             fits extensions to work with
     wcskey:  a charater
              "A"-"Z" - Used for one of 26 alternate WCS definitions.
              or " " - find a key from WCSNAMe value
     wcsname: string (optional)
              if given and wcskey is " ", will try to restore by WCSNAME value
-    ext:     int, python list or None
-             if None - WCS is restored in all extensions
-             otherwise only in the specified extensions
     clobber: boolean
              A flag to define if the original files should be overwritten
              
@@ -152,8 +159,11 @@ def restoreWCS(f, wcskey, wcsname=" ", ext=None, clobber=False):
             fobj = pyfits.open(f)
     else: 
         fobj = f
-    assert isinstance(fobj,pyfits.HDUList), \
-           "First parameter must be a file name or a pyfits.HDUList"
+    if not isinstance(fobj,pyfits.HDUList):
+        print "First parameter must be a file name or a pyfits.HDUList"
+        closefobj(f, fobj)
+        return
+
     try:
         assert (fobj.fileinfo(0)['filemode'] == 'update')
     except AssertionError:
@@ -175,17 +185,23 @@ def restoreWCS(f, wcskey, wcsname=" ", ext=None, clobber=False):
             return
         print "Overwriting original files\n"
         name = fobj.filename()
-        
-    if ext == None: #update all extenstions
-        exts = range(len(fobj))
-    elif isinstance(ext, int):
-        exts = [ext]
-    else:
-        assert isinstance(ext, list), 'Ext must be a list of int extension numbers, a fits \
-                  extension number of None (all extensions)'
-        exts = ext
 
-    assert len(wcskey) == 1, 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+    
+    if isinstance(ext, int) or isinstance(ext, tuple):
+        exts = [ext]
+    elif isinstance(ext, list):
+        exts = ext[:]
+    else:
+        print  "Ext must be a in, a tuple, a list of int extension numbers, \
+        or a list of tuples representing a fits extension."
+        closefobj(f, fobj)
+        return
+        
+    if len(wcskey) != 1:
+        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+        closefobj(f, fobj)
+        return
+    
     if wcskey == " ": 
         # try getting the key from WCSNAME
         if wcsname == " ":
@@ -252,7 +268,7 @@ def restoreWCS(f, wcskey, wcsname=" ", ext=None, clobber=False):
         fobj.writeto(name)
     closefobj(f, fobj)
 
-def deleteWCS(fname, wcskey=" ", wcsname=" ", ext=None):
+def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     """
     Delete an alternate WCS defined with wcskey.
     If wcskey is " " try to get a key from WCSNAME.
@@ -260,38 +276,49 @@ def deleteWCS(fname, wcskey=" ", wcsname=" ", ext=None):
     Parameters
     ----------
     fname:   sting or a pyfits.HDUList object
+    ext:     an int, a tuple, a python list of integers or a python list of tuples (e.g.('sci',1))
+             fits extensions to work with
     wcskey:  one of 'A'-'Z' or " "
     wcsname: string
              Name of alternate WCS description
-    ext:     an int, a python list or None
-             if None - WCS with key wcskey is deleted from all extensions
-             otherwise only from the specified extensions
     """
     if isinstance(fname, str):
         fobj = pyfits.open(fname, mode='update')
     else:
         fobj = fname
-    assert isinstance(fobj,pyfits.HDUList)
+    if not isinstance(fobj,pyfits.HDUList):
+        print "DeleteWCS requires a fits file object or a file name as input parameter"
+        closefobj(fname, fobj)
+        return
     try:
         assert (fobj.fileinfo(0)['filemode'] == 'update')
     except AssertionError:
         print "File must be opened in update mode."
-        fobj.close()
+        closefobj(fname, fobj)
         return
+
     
-    if not ext: #work with all extensions
-        exts = range(len(fobj))
+    if isinstance(ext, int) or isinstance(ext, tuple):
+        exts = [ext]
     elif isinstance(ext, list):
         exts = ext[:]
-    elif isinstance(ext, int):
-        exts = [ext]
     else:
-        print 'ext paramter can be int, a list of int or None\n'
+        print 'ext paramter must be int, tuple or a list of ints or tuples\n'
         print 'No WCS was deleted\n'
         closefobj(fname, fobj)
         return
+        
+    if len(wcskey) != 1:
+        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+        closefobj(fname, fobj)
+        return
     
-    assert len(wcskey) == 1, 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+    # Do not allow deleting the original WCS.
+    if wcskey == 'O':
+        print "Wcskey 'O' is reserved for the original WCS and should not be deleted." 
+        closefobj(fname, fobj)
+        return
+    
     if wcskey == " ": 
         # try getting the key from WCSNAME
         if wcsname == " ":
@@ -441,3 +468,5 @@ def closefobj(fname,f):
     if isinstance(fname, str):
         f.close()
         
+
+    
