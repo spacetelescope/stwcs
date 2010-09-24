@@ -181,7 +181,7 @@ def getKeyName(hdr, wkey, wname, idcname):
                 # if not - get the next availabble key
                 name = wname
                 key = wcsutil.getKeyFromName(hdr, wname)
-                if not wkey:
+                if not key:
                     key = wcsutil.next_wcskey(hdr)
         else:
             key = wkey
