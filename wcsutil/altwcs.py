@@ -42,69 +42,38 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
     wcsutils.restoreWCS: Copy an alternate WCS to the primary WCS
     
     """
+    
     if isinstance(fname, str):
         f = pyfits.open(fname, mode='update')
     else:
         f = fname
-    if not isinstance(f,pyfits.HDUList):
-        print "ArchiveWCS requires a fits file object or a file name as input parameter"
-        closefobj(fname, f)
-        return
-    try:
-        assert (f.fileinfo(0)['filemode'] == 'update')
-    except AssertionError:
-        print "File must be opened in update mode."
-        closefobj(fname, f)
-        return
 
+    if not parpasscheck(f, ext, wcskey, wcsname):
+        closefobj(fname, f)
+        return
+    
     if isinstance(ext, int) or isinstance(ext, tuple):
         exts = [ext]
-    elif isinstance(ext, list):
-        exts = ext[:]
-    else:
-        print "Ext must be a in, a tuple, a list of int extension numbers, \
-        or a list of tuples representing a fits extension."
-        closefobj(fname, f)
-        return
-    
-    if len(wcskey) != 1:
-        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
-        closefobj(fname, f)
-        return
-    
+        
     if wcskey == " ": 
         # try getting the key from WCSNAME
-        if wcsname == " " or wcsname == "":
+        if not wcsname.strip():
             wkey = next_wcskey(f[1].header)
-            if not wkey:
-                print "Could not get a valid key from header"
-                closefobj(fname, f)
-                return
         else:
             wkey = getKeyFromName(f[1].header, wcsname)
-            if wkey and not clobber:
-                print 'Wcsname %s is already used.' % wcsname
-                print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
-                print 'or use "clobber=True" to overwrite the values.'
-                closefobj(fname, f)
-                return
     else:
         if wcskey not in available_wcskeys(f[1].header):
-            if clobber==False:
-                print 'Wcskey %s is already used.' % wcskey
-                print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
-                print 'or use "clobber=True" to overwrite the values.'
-                closefobj(fname,f)
-                return
+            # reuse wcsname
+            if not wcsname.strip(): 
+                wcsname = f[1].header["WCSNAME"+wcskey]
+                wname = wcsname
             else:
-                # reuse the value for WCSNAME
-                if wcsname == " ": 
-                    wcsname = f[1].header["WCSNAME"+wcskey]
-                else:
-                    wkey = wcskey
-                    wname = wcsname
-        wkey = wcskey 
-        wname = wcsname
+                wkey = wcskey
+                wname = wcsname
+        else:
+            wkey = wcskey 
+            wname = wcsname
+            
     for e in exts:
         w = pywcs.WCS(f[e].header, fobj=f)
         hwcs = w.to_header()
@@ -159,56 +128,21 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
             fobj = pyfits.open(f)
     else: 
         fobj = f
-    if not isinstance(fobj,pyfits.HDUList):
-        print "First parameter must be a file name or a pyfits.HDUList"
+        
+    if not parpasscheck(fobj, ext, wcskey, wcsname):
         closefobj(f, fobj)
         return
-
-    try:
-        assert (fobj.fileinfo(0)['filemode'] == 'update')
-    except AssertionError:
-        if clobber:
-            print "File must be opened in update mode."
-            closefobj(f, fobj)
-            return
-
+    
+    if isinstance(ext, int) or isinstance(ext, tuple):
+        exts = [ext]
     
     if not clobber:
         name = (fobj.filename().split('.fits')[0] + '_%s_' + '.fits') %wcskey
     else:
-        # make sure the file was opened in update mode
-        try:
-            assert (fobj.fileinfo(0)['filemode'] == 'update')
-        except AssertionError:
-            print "File must be opened in update mode."
-            closefobj(f, fobj)
-            return
-        print "Overwriting original files\n"
         name = fobj.filename()
 
-    
-    if isinstance(ext, int) or isinstance(ext, tuple):
-        exts = [ext]
-    elif isinstance(ext, list):
-        exts = ext[:]
-    else:
-        print  "Ext must be a in, a tuple, a list of int extension numbers, \
-        or a list of tuples representing a fits extension."
-        closefobj(f, fobj)
-        return
-        
-    if len(wcskey) != 1:
-        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
-        closefobj(f, fobj)
-        return
-    
-    if wcskey == " ": 
-        # try getting the key from WCSNAME
-        if wcsname == " ":
-            print "Could not get a valid key from header"
-            closefobj(f, fobj)
-            return
-        else:
+    if wcskey == " ":
+        if wcsname.strip():
             wkey = getKeyFromName(fobj[1].header, wcsname)
             if not wkey:
                 print 'Could not get a key from wcsname %s .' % wcsname
@@ -220,20 +154,21 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
             closefobj(f, fobj)
             return
         wkey = wcskey    
-        
+
     for e in exts:
         try:
             extname = fobj[e].header['EXTNAME'].lower()
         except KeyError:
             continue
         #Restore always from a 'SCI' extension but write it out to 'ERR' and 'DQ'
+        print 'extname', extname
         if extname == 'sci':
             sciver = fobj[e].header['extver']
             try:
                 nwcs = pywcs.WCS(fobj[e].header, fobj=fobj, key=wkey)
             except KeyError:
                 print 'restoreWCS: Could not read WCS with key %s in file %s,  \
-                extension %d' % (wcskey, fobj.filename(), e)
+                extension %d' % (wkey, fobj.filename(), e)
                 closefobj(f, fobj)
                 return #raise
             hwcs = nwcs.to_header()
@@ -286,33 +221,14 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         fobj = pyfits.open(fname, mode='update')
     else:
         fobj = fname
-    if not isinstance(fobj,pyfits.HDUList):
-        print "DeleteWCS requires a fits file object or a file name as input parameter"
+    
+    if not parpasscheck(fobj, ext, wcskey, wcsname):
         closefobj(fname, fobj)
         return
-    try:
-        assert (fobj.fileinfo(0)['filemode'] == 'update')
-    except AssertionError:
-        print "File must be opened in update mode."
-        closefobj(fname, fobj)
-        return
-
     
     if isinstance(ext, int) or isinstance(ext, tuple):
         exts = [ext]
-    elif isinstance(ext, list):
-        exts = ext[:]
-    else:
-        print 'ext paramter must be int, tuple or a list of ints or tuples\n'
-        print 'No WCS was deleted\n'
-        closefobj(fname, fobj)
-        return
-        
-    if len(wcskey) != 1:
-        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
-        closefobj(fname, fobj)
-        return
-    
+
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
         print "Wcskey 'O' is reserved for the original WCS and should not be deleted." 
@@ -428,7 +344,7 @@ def getKeyFromName(header, wcsname):
     wkey = None
     names = wcsnames(header)
     for item in names.items():
-        if item[1] == wcsname:
+        if item[1].lower() == wcsname.lower():
             wkey = item[0]
             break
     return wkey
@@ -458,6 +374,64 @@ def pc2cd(hdr, key=' '):
                 val = 0.
         hdr.update(key='CD'+c+'%s' %key, value=val)           
     return hdr
+
+def parpasscheck(fobj, ext, wcskey, wcsname, clobber=True):
+
+    if not isinstance(fobj,pyfits.HDUList):
+        print "First parameter must be a fits file object or a file name."
+        return False
+    try:
+        assert (fobj.fileinfo(0)['filemode'] == 'update')
+    except AssertionError:
+        print "First parameter must be a file name or a file object opened in 'update' mode."
+        return False
+
+    if not isinstance(ext, int) and not isinstance(ext, tuple) \
+       and not isinstance(ext, list):
+        print "Ext must be integer, tuple, a list of int extension numbers, \
+        or a list of tuples representing a fits extension, for example ('sci', 1)."
+        return False
+    
+    if len(wcskey) != 1:
+        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+        return False
+    
+    if wcskey == " ": 
+        # try getting the key from WCSNAME
+        """
+        if wcsname == " " or wcsname == "":
+            #wkey = next_wcskey(f[1].header)
+            #if not wkey:
+            #    print "Could not get a valid key from header"
+            return False
+        """
+        if wcsname.strip():
+            wkey = getKeyFromName(fobj[1].header, wcsname)
+            if wkey and not clobber:
+                print 'Wcsname %s is already used.' % wcsname
+                print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
+                print 'or use "clobber=True" to overwrite the values.'
+                return False
+    else:
+        if wcskey not in available_wcskeys(fobj[1].header):
+            if clobber==False:
+                print 'Wcskey %s is already used.' % wcskey
+                print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
+                print 'or use "clobber=True" to overwrite the values.'
+                return False
+        """
+            else:
+                # reuse the value for WCSNAME
+                if wcsname == " ": 
+                    wcsname = f[1].header["WCSNAME"+wcskey]
+                else:
+                    wkey = wcskey
+                    wname = wcsname
+        wkey = wcskey 
+        wname = wcsname
+        """
+
+    return True
 
 def closefobj(fname,f):
     """
