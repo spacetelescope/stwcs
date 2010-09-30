@@ -290,9 +290,11 @@ def wcskeys(header):
 
 def wcsnames(header):
     """
-    Purpose
-    =======
-    Return a dictionary of wcskey: WCSNAME pairs
+    Returns a dictionary of wcskey: WCSNAME pairs
+    
+    Parameters
+    ----------
+    header: pyfits.Header
     """
     names = header["WCSNAME*"]
     d = {}
@@ -340,6 +342,12 @@ def getKeyFromName(header, wcsname):
     If WCSNAME is found in header, return its key, else return 
     None. This is used to update an alternate WCS
     repeatedly and not generate new keys every time.
+    
+    Parameters
+    ----------
+    header:  pyfits.Header
+    wcsname: str
+             Value of WCSNAME
     """
     wkey = None
     names = wcsnames(header)

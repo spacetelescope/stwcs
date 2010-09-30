@@ -16,33 +16,35 @@ from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
-__version__ = '0.4'
+__version__ = '0.7'
 
+    
 class HSTWCS(WCS):
-    """
-    Purpose
-    =======
-    Create a WCS object based on the instrument.
-    It has all basic WCS kw as attributes (set by pywcs).
-    It also uses the primary and extension header to define
-    instrument specific attributes.
-    """
+
     def __init__(self, fobj='DEFAULT', ext=None, minerr=0.0, wcskey=" "):
         """
-        :Parameters:
-        `fobj`: string or PyFITS HDUList object or None
+        Create a WCS object based on the instrument.
+        
+        In addition to basic WCS keywords this class provides
+        instrument specific information needed in distortion computation.
+        
+        Parameters
+        ----------
+        fobj: string or PyFITS HDUList object or None
                 a file name, e.g j9irw4b1q_flt.fits
                 a fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
                 a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the 
-                     user is responsible for closing the file object.
-        `ext`:  int or None
+                user is responsible for closing the file object.
+        ext:  int or None
                 extension number
                 if ext==None, it is assumed the data is in the primary hdu
- 
-        `minerr`: float
+        minerr: float
                 minimum value a distortion correction must have in order to be applied.
                 If CPERRja, CQERRja are smaller than minerr, the corersponding
                 distortion is not applied.
+        wcskey: str
+                A one character A-Z or " " used to retrieve and define an 
+                alternate WCS description.
         """
 
         self.inst_kw = ins_spec_kw
@@ -50,7 +52,7 @@ class HSTWCS(WCS):
         self.wcskey = wcskey
         
         if fobj != 'DEFAULT':
-            filename, hdr0, ehdr, phdu = self.parseInput(f=fobj, ext=ext)
+            filename, hdr0, ehdr, phdu = self._parseInput(f=fobj, ext=ext)
             self.filename = filename
             self.instrument = hdr0['INSTRUME']
             
@@ -76,7 +78,7 @@ class HSTWCS(WCS):
         self.setPscale()
         self.setOrient()
         
-    def parseInput(self, f=None, ext=None):
+    def _parseInput(self, f=None, ext=None):
         if isinstance(f, str):
             # create an HSTWCS object from a filename
 
@@ -126,8 +128,20 @@ class HSTWCS(WCS):
             self.__setattr__(c, header.get(c, None))
 
     def setInstrSpecKw(self, prim_hdr=None, ext_hdr=None):
-        # Based on the instrument kw creates an instalnce of an instrument WCS class
-        # and sets attributes from instrument specific kw
+        """
+        Populate the instrument specific attributes:
+
+        These can be in different headers but each instrument class has knowledge 
+        of where to look for them.
+        
+        Parameters
+        ----------
+        prim_hdr: pyfits.Header
+                  primary header
+        ext_hdr:  pyfits.Header
+                  extension header
+        
+        """ 
         if self.instrument in inst_mappings.keys():
             inst_kl = inst_mappings[self.instrument]
             inst_kl = instruments.__dict__[inst_kl]
@@ -148,50 +162,38 @@ class HSTWCS(WCS):
             raise KeyError, "Unsupported instrument - %s" %self.instrument
 
     def setPscale(self):
-        # Calculates the plate scale from the cd matrix
-
+        """
+        Calculates the plate scale from the CD matrix
+        """
         cd11 = self.wcs.cd[0][0]
         cd21 = self.wcs.cd[1][0]
         self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
 
     def setOrient(self):
-        # Recompute ORIENTAT
+        """
+        Computes ORIENTAT from the CD matrix
+        """
         cd12 = self.wcs.cd[0][1]
         cd22 = self.wcs.cd[1][1]
         self.orientat = RADTODEG(np.arctan2(cd12,cd22))
 
-    def updatePscale(self, pscale):
-        """Given a plate scale, update the CD matrix"""
-        old_pscale = self.pscale
-        self.pscale = pscale
-        self.wcs.cd = self.wcs.cd * pscale/old_pscale
-        self.naxis1 = self.naxis1 * old_pscale/ pscale
-        self.naxis2 = self.naxis2 * old_pscale/ pscale
-        self.wcs.crpix = self.wcs.crpix *old_pscale/pscale
-
-    def updateOrient(self, orient):
-        """Given n angle update the CD matrix"""
-        if self.orientat == orient:
-            return
-        old_orient = self.orientat
-        self.orientat = orient
-        angle = fileutil.DEGTORAD(orient)
-        cd11 = -np.cos(angle)
-        cd12 = np.sin(angle)
-        cd21 = cd12
-        cd22 = -cd11
-        cdmat = np.array([[cd11, cd12],[cd21,cd22]])
-        self.wcs.cd = cdmat * self.pscale/3600
-        self.wcs.set()
-
-
     def readModel(self, update=False, header=None):
         """
         Reads distortion model from IDCTAB.
+        
         If IDCTAB is not found ('N/A', "", or not found on disk), then
-        if SIP coefficients and first order IDCTAb coefficients are present
+        if SIP coefficients and first order IDCTAB coefficients are present
         in the header, restore the idcmodel from the header.
         If not - assign None to self.idcmodel.
+        
+        Parameters
+        ----------
+        header: pyfits.Header
+                fits extension header
+        update: boolean (False)
+                if True - record the following IDCTAB quantities as header keywords:
+                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF, 
+                IDCV2REF, IDCV3REF
         """
 
         if self.idctab == None or self.idctab == ' ':
@@ -208,7 +210,7 @@ class HSTWCS(WCS):
                 print 'Distortion model is not available: IDCTAB file %s not found\n' % self.idctab
                 self.idcmodel = None
         else:
-            self._readModelFromIDCTAB(header=header, update=update)
+            self.readModelFromIDCTAB(header=header, update=update)
             
     def _readModelFromHeader(self, header):
         # Recreate idc model from SIP coefficients and header kw
@@ -232,14 +234,19 @@ class HSTWCS(WCS):
         self.idcmodel = model
         
         
-    def _readModelFromIDCTAB(self, header=None, update=False):
+    def readModelFromIDCTAB(self, header=None, update=False):
         """
-        Purpose
-        =======
         Read distortion model from idc table.
-        Save some of the information as kw needed for interpreting the distortion
-        If header is provided and update is True, some IDC model kw
-        will be recorded in the header.
+        
+        Parameters
+        ----------
+        header: pyfits.Header
+                fits extension header
+        update: boolean (False)
+                if True - save teh following as header keywords:
+                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF, 
+                IDCV2REF, IDCV3REF
+                   
         """
         if self.date_obs == None:
             print 'date_obs not available\n'
@@ -263,8 +270,15 @@ class HSTWCS(WCS):
 
     def wcs2header(self, sip2hdr=False):
         """
-        Create a pyfits.Header object from all WCS keywords,
-        including the SIP coefficients.
+        Create a pyfits.Header object from WCS keywords.
+        
+        If the original header had a CD matrix, return a CD matrix,
+        otherwise return a PC matrix.
+        
+        Parameters
+        ----------
+        sip2hdr: boolean
+                 If True - include SIP coefficients
         """
         h = self.to_header()
         if self.wcs.has_cd():
@@ -332,6 +346,9 @@ class HSTWCS(WCS):
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
 
     def printwcs(self):
+        """
+        Print the basic WCS keywords.
+        """
         print 'WCS Keywords\n'
         print 'CD_11  CD_12: %r %r' % (self.wcs.cd[0,0],  self.wcs.cd[0,1])
         print 'CD_21  CD_22: %r %r' % (self.wcs.cd[1,0],  self.wcs.cd[1,1])
