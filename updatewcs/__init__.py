@@ -21,8 +21,7 @@ __version__ = '0.8'
 def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, 
               checkfiles=True, wcskey=" ", wcsname=" ", clobber=False):
     """
-    Purpose
-    =======
+
     Updates HST science files with the best available calibration information.
     This allows users to retrieve from the archive self contained science files 
     which do not require additional reference files.
@@ -32,40 +31,41 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
     
     
     Example
-    =======
+    -------
     >>>from stwcs import updatewcs
     >>>updatewcs.updatewcs(filename)
     
     Dependencies 
-    ============
+    ------------
     `pytools`
     `pyfits`
     `pywcs`
 
-    :Parameters:
-    `input`: a python list of file names or a string (wild card characters allowed)
+    Parameters
+    ----------
+    input: a python list of file names or a string (wild card characters allowed)
              input files may be in fits, geis or waiver fits format
-    `vacorr`: boolean
+    vacorr: boolean
               If True, vecocity aberration correction will be applied
-    `tddcorr`: boolean
-              If True, time dependent distortion correction will be applied 
-    `dgeocorr`: boolean
+    tddcorr: boolean
+             If True, time dependent distortion correction will be applied 
+    dgeocorr: boolean
               If True, a Lookup table distortion will be applied
-    `d2imcorr`: boolean
+    d2imcorr: boolean
               If True, detector to image correction will be applied
-    `checkfiles`: boolean
+    checkfiles: boolean
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
-    `wcskey`: None, one character string A-Z or an empty string of length 1
+    wcskey: None, one character string A-Z or an empty string of length 1
               If None - the primary WCS is not archived
               If an empty string - the next available wcskey is used for the archive
               A-Z - use this key to archive the WCS
-    `wcsname`: a string
+    wcsname: a string
               The name under which the primary WCS is archived after it is updated.
               If an empty string (default), the name of the idctable is used as 
               a base.
-    `clobber`: boolean
+    clobber: boolean
               a flag for reusing the wcskey when archiving the primary WCS
     """
     files = parseinput.parseinput(input)[0]

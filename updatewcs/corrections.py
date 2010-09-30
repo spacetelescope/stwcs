@@ -12,19 +12,31 @@ DGEOCorr = dgeo.DGEOCorr
 
 class TDDCorr(object):
     """
-    Purpose
-    =======
-    Apply time dependent distortion correction to SIP coefficients and basic
-    WCS keywords. It is applicable only to ACS/WFC data.
-    
-    Ref: Jay Anderson, ACS ISR 2007-08, Variation of the Distortion 
-    Solution of the WFC 
-    
-    :Parameters:
-    `ext_wcs`: HSTWCS object
-            An extension HSTWCS object to be modified
-    `ref_wcs`: HSTWCS object
+    Apply time dependent distortion correction to distortion coefficients and basic
+    WCS keywords. This applies only to ACS/WFC data.
+        
+    Parameters
+    ----------
+    ext_wcs: HSTWCS object
+             An HSTWCS object to be modified
+    ref_wcs: HSTWCS object
              A reference HSTWCS object
+            
+    Notes
+    -----
+    Compute the ACS/WFC time dependent distortion terms
+    as described in [1]_.
+    
+    The zero-point terms account for the skew accumulated between
+    2002.0 and 2004.5, when the latest IDCTAB was delivered.
+    alpha = 0.095 + 0.090*(rday-dday)/2.5
+    beta = -0.029 - 0.030*(rday-dday)/2.5
+    
+    
+    References
+    ----------
+    .. [1] Jay Anderson, "Variation of the Distortion Solution of the WFC", ACS ISR 2007-08.
+    
     """
     
     def updateWCS(cls, ext_wcs, ref_wcs):
@@ -119,11 +131,13 @@ class TDDCorr(object):
         
 class VACorr(object):
     """
-    Purpose
-    =======
     Apply velocity aberation correction to WCS keywords.
-    Modifies the CD matrix and CRVAL1/2
-
+    
+    Notes
+    -----
+    Velocity Aberration is stored in the extension header keyword 'VAFACTOR'.
+    The correction is applied to the CD matrix and CRVALs.
+    
     """
     
     def updateWCS(cls, ext_wcs, ref_wcs):
@@ -148,9 +162,11 @@ class VACorr(object):
         
 class CompSIP(object):
     """
-    Purpose
-    =======
-    Compute SIP coefficients from idc table coefficients.
+    Compute SIP coefficients from IDC table coefficients.
+    
+    Notes
+    -----
+    
     """
     
     def updateWCS(cls, ext_wcs, ref_wcs):

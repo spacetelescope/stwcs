@@ -7,13 +7,11 @@ import numpy as np
 
 class DGEOCorr(object):
     """
-    Purpose
-    =======
     Defines a Lookup table prior distortion correction as per WCS paper IV.
     It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword in the primary header.
     
-    Algorithm
-    =========
+    Notes
+    -----
     - Using extensions in the reference file create a WCSDVARR extension 
       and add it to the file object.
     - Add record-valued keywords which describe the lookup tables to the 

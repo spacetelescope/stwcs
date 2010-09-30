@@ -7,12 +7,16 @@ import utils
 class DET2IMCorr(object):
     def updateWCS(cls, fobj):
         """
-        :Parameters:
-        `fobj`: pyfits object
-                Science file, for which a detector to image correction 
-                is available
-        Uses a kw 'D2IMFILE' in the primary header to create an extension with 
-        a detector to image correction.
+        Parameters
+        ----------
+        fobj: pyfits object
+              Science file, for which a detector to image correction 
+              is available
+              
+        Notes
+        -----
+        Uses the file pointed to in the primary header keyword 'D2IMFILE' 
+        to create an extension with a detector to image correction. 
         """
         assert isinstance(fobj, pyfits.HDUList)
         
