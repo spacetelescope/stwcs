@@ -53,7 +53,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
         return
     
     if isinstance(ext, int) or isinstance(ext, tuple):
-        exts = [ext]
+        ext = [ext]
         
     if wcskey == " ": 
         # try getting the key from WCSNAME
@@ -74,7 +74,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
             wkey = wcskey 
             wname = wcsname
             
-    for e in exts:
+    for e in ext:
         w = pywcs.WCS(f[e].header, fobj=f)
         hwcs = w.to_header()
         wcsnamekey = 'WCSNAME' + wkey
@@ -134,7 +134,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
         return
     
     if isinstance(ext, int) or isinstance(ext, tuple):
-        exts = [ext]
+        ext = [ext]
     
     if not clobber:
         name = (fobj.filename().split('.fits')[0] + '_%s_' + '.fits') %wcskey
@@ -155,13 +155,12 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
             return
         wkey = wcskey    
 
-    for e in exts:
+    for e in ext:
         try:
             extname = fobj[e].header['EXTNAME'].lower()
         except KeyError:
             continue
         #Restore always from a 'SCI' extension but write it out to 'ERR' and 'DQ'
-        print 'extname', extname
         if extname == 'sci':
             sciver = fobj[e].header['extver']
             try:
@@ -227,7 +226,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         return
     
     if isinstance(ext, int) or isinstance(ext, tuple):
-        exts = [ext]
+        ext = [ext]
 
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
@@ -255,7 +254,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         wkey = wcskey    
         
     prexts = []
-    for i in exts:
+    for i in ext:
         hdr = fobj[i].header
         try:
             w = pywcs.WCS(hdr, fobj, key=wkey)
