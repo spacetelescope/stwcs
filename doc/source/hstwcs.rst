@@ -3,7 +3,7 @@
 **************************************
 HSTWCS API
 **************************************
-    
+
 .. currentmodule:: stwcs.wcsutil.hstwcs
 
 .. autoclass:: HSTWCS

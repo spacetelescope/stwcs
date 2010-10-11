@@ -12,8 +12,8 @@ transformations and a module for managing alternate WCS's.
    :maxdepth: 2
    
    
-   hstwcs_ui
    hstwcs
+   hstwcs_ui
    altwcs
    
    

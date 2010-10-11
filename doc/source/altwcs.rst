@@ -3,7 +3,8 @@
 **************************************
 User Interface: altwcs
 **************************************
- 
+The functions in this module manage alternate WCS's in a header.
+
 .. currentmodule:: stwcs.wcsutil.altwcs
 
 .. automodule:: stwcs.wcsutil.altwcs
