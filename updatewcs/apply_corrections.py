@@ -31,9 +31,7 @@ cnames = {'DET2IMCorr': 'Detector to Image Correction',
                             
 def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True):
     """
-    Purpose
-    =======
-    Creates a list of corrections to be applied to a file.
+    Creates a list of corrections to be applied to a file
     based on user input paramters and allowed corrections
     for the instrument.
     """
@@ -111,8 +109,6 @@ def applyTDDCorr(fname, utddcorr):
 
 def applyDgeoCorr(fname, udgeocorr):
     """
-    Purpose
-    =======
     Determines whether non-polynomial distortion lookup tables should be added 
     as extensions to the science file based on the 'NPOLFILE' keyword in the 
     primary header and NPOLEXT kw in the first extension.

@@ -5,17 +5,6 @@ import pywcs
 import numpy as np
 import pyfits
 
-"""
-    WCS keywords:
-    'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2', 
-    'CRVAL*',
-    'CTYPE*',
-    'CRPIX*', 
-    'CDELT*',
-    'CUNIT*',
-    'ORIENTAT' 
-    'TDDALPHA', 'TDDBETA' 
-"""
 
 # file operations
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
@@ -369,6 +358,7 @@ def pc2cd(hdr, key=' '):
     Parameters
     ----------
     hdr: pyfits.Header
+    
     """
     for c in ['1_1', '1_2', '2_1', '2_2']:
         try:
@@ -426,17 +416,7 @@ def parpasscheck(fobj, ext, wcskey, wcsname, clobber=True):
                 print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
                 print 'or use "clobber=True" to overwrite the values.'
                 return False
-        """
-            else:
-                # reuse the value for WCSNAME
-                if wcsname == " ": 
-                    wcsname = f[1].header["WCSNAME"+wcskey]
-                else:
-                    wkey = wcskey
-                    wname = wcsname
-        wkey = wcskey 
-        wname = wcsname
-        """
+
 
     return True
 

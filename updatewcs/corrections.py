@@ -13,7 +13,7 @@ DGEOCorr = dgeo.DGEOCorr
 class TDDCorr(object):
     """
     Apply time dependent distortion correction to distortion coefficients and basic
-    WCS keywords. This applies only to ACS/WFC data.
+    WCS keywords. This correction **must** be done before any other WCS correction.
         
     Parameters
     ----------
@@ -21,17 +21,34 @@ class TDDCorr(object):
              An HSTWCS object to be modified
     ref_wcs: HSTWCS object
              A reference HSTWCS object
-            
+             
     Notes
     -----
-    Compute the ACS/WFC time dependent distortion terms
-    as described in [1]_.
+    Compute the ACS/WFC time dependent distortion terms as described 
+    in [1]_ and apply the correction to the WCS of the observation.
     
-    The zero-point terms account for the skew accumulated between
-    2002.0 and 2004.5, when the latest IDCTAB was delivered.
-    alpha = 0.095 + 0.090*(rday-dday)/2.5
-    beta = -0.029 - 0.030*(rday-dday)/2.5
+    The model coefficients are stored in the primary header of the IDCTAB.
+    :math:`D_{ref}` is the reference date. The computed corrections are saved 
+    in the science extension header as TDDALPHA and TDDBETA keywords.
     
+    .. math:: TDDALPHA = A_{0} + {A_{1}*(obsdate - D_{ref})}
+    
+    .. math:: TDDBETA =  B_{0} + B_{1}*(obsdate - D_{ref})
+    
+       
+    The time dependent distortion affects the IDCTAB coefficients, and the
+    relative location of the two chips. Because the linear order IDCTAB 
+    coefficients ar eused in the computatuion of the NPOL extensions,
+    the TDD correction affects all components of the distortion model.
+    
+    Application of TDD to the IDCTAB polynomial coefficients:
+    The TDD model is computed in Jay's frame, while the IDCTAB coefficients 
+    are in the HST V2/V3 frame. The coefficients are transformed to Jay's frame, 
+    TDD is applied and they are transformed back to the V2/V3 frame. This 
+    correction is performed in this class. 
+    
+    Application of TDD to the relative location of the two chips is 
+    done in `makewcs`.
     
     References
     ----------
@@ -162,10 +179,18 @@ class VACorr(object):
         
 class CompSIP(object):
     """
-    Compute SIP coefficients from IDC table coefficients.
+    Compute Simple Imaging Polynomial (SIP) coefficients as defined in [2]_
+    from IDC table coefficients.
     
-    Notes
-    -----
+    This class transforms the TDD corrected IDCTAB coefficients into SIP format.
+    It also applies a binning factor to the coefficients if the observation was 
+    binned.
+    
+    References
+    ----------
+    .. [2] David Shupe, et al, "The SIP Convention of representing Distortion
+       in FITS Image headers",  Astronomical Data Analysis Software And Systems, ASP
+       Conference Series, Vol. 347, 2005
     
     """
     

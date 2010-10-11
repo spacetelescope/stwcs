@@ -8,20 +8,18 @@ from pytools import fileutil
 
 class MakeWCS(object):
     """
-    Purpose
-    =======
     Recompute basic WCS keywords based on PA_V3 and distortion model.
     
-    Algorithm
-    =========
-    - update reference chip wcs
-        
-        -- CRVAL: reference chip model zero point (XREF/YREF) on the sky
+    Notes
+    -----
+    - Compute the reference chip WCS:
+    
+        -- CRVAL: transform the model XREF/YREF to the sky
         -- PA_V3 is calculated at the target position and adjusted 
            for each chip orientation
         -- CD: PA_V3 and the model scale are used to cnstruct a CD matrix
         
-    - update extension wcs
+    - Compute the second chip WCS:
 
         -- CRVAL: - the distance between the zero points of the two 
                   chip models on the sky
@@ -29,6 +27,8 @@ class MakeWCS(object):
             of this distance and transfered on the sky. The difference 
             between CRVAL and these vectors is the new CD matrix for each chip.
         -- CRPIX: chip's model zero point in pixel space (XREF/YREF)
+    
+    - Time dependent distortion correction is applied to both chips' V2/V3 values.
     
     """
     tdd_xyref = {1: [2048, 3072], 2:[2048, 1024]}
@@ -213,11 +213,11 @@ class MakeWCS(object):
 
 def troll(roll, dec, v2, v3):
     """ Computes the roll angle at the target position based on:
-            the roll angle at the V1 axis(roll),
-            the dec of the target(dec), and
-            the V2/V3 position of the aperture (v2,v3) in arcseconds.
+        the roll angle at the V1 axis(roll),
+        the dec of the target(dec), and
+        the V2/V3 position of the aperture (v2,v3) in arcseconds.
 
-        Based on the algorithm provided by Colin Cox that is used in
+        Based on algorithm provided by Colin Cox and used in
         Generic Conversion at STScI.
     """
     # Convert all angles to radians

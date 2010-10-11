@@ -5,6 +5,32 @@ from pytools import fileutil
 import utils
 
 class DET2IMCorr(object):
+    """
+    Stores a small correction to the detector coordinates as a d2imarr 
+    extension in the science file.
+    
+    Notes
+    -----
+    For the case of ACS/WFC every 68th column is wider than the rest.
+    To compensate for this a small correction needs to be applied to the 
+    detector coordinates. We call this a detector to image transformation. 
+    The so obtained image coordinates are the input to all other distortion 
+    corrections. The correction is originally stored in an external 
+    reference file pointed to by 'D2IMFILE' keyword in the primary header. 
+    This class attaches the correction array as an extension to the science 
+    file with extname = `d2imarr`. 
+    
+    Other keywords used in this correction are:
+
+    `AXISCORR`: integer (1 or 2) - axis to which the detector to image 
+                correction is applied
+                
+    `D2IMEXT`:  string = name of reference file which was used to create
+                the lookup table extension
+                
+    `D2IMERR`:  float, optional - maximum value of the correction
+    
+    """
     def updateWCS(cls, fobj):
         """
         Parameters

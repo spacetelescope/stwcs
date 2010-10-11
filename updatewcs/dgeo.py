@@ -8,19 +8,21 @@ import numpy as np
 class DGEOCorr(object):
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
-    It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword in the primary header.
+    It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword 
+    in the primary header.
     
     Notes
     -----
-    - Using extensions in the reference file create a WCSDVARR extension 
-      and add it to the file object.
-    - Add record-valued keywords which describe the lookup tables to the 
-      science extension header
-    - Add a keyword 'NPOLEXT' to the science extension header, whose
-      value is the reference file used to create the WCSDVARR extension
+    - Using extensions in the reference file create a WCSDVARR extensions 
+      and add them to the science file.
+    - Add record-valued keywords to the science extension header to describe 
+      the lookup tables.
+    - Add a keyword 'NPOLEXT' to the science extension header to store
+      the name of the reference file used to create the WCSDVARR extensions.
     
-    If WCSDVARR extensions exist, subsequent updates will overwrite them. 
-    If not, they will be added to the file object.
+    If WCSDVARR extensions exist and `NPOLFILE` is different from `NPOLEXT`, 
+    a subsequent update will overwrite the existing extensions. 
+    If WCSDVARR extensions were not found in the science file, they will be added.
     
     It is assumed that the NPL reference files were created to work with IDC tables
     but will be applied with SIP coefficients. A transformation is applied to correct 
@@ -30,8 +32,9 @@ class DGEOCorr(object):
     
     def updateWCS(cls, fobj):
         """
-        :Parameters:
-        `fobj`: pyfits object
+        Parameters
+        ----------
+        fobj: pyfits object
                 Science file, for which a distortion correction in a NPOLFILE is available
                 
         """
