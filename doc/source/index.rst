@@ -22,14 +22,13 @@ Contents:
    wcsutil
    updatewcs
    
-Headerlet Definition and Use
-============================
+Headerlet Definition TSR
+========================
 
 .. toctree::
    :maxdepth: 2
    
-   headerlet_def
- 
+   hdrlet_tsr 
 
 Indices and tables
 ==================

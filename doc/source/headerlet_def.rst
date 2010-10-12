@@ -1,11 +1,23 @@
 ===================================================================
 Definition of a Headerlet and It's Role in Updating WCS Information
 ===================================================================
-:Authors: Warren Hack, Nadezhda Dencheva
 
-Abstract
-========
-The 'headerlet' serves as a mechanism for encapsulating WCS information which can be used to update the WCS solution of an image. This object needs to be as compact as possible while providing an unambigious and self-consistent WCS solution for an image while requiring a minimum level of software necessary to apply the headerlet to an image.  These basic requirements come from the desire to create a mechanism for passing improved astrometric solutions for HST data and provide those solutions in a manner that would not require getting entirely new images from an archive when only the WCS information has been updated. This report describes the format and contents of a headerlet along with the procedures which would be used to update images with the updated WCS information from the headerlet.   
+.. abstract::
+   :author: Warren Hack, Nadezhda Dencheva
+   :date: 12 Oct 2010
+
+   The 'headerlet' serves as a mechanism for encapsulating WCS information
+   which can be used to update the WCS solution of an image. This object
+   needs to be as compact as possible while providing an unambigious and
+   self-consistent WCS solution for an image while requiring a minimum
+   level of software necessary to apply the headerlet to an image.
+   These basic requirements come from the desire to create a mechanism
+   for passing improved astrometric solutions for HST data and provide
+   those solutions in a manner that would not require getting entirely
+   new images from an archive when only the WCS information has been
+   updated. This report describes the format and contents of a headerlet
+   along with the procedures which would be used to update images with
+   the updated WCS information from the headerlet.
 
 Introduction
 ============
@@ -33,7 +45,7 @@ The WCS information in the FLT images has been updated to include the full disto
     column-correction for that chip from the D2IMFILE.
  
 
-Each science header will have its own set of these keywords and extensions that will be kept together as part of the headerlet definition.  This avoids any ambiguity as to what solution was used for any given WCS. A summary of all the WCS solutions for all the chips can be written out to the WCSCORR table.
+Each science header will have its own set of these keywords and extensions that will be kept together as part of the headerlet definition.  This avoids any ambiguity as to what solution was used for any given WCS. A summary of all the WCS solutions for all the chips can be written out to the WCSCORR table, a `binary FITS table extension <http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:WCSTableDefinition>`__ described online.
 
 An ACS/WFC exposure would end up with the following set of extensions::
 
@@ -53,7 +65,7 @@ An ACS/WFC exposure would end up with the following set of extensions::
     11      IMAGE       WCSDVARR              4     64x32        -32                
     12      BINTABLE    WCSCORR                     18Fx10R
 
-There may be a lot of extensions appended to this FITS file, but the sum total of all these new extensions comes to approximately 100kB for ACS/WFC images, making them a fairly space efficient means of managing all the distortion and WCS information. 
+There may be a lot of extensions appended to this FITS file, but the sum total of all these new extensions comes to approximately 100kB for ACS/WFC images (our sample only requires 86400 bytes), making them a space efficient means of managing all the distortion and WCS information. 
 
 Headerlet Definition
 ====================
@@ -105,7 +117,7 @@ This file now fully describes the WCS solution for this image, complete with all
 The primary header must have 4 required keywords:
 
 `HDRNAME`  - a unique name for the headerlet
-`DISTIM`   - target image filename (the original archive filename)
+`DESTIM`   - target image filename (the original archive filename)
 `STWCSVER` - version of STWCS used to create the headerlet
 `PYWCSVER` - version of PyWCS used to create the headerlet
 
@@ -129,18 +141,27 @@ Updating an image retrieved from the HST Archive with a `headerlet` only require
     #. Update the extver IDs for the NPOLFILE and D2IMFILE keywords in the headerlet SIPWCS extensions to point to the actual extver values for the new extensions
     #. Overwrite the SCI header keywords for each chip with the same keywords from the SIPWCS extension that corresponds to the same chip from the newly appended `headerlet`
     #. Add a keyword `SIPVER` to each science header with a value of the appropriate SIPWCS' `EXTVER` keyword.
-    #. Update the WCSCORR table with the linear WCS keyword values and name of the SIP solution from each SIPWCS extension from the `headerlet`
+    #. Update the WCSCORR table with the linear WCS keyword values and name of the SIP solution (based on the name of the reference files) from each SIPWCS extension from the `headerlet`, along with the keyword values from the PRIMARY header of the `headerlet`
 
 This process assumes that when an image gets updated with a `headerlet`, the new solution from the `headerlet` should become the prime WCS.  Further implementations of the software to work with `headerlets` can expand on this functionality if necessary.  Initially, the `headerlet` simply needs to be used to update the image's FITS file so that the WCS information can be used at all.
 
 Software Requirements
 =====================
+Implementing support for the `headerlet` and its use in updating HST FITS files will require a few new software tasks; namely,
 
-- A task which given a science file creates a headerlet and writes it to a file.
+- A task which given a science file creates a `headerlet` and writes it to a file.
 
-- A task which given a science file and a headerlet applies the headerlet to the science file
+- A task which given a science file and a `headerlet` applies the `headerlet` to the science file
   
-  #. Default behaviour will be to append the headerlet to the file and copy the WCS recorded in the headerlet as a primary WCS.
+  #. Default behaviour will be to append the `headerlet` to the file and copy the WCS recorded in the `headerlet` as a primary WCS.
   #. It will be possible (optionally) to copy the updated science file to a new file and keep the original science file locally unchanged.
+
+The operation of updating a science file with a `headerlet` only requires the use of basic FITS operations:
+
+- Appending the extensions in the `headerlet` to the science file
+- Updating keywords in the science extensions of the file with values from the SIPWCS extensions from the `headerlet`
+
+These operations do not require any computations and can be done using any FITS library. This allows a `headerlet` to be usable by the community even if they do not use the software we develop based on PyFITS and STWCS, both for creating and applying these files.
+
 
 .. _FITSConventions: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:FITSDistortionConventions
