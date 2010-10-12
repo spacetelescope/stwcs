@@ -1,0 +1,191 @@
+===================
+NPOL Reference File
+===================
+
+.. abstract::
+   :author: Nadezhda Dencheva, Warren Hack
+   :date: 12 Oct 2010
+   
+   The HST pipeline uses two types of reference files to correct for distortion – 
+   the IDCTAB files contain the coefficients for a polynomial correction and the 
+   DGEO files are images with the residual distortion. A new format for the residual 
+   distortion, called NPOL files,  is presented in this document. The conversion 
+   from DGEO files to NPOL files is described and an example of the format is given 
+   using ACS/WFC F606W filter. Tests of the conversion procedure show that the 
+   differences between the DGEO files and NPOL files are of the order of :math: 10^{-4} pixels.
+
+
+Introduction
+============
+
+HST images can exhibit significant distortion, one of the severe cases being 
+ACS/WFC where  it can reach 50 pixels. Anderson [1]_ describes the total distortion 
+solution for ACS/WFC as consisting of a polynomial  part which provides position 
+accuracy of 0.1-0.2 pixels, a filter dependent fine scale solution which brings the 
+accuracy of the positions to 0.01 pixels and a detector defect correction with a 
+maximum amplitude of 0.008 pixels. Currently these distortion solutions are implemented 
+in the ACS pipeline as reference files. The polynomial distortion is in the IDCTAB files 
+and the combined solution for the detector defect and the filter dependent fine scale 
+residuals is in the DGEO files. This document describes how the DGEO files are converted 
+to the new format, called NPOL files, and how they will be distributed and used. It also 
+describes the testing procedure of the NPOL files and provides an example of converting 
+and testing an ACS/WFC F606W DGEO file.
+
+New representation - look-up tables
+===================================
+
+The fine scale distortions represented in the DGEO images can be stored in smaller look-up 
+tables without significant loss of information. These look-up tables follow the conventions 
+in WCS Paper IV  [2]_. Record-valued keywords are used to map an image in the science extension 
+to a distortion array in the WCSDVAR extension. This new type of FITS keywords has been 
+implemented in PyFITS and is fully described in [2]_. Specifically, `DPj.EXTVER` in the science 
+extension header  maps the science image to the correct 'WCSDVAR' extension. The dimensionality 
+of the distortion array is defined by `DPj.NAXES`. Keywords `DPj.AXIS.j` in the 'SCI' extension 
+header are used for mapping image array axis to distortion array axis. In the keywords above j 
+is an integer and denotes the axis number. For example, if distortion array axis 1 corresponds 
+to image array axis 1 of  a 'SCI' extension, then `DP.1.AXIS.1` = 1.                           
+A full example of the keywords added to a 'SCI' extension header is presented in the last section.
+
+The look-up tables are saved as separate FITS image extensions in the science files with EXTNAME 
+set to 'WCSDVARR'. EXTVER is used when more than one look-up table is present in a single science 
+file. Software which performs coordinate transformation will use bilinear interpolation to get 
+the value of the distortion at a certain location in the image array. To fully map the image 
+array to the distortion array the standard WCS keywords `CRPIXj`, `CRVALj` and `CDELTj` are used. The 
+mapping follows the transformation 
+
+..math:: p_j = s_j(p_j-r_j) + w_j ,
+
+where r_j is the `CRPIXj` value in the distortion array which corresponds to the w_j value in the 
+image array, recorded as `CRVALj` in the WCSDVARR header. Element in the distortion array are 
+spaced by s_j pixels in the image array, where s_j is the `CDELTj` value in the distortion array header. 
+In general s_j can have a non-integer value but cannot be zero. However, if the distortion array 
+was obtained as a subimage of a larger array having a non-integer step size can produce undesirable 
+results during interpolation. An example header for ACS/WFC F606W WCSDVARR extension header is 
+given in the last section.
+
+A note about NPOL files
+=======================
+
+It is essential that the look-up tables meet  two restrictions:
+
+* Every point in the corrected image is mapped to by not more than one point in 
+  the uncorrected image.
+* Every point in the corrected image is mapped to by at least one point on the 
+  corrected image. 
+  
+  This one-to-one (non-extrapolation) requirement can have implications on the 
+  geometry of the 	distortion array. If the distortion array is obtained as a 
+  subimage or subsample of a larger array, 	it is important that the edges of the 
+  distortion array coincide with the edges of the image.
+  
+Creating an NPOL file from a DGEO file
+======================================
+
+The DGEO files are FITS files with four image extensions with full chip size 4096x2048 
+pixels representing the residuals of the distortion in X and Y for the two ACS/WFC 
+chips.  As described in [1]_ the original tables, from which the full size DGEO images
+were created, were sampled every 64 pixels to a size of 65x33 pixels. Because of the
+coordinate transformations and many steps involved in creating the DGEO files it was
+not possible to start with the original tables. Our purpose was to sample the full
+size DGEO files in such a way that after interpolating them again the newly expanded
+images would match the original images as close as possible. This is why we chose a 
+step size of 64 pixels for the sampling. Given the non-extrapolation restriction and 
+the requirement to have an integer step size we needed to sample an image of a size 
+4097x2049. We copied the last row/column of the DGEO images to the extra row/column 
+before sampling. This padding ensures that after bilinear interpolation there won't
+be any edge effects due to extrapolation. A Python script (makesmall.py) to sample 
+the large DGEO files and write out the small NPOL files was written and made available
+in the REFTOOLS package in IRAFDEV.  The script also writes the sampling step size 
+in each direction to the headers of the NPOL file extensions. The step size is later
+stored in the header of each WCSDVAR extension as the value of CDELT keywords to be 
+used by the software which does the coordinate transformation and interpolation. 
+Since the original DGEO files include the combined fine scale distortion and the 
+detector defect, it is imperative that the detector defect is removed from the DGEO
+files before they are sampled. (The detector defect correction is stored also as a 
+WCSDVARR extension and applied separately.)
+
+Using NPOL files
+================
+
+STWCS.UPDATEWCS is used to incorporate all available distortion information for a 
+given observation in the science file. The name of the NPOL file which stores the 
+residual distortion for a specific science observation is written in the 'NPOLFILE' 
+keyword in the primary header.  UPDATEWCS copies the NPOL file extensions as WCSDVARR
+extensions in the science file. The header of each WCSDVARR extension is also created
+at this time following the rules in section 2 and the necessary record-valued keywords 
+are inserted in the science extension header so that the axes in the science image are 
+mapped to the correct WCSDVARR extension.
+
+A note about the fine scale distortion:
+The original fine scale distortion was meant to be applied after the polynomial
+IDCTAB distortion. In the new coordinate transformation pipeline the polynomial 
+distortion follows the SIP convention and the first order coefficients are 
+incorporated in the CD matrix which is used last in the pipeline to transform 
+from distortion corrected coordinates to sky coordinates. As a consequence residual
+distortion arrays must be corrected with the inverse of the CD matrix since they will
+be applied before the first order coefficients. UPDATEWCS performs this correction 
+for each extension of the NPOL file.  However, when we test the NPOL files this 
+correction is omitted because the test does not require performing the entire coordinate
+transformation pipeline from detector to sky coordinates.
+
+STWCS.WCSUTIL and its main class HSTWCS, as well as its base class PyWCS.WCS, can
+read and interpret FITS files with WCSDVARR extensions. The method which performs 
+the bilinear interpolation and corrects the coordinates is `p4_pix2foc`. All coordinate
+transformations methods distinguish between 0-based and 1-based input coordinates 
+through the 'origin' parameter. 
+
+Testing NPOL files
+==================
+
+A Python script (REFTOOLS.test_small_dgeo.py) was written and made available for testing
+of the NPOL files. The following procedure is implemented in the test script:
+
+* A science observation is run through `STWCS.UPDATEWCS` to update the headers and create 
+  the WCSDVAR extensions.
+* An HSTWCS object is created from a 'SCI' extension
+* A regular grid with the size of the image is created and is passed as input to the
+  `HSTWCS.p4_pix2foc`  method which applies bilinear interpolation to the WCSDVARR extension 
+  to the input grid. 
+* The so expanded NPOL file is compared to the original full size DGEO file and the 
+  difference images are (optionally) written to a file.
+  
+
+Results
+=======
+
+Following this procedure an ACS/WFC F606W observation was run through STWCS.UPDATEWCS 
+to populate the headers and write the WCSDVAR extensions. Fig 1-4 show the difference 
+between the DGEO files and the expanded NPOL files for the two ACS/WFC chips in X and Y.
+
+.. figure:: /images/x1.png
+   :alt:  NPOLX-DGEOX for 'SCI,1' : mean = -3.2421e-05 +/- 8.69522e-05
+
+   
+.. figure:: /images/y1.png
+   :alt:   NPOLY-DGEOY for 'SCI,1' : mean = 6.1437e-07 +/- 1.2e-04
+   
+
+.. image:: /images/x2.png
+   :alt:  NPOLX-DGEOX for 'SCI,2' : mean = -1.3293e-06 +/- 9.38e-05
+  
+.. image:: /images/y2.png
+   :alt:   NPOLY-DGEOY for 'SCI,2' : mean = -1.53e-05 +/- 1.5e-04
+
+   
+A random line from the difference image in X and Y is shown in the next two plots.
+
+
+.. image:: /images/diffx1_256.png
+   :alt:  A line in the difference X image for 'SCI,1' extension
+   
+.. image:: /images/diffy1_256.png
+   :alt:  A line in the difference Y image for 'SCI,1' extension
+   
+
+References
+==========
+
+.. [1] Anderson, J. 2002, in the Proceedings of the 2002 HST Calibration Workshop, S. Arribas,
+       A. Koekemoer, and B. Whitmore, eds
+       
+.. [2] Calabretta, M. et al. 2004, draft WCS paper IV

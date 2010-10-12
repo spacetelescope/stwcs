@@ -174,9 +174,11 @@ htmlhelp_basename = 'STWCSdoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'STWCS.tex', u'STWCS Documentation',
-   u'Nadia Dencheva, Warren Hack', 'manual'),
+   u'Nadezhda Dencheva, Warren Hack', 'manual'),
   ('hdrlet_tsr', 'headerlet_tsr.tex', u'Headerlet Definition',
-  u'Warren Hack, Nadia Dencheva', 'tsr'),
+  u'Warren Hack, Nadezhda Dencheva', 'tsr'),
+    ('npol_tsr', 'npol_tsr.tex', u'NPOL Reference File Definition',
+   u'Nadezhda Dencheva, Warren Hack', 'tsr'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
