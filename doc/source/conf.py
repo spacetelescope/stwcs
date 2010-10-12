@@ -176,7 +176,7 @@ latex_documents = [
   ('index', 'STWCS.tex', u'STWCS Documentation',
    u'Nadia Dencheva, Warren Hack', 'manual'),
   ('hdrlet_tsr', 'headerlet_tsr.tex', u'Headerlet Definition',
-  u'Nadia Dencheva, Warren Hack', 'tsr'),
+  u'Warren Hack, Nadia Dencheva', 'tsr'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
