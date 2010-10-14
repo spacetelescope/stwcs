@@ -48,7 +48,7 @@ to image array axis 1 of  a 'SCI' extension, then `DP.1.AXIS.1` = 1.
 A full example of the keywords added to a 'SCI' extension header is presented in the last section.
 
 The look-up tables are saved as separate FITS image extensions in the science files with EXTNAME 
-set to 'WCSDVARR'. EXTVER is used when more than one look-up table is present in a single science 
+set to `WCSDVARR`. `EXTVER` is used when more than one look-up table is present in a single science 
 file. Software which performs coordinate transformation will use bilinear interpolation to get 
 the value of the distortion at a certain location in the image array. To fully map the image 
 array to the distortion array the standard WCS keywords `CRPIXj`, `CRVALj` and `CDELTj` are used. The 
@@ -60,16 +60,16 @@ mapping follows the transformation
 
 where :math:`r_{j}` is the `CRPIXj` value in the distortion array which
 corresponds to the :math:`w_j` value in the image array, recorded as
-`CRVALj` in the WCSDVARR header. Element in the distortion array are spaced
+`CRVALj` in the `WCSDVARR` header. Elements in the distortion array are spaced
 by :math:`s_j` pixels in the image array, where :math:`s_j` is the `CDELTj`
 value in the distortion array header.  In general :math:`s_j` can have
 a non-integer value but cannot be zero. However, if the distortion array
 was obtained as a subimage of a larger array having a non-integer step size
 can produce undesirable results during interpolation. An example header for
-ACS/WFC F606W WCSDVARR extension header is given in the last section.
+ACS/WFC F606W `WCSDVARR` extension header is given in the last section.
 
-A note about NPOL files
------------------------
+A note about look-up  tables
+----------------------------
 
 It is essential that the look-up tables meet  two restrictions:
 
@@ -100,31 +100,31 @@ the requirement to have an integer step size we needed to sample an image of a s
 before sampling. This padding ensures that after bilinear interpolation there
 all edge effects due to extrapolation will be minimized. 
 
-A Python script, ``makesmall.py``, samples the large DGEO files and writes out the 
-small NPOL files. This code has been included in the REFTOOLS package in IRAFDEV.  
+A Python script, `makesmall.py`, samples the large DGEO files and writes out the 
+small NPOL files. This code has been included in the `REFTOOLS` package in IRAFDEV.  
 The script also writes the sampling step size 
 in each direction to the headers of the NPOL file extensions. The step size is later
-stored in the header of each WCSDVAR extension as the value of CDELT keywords to be 
+stored in the header of each `WCSDVAR` extension as the value of `CDELT` keywords to be 
 used by the software which does the coordinate transformation and interpolation. 
 Since the original DGEO files include the combined fine scale distortion and the 
 detector defect, it is imperative that the detector defect is removed from the DGEO
 files before they are sampled. (The detector defect correction is stored also as a 
-WCSDVARR extension and applied separately.)
+`WCSDVARR` extension and applied separately.)
 
 Using NPOL files
 ================
 
-STWCS.UPDATEWCS is used to incorporate all available distortion information for a 
+`STWCS.UPDATEWCS` is used to incorporate all available distortion information for a 
 given observation in the science file. The name of the NPOL file which stores the 
-residual distortion for a specific science observation is written in the 'NPOLFILE' 
-keyword in the primary header.  UPDATEWCS copies the NPOL file extensions as WCSDVARR
-extensions in the science file. The header of each WCSDVARR extension is also created
+residual distortion for a specific science observation is written in the `NPOLFILE`
+keyword in the primary header.  `UPDATEWCS` copies the NPOL file extensions as `WCSDVARR`
+extensions in the science file. The header of each `WCSDVARR` extension is also created
 at this time following the rules in section 2 and the necessary record-valued keywords 
 are inserted in the science extension header so that the axes in the science image are 
-mapped to the correct WCSDVARR extension.
+mapped to the correct `WCSDVARR` extension.
 
-STWCS.WCSUTIL and its main class HSTWCS, as well as its base class PyWCS.WCS, can
-read and interpret FITS files with WCSDVARR extensions. The method which performs 
+`STWCS.WCSUTIL` and its main class `HSTWCS`, as well as its base class `PyWCS.WCS`, can
+read and interpret FITS files with `WCSDVARR` extensions. The method which performs 
 the bilinear interpolation and corrects the coordinates is `p4_pix2foc()`. All coordinate
 transformation methods distinguish between 0-based and 1-based input coordinates 
 through the `origin` parameter. 
@@ -137,7 +137,7 @@ distortion follows the SIP convention and the first order coefficients are
 incorporated in the CD matrix which is used last in the pipeline to transform 
 from distortion corrected coordinates to sky coordinates. As a consequence residual
 distortion arrays must be corrected with the inverse of the CD matrix since they will
-be applied before the first order coefficients. UPDATEWCS performs this correction 
+be applied before the first order coefficients. `UPDATEWCS` performs this correction 
 for each extension of the NPOL file.  However, when we test the NPOL files this 
 correction is omitted because the test does not require performing the entire coordinate
 transformation pipeline from detector to sky coordinates.
@@ -146,18 +146,18 @@ transformation pipeline from detector to sky coordinates.
 Testing NPOL files
 ==================
 
-A Python script, ``REFTOOLS.test_small_dgeo.py``, was written and made available for testing
+A Python script, `REFTOOLS.test_small_dgeo.py`, was written and made available for testing
 of the NPOL files. The following procedure is implemented in the test script:
 
 * A science observation is run through `STWCS.UPDATEWCS` to update the headers and create 
-  the WCSDVAR extensions.
-* An HSTWCS object is created from a 'SCI' extension
+  the `WCSDVAR` extensions.
+* An `HSTWCS` object is created from a 'SCI' extension
 * A regular grid with the size of the image is created and is passed as input to 
 
     - the `HSTWCS.det2im()` method to account for the column correction reported in 
       the D2IM reference file, then
      
-    - to the ``HSTWCS.p4_pix2foc()`` method 
+    - to the `HSTWCS.p4_pix2foc()` method 
       which applies bilinear interpolation to the WCSDVARR extension to the input grid. 
 
 * The expanded NPOL file is compared to the original full size DGEO file and the 
@@ -178,11 +178,11 @@ The best way to verify that the transformation from sub-sampled NPOLFILE into
 the full-frame represented by the full-size DGEOFILE was to use an artificial
 DGEOFILE. This artificial DGEOFILE consisted of a strictly bilinear plane in
 the DX and DY arrays. This should be something that the bilinear interpolation
-routines in STWCS/PyWCS can exactly match when expanding the NPOLFILE, which
+routines in `STWCS/PyWCS` can exactly match when expanding the NPOLFILE, which
 was created by sub-sampling the full-size DGEOFILE. This also allows us to
 verify that we know how to specify the header for the NPOLFILE extensions
 as written out to the FLT images to insure that the proper expansion gets
-performed by STWCS/PyWCS.
+performed by `STWCS/PyWCS`.
 
 The residuals from this comparison came out to be within single-point floating
 point precision with the exception of the edge effects in the last few rows
@@ -198,17 +198,17 @@ and columns of the expanded array as seen here:
    :width: 90%
    :alt: artificial NPOL Dy Residual image: mean = -1.87765e-08 +/- 3.66462e-07
   
-This test confirmed that the interpolation routine implemented within STWCS will 
+This test confirmed that the interpolation routine implemented within `PYWCS` will 
 correctly expand the NPOL file points to exactly recreate the DGEO file correction
 for any given pixel position, except at the far ends of the columns of rows.  The 
 variations at the ends of the rows and tops of the columns comes from edge effects
 of the interpolation as it interpolates over 1 less pixel at the edges, however, 
 even these variations are well within numerical accuracy for the overall correction. 
 
-The new NPOL file reference files were then compared to actual DGEO files
+The new NPOL reference files were then compared to actual DGEO files
 from CDBS for an ACS/WFC F606W image using this testing code. The test
-image was run through STWCS.UPDATEWCS to populate the headers and write the
-WCSDVAR extensions. Fig 3-6 show the difference between the DGEO files and
+image was run through `STWCS.UPDATEWCS` to populate the headers and write the
+`WCSDVAR` extensions. Fig 3-6 show the difference between the DGEO files and
 the expanded NPOL files for the two ACS/WFC chips in X and Y.
 
 .. figure:: /images/x1.png
