@@ -5,7 +5,7 @@ import sys
 pkg =  ["stwcs", 'stwcs.updatewcs', 'stwcs.wcsutil', 'stwcs.distortion']
 
 setupargs = {
-    'version' :         "0.1",
+    'version' :         "0.8",
     'description' :		"Recomputes the WCS of an HST observation and puts all istortion corrections in the headers.",
     'package_dir': {'stwcs':'lib', 'stwcs.updatewcs': 'updatewcs',
                     'stwcs.wcsutil': 'wcsutil', 'stwcs.distortion': 'distortion'},

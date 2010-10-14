@@ -23,6 +23,8 @@ __docformat__ = 'restructuredtext'
 DEGTORAD = fileutil.DEGTORAD
 RADTODEG = fileutil.RADTODEG
 
+__version__ = '0.8'
+
 try:
     import svn_version
     __svn_version__ = svn_version.__svn_version__

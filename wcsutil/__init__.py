@@ -7,11 +7,7 @@ from hstwcs import HSTWCS
 
 
 __docformat__ = 'restructuredtext'
-__version__ = '0.8'
 
-"""
-Example go here
-"""
 
 def help():
     print 'How to create an HSTWCS object:\n\n'
