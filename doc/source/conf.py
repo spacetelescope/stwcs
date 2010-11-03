@@ -179,6 +179,8 @@ latex_documents = [
   u'Warren Hack, Nadezhda Dencheva', 'tsr'),
     ('npol_tsr', 'npol_tsr.tex', u'NPOL Reference File Definition',
    u'Nadezhda Dencheva, Warren Hack', 'tsr'),
+    ('fits_conventions_tsr', 'fits_conventions_tsr.tex', u'FITS Conventions',
+   u'Warren Hack, Andy Fruchter, Perry Greenfield, Nadezhda Dencheva', 'tsr'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

@@ -38,6 +38,14 @@ NPOL Reference File TSR
    
    npol_tsr 
    
+FITS Conventions TSR
+=======================
+
+.. toctree::
+   :maxdepth: 2
+   
+   fits_conventions_tsr 
+   
 Indices and tables
 ==================
 
