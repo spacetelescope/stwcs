@@ -1,6 +1,6 @@
-===================================================================
-Definition of a Headerlet and It's Role in Updating WCS Information
-===================================================================
+===========================================================================
+Definition of a Headerlet and It's Role in Updating WCS Information - DRAFT
+===========================================================================
 
 .. abstract::
    :author: Warren Hack, Nadezhda Dencheva

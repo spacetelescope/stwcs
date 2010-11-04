@@ -1,15 +1,16 @@
-=======================================
-Distortion Correction in HST FITS Files
-=======================================
+===============================================
+Distortion Correction in HST FITS Files - DRAFT
+===============================================
 
 .. abstract::
    :author: Warren Hack, Andy Fruchter, Perry Greenfield, Nadezhda Dencheva
    :date: 12 Oct 2010
    
-   We present changes to the HST pipeline, which aim at increasing the astrometric 
-   accuracy of archived HST images through successive WCS corrections. A convention 
-   for storing distortion information in HST images was developed and implemented in 
-   two software packages - PyWCS and STWCS.
+   A convention for storing distortion information in HST images was developed 
+   and implemented in two software packages - PyWCS and STWCS. These changes 
+   allow the development of a WCS based version of Multidrizzle and image 
+   alignment software. The distribution of WCS solutions is discussed.
+ 
    
 Introduction
 ============
