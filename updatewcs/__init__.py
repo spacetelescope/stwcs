@@ -203,42 +203,66 @@ def copyWCS(w, hdr, wkey, wname):
     norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
     okey = 'ORIENT%s' % wkey
     hdr.update(key=okey, value=norient) 
-    
+
 def getNrefchip(fobj):
     """
-    This handles the fact that WFPC2 subarray observations
-    may not include chip 3 which is the default reference chip for
-    full observations. Also for subarrays chip 3  may not be the third
-    extension in a MEF file. 
+    This function determines which fits extension has the reference
+    chip based on the instrument/detector info. 
+    
+    Provides mappings between sci extensions, chips and fits extensions.
+    In the case of a subarray when the reference chip is missing, the
+    first sci extension is considered as a reference chip.
     """
-    Nrefext = 1
+    nrefext = 1
     instrument = fobj[0].header['INSTRUME']
     if instrument == 'WFPC2':
-        detectors = [img.header['DETECTOR'] for img in fobj[1:]]
-
+        chipkw = 'DETECTOR'
+    else:
+        chipkw = 'CCDCHIP'
+    extvers = [("SCI",img.header['EXTVER']) for img in 
+               fobj[1:] if img.header['EXTNAME'].lower()=='sci']
+    detectors = [img.header[chipkw] for img in fobj[1:] if 
+                 img.header['EXTNAME'].lower()=='sci']
+    fitsext = [i for i in range(len(fobj))[1:] if 
+               fobj[i].header['EXTNAME'].lower()=='sci']
+    det2ext=dict(map(None, detectors,extvers))
+    ext2det=dict(map(None, extvers, detectors))
+    ext2fitsext=dict(map(None, extvers, fitsext))
+    
+    if instrument == 'WFPC2':   
         if 3 not in detectors:
-            Nrefchip=detectors[0]
-            Nrefext = 1
+            nrefchip = ext2det.pop(extvers[0])
+            nrefext = ext2fitsext.pop(extvers[0])
         else:
-            Nrefchip = 3
-            Nrefext = detectors.index(3) + 1
+            nrefchip = 3
+            extname = det2ext.pop(nrefchip)
+            nrefext = ext2fitsext.pop(extname)
     elif instrument == 'ACS':
         detector = fobj[0].header['DETECTOR']
         if detector == 'WFC':
-            Nrefchip =2
+            nrefchip = 2
+            extname = det2ext.pop(2)
+            nrefext = ext2fitsext.pop(extname)
         else:
-            Nrefchip = 1
+            nrefchip = 1
+            extname = det2ext.pop(1)
+            nrefext = ext2fitsext.pop(extname)
     elif instrument == 'NICMOS':
         Nrefchip = fobj[0].header['CAMERA']
     elif instrument == 'WFC3':
         detector = fobj[0].header['DETECTOR']
         if detector == 'UVIS':
-            Nrefchip =2
+            nrefchip = 2
+            extname = det2ext.pop(2)
+            nrefext = ext2fitsext.pop(extname)
         else:
-            Nrefchip = 1
+            nrefchip = 1
+            extname = det2ext.pop(1)
+            nrefext = ext2fitsext.pop(extname)
     else:
-        Nrefchip = 1
-    return Nrefchip, Nrefext
+        nrefchip = 1
+    print 'nrefchip, nrefext', nrefchip, nrefext
+    return nrefchip, nrefext
 
 def checkFiles(input):
     """
