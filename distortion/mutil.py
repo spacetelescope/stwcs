@@ -76,7 +76,11 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
             detector = 1
     # First, read in TDD coeffs if present
     phdr = ftab['PRIMARY'].header
-    skew_coeffs = read_tdd_coeffs(phdr)
+    instrument = phdr['INSTRUME']
+    if instrument == 'ACS' and detector == 'WFC':
+        skew_coeffs = read_tdd_coeffs(phdr)
+    else:
+        skew_coeffs = None
     
     # Set default filters for SBC
     if detector == 'SBC':
