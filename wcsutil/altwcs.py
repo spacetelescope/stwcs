@@ -5,7 +5,7 @@ import pywcs
 import numpy as np
 import pyfits
 
-
+altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT', 'PV', 'PS']
 # file operations
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
     """
@@ -71,7 +71,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
         if w.wcs.has_cd():
             pc2cd(hwcs)
         for k in hwcs.keys():
-            key = k+wkey
+            key = k[:7] + wkey
             f[e].header.update(key=key, value=hwcs[k])
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
         okey = 'ORIENT%s' % wkey

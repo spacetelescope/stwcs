@@ -198,7 +198,7 @@ def copyWCS(w, hdr, wkey, wname):
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
-        key = k+wkey
+        key = k[:7] + wkey
         hdr.update(key=key, value=hwcs[k])
     norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
     okey = 'ORIENT%s' % wkey
