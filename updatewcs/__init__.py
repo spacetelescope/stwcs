@@ -206,30 +206,35 @@ def copyWCS(w, hdr, wkey, wname):
 
 def getNrefchip(fobj):
     """
-    This function determines which fits extension has the reference
-    chip based on the instrument/detector info. 
+
+    Finds which FITS extension holds the reference chip.
     
-    Provides mappings between sci extensions, chips and fits extensions.
+    The reference chip has EXTNAME='SCI', can be in any extension and 
+    is instrument specific. This functions provides mappings between 
+    sci extensions, chips and fits extensions.
     In the case of a subarray when the reference chip is missing, the
-    first sci extension is considered as a reference chip.
+    first 'SCI' extension is the reference chip.
+    
+    Parameters
+    ----------
+    fobj: pyfits HDUList object
     """
     nrefext = 1
+    nrefchip = 1
     instrument = fobj[0].header['INSTRUME']
+    
     if instrument == 'WFPC2':
         chipkw = 'DETECTOR'
-    else:
-        chipkw = 'CCDCHIP'
-    extvers = [("SCI",img.header['EXTVER']) for img in 
-               fobj[1:] if img.header['EXTNAME'].lower()=='sci']
-    detectors = [img.header[chipkw] for img in fobj[1:] if 
-                 img.header['EXTNAME'].lower()=='sci']
-    fitsext = [i for i in range(len(fobj))[1:] if 
-               fobj[i].header['EXTNAME'].lower()=='sci']
-    det2ext=dict(map(None, detectors,extvers))
-    ext2det=dict(map(None, extvers, detectors))
-    ext2fitsext=dict(map(None, extvers, fitsext))
-    
-    if instrument == 'WFPC2':   
+        extvers = [("SCI",img.header['EXTVER']) for img in 
+                   fobj[1:] if img.header['EXTNAME'].lower()=='sci']
+        detectors = [img.header[chipkw] for img in fobj[1:] if 
+                     img.header['EXTNAME'].lower()=='sci']
+        fitsext = [i for i in range(len(fobj))[1:] if 
+                   fobj[i].header['EXTNAME'].lower()=='sci']
+        det2ext=dict(map(None, detectors,extvers))
+        ext2det=dict(map(None, extvers, detectors))
+        ext2fitsext=dict(map(None, extvers, fitsext))
+        
         if 3 not in detectors:
             nrefchip = ext2det.pop(extvers[0])
             nrefext = ext2fitsext.pop(extvers[0])
@@ -237,37 +242,38 @@ def getNrefchip(fobj):
             nrefchip = 3
             extname = det2ext.pop(nrefchip)
             nrefext = ext2fitsext.pop(extname)
-    elif instrument == 'ACS':
-        detector = fobj[0].header['DETECTOR']
-        if detector == 'WFC':
-            nrefchip = 2
-            extname = det2ext.pop(2)
-            nrefext = ext2fitsext.pop(extname)
+            
+    elif (instrument == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC') or \
+         (instrument == 'WFC3' and fobj[0].header['DETECTOR'] == 'UVIS'):
+        chipkw = 'CCDCHIP'
+        extvers = [("SCI",img.header['EXTVER']) for img in 
+                   fobj[1:] if img.header['EXTNAME'].lower()=='sci']
+        detectors = [img.header[chipkw] for img in fobj[1:] if 
+                     img.header['EXTNAME'].lower()=='sci']
+        fitsext = [i for i in range(len(fobj))[1:] if 
+                   fobj[i].header['EXTNAME'].lower()=='sci']
+        det2ext=dict(map(None, detectors,extvers))
+        ext2det=dict(map(None, extvers, detectors))
+        ext2fitsext=dict(map(None, extvers, fitsext))
+    
+        if 2 not in detectors:
+            nrefchip = ext2det.pop(extvers[0])
+            nrefext = ext2fitsext.pop(extvers[0])
         else:
-            nrefchip = 1
-            extname = det2ext.pop(1)
-            nrefext = ext2fitsext.pop(extname)
-    elif instrument == 'NICMOS':
-        Nrefchip = fobj[0].header['CAMERA']
-    elif instrument == 'WFC3':
-        detector = fobj[0].header['DETECTOR']
-        if detector == 'UVIS':
             nrefchip = 2
-            extname = det2ext.pop(2)
-            nrefext = ext2fitsext.pop(extname)
-        else:
-            nrefchip = 1
-            extname = det2ext.pop(1)
+            extname = det2ext.pop(nrefchip)
             nrefext = ext2fitsext.pop(extname)
     else:
-        nrefchip = 1
-    print 'nrefchip, nrefext', nrefchip, nrefext
+        for i in range(len(fobj)):
+            extname = fobj[i].header.get('EXTNAME', None)
+            if extname != None and extname.lower == 'sci':
+                nrefext = i
+                break
+            
     return nrefchip, nrefext
 
 def checkFiles(input):
     """
-    Purpose
-    =======
     Checks that input files are in the correct format.
     Converts geis and waiver fits files to multiextension fits.
     """
