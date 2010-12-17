@@ -313,3 +313,9 @@ class STISWCS(InstrWCS):
             print 'ERROR: Detector kw not found.\n'
             raise
         
+    def set_date_obs(self):
+        try:
+            self.date_obs = self.exthdr['DATE-OBS']
+        except (KeyError, TypeError):
+            self.date_obs = None
+    
