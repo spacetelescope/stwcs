@@ -280,6 +280,9 @@ def checkFiles(input):
     from pytools.check_files import geis2mef, waiver2mef, checkFiles
     removed_files = []
     newfiles = []
+    if not isinstance(input, list):
+        input=[input]
+
     for file in input:
         try:
                 imgfits,imgtype = fileutil.isFits(file)
