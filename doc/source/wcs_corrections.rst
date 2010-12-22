@@ -4,7 +4,7 @@
 WCS Corrections
 **************************************
 
-.. currentmodule:: stwcs.updatewcs.corrections
+.. py:currentmodule:: stwcs.updatewcs.corrections
 
 ---------------------------------------
 Time Dependent Distortion
@@ -28,7 +28,7 @@ Simple Imaging Polynomial Coefficients
 Non-Polynomial Distortion Correction
 -----------------------------------------
 
-.. module:: stwcs.updatewcs.corrections
+.. py:module:: stwcs.updatewcs.corrections
 
 .. autoclass:: stwcs.updatewcs.dgeo.DGEOCorr
 
@@ -36,6 +36,6 @@ Non-Polynomial Distortion Correction
 Detector to Image Correction
 -----------------------------------------
 
-.. module:: stwcs.updatewcs.det2im
+.. py:module:: stwcs.updatewcs.det2im
 
 .. autoclass:: stwcs.updatewcs.det2im.DET2IMCorr

@@ -64,5 +64,4 @@ where
    :maxdepth: 2
    
    updatewcs_ui
-   apply_corrections
    wcs_corrections
