@@ -10,12 +10,10 @@ from pytools import fileutil
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
     
-    delta_fdec = (fra_dec[:,1].max()-fra_dec[:,1].min())
-    crval2 = fra_dec[:,1].min()+ delta_fdec/2.
-    delta_fra = (fra_dec[:,0].max()-fra_dec[:,0].min())
-    min_ind = fra_dec[:,0].argmin()
-    crval1 = (fra_dec[min_ind,0]+ (delta_fra/2.)*np.cos((fra_dec[min_ind,1]-crval2)*np.pi/180))
-    
+    # This new algorithm may not be strictly necessary, but it may be more 
+    # robust in handling regions near the poles or at 0h RA.
+    crval1,crval2 = computeFootprintCenter(fra_dec) 
+
     crval = np.array([crval1,crval2], dtype=np.float64)
     if outwcs is None:
         if ref_wcs == None:
@@ -40,12 +38,32 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
-    newcrpix = np.array([crpix[0]+np.ceil(tanpix[:,0].min()), crpix[1]+
-                         np.ceil(tanpix[:,1].min())])
+    # shift crpix to take into account (floating-point value of) position of
+    # corner pixel relative to output frame size: no rounding necessary... 
+    newcrpix = np.array([crpix[0]-tanpix[:,0].min(), crpix[1]-
+                         tanpix[:,1].min()])
     newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
     outwcs.wcs.set()
     return outwcs
+
+def computeFootprintCenter(edges):
+    """ Geographic midpoint in spherical coords for points defined by footprints.
+        Algorithm derived from: http://www.geomidpoint.com/calculation.html
+        
+        This algorithm should be more robust against discontinuities at the poles. 
+    """
+    alpha = fileutil.DEGTORAD(edges[:,0])
+    dec = fileutil.DEGTORAD(edges[:,1])
+    
+    xmean = np.mean(np.cos(dec)*np.cos(alpha))
+    ymean = np.mean(np.cos(dec)*np.sin(alpha))
+    zmean = np.mean(np.sin(dec))
+    
+    crval1 = fileutil.RADTODEG(np.arctan2(ymean,xmean))%360.0
+    crval2 = fileutil.RADTODEG(np.arctan2(zmean,np.sqrt(xmean*xmean+ymean*ymean)))
+    
+    return crval1,crval2
 
 def  undistortWCS(wcsobj):
     """
