@@ -38,9 +38,10 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
+
     # shift crpix to take into account (floating-point value of) position of
     # corner pixel relative to output frame size: no rounding necessary... 
-    newcrpix = np.array([crpix[0]-tanpix[:,0].min(), crpix[1]-
+    newcrpix = np.array([crpix[0]+tanpix[:,0].min(), crpix[1]+
                          tanpix[:,1].min()])
     newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
