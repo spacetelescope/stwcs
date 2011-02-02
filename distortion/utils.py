@@ -8,6 +8,22 @@ from numpy import sqrt, arctan2
 from pytools import fileutil
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
+    """
+    Create an output WCS.
+    
+    Parameters
+    ----------
+    list_of_wcsobj: Python list
+                    a list of HSTWCS objects
+    ref_wcs: an HSTWCS object 
+             to be used as a reference WCS, in case outwcs is None.
+             if ref_wcs is None (default), the first member of the list 
+             is used as a reference
+    outwcs:  an HSTWCS object
+             the tangent plane defined by this object is used as a reference
+    undistort: boolean (default-True)
+              a flag whether to create an undistorted output WCS
+    """
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
     
     # This new algorithm may not be strictly necessary, but it may be more 
@@ -126,7 +142,17 @@ def  undistortWCS(wcsobj):
     return lin_wcsobj
 
 def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
-    #pixpos must be already corrected for ltv1/2
+    """
+    Apply the IDCTAB polynomial distortion model to pixel positions.
+    pixpos must be already corrected for ltv1/2.
+    
+    Parameters
+    ----------
+    pixpos: a 2D numpy array of (x,y) pixel positions to be distortion corrected
+    cx, cy: IDC model distortion coefficients
+    pixref: reference opixel position
+    
+    """
     if cx == None:
         return pixpos  
 
