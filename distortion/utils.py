@@ -7,7 +7,7 @@ from stwcs import wcsutil
 from numpy import sqrt, arctan2
 from pytools import fileutil
 
-def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
+def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     """
     Create an output WCS.
     
@@ -31,7 +31,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
     crval1,crval2 = computeFootprintCenter(fra_dec) 
 
     crval = np.array([crval1,crval2], dtype=np.float64)
-    if outwcs is None:
+    if owcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
         if undistort:    
@@ -43,6 +43,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, outwcs=None, undistort=True):
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     else:
+        outwcs = owcs.deepcopy()
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
     
