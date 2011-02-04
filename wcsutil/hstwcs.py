@@ -177,6 +177,13 @@ class HSTWCS(WCS):
         cd22 = self.wcs.cd[1][1]
         self.orientat = RADTODEG(np.arctan2(cd12,cd22))
 
+    def updatePscale(self, scale):
+        """
+        Updates the CD matrix with a new plate scale
+        """
+        self.wcs.cd = self.wcs.cd/self.pscale*scale
+        self.setPscale()
+        
     def readModel(self, update=False, header=None):
         """
         Reads distortion model from IDCTAB.
