@@ -10,6 +10,7 @@ import numpy as np
 from pytools import fileutil
 from pytools.fileutil import DEGTORAD, RADTODEG
 
+import getinput
 import mappings
 from mappings import inst_mappings, ins_spec_kw
 from mappings import basic_wcs
@@ -21,7 +22,7 @@ __version__ = '0.7'
     
 class HSTWCS(WCS):
 
-    def __init__(self, fobj='DEFAULT', ext=None, minerr=0.0, wcskey=" "):
+    def __init__(self, fobj=None, ext=None, minerr=0.0, wcskey=" "):
         """
         Create a WCS object based on the instrument.
         
@@ -51,10 +52,10 @@ class HSTWCS(WCS):
         self.minerr = minerr
         self.wcskey = wcskey
         
-        if fobj != 'DEFAULT':
-            filename, hdr0, ehdr, phdu = self._parseInput(f=fobj, ext=ext)
+        if fobj != None:
+            filename, hdr0, ehdr, phdu = getinput.parseSingleInput(f=fobj, ext=ext)
             self.filename = filename
-            self.instrument = hdr0['INSTRUME']
+            self.instrument = hdr0.get('INSTRUME', 'DEFAULT')
             
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr, key=self.wcskey)
             # If input was a pyfits HDUList object, it's the user's
@@ -70,54 +71,10 @@ class HSTWCS(WCS):
             # create a default HSTWCS object 
             self.instrument = 'DEFAULT'
             WCS.__init__(self, minerr=self.minerr, key=self.wcskey)
-            self.wcs.cd = np.array([[1.0, 0.0], [0.0, 1.0]], np.double)
-            self.wcs.crval = np.zeros((self.naxis,), np.double)
-            self.wcs.crpix = np.zeros((self.naxis,), np.double)
-            self.wcs.set()
+            self.pc2cd()
             self.setInstrSpecKw()
         self.setPscale()
         self.setOrient()
-        
-    def _parseInput(self, f=None, ext=None):
-        if isinstance(f, str):
-            # create an HSTWCS object from a filename
-
-            if ext != None:
-                filename = f
-                if isinstance(ext,tuple):
-                    if ext[0] == '':
-                        extnum = ext[1] # handle ext=('',1)
-                    else:
-                        extnum = ext
-                else:
-                    extnum = int(ext)
-            elif ext == None:
-                filename, ext = fileutil.parseFilename(f)
-                ext = fileutil.parseExtn(ext)
-                if ext[0] == '':
-                    extnum = int(ext[1]) #handle ext=('',extnum)
-                else:
-                    extnum = ext
-            phdu = pyfits.open(filename)
-            hdr0 = pyfits.getheader(filename)
-            try:
-                ehdr = pyfits.getheader(filename, ext=extnum)
-            except (IndexError,KeyError):
-                print 'Unable to get extension.', extnum
-                raise
-
-        elif isinstance(f, pyfits.HDUList):
-            phdu = f
-            if ext == None:
-                extnum = 0
-            else:
-                extnum = ext
-            ehdr = f[extnum].header
-            hdr0 = f[0].header
-            filename = hdr0.get('FILENAME', "")
-
-        return filename, hdr0, ehdr, phdu
-    
 
     def readIDCCoeffs(self, header):
         """
@@ -165,18 +122,30 @@ class HSTWCS(WCS):
         """
         Calculates the plate scale from the CD matrix
         """
-        cd11 = self.wcs.cd[0][0]
-        cd21 = self.wcs.cd[1][0]
-        self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
-
+        try:
+            cd11 = self.wcs.cd[0][0]
+            cd21 = self.wcs.cd[1][0]
+            self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
+        except AttributeError:
+            print "This file has a PC matrix. You may want to convert it \n \
+            to a CD matrix, if reasonable, by running pc2.cd() method.\n \
+            The plate scale can be set then by calling setPscale() method.\n"
+            self.pscale = None
+            
     def setOrient(self):
         """
         Computes ORIENTAT from the CD matrix
         """
-        cd12 = self.wcs.cd[0][1]
-        cd22 = self.wcs.cd[1][1]
-        self.orientat = RADTODEG(np.arctan2(cd12,cd22))
-
+        try:
+            cd12 = self.wcs.cd[0][1]
+            cd22 = self.wcs.cd[1][1]
+            self.orientat = RADTODEG(np.arctan2(cd12,cd22))
+        except AttributeError:
+            print "This file has a PC matrix. You may want to convert it \n \
+            to a CD matrix, if reasonable, by running pc2.cd() method.\n \
+            The orientation can be set then by calling setOrient() method.\n"
+            self.pscale = None
+            
     def updatePscale(self, scale):
         """
         Updates the CD matrix with a new plate scale
@@ -337,7 +306,9 @@ class HSTWCS(WCS):
             cards.append(card)
         return cards
     
-    
+    def pc2cd(self):
+        self.wcs.cd = self.wcs.pc.copy()
+        
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
