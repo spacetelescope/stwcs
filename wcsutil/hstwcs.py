@@ -17,7 +17,7 @@ from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
-__version__ = '0.7'
+__version__ = '0.7.1'
 
     
 class HSTWCS(WCS):
@@ -309,6 +309,89 @@ class HSTWCS(WCS):
     def pc2cd(self):
         self.wcs.cd = self.wcs.pc.copy()
         
+    def all_sky2pix(self,ra,dec,origin):
+        """ 
+        Performs full inverse transformation using iterative solution 
+        on full forward transformation with complete distortion model.
+        
+        NOTES
+        -----
+        We now need to find the position we want by iterative
+        improvement of an initial guess - the centre of the chip
+        
+        The method is to derive an "effective CD matrix" and use that
+        to apply a correction until we are close enough (as defined by
+        the ERR variable)
+        
+        Code from the drizzle task TRANBACK (dither$drizzle/tranback.f)
+        defined the algorithm for this implementation
+        
+        """
+        # Define some output arrays
+        xout = np.zeros(len(ra),dtype=np.float64)
+        yout = np.zeros(len(ra),dtype=np.float64)
+        # ... and internal arrays
+        x = np.zeros(3,dtype=np.float64)
+        y = np.zeros(3,dtype=np.float64)
+    
+        # define delta for comparison
+        err = 0.00001
+        
+        # We can only transform 1 position at a time
+        for r,d,n in zip(ra,dec,xrange(len(ra))):
+            # First guess for output 
+            x[0],y[0] = self.wcs_sky2pix(r,d,origin)
+
+            # Loop around until we are close enough
+            still_iterating = True
+            ev_old = None
+            while still_iterating:
+                x[1] = x[0] + 1.0
+                y[1] = y[0] 
+                x[2] = x[0]
+                y[2] = y[0] + 1.0
+                # Perform full transformation on pixel position
+                xo,yo = self.all_pix2sky(x,y,1)
+                
+                # Compute deltas between output and initial guess as 
+                # an affine transform then invert that transformation
+                dxymat = np.array([[xo[1]-xo[0],yo[1]-yo[0]],
+                          [xo[2]-xo[0],yo[2]-yo[0]]],dtype=np.float64)
+                         
+                invmat = np.linalg.inv(dxymat)
+                # compute error in output position
+                delta_ra = r - xo[0]
+                delta_dec = d - yo[0]
+
+                # record the old position
+                xold = x[0]
+                yold = y[0]
+
+                # Update the initial guess position using the transform
+                delta_nx = delta_ra*dxymat[0][0] + delta_dec*dxymat[1][0]
+                delta_ny = delta_ra*dxymat[0][1] + delta_dec*dxymat[1][1]
+                x[0] = xold + delta_nx*3600*3600/self.pscale
+                y[0] = yold + delta_ny*3600*3600/self.pscale
+
+                # Work out the error vector length
+                ev = np.sqrt((x[0] - xold)**2 + (y[0] - yold)**2)
+                
+                # initialize record of previous error measurement during 1st iteration
+                if ev_old is None:
+                    ev_old = ev
+                # Check to see whether we have reached the limit or 
+                # the new error is greater than error from previous iteration
+                if ev < err or (np.abs(ev) > np.abs(ev_old)): 
+                    still_iterating = False
+                    
+                # remember error measurement from previous iteration
+                ev_old = ev
+
+            xout[n] = x[0]
+            yout[n] = y[0]
+
+        return xout,yout
+                
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
