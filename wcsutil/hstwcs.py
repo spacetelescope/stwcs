@@ -4,7 +4,7 @@ import os.path
 from pywcs import WCS
 import pyfits
 import instruments
-from stwcs.distortion import models, coeff_converter, utils
+from stwcs.distortion import models, coeff_converter
 import altwcs
 import numpy as np
 from pytools import fileutil
@@ -327,6 +327,8 @@ class HSTWCS(WCS):
         defined the algorithm for this implementation
         
         """
+        from stwcs.distortion import utils
+        
         # Define some output arrays
         xout = np.zeros(len(ra),dtype=np.float64)
         yout = np.zeros(len(ra),dtype=np.float64)
