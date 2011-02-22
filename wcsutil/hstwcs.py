@@ -4,7 +4,7 @@ import os.path
 from pywcs import WCS
 import pyfits
 import instruments
-from stwcs.distortion import models, coeff_converter
+from stwcs.distortion import models, coeff_converter, utils
 import altwcs
 import numpy as np
 from pytools import fileutil
@@ -335,24 +335,31 @@ class HSTWCS(WCS):
         y = np.zeros(3,dtype=np.float64)
     
         # define delta for comparison
-        err = 0.00001
+        err = 0.0001
+        
+        # Use linear WCS as frame in which to perform fit
+        # rather than on the sky
+        wcslin = utils.output_wcs([self])
         
         # We can only transform 1 position at a time
         for r,d,n in zip(ra,dec,xrange(len(ra))):
             # First guess for output 
             x[0],y[0] = self.wcs_sky2pix(r,d,origin)
+            # also convert RA,Dec into undistorted linear pixel positions
+            lx,ly = wcslin.wcs_sky2pix(r,d,origin)
 
-            # Loop around until we are close enough
-            still_iterating = True
+            # Loop around until we are close enough (max 20 iterations)
             ev_old = None
-            while still_iterating:
+            for i in xrange(20):
                 x[1] = x[0] + 1.0
                 y[1] = y[0] 
                 x[2] = x[0]
                 y[2] = y[0] + 1.0
                 # Perform full transformation on pixel position
-                xo,yo = self.all_pix2sky(x,y,1)
-                
+                rao,deco = self.all_pix2sky(x,y,origin)
+                # convert RA,Dec into linear pixel positions for fitting
+                xo,yo = wcslin.wcs_sky2pix(rao,deco,origin)
+
                 # Compute deltas between output and initial guess as 
                 # an affine transform then invert that transformation
                 dxymat = np.array([[xo[1]-xo[0],yo[1]-yo[0]],
@@ -360,18 +367,16 @@ class HSTWCS(WCS):
                          
                 invmat = np.linalg.inv(dxymat)
                 # compute error in output position
-                delta_ra = r - xo[0]
-                delta_dec = d - yo[0]
+                dx = lx - xo[0]
+                dy = ly - yo[0]
 
                 # record the old position
                 xold = x[0]
                 yold = y[0]
 
                 # Update the initial guess position using the transform
-                delta_nx = delta_ra*dxymat[0][0] + delta_dec*dxymat[1][0]
-                delta_ny = delta_ra*dxymat[0][1] + delta_dec*dxymat[1][1]
-                x[0] = xold + delta_nx*3600*3600/self.pscale
-                y[0] = yold + delta_ny*3600*3600/self.pscale
+                x[0] = xold + dx*dxymat[0][0] + dy*dxymat[1][0]
+                y[0] = yold + dx*dxymat[0][1] + dy*dxymat[1][1]
 
                 # Work out the error vector length
                 ev = np.sqrt((x[0] - xold)**2 + (y[0] - yold)**2)
@@ -379,11 +384,11 @@ class HSTWCS(WCS):
                 # initialize record of previous error measurement during 1st iteration
                 if ev_old is None:
                     ev_old = ev
+                    
                 # Check to see whether we have reached the limit or 
                 # the new error is greater than error from previous iteration
                 if ev < err or (np.abs(ev) > np.abs(ev_old)): 
-                    still_iterating = False
-                    
+                    break
                 # remember error measurement from previous iteration
                 ev_old = ev
 
