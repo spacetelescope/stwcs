@@ -5,6 +5,7 @@ import pyfits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
+from stwcs import __version__ as stwcsversion
 import pywcs
 
 import utils, corrections, makewcs
@@ -160,8 +161,9 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     if 'DGEOCorr' in allowed_corr:
         kw2update = dgeo.DGEOCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])       
-        
+            f[1].header.update(kw, kw2update[kw])
+    # Finally record the version of the software which updated the WCS
+    f[0].header.update(key='UPWCSVER', value=stwcsversion, comment="Version of STWCS used to updated the WCS", before='HISTORY')
     f.close()
 
 def getKeyName(hdr, wkey, wname, idcname):

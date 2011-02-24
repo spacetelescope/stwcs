@@ -17,8 +17,6 @@ from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
-__version__ = '0.7.1'
-
     
 class HSTWCS(WCS):
 
@@ -260,7 +258,7 @@ class HSTWCS(WCS):
         if self.wcs.has_cd():
             h = altwcs.pc2cd(h, key=self.wcskey)
             
-        if sip2hdr:
+        if sip2hdr and self.sip:
             hwcs = h.ascardlist()
             cards = self._sip2hdr('a')
             hwcs.extend(cards)
