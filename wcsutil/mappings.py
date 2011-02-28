@@ -25,6 +25,5 @@ prim_hdr_kw = ['detector', 'offtab', 'idctab', 'date-obs',
               'pa_v3', 'ra_targ', 'dec_targ']
 
 # These are the keywords which are archived before MakeWCS is run
-basic_wcs = ['CD1_1', 'CD1_2', 'CD2_1', 'CD2_2', 'CRVAL1','CRVAL2','CTYPE1', 'CTYPE2',
-            'CRPIX1', 'CRPIX2', 'CTYPE1', 'CTYPE2', 'ORIENTAT', 'NAXIS1', 'NAXIS2']
+basic_wcs = ['CD1_', 'CD2_', 'CRVAL', 'CTYPE', 'CRPIX', 'CTYPE', 'CDELT', 'CUNIT']
             
