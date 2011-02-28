@@ -96,11 +96,15 @@ def updateRefFiles(source, dest):
     phdukw = {'IDCTAB': True, 
             'NPOLFILE': True, 
             'D2IMFILE': True} 
-            
+    
+    try:
+        wind = dest.index_of('HISTORY')
+    except KeyError:
+        wind = len(dest)
     for key in phdukw.keys():
         try:
             value = source[key]
-            dest.append(value)
+            dest.insert(wind, value)
         except KeyError:
             phdukw[key] = False
     
@@ -201,7 +205,6 @@ def removePrimaryWCS(dest, ext):
     for key in basic_wcs:
         for i in range(1,naxis+1):
             try:
-                print key+str(i)
                 del dest[ext].header.ascard[key+str(i)]
             except KeyError: pass
     try:
@@ -241,17 +244,28 @@ class Headerlet(HDUList):
                 createHeaderlet(dest, hdrname, destim)
             _cleanDestWCS(dest)
             fobj = pyfits.open(dest, mode='update')
-
+            
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
             numsip = countext(self, 'SIPWCS')
             for i in range(1,numsip+1):
                 fhdr = fobj[('SCI',i)].header.ascard
                 siphdr = self[('SIPWCS',i)].header.ascard
+                # a minimal attempt to get the position of the WCS keywords group 
+                # in the header by looking for the PA_APER kw.
+                # at least make sure the WCS kw are written befir the HISTORY kw
+                # if everything fails, append the kw to the header
+                try:
+                    wind = fhdr.index_of('PA_APER')
+                except KeyError:
+                    try:
+                        wind = fhdr.index_of('HISTORY')
+                    except KeyError:
+                        wind = len(fhdr)       
                 for k in siphdr.keys():
                     if k not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT', 
                                  'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN', 
                                  'INHERIT', 'DATE', 'IRAF-TLM']:
-                        fhdr.append(siphdr[k])
+                        fhdr.insert(wind, siphdr[k])
                     else:
                         pass
             #! Always attach these extensions last. Otherwise thier headers may
