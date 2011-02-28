@@ -257,13 +257,14 @@ class HSTWCS(WCS):
         h = self.to_header()
         if self.wcs.has_cd():
             h = altwcs.pc2cd(h, key=self.wcskey)
-            
+        
+        h.ascard.extend(self._idc2hdr())
+        
         if sip2hdr and self.sip:
-            hwcs = h.ascardlist()
             cards = self._sip2hdr('a')
-            hwcs.extend(cards)
+            h.ascard.extend(cards)
             cards = self._sip2hdr('b')
-            hwcs.extend(cards)
+            h.ascard.extend(cards)
             
             try:
                 ap = self.sip.ap
@@ -276,13 +277,10 @@ class HSTWCS(WCS):
             
             if ap:
                 cards = self._sip2hdr('ap')
-                hwcs.extend(cards)
+                h.ascard.extend(cards)
             if bp:
                 cards = self._sip2hdr('bp')
-                hwcs.extend(cards)
-                
-            h = pyfits.Header(hwcs)
-        
+                h.ascard.extend(cards)
         return h
     
     
@@ -302,6 +300,14 @@ class HSTWCS(WCS):
             card = pyfits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]), 
                                value=coeffs[ind[0][i], ind[1][i]])
             cards.append(card)
+        return cards
+    
+    def _idc2hdr(self):
+        # save some of the idc coefficients
+        coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
+        cards = pyfits.CardList()
+        for c in coeffs:
+            cards.append(pyfits.Card(key=c, value=self.__getattribute__(c)))
         return cards
     
     def pc2cd(self):
