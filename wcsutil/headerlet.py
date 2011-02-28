@@ -4,7 +4,6 @@ import pyfits
 from hstwcs import HSTWCS
 import altwcs
 from pyfits import HDUList
-from stwcs import __version__ as stwcsVersion
 from mappings import basic_wcs
 
 
@@ -25,18 +24,25 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
     if hdrname is None:
         raise ValueError, "Please provide a name for the headerlet, HDRNAME is a required parameter."
     if output is None:
-        output = hdrname
+        output = hdrname+'_hdr.fits'
+    elif not output.endswith('_hdr.fits'):
+        output = output+'_hdr.fits'
+        
     altkeys = altwcs.wcskeys(fobj[('SCI',1)].header)
+    try:
+        upwcsver = fobj[0].header.ascard['STWCSVER']
+    except KeyError:
+        upwcsver = pyfits.Card("STWCSVER", " ","Version of STWCS used to update the WCS")
     if 'O' in altkeys:
         altkeys.remove('O')
     numsci = countext(fname, 'SCI')
     hdul = pyfits.HDUList()
     phdu = pyfits.PrimaryHDU()
     phdu.header.update('DESTIM', destim, comment='Destination observation root name')
-    phdu.header.update('HDRNAME',hdrname, 'Headerlet name')
-    phdu.header.update('STWCSVER',stwcsVersion, comment='Version of STWCS that generated this file')
+    phdu.header.update('HDRNAME',hdrname, comment='Headerlet name')
     phdu.header.update('DATE',time.strftime(fmt), comment='Date FITS file was generated')
-
+    phdu.header.ascard.append(upwcsver)
+    
     updateRefFiles(fobj[0].header.ascard, phdu.header.ascard)
     phdu.header.update(key='VAFACTOR', value=fobj[('SCI',1)].header.get('VAFACTOR', 1.))
     hdul.append(phdu)
@@ -46,7 +52,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
         h = hwcs.wcs2header(sip2hdr=True).ascard
         for ak in altkeys:
             awcs = HSTWCS(fname,ext=('SCI',e), wcskey=ak)
-            h.extend(awcs.wcs2header().ascard)
+            h.extend(awcs.wcs2header(idc2hdr=False).ascard)
         h.insert(0,pyfits.Card(key='EXTNAME', value='SIPWCS', comment='Extension name'))
         h.insert(1,pyfits.Card(key='EXTVER', value=e, comment='Extension version'))
         
@@ -143,7 +149,12 @@ def _cleanDestWCS(dest):
         removeD2IM(fobj[e])
         removeSIP(fobj[e])
         removeLUT(fobj[e])
-        removePrimaryWCS(fobj,e) 
+        removePrimaryWCS(fobj[e])
+        removeIDCCoeffs(fobj[e])
+        try:
+            del fobj[e].header.ascard['VAFACTOR']
+        except KeyError: pass
+        
     removeAltWCS(fobj, ext=range(numext)) 
     numwdvarr = countext(dest,'WCSDVARR')
     numd2im = countext(dest,'D2IMARR')
@@ -200,33 +211,40 @@ def removeAltWCS(dest, ext):
     for k in dkeys:
         altwcs.deleteWCS(dest, ext=ext, wcskey=k)
 
-def removePrimaryWCS(dest, ext):
-    naxis=dest[ext].header.ascard['NAXIS'].value
+def removePrimaryWCS(ext):
+    naxis = ext.header.ascard['NAXIS'].value
     for key in basic_wcs:
         for i in range(1,naxis+1):
             try:
-                del dest[ext].header.ascard[key+str(i)]
+                del ext.header.ascard[key+str(i)]
             except KeyError: pass
     try:
-        del dest[ext].header.ascard['WCSAXES']
+        del ext.header.ascard['WCSAXES']
     except KeyError: pass
 
+def removeIDCCoeffs(ext):
+    coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
+    for k in coeffs:
+        try:
+            del ext.header.ascard[k]
+        except KeyError:
+            pass
+            
 class Headerlet(HDUList):
     def __init__(self, fname, wcskeys=[]):
         
         self.wcskeys = wcskeys
         if isinstance(fname,str):
             fobj = pyfits.open(fname)
-            #fobj.close()
         elif isinstance(fname, list):
             fobj = fname
         else:
             raise ValueError, "Input must be a file name (string) or a pyfits file object (HDUList)."
         HDUList.__init__(self, fobj) 
         self.fname = self.filename()
-        self.hdrname = self[0].header.get("HDRNAME","")
-        self.stwcsver = stwcsVersion
-        self.destim = self[0].header.get("DESTIM","")
+        self.hdrname = self[0].header["HDRNAME"]
+        self.stwcsver = self[0].header.get("STWCSVER","")
+        self.destim = self[0].header["DESTIM"]
         self.idctab = self[0].header.get("IDCTAB","")
         self.npolfile = self[0].header.get("NPOLFILE","")
         self.d2imfile = self[0].header.get("D2IMFILE","")
@@ -286,7 +304,7 @@ class Headerlet(HDUList):
         self.verify()
         assert(self[0].header.has_key('DESTIM') and self[0].header['DESTIM']!= " ")
         assert(self[0].header.has_key('HDRNAME') and self[0].header['HDRNAME']!= " ")
-        assert(self[0].header.has_key('STWCSVER') and self[0].header['STWCSVER']!= " ")
+        #assert(self[0].header.has_key('STWCSVER') and self[0].header['STWCSVER']!= " ")
         """
         npolfile, vafactor and d2imfile are optional.
         idctab may be optional too ...
