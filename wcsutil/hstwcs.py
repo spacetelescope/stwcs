@@ -260,6 +260,11 @@ class HSTWCS(WCS):
         
         h.ascard.extend(self._idc2hdr())
         
+        try:
+            del h.ascard['RESTFRQ']
+            del h.ascard['RESTWAV']
+        except KeyError: pass
+        
         if sip2hdr and self.sip:
             cards = self._sip2hdr('a')
             h.ascard.extend(cards)
