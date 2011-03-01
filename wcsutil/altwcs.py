@@ -73,9 +73,9 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
         for k in hwcs.keys():
             key = k[:7] + wkey
             f[e].header.update(key=key, value=hwcs[k])
-        norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
-        okey = 'ORIENT%s' % wkey
-        f[e].header.update(key=okey, value=norient) 
+        #norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
+        #okey = 'ORIENT%s' % wkey
+        #f[e].header.update(key=okey, value=norient) 
     closefobj(fname, f)
 
 def restoreWCS(f, ext, wcskey=" ", wcsname=" ", clobber=False):
@@ -254,7 +254,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
             pc2cd(hwcs, key=wkey)
         for k in hwcs.keys():
             del hdr[k]
-            del hdr['ORIENT'+wkey]
+            #del hdr['ORIENT'+wkey]
         prexts.append(i)
     if prexts != []:
         print 'Deleted all instances of WCS with key %s in extensions' % wkey, prexts
