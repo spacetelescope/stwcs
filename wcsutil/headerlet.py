@@ -193,7 +193,28 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
 
 def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None, createheaderlet=True):
     """
-    apply headerlet 'hdrfile' to a science observation 'destfile'
+    Apply headerlet 'hdrfile' to a science observation 'destfile'
+    
+    Parameters
+    ----------
+    hdrfile: string
+             Headerlet file
+    destfile: string
+             File name of science observation wyhose WCS solution willbe updated
+    destim: string or None (default)
+            ROOTNAME of destfile (default) 
+            This string will be written as the DESTIM keyword in the headerlet, 
+            created from the old WCS solution
+            Normally it should be None, unless the science file is missing the 
+            ROOTNAME kw, in which case the name of the file (stripped of .fits) 
+            should be specified.
+    hdrname: string or None (default)
+            will be the value of the HDRNAME keyword in the headerlet.
+            It's not  required if createheaderlet is False
+    createheaderlet: boolean
+            True (default): before updating, create a headerlet with the 
+            WCS old solution.
+      
     """
     hlet = Headerlet(hdrfile)
     hlet.apply2obs(destfile, destim=destim, hdrname=hdrname, createheaderlet=createheaderlet)
