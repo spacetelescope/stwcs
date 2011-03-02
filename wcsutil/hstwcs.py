@@ -242,7 +242,7 @@ class HSTWCS(WCS):
             else:
                 self._updatehdr(header)
 
-    def wcs2header(self, sip2hdr=False):
+    def wcs2header(self, sip2hdr=False, idc2hdr=True):
         """
         Create a pyfits.Header object from WCS keywords.
         
@@ -258,7 +258,8 @@ class HSTWCS(WCS):
         if self.wcs.has_cd():
             h = altwcs.pc2cd(h, key=self.wcskey)
         
-        h.ascard.extend(self._idc2hdr())
+        if idc2hdr:
+            h.ascard.extend(self._idc2hdr())
         
         try:
             del h.ascard['RESTFRQ']
@@ -312,7 +313,11 @@ class HSTWCS(WCS):
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
         cards = pyfits.CardList()
         for c in coeffs:
-            cards.append(pyfits.Card(key=c, value=self.__getattribute__(c)))
+            try:
+                val = self.__getattribute__(c)
+            except AttributeError:
+                continue
+            cards.append(pyfits.Card(key=c, value=val))
         return cards
     
     def pc2cd(self):
