@@ -1,15 +1,110 @@
 from __future__ import division
 import time
+import numpy as np
 import pyfits
 from hstwcs import HSTWCS
 import altwcs
 from pyfits import HDUList
 from mappings import basic_wcs
 
-
+def isWCSIdentical(scifile, file2):
+    """
+    Compares the WCS solution of 2 files. 
+    
+    These can be 2 science observations or 2 headerlets 
+    or a science observation and a headerlet. The two files 
+    have the same WCS solution if the following are the same:
+    
+    - rootname/destim
+    - primary WCS
+    - SIP coefficients
+    - NPOL distortion
+    - D2IM correction
+    - Velocity aberation
+    """
+    result = True
+    numsci1 = max(countext(scifile, 'SCI'), countext(scifile, 'SIPWCS'))
+    numsci2 = max(countext(file2, 'SCI'), countext(file2, 'SIPWCS'))
+    if numsci1 == 0 or numsci2==0 or numsci1!= numsci2:
+        print "Number of SCI and SIPWCS extensions do not match."
+        result = False
+    
+    if getRootname(scifile) != getRootname(file2):
+        print 'Rootnames do not match.'
+        result = False
+    try:
+        extname1 = pyfits.getval(scifile, 'EXTNAME', ext=('SCI', 1))
+    except KeyError:
+        extname1 = 'SIPWCS'
+    try:
+        extname2 = pyfits.getval(file2, 'EXTNAME', ext=('SCI', 1))
+    except KeyError:
+        extname2 = 'SIPWCS'    
+        
+    for i in range(1, numsci1+1):
+        w1 = HSTWCS(scifile,ext=(extname1,i))
+        w2 = HSTWCS(file2, ext=(extname2,i))
+        if not (w1.wcs.crval == w2.wcs.crval).all() or \
+            not (w1.wcs.crpix == w2.wcs.crpix).all()  or \
+            not  (w1.wcs.cd == w2.wcs.cd).all() or \
+            not (np.array(w1.wcs.ctype) == np.array(w2.wcs.ctype)).all():
+            print 'Primary WCSs do not match'
+            result = False
+        if w1.sip or w2.sip: 
+            if (w2.sip and not w1.sip) or (w1.sip and not w2.sip) or \
+                not (w1.sip.a == w2.sip.a).all() or \
+                not (w1.sip.b == w2.sip.b).all():
+                print 'SIP coefficients do not match'
+                result = False
+        if w1.cpdis1 or w2.cipdis1:
+            if w1.cpdis1 and not w2.cpdis1 or \
+                w2.cpdis1 and not w1.cpdis1 or \
+                not (w1.cpdis1.data == w2.cpdis1.data).all():
+                print 'NPOL distortions do not match'
+                result = False
+        if w1.cpdis2 or w2.cpdis2:
+            if w1.cpdis2 and not w2.cpdis2 or \
+                w2.cpdis2 and not w1.cpdis2 or \
+                not (w1.cpdis2.data == w2.cpdis2.data).all():
+                print 'NPOL distortions do not match'
+                result = False
+        if w1.det2im1 or w2.det2im1:
+            if w1.det2im1 and not w2.det2im1 or \
+                w2.det2im1 and not w1.det2im1 or\
+                not (w1.det2im1.data == w2.det2im1.data).all():
+                print 'Det2Im corrections do not match'
+                result =  False
+        if w1.det2im2 or w2.det2im2:
+            if w1.det2im2 and not w2.det2im2 or \
+                w2.det2im2 and not w1.det2im2 or\
+                not (w1.det2im2.data == w2.det2im2.data).all():
+                print 'Det2Im corrections do not match'
+                result = False
+        if w1.vafactor != w2.vafactor:
+            print 'VA factors do not match'
+            result = False
+    
+    return result
+        
 def createHeaderlet(fname, hdrname, destim=None, output=None):
     """
-    creates a headerlet from a science observation
+    Create a headerlet from a science observation
+    
+    Parameters
+    ----------
+    fname: string
+           Name of file with science observation
+    hdrname: string
+           Name for the headerlet, stored in the primary header of the headerlet
+           If output is None, hdrname is used as output
+    destim: string
+           Destination image, stored in the primary header of the headerlet. 
+           If None ROOTNAME is used of the science observation is used.
+           ROOTNAME has precedence, destim is used for observations without 
+            ROOTNAME in the primary header
+    output: string
+           Name for the headerlet file.
+           HDRNAME is used if output is not given.
     """
     fmt="%Y-%m-%dT%H:%M:%S"
     phdukw = {'IDCTAB': True, 
@@ -96,9 +191,23 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
     hdul.writeto(output,clobber=True)
     fobj.close()
 
+def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None, createheaderlet=True):
+    """
+    apply headerlet 'hdrfile' to a science observation 'destfile'
+    """
+    hlet = Headerlet(hdrfile)
+    hlet.apply2obs(destfile, destim=destim, hdrname=hdrname, createheaderlet=createheaderlet)
+
 def updateRefFiles(source, dest):
-    #dest is destination extension header.ascard
-    #source is source header.ascard
+    """
+    Update the reference files name in the primary header of 'dest'
+    using values from 'source'
+    
+    Parameters
+    ----------
+    source: pyfits.Header.ascardlist
+    dest:   pyfits.Header.ascardlist
+    """
     phdukw = {'IDCTAB': True, 
             'NPOLFILE': True, 
             'D2IMFILE': True} 
@@ -113,8 +222,21 @@ def updateRefFiles(source, dest):
             dest.insert(wind, value)
         except KeyError:
             phdukw[key] = False
-    
+
+def getRootname(fname):
+    """
+    returns the value of ROOTNAME or DESTIM
+    """
+    try:
+        rootname = pyfits.getval(fname, 'ROOTNAME')
+    except KeyError:
+        rootname = pyfits.getval(fname, 'DESTIM')
+    return rootname
+            
 def mapFitsExt2HDUListInd(fname, extname):
+    """
+    Map FITS extensions with 'EXTNAME' to HDUList indexes.
+    """
     if isinstance(fname, str):
         f = pyfits.open(fname)
     else:
@@ -128,6 +250,9 @@ def mapFitsExt2HDUListInd(fname, extname):
     return d
             
 def countext(fname, extname):
+    """
+    Return the number of extensions with EXTNAME in the file.
+    """
     if isinstance(fname, str):
         f = pyfits.open(fname)
     else:
@@ -138,24 +263,24 @@ def countext(fname, extname):
             numext+=1
     return numext
 
-def _cleanDestWCS(dest):
-    #clean all WCSs in the destination file
-    #dkeys = altwcs.wcskeys(pyfits.getheader(dest,ext=('SCI',1)))
-    #Warning: Does not clean teh primary WCS
+def _delDestWCS(dest):
+    """
+    Delete the WCS of a science file
+    """
     fobj = pyfits.open(dest, mode='update')
     numext = len(fobj)
     
     for e in range(numext):
-        removeD2IM(fobj[e])
-        removeSIP(fobj[e])
-        removeLUT(fobj[e])
-        removePrimaryWCS(fobj[e])
-        removeIDCCoeffs(fobj[e])
+        _removeD2IM(fobj[e])
+        _removeSIP(fobj[e])
+        _removeLUT(fobj[e])
+        _removePrimaryWCS(fobj[e])
+        _removeIDCCoeffs(fobj[e])
         try:
             del fobj[e].header.ascard['VAFACTOR']
         except KeyError: pass
         
-    removeAltWCS(fobj, ext=range(numext)) 
+    _removeAltWCS(fobj, ext=range(numext)) 
     numwdvarr = countext(dest,'WCSDVARR')
     numd2im = countext(dest,'D2IMARR')
     for i in range(1, numwdvarr+1):
@@ -164,7 +289,10 @@ def _cleanDestWCS(dest):
         del fobj[('D2IMARR',i)]
     fobj.close()
     
-def removeSIP(ext):
+def _removeSIP(ext):
+    """
+    Remove the SIP distortion of a FITS extension
+    """
     for prefix in ['A','B', 'AP', 'BP']:
         try:   
             order = ext.header[prefix+'_ORDER']
@@ -183,7 +311,10 @@ def removeSIP(ext):
     except KeyError:
         pass
 
-def removeLUT(ext):
+def _removeLUT(ext):
+    """
+    Remove the Lookup Table distortion of a FITS extension
+    """
     try:
         cpdis = ext.header['CPDIS*']
     except KeyError: 
@@ -198,7 +329,10 @@ def removeLUT(ext):
     except KeyError:
         pass
 
-def removeD2IM(ext):
+def _removeD2IM(ext):
+    """
+    Remove the Detector to Image correction of a FITS extension
+    """
     d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
     for k in d2imkeys:
         try:
@@ -206,12 +340,19 @@ def removeD2IM(ext):
         except KeyError:
             pass
         
-def removeAltWCS(dest, ext):
+def _removeAltWCS(dest, ext):
+    """
+    Remove Alternate WCSs of a FITS extension.
+    A WCS with wcskey 'O' is never deleted.
+    """
     dkeys = altwcs.wcskeys(dest[('SCI',1)].header)
     for k in dkeys:
         altwcs.deleteWCS(dest, ext=ext, wcskey=k)
 
-def removePrimaryWCS(ext):
+def _removePrimaryWCS(ext):
+    """
+    Remove the primary WCS of a FITS extension
+    """
     naxis = ext.header.ascard['NAXIS'].value
     for key in basic_wcs:
         for i in range(1,naxis+1):
@@ -222,7 +363,10 @@ def removePrimaryWCS(ext):
         del ext.header.ascard['WCSAXES']
     except KeyError: pass
 
-def removeIDCCoeffs(ext):
+def _removeIDCCoeffs(ext):
+    """
+    Remove IDC coefficients of a FITS extension
+    """
     coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
     for k in coeffs:
         try:
@@ -231,8 +375,22 @@ def removeIDCCoeffs(ext):
             pass
             
 class Headerlet(HDUList):
+    """
+    A Headerlet class
+    Ref: http://stsdas.stsci.edu/stsci_python_sphinxdocs/stwcs/headerlet_def.html
+    """
     def __init__(self, fname, wcskeys=[]):
-        
+        """
+        Parameters
+        ----------
+        fname:  string
+                Name of headerlet file
+        wcskeys: python list
+                a list of wcskeys to be included in the headerlet
+                created from the old WCS solution before the 
+                science file is updated. If empty: all alternate (if any)
+                WCSs are copied to the headerlet.
+        """
         self.wcskeys = wcskeys
         if isinstance(fname,str):
             fobj = pyfits.open(fname)
@@ -260,7 +418,7 @@ class Headerlet(HDUList):
         if self.verify_dest(dest):
             if createheaderlet:
                 createHeaderlet(dest, hdrname, destim)
-            _cleanDestWCS(dest)
+            _delDestWCS(dest)
             fobj = pyfits.open(dest, mode='update')
             
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
@@ -286,7 +444,7 @@ class Headerlet(HDUList):
                         fhdr.insert(wind, siphdr[k])
                     else:
                         pass
-            #! Always attach these extensions last. Otherwise thier headers may
+            #! Always attach these extensions last. Otherwise therr headers may
             # get updated with the other WCS kw. 
             numwdvar = countext(self,'WCSDVARR')
             numd2im = countext(self, 'D2IMARR')
@@ -304,42 +462,24 @@ class Headerlet(HDUList):
         self.verify()
         assert(self[0].header.has_key('DESTIM') and self[0].header['DESTIM']!= " ")
         assert(self[0].header.has_key('HDRNAME') and self[0].header['HDRNAME']!= " ")
-        #assert(self[0].header.has_key('STWCSVER') and self[0].header['STWCSVER']!= " ")
-        """
-        npolfile, vafactor and d2imfile are optional.
-        idctab may be optional too ...
-        assert(self[0].header.has_key('IDCTAB') 
-            and self[0].header['IDCTAB']!= " ")
-        assert(self[0].header.has_key('NPOLFILE') 
-            and self[0].header['NPOLFILE']!= " ")
-        """
+        assert(self[0].header.has_key('STWCSVER'))
+        
     
     def verify_dest(self, dest):
         """
         verifies that the headerlet can be applied to the observation
-        requirements:
-        - if self.destim = fname.rootname
-        - if fname has the same file structure.
-        - if idctab, npolfile, d2imfile are different for self and fname
-        - if vafactor is different
-        - 
+       
+        DESTIM in the primary header of the headerlet must match ROOTNAME 
+        of the science file (or the name of the destination file)
         """
-        dobj = pyfits.open(dest)
         try:
-            droot = dobj[0].header['ROOTNAME']
+            droot = pyfits.getval(dest, 'ROOTNAME')
         except KeyError:
-            dobj.close()
-            print "This headerlet cannot be applied to observation %s. " % destfile
-            print "It can only be applied to observations with root name %s" % self.destim
+            droot = dest.split('.fits')[0]
+        if droot == self.destim:
+            return True
+        else:
             return False
-        dnumsci = countext(dest, 'SCI')
-        hnumsip = countext(self, 'SIPWCS')
-        if dnumsci != hnumsip:
-            print "This headerlet cannot be applied to observation %s. " % dest
-            print "The observation and the headerlet have a different number of 'SCI' extensions."
-            return False
-        dobj.close()
-        return True
         
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
         if not destim or not hdrname:
