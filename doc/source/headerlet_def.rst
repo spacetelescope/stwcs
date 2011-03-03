@@ -69,36 +69,16 @@ There may be a lot of extensions appended to this FITS file, but the sum total o
 
 Headerlet Definition
 ====================
-The `headerlet` needs to be a self-consistent, fully described definition of a WCS and its distortion.  The WCS and SIP coefficients get derived from the SCI header directly, along with the keywords which refer to the extensions with the NPOLFILE and D2IMFILE corrections.  This original WCS information in general will not be deleted from the file so that the user can always revert back to the original WCS solution at any time. 
-There will be a way to delete it in cases when the user want to update the model and does not need to keep the old model.
+The `headerlet` needs to be a self-consistent, fully described definition of a WCS and its distortion.  The WCS and SIP coefficients get derived from the SCI header directly, along with the keywords which refer to the extensions with the NPOLFILE and D2IMFILE corrections.  The science observation will be stripped from the original WCS which will be saved to a headerlet so that the user can always revert back to the original WCS solution at any time. 
+There will be an option to permanently delete the original WCS and not save it to a headerlet.  
 
 New WCS Extension
 -----------------
-A new extension, named SIPWCS, containing all the WCS-related keywords from the SCI header, including all keywords referring to NPOL and D2IM extensions as well as all sets of alternate WCS keywords, can be created to serve as the record of the original WCS. Keywords (TBD) recording the alignment information are recorded in this header as well. All the sets of linear WCS keywords stored using FITS Paper I Multiple WCS Standard would be defined using the same set of distortion coefficients written to the SIP keywords and NPOL files.  This insures that all the information in the header remains consistent. The keywords in this extension can be used to overwrite the keywords in the corresponding SCI header to update the WCS solution for each chip without any further modification or computation. The new extension then serves not only as a record of all the WCS solutions derived for the image, but also the source of values for restoring the SCI header WCS when desired.  
+A new extension, named SIPWCS, containing all the WCS-related keywords from the SCI header, including all keywords referring to NPOL and D2IM extensions as well as all sets of alternate WCS keywords, will be created to serve as the record of the original WCS. Keywords (TBD) recording the alignment information are recorded in this header as well. All the sets of linear WCS keywords stored using FITS Paper I Multiple WCS Standard would be defined using the same set of distortion coefficients written to the SIP keywords and NPOL files.  This insures that all the information in the header remains consistent. The keywords in this extension can be used to overwrite the keywords in the corresponding SCI header to update the WCS solution for each chip without any further modification or computation. The new extension then serves not only as a record of all the WCS solutions derived for the image, but also the source of values for restoring the SCI header WCS when desired.  
 
 
-Updated Example FITS Listing
+Headerlet File Structure
 -----------------------------
-The updated listing of the sample ACS/WFC exposure FITS file extensions would then be::
-
-    EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
-
-    0     j8hw27c4q_flt j8hw27c4q_flt.fits                       16                 
-    1       IMAGE       SCI                   1     4096x2048    -32                
-    2       IMAGE       ERR                   1     4096x2048    -32                
-    3       IMAGE       DQ                    1     4096x2048    16                 
-    4       IMAGE       SCI                   2     4096x2048    -32                
-    5       IMAGE       ERR                   2     4096x2048    -32                
-    6       IMAGE       DQ                    2     4096x2048    16                 
-    7       IMAGE       D2IMARR               1     4096         -32                
-    8       IMAGE       WCSDVARR              1     64x32        -32                
-    9       IMAGE       WCSDVARR              2     64x32        -32                
-    10      IMAGE       WCSDVARR              3     64x32        -32                
-    11      IMAGE       WCSDVARR              4     64x32        -32                
-    12      IMAGE       SIPWCS                1                  8
-    13      IMAGE       SIPWCS                2                  8
-    14      BINTABLE    WCSCORR                     18Fx10R
-
 This new extension along with the NPOLFILE and the D2IMFILE extensions fully describe the WCS of each chip and can serve without further modification as the definition of the `headerlet`. The listing of the FITS extensions for a `headerlet` for the sample ACS/WFC exposure after writing it out to a file would then be::
 
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
@@ -117,9 +97,12 @@ This file now fully describes the WCS solution for this image, complete with all
 The primary header must have 4 required keywords:
 
 `HDRNAME`  - a unique name for the headerlet
-`DESTIM`   - target image filename (the original archive filename)
-`STWCSVER` - version of STWCS used to create the headerlet
-`PYWCSVER` - version of PyWCS used to create the headerlet
+
+`DESTIM`   - target image filename (the ROOTNAME keyword of the original archive filename)
+
+`STWCSVER` - version of STWCS used to create the WCS of the original image
+
+`PYWCSVER` - version of PyWCS used to create the WCS of the original image
 
 User-Defined Headerlet
 ======================
@@ -137,10 +120,9 @@ Application of a Headerlet
 ==========================
 Updating an image retrieved from the HST Archive with a `headerlet` only requires a few very simple steps:
 
-    #. Append the `headerlet` to the FITS file
-    #. Update the extver IDs for the NPOLFILE and D2IMFILE keywords in the headerlet SIPWCS extensions to point to the actual extver values for the new extensions
-    #. Overwrite the SCI header keywords for each chip with the same keywords from the SIPWCS extension that corresponds to the same chip from the newly appended `headerlet`
-    #. Add a keyword `SIPVER` to each science header with a value of the appropriate SIPWCS' `EXTVER` keyword.
+    #. Create a headerlet from the original WCS solution in the science image (this step can be turned off).
+    #. Delete all WCS information from the science image
+    #. Copy the WCS solution from the headerlet to the science observation 
     #. Update the WCSCORR table with the linear WCS keyword values and name of the SIP solution (based on the name of the reference files) from each SIPWCS extension from the `headerlet`, along with the keyword values from the PRIMARY header of the `headerlet`
 
 This process assumes that when an image gets updated with a `headerlet`, the new solution from the `headerlet` should become the prime WCS.  Further implementations of the software to work with `headerlets` can expand on this functionality if necessary.  Initially, the `headerlet` simply needs to be used to update the image's FITS file so that the WCS information can be used at all.
@@ -153,12 +135,11 @@ Implementing support for the `headerlet` and its use in updating HST FITS files 
 
 - A task which given a science file and a `headerlet` applies the `headerlet` to the science file
   
-  #. Default behaviour will be to append the `headerlet` to the file and copy the WCS recorded in the `headerlet` as a primary WCS.
+  #. Default behaviour will be to copy the WCS recorded in the `headerlet` as a primary WCS, creating a headerlet with the old solution.
   #. It will be possible (optionally) to copy the updated science file to a new file and keep the original science file locally unchanged.
 
 The operation of updating a science file with a `headerlet` only requires the use of basic FITS operations:
 
-- Appending the extensions in the `headerlet` to the science file
 - Updating keywords in the science extensions of the file with values from the SIPWCS extensions from the `headerlet`
 
 These operations do not require any computations and can be done using any FITS library. This allows a `headerlet` to be usable by the community even if they do not use the software we develop based on PyFITS and STWCS, both for creating and applying these files.
