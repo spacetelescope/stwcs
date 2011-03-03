@@ -136,7 +136,6 @@ Implementing support for the `headerlet` and its use in updating HST FITS files 
 - A task which given a science file and a `headerlet` applies the `headerlet` to the science file
   
   #. Default behaviour will be to copy the WCS recorded in the `headerlet` as a primary WCS, creating a headerlet with the old solution.
-  #. It will be possible (optionally) to copy the updated science file to a new file and keep the original science file locally unchanged.
 
 The operation of updating a science file with a `headerlet` only requires the use of basic FITS operations:
 
