@@ -15,7 +15,7 @@ __docformat__ = 'restructuredtext'
 # These are the default corrections applied also in the pipeline.
 
 allowed_corrections={'WFPC2': ['DET2IMCorr', 'MakeWCS','CompSIP', 'VACorr'],
-                    'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'DGEOCorr'],
+                    'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'NPOLCorr'],
                     'STIS': ['MakeWCS', 'CompSIP','VACorr'],
                     'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
                     'WFC3': ['MakeWCS', 'CompSIP','VACorr'],
@@ -26,10 +26,10 @@ cnames = {'DET2IMCorr': 'Detector to Image Correction',
          'MakeWCS': 'Recalculate basic WCS keywords based on the distortion model',
          'CompSIP': 'Given IDCTAB distortion model calculate the SIP coefficients',
          'VACorr':  'Velocity Aberration Correction',
-         'DGEOCorr': 'Lookup Table Distortion'
+         'NPOLCorr': 'Lookup Table Distortion'
          }
                             
-def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True):
+def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True):
     """
     Creates a list of corrections to be applied to a file
     based on user input paramters and allowed corrections
@@ -52,9 +52,9 @@ def setCorrections(fname, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=Tru
         tddcorr = applyTDDCorr(fname, tddcorr)
         if tddcorr == False: acorr.remove('TDDCorr')
         
-    if 'DGEOCorr' in acorr:
-        dgeocorr = applyDgeoCorr(fname, dgeocorr)
-        if dgeocorr == False: acorr.remove('DGEOCorr')
+    if 'NPOLCorr' in acorr:
+        npolcorr = applyNpolCorr(fname, npolcorr)
+        if npolcorr == False: acorr.remove('NPOLCorr')
     if 'DET2IMCorr' in acorr:
         d2imcorr = applyD2ImCorr(fname, d2imcorr)
         if d2imcorr == False: acorr.remove('DET2IMCorr')
@@ -107,7 +107,7 @@ def applyTDDCorr(fname, utddcorr):
 
     return tddcorr
 
-def applyDgeoCorr(fname, udgeocorr):
+def applyNpolCorr(fname, unpolcorr):
     """
     Determines whether non-polynomial distortion lookup tables should be added 
     as extensions to the science file based on the 'NPOLFILE' keyword in the 
@@ -116,47 +116,47 @@ def applyDgeoCorr(fname, udgeocorr):
     The file used to generate the extensions is 
     recorded in the NPOLEXT keyword in the first science extension.
     If 'NPOLFILE' in the primary header is different from 'NPOLEXT' in the 
-    extension header and the file exists on disk and is a 'new type' dgeofile, 
+    extension header and the file exists on disk and is a 'new type' npolfile, 
     then the lookup tables will be updated as 'WCSDVARR' extensions.
     """
-    applyDGEOCorr = True
+    applyNPOLCorr = True
     try:
         # get NPOLFILE kw from primary header
-        fdgeo0 = pyfits.getval(fname, 'NPOLFILE')
-        if fdgeo0 == 'N/A':
+        fnpol0 = pyfits.getval(fname, 'NPOLFILE')
+        if fnpol0 == 'N/A':
             return False
-        fdgeo0 = fileutil.osfn(fdgeo0)
-        if not fileutil.findFile(fdgeo0):
-            print 'Kw "NPOLFILE" exists in primary header but file %s not found\n' % fdgeo0
+        fnpol0 = fileutil.osfn(fnpol0)
+        if not fileutil.findFile(fnpol0):
+            print 'Kw "NPOLFILE" exists in primary header but file %s not found\n' % fnpol0
             print 'Non-polynomial distortion correction will not be applied\n'
-            applyDGEOCorr = False
-            return applyDGEOCorr 
+            applyNPOLCorr = False
+            return applyNPOLCorr 
         try:
             # get NPOLEXT kw from first extension header
-            fdgeo1 = pyfits.getval(fname, 'NPOLEXT', ext=1)
-            fdgeo1 = fileutil.osfn(fdgeo1)
-            if fdgeo1 and fileutil.findFile(fdgeo1):
-                if fdgeo0 != fdgeo1:
-                    applyDGEOCorr = True
+            fnpol1 = pyfits.getval(fname, 'NPOLEXT', ext=1)
+            fnpol1 = fileutil.osfn(fnpol1)
+            if fnpol1 and fileutil.findFile(fnpol1):
+                if fnpol0 != fnpol1:
+                    applyNPOLCorr = True
                 else:
-                    applyDGEOCorr = False
+                    applyNPOLCorr = False
             else: 
                 # npl file defined in first extension may not be found
                 # but if a valid kw exists in the primary header, non-polynomial 
                 #distortion correction should be applied.
-                applyDGEOCorr = True
+                applyNPOLCorr = True
         except KeyError:
             # the case of "NPOLFILE" kw present in primary header but "NPOLEXT" missing 
             # in first extension header
-            applyDGEOCorr = True
+            applyNPOLCorr = True
     except KeyError:
         print '"NPOLFILE" keyword not found in primary header'
-        applyDGEOCorr = False
-        return applyDGEOCorr 
+        applyNPOLCorr = False
+        return applyNPOLCorr 
     
-    if isOldStyleDGEO(fname, fdgeo0):
-            applyDGEOCorr = False       
-    return (applyDGEOCorr and udgeocorr)
+    if isOldStyleDGEO(fname, fnpol0):
+            applyNPOLCorr = False       
+    return (applyNPOLCorr and unpolcorr)
 
 def isOldStyleDGEO(fname, dgname):
     # checks if the file defined in a NPOLFILE kw is a full size 

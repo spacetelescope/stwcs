@@ -9,7 +9,7 @@ from stwcs import __version__ as stwcsversion
 import pywcs
 
 import utils, corrections, makewcs
-import dgeo, det2im
+import npol, det2im
 from pytools import parseinput, fileutil
 import apply_corrections
 
@@ -17,7 +17,7 @@ import apply_corrections
 
 __docformat__ = 'restructuredtext'
 
-def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True, 
+def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True, 
               checkfiles=True, wcskey=" ", wcsname=" ", clobber=False):
     """
 
@@ -48,7 +48,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
               If True, vecocity aberration correction will be applied
     tddcorr: boolean
              If True, time dependent distortion correction will be applied 
-    dgeocorr: boolean
+    npolcorr: boolean
               If True, a Lookup table distortion will be applied
     d2imcorr: boolean
               If True, detector to image correction will be applied
@@ -75,7 +75,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, dgeocorr=True, d2imcorr=True,
             return 
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
-            tddcorr=tddcorr,dgeocorr=dgeocorr, d2imcorr=d2imcorr)
+            tddcorr=tddcorr,npolcorr=npolcorr, d2imcorr=d2imcorr)
         
         if 'MakeWCS' in acorr and newIDCTAB(f):
             print "New IDCTAB file detected. This invalidates all WCS's." 
@@ -141,7 +141,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                 wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", clobber=True)
                 ext_wcs.readModel(update=True,header=hdr)
                 for c in allowed_corr:
-                    if c != 'DGEOCorr' and c != 'DET2IMCorr':
+                    if c != 'NPOLCorr' and c != 'DET2IMCorr':
                         corr_klass = corrections.__getattribute__(c)
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
@@ -158,8 +158,8 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
             else:
                 continue
     
-    if 'DGEOCorr' in allowed_corr:
-        kw2update = dgeo.DGEOCorr.updateWCS(f)
+    if 'NPOLCorr' in allowed_corr:
+        kw2update = npol.NPOLCorr.updateWCS(f)
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])
     # Finally record the version of the software which updated the WCS

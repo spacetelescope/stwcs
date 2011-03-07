@@ -5,7 +5,7 @@ from pytools import fileutil
 import utils
 import numpy as np
 
-class DGEOCorr(object):
+class NPOLCorr(object):
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
     It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword 
@@ -52,7 +52,7 @@ class DGEOCorr(object):
         For each science extension in a pyfits file object:
             - create a WCSDVARR extension
             - update science header
-            - add/update DGEOEXT keyword
+            - add/update NPOLEXT keyword
         """
         nplfile = fileutil.osfn(fobj[0].header['NPOLFILE'])
         # Map WCSDVARR EXTVER numbers to extension numbers
@@ -132,7 +132,7 @@ class DGEOCorr(object):
         values = {cperror: 0.0, cpdis: 'Lookup',  dpext: wdvarr_ver, dpnaxes: 2,
                 dpaxis1: 1, dpaxis2: 2}
                 
-        comments = {cperror: 'Maximum error of dgeo correction for axis %s' % j,  
+        comments = {cperror: 'Maximum error of NPOL correction for axis %s' % j,  
                     cpdis: 'Prior distortion funcion type',  
                     dpext: 'Version number of WCSDVARR extension containing lookup distortion table', 
                     dpnaxes: 'Number of independent variables in distortion function',
@@ -147,8 +147,8 @@ class DGEOCorr(object):
     
     def getData(cls,nplfile, ccdchip):
         """
-        Get the data arrays from the reference DGEO files
-        Make sure 'CCDCHIP' in the dgeo file matches "CCDCHIP' in the science file.
+        Get the data arrays from the reference NPOL files
+        Make sure 'CCDCHIP' in the npolfile matches "CCDCHIP' in the science file.
         """
         npl = pyfits.open(nplfile)
         for ext in npl:
@@ -168,7 +168,7 @@ class DGEOCorr(object):
     
     def transformData(cls, dx, dy, coeffs):
         """
-        Transform the DGEO data arrays for use with SIP
+        Transform the NPOL data arrays for use with SIP
         """
         ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()])
         ndx.shape = dx.shape
@@ -212,10 +212,10 @@ class DGEOCorr(object):
     
     def createNpolHdr(cls, sciheader, npolfile, wdvarr_ver, npl_extname, ccdchip, binned):
         """
-        Creates a header for the WCSDVARR extension based on the DGEO reference file 
+        Creates a header for the WCSDVARR extension based on the NPOL reference file 
         and sci extension header. The goal is to always work in image coordinates
         (also for subarrays and binned images. The WCS for the WCSDVARR extension 
-        i ssuch that a full size dgeo table is created and then shifted or scaled 
+        i ssuch that a full size npol table is created and then shifted or scaled 
         if the science image is a subarray or binned image.
         """
         npl = pyfits.open(npolfile)
@@ -236,7 +236,7 @@ class DGEOCorr(object):
         npl.close()
         
         naxis = pyfits.getval(npolfile, ext=1, key='NAXIS')
-        ccdchip = nplextname #dgeo_header['CCDCHIP']
+        ccdchip = nplextname #npol_header['CCDCHIP']
         
         kw = { 'NAXIS': 'Size of the axis', 
                'CDELT': 'Coordinate increment along axis',
@@ -292,7 +292,7 @@ class DGEOCorr(object):
     
     def get_ccdchip(cls, fobj, extname, extver):
         """
-        Given a science file or dgeo file determine CCDCHIP
+        Given a science file or npol file determine CCDCHIP
         """
         ccdchip = 1
         if fobj[0].header['INSTRUME'] == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC':
