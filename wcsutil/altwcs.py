@@ -56,6 +56,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
             if not wcsname.strip(): 
                 wcsname = f[1].header["WCSNAME"+wcskey]
                 wname = wcsname
+                wkey = wcskey
             else:
                 wkey = wcskey
                 wname = wcsname
