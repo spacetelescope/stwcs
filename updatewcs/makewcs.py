@@ -6,6 +6,9 @@ from math import sin, sqrt, pow, cos, asin, atan2,pi
 import utils
 from pytools import fileutil
 
+import logging, time
+logger = logging.getLogger("stwcs.updatewcs.makewcs")
+
 class MakeWCS(object):
     """
     Recompute basic WCS keywords based on PA_V3 and distortion model.
@@ -36,6 +39,7 @@ class MakeWCS(object):
         """
         recomputes the basic WCS kw 
         """
+        logger.info("\n\tStarting MakeWCS: %s" % time.asctime())
         ltvoff, offshift = cls.getOffsets(ext_wcs)
         
         v23_corr = cls.zero_point_corr(ext_wcs)
@@ -173,13 +177,13 @@ class MakeWCS(object):
             alpha = hwcs.idcmodel.refpix['TDDALPHA']
             beta = hwcs.idcmodel.refpix['TDDBETA']
         except KeyError:
-            return np.array([[0., 0.],[0.,0.]])
+            v23_corr = np.array([[0., 0.],[0.,0.]])
         
         tdd = np.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.
         xy0 = np.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
         v23_corr = np.dot(mrotp,np.dot(tdd,xy0)) * 0.05
-        
+        logger.debug("\n\tTDD Zero point correction for chip %s: %s" % (hwcs.chip, v23_corr))
         return v23_corr 
     
     zero_point_corr = classmethod(zero_point_corr)

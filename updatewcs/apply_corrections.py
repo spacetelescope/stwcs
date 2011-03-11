@@ -7,6 +7,9 @@ from pytools import fileutil
 import os.path
 from stwcs.wcsutil import altwcs
 
+import logging
+logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
+
 #Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
@@ -58,6 +61,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     if 'DET2IMCorr' in acorr:
         d2imcorr = applyD2ImCorr(fname, d2imcorr)
         if d2imcorr == False: acorr.remove('DET2IMCorr')
+    logger.info("\n\tCorrections to be applied to %s: %s " % (fname, str(acorr)))
     return acorr
 
 def foundIDCTAB(fname):
@@ -127,8 +131,10 @@ def applyNpolCorr(fname, unpolcorr):
             return False
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
-            print 'Kw "NPOLFILE" exists in primary header but file %s not found\n' % fnpol0
-            print 'Non-polynomial distortion correction will not be applied\n'
+            msg =  """\n\tKw "NPOLFILE" exists in primary header but file %s not found
+                      Non-polynomial distortion correction will not be applied\n
+                    """ % fnpol0
+            logger.critical(msg)
             applyNPOLCorr = False
             return applyNPOLCorr 
         try:
@@ -139,6 +145,9 @@ def applyNpolCorr(fname, unpolcorr):
                 if fnpol0 != fnpol1:
                     applyNPOLCorr = True
                 else:
+                    msg = """\n\tNPOLEXT with the same value as NPOLFILE found in first extension.
+                             NPOL correction will not be applied."""
+                    logger.info(msg)
                     applyNPOLCorr = False
             else: 
                 # npl file defined in first extension may not be found
@@ -150,7 +159,7 @@ def applyNpolCorr(fname, unpolcorr):
             # in first extension header
             applyNPOLCorr = True
     except KeyError:
-        print '"NPOLFILE" keyword not found in primary header'
+        logger.info('\n\t"NPOLFILE" keyword not found in primary header')
         applyNPOLCorr = False
         return applyNPOLCorr 
     
@@ -167,8 +176,9 @@ def isOldStyleDGEO(fname, dgname):
     dg_naxis1 = pyfits.getval(dgname, 'NAXIS1', ext=1)
     dg_naxis2 = pyfits.getval(dgname, 'NAXIS2', ext=1)
     if sci_naxis1 <= dg_naxis1 or sci_naxis2 <= dg_naxis2:
-        print 'Only full size (old style) NPL file was found.'
-        print 'Non-polynomial distortion  correction will not be applied.\n'
+        msg = """\n\tOnly full size (old style) DGEO file was found.\n
+                 Non-polynomial distortion  correction will not be applied."""
+        logger.critical(msg)
         return True
     else:
         return False
@@ -182,8 +192,10 @@ def applyD2ImCorr(fname, d2imcorr):
             return False
         fd2im0 = fileutil.osfn(fd2im0)
         if not fileutil.findFile(fd2im0):
-            print 'Kw D2IMFILE exists in primary header but file %s not found\n' % fd2im0
-            print 'Detector to image correction will not be applied\n'
+            msg = """\n\tKw D2IMFILE exists in primary header but file %s not found\n
+                     Detector to image correction will not be applied\n""" % fd2im0
+            logger.critical(msg)
+            print msg
             applyD2IMCorr = False
             return applyD2IMCorr 
         try:

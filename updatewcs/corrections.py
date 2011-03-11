@@ -7,6 +7,9 @@ from pytools import fileutil
 from utils import diff_angles
 import makewcs, npol
 
+import logging, time
+logger=logging.getLogger('stwcs.updatewcs.corrections')
+
 MakeWCS = makewcs.MakeWCS
 NPOLCorr = npol.NPOLCorr
 
@@ -55,13 +58,12 @@ class TDDCorr(object):
     .. [1] Jay Anderson, "Variation of the Distortion Solution of the WFC", ACS ISR 2007-08.
     
     """
-    
     def updateWCS(cls, ext_wcs, ref_wcs):
         """
         - Calculates alpha and beta for ACS/WFC data.
         - Writes 2 new kw to the extension header: TDDALPHA and TDDBETA
         """
-        
+        logger.info("\n\tStarting TDDCorr: %s" % time.asctime())
         alpha, beta = cls.compute_alpha_beta(ext_wcs)
         cls.apply_tdd2idc(ref_wcs, alpha, beta)
         cls.apply_tdd2idc(ext_wcs, alpha, beta)
@@ -156,8 +158,8 @@ class VACorr(object):
     The correction is applied to the CD matrix and CRVALs.
     
     """
-    
     def updateWCS(cls, ext_wcs, ref_wcs):
+        logger.info("\n\tStarting VACorr: %s" % time.asctime())
         if ext_wcs.vafactor != 1:
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
             crval0 = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0], 
@@ -193,8 +195,8 @@ class CompSIP(object):
        Conference Series, Vol. 347, 2005
     
     """
-    
     def updateWCS(cls, ext_wcs, ref_wcs):
+        logger.info("\n\tStarting CompSIP: %s" %time.asctime())
         kw2update = {}
         order = ext_wcs.idcmodel.norder
         kw2update['A_ORDER'] = order

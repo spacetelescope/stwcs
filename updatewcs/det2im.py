@@ -1,8 +1,12 @@
 from __future__ import division # confidence high
 
+import time
 import pyfits
 from pytools import fileutil
 import utils
+
+import logging
+logger = logging.getLogger('stwcs.updatewcs.Det2IM')
 
 class DET2IMCorr(object):
     """
@@ -44,7 +48,12 @@ class DET2IMCorr(object):
         Uses the file pointed to in the primary header keyword 'D2IMFILE' 
         to create an extension with a detector to image correction. 
         """
-        assert isinstance(fobj, pyfits.HDUList)
+        logger.info("\n\tStarting Det2IM Correction: %s" % time.asctime())
+        try:
+            assert isinstance(fobj, pyfits.HDUList)
+        except AssertionError:
+            logger.exception('\n\tInput must be a pyfits.HDUList object')
+            raise
         
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)
@@ -64,13 +73,12 @@ class DET2IMCorr(object):
             if direction == 'DX': return 1
             elif direction == 'DY': return 2
             else: 
-                print '\tDET2IM correction expects the reference file to have'
-                print '\tan EXTNAME keyword of value "DX"  or "DY"'
+                logger.warning('\n\tDET2IM correction expects the reference file to have \
+                an EXTNAME keyword of value "DX"  or "DY", EXTNAMe %s detected' % direction)
                 return None
-        except AttributeError:
-            print "\tAxis to which to apply the detector to image "
-            print "\tcorrection cannot be determined because the reference "
-            print "\tfile %s is missing a keyword EXTNAME" % refname
+        except KeyError:
+            logger.exception("\n\tD2IMFILE %s is missing EXTNAME keyword. Unable to determine axis \
+            to which to apply the correction." % refname)
             direction = None
         return direction
     getAxisCorr = classmethod(getAxisCorr)

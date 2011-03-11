@@ -13,12 +13,19 @@ import npol, det2im
 from pytools import parseinput, fileutil
 import apply_corrections
 
+import time
+import logging
+logger = logging.getLogger('stwcs.updatewcs')
+
+import atexit
+atexit.register(logging.shutdown)
+
 #Note: The order of corrections is important
 
 __docformat__ = 'restructuredtext'
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True, 
-              checkfiles=True, wcskey=" ", wcsname=" ", clobber=False):
+              checkfiles=True, wcskey=" ", wcsname=" ", clobber=False, verbose=False):
     """
 
     Updates HST science files with the best available calibration information.
@@ -67,23 +74,33 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     clobber: boolean
               a flag for reusing the wcskey when archiving the primary WCS
     """
+    if verbose == False:
+        logger.setLevel(100)
+    else:
+        logger.setLevel(verbose)
+    args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
+    wcskey=%s, wcsname=%s, clobber=%s" % (str(vacorr), str(tddcorr), str(npolcorr), 
+                                          str(d2imcorr), str(checkfiles), str(wcskey), 
+                                          str(wcsname), str(clobber))
+    logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
+    
     files = parseinput.parseinput(input)[0]
+    logger.info("\n\tInput files: %s, " % [i for i in files])
+    logger.info("\n\tInput arguments: %s" %args)
     if checkfiles:
         files = checkFiles(files)
         if not files:
             print 'No valid input, quitting ...\n'
             return 
+
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
             tddcorr=tddcorr,npolcorr=npolcorr, d2imcorr=d2imcorr)
-        
         if 'MakeWCS' in acorr and newIDCTAB(f):
-            print "New IDCTAB file detected. This invalidates all WCS's." 
-            print "Deleting all previous WCS's"
+            logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
             
         #restore the original WCS keywords
-        #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
 
@@ -280,6 +297,7 @@ def checkFiles(input):
     Converts geis and waiver fits files to multiextension fits.
     """
     from pytools.check_files import geis2mef, waiver2mef, checkFiles
+    logger.info("\n\tChecking files %s" % input)
     removed_files = []
     newfiles = []
     if not isinstance(input, list):
@@ -289,8 +307,7 @@ def checkFiles(input):
         try:
                 imgfits,imgtype = fileutil.isFits(file)
         except IOError:
-            print "Warning:  File %s could not be found\n" %file
-            print "Removing file %s from input list" %file
+            logger.warning( "\n\tFile %s could not be found, removing it from the input list.\n" %file)
             removed_files.append(file)
             continue
         # Check for existence of waiver FITS input, and quit if found.
@@ -299,7 +316,7 @@ def checkFiles(input):
             if imgtype == 'waiver':
                 newfilename = waiver2mef(file, convert_dq=True)
                 if newfilename == None:
-                    print "Removing file %s from input list - could not convert waiver to mef" %file
+                    logger.warning("\n\tRemoving file %s from input list - could not convert waiver to mef" %file)
                     removed_files.append(file)
                 else:
                     newfiles.append(newfilename)
@@ -312,17 +329,17 @@ def checkFiles(input):
         if not imgfits:
             newfilename = geis2mef(file, convert_dq=True)
             if newfilename == None:
-                print "Removing file %s from input list - could not convert geis to mef" %file
+                logger.warning("\n\tRemoving file %s from input list - could not convert geis to mef" %file)
                 removed_files.append(file)
             else:
                 newfiles.append(newfilename)
     if removed_files:
-        print 'The following files will be removed from the list of files to be processed :\n'
-        for f in removed_files:
-            print f
+        logger.warning('\n\tThe following files will be removed from the list of files to be processed %s' % removed_files)
+        #for f in removed_files:
+        #    print f
             
     newfiles = checkFiles(newfiles)[0]
-    
+    logger.info("\n\tThese files passed the input check and will be processed: %s" % newfiles)
     return newfiles
 
 def newIDCTAB(fname):

@@ -5,6 +5,9 @@ from pytools import fileutil
 import utils
 import numpy as np
 
+import logging, time
+logger = logging.getLogger('stwcs.updatewcs.npol')
+
 class NPOLCorr(object):
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
@@ -38,7 +41,13 @@ class NPOLCorr(object):
                 Science file, for which a distortion correction in a NPOLFILE is available
                 
         """
-        assert isinstance(fobj, pyfits.HDUList)
+        logger.info("\n\tStarting CompSIP: %s" %time.asctime())
+        try:
+            assert isinstance(fobj, pyfits.HDUList)
+        except AssertionError:
+            logger.exception('\n\tInput must be a pyfits.HDUList object')
+            raise
+        
         cls.applyNPOLCorr(fobj)
         nplfile = fobj[0].header['NPOLFILE']
         
@@ -107,7 +116,7 @@ class NPOLCorr(object):
                 continue
             if ename == 'WCSDVARR':
                 wcsd[fobj[e].header['EXTVER']] = e
-        
+        logger.debug("A map of WSCDVARR externsions %s" % wcsd)
         return wcsd
         
     getWCSIndex = classmethod(getWCSIndex)
@@ -188,12 +197,13 @@ class NPOLCorr(object):
             ocy11 = header['OCY11']
             coeffs = np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
         except KeyError:
-            print 'First order IDCTAB coefficients are not available.\n'
-            print 'Cannot convert SIP to IDC coefficients.\n'
+            logger.exception('\n\tFirst order IDCTAB coefficients are not available. \n\
+            Cannot convert SIP to IDC coefficients.')
             return None
         try:
             idcscale = header['IDCSCALE']
         except KeyError:
+            logger.exception("IDCSCALE not found in header - setting it to 1.")
             idcscale = 1
             
         return np.linalg.inv(coeffs/idcscale)
@@ -220,13 +230,11 @@ class NPOLCorr(object):
         """
         npl = pyfits.open(npolfile)
         for ext in npl:
-        #for i in range(len(dgf)):
             try:
                 nplextname = ext.header['EXTNAME']
                 nplextver = ext.header['EXTVER']
             except KeyError:
                 continue
-            #dgccdchip = ext.header.get('CCDCHIP', 0)
             nplccdchip = cls.get_ccdchip(npl, extname=nplextname, extver=nplextver)
             if nplextname == npl_extname and nplccdchip == ccdchip:
                 npol_header = ext.header
