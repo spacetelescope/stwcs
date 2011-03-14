@@ -118,10 +118,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
             raise ValueError, 'Please provide a value for the DESTIM keyword'
     if hdrname is None:
         raise ValueError, "Please provide a name for the headerlet, HDRNAME is a required parameter."
-    if output is None:
-        output = hdrname+'_hdr.fits'
-    elif not output.endswith('_hdr.fits'):
-        output = output+'_hdr.fits'
+    
+        
         
     altkeys = altwcs.wcskeys(fobj[('SCI',1)].header)
     try:
@@ -181,15 +179,28 @@ def createHeaderlet(fname, hdrname, destim=None, output=None):
                                                 comment='Maximum error of D2IMARR'))
             
         hdu = pyfits.ImageHDU(header=pyfits.Header(h))
+        # temporary fix for pyfits ticket # 48
+        hdu._extver = e
         hdul.append(hdu)
     numwdvarr = countext(fname, 'WCSDVARR')
     numd2im = countext(fname, 'D2IMARR')
     for w in range(1, numwdvarr+1):
-        hdul.append(fobj[('WCSDVARR',w)].copy())
+        hdu = fobj[('WCSDVARR',w)].copy()
+        # temporary fix for pyfits ticket # 48
+        hdu._extver = w
+        hdul.append(hdu)
     for d in range(1, numd2im+1):
-        hdul.append(fobj[('D2IMARR',d)].copy())
-    hdul.writeto(output,clobber=True)
+        hdu = fobj[('D2IMARR',d)].copy()
+        # temporary fix for pyfits ticket # 48
+        hdu._extver = d
+        hdul.append(hdu)
+    if output is not None:
+        # write the headerlet to a file
+        if not output.endswith('_hdr.fits'):
+            output = output+'_hdr.fits'
+        hdul.writeto(output,clobber=True)
     fobj.close()
+    return Headerlet(hdul)
 
 def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None, createheaderlet=True):
     """
