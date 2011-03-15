@@ -421,13 +421,12 @@ class HSTWCS(WCS):
         ext_hdr.update('OCY10', self.idcmodel.cy[1,0])
         ext_hdr.update('OCY11', self.idcmodel.cy[1,1])
         ext_hdr.update('IDCSCALE', self.idcmodel.refpix['PSCALE'])
-        """
         ext_hdr.update('IDCTHETA', self.idcmodel.refpix['THETA'])
         ext_hdr.update('IDCXREF', self.idcmodel.refpix['XREF'])
         ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
         ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
-        """
+        
         
     def printwcs(self):
         """
