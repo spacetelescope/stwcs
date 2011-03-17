@@ -177,7 +177,8 @@ class MakeWCS(object):
             alpha = hwcs.idcmodel.refpix['TDDALPHA']
             beta = hwcs.idcmodel.refpix['TDDBETA']
         except KeyError:
-            v23_corr = np.array([[0., 0.],[0.,0.]])
+            alpha = 0.0
+            beta = 0.0
         
         tdd = np.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.
