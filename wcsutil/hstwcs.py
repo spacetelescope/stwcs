@@ -53,8 +53,11 @@ class HSTWCS(WCS):
         if fobj != None:
             filename, hdr0, ehdr, phdu = getinput.parseSingleInput(f=fobj, ext=ext)
             self.filename = filename
-            self.instrument = hdr0.get('INSTRUME', 'DEFAULT')
-            
+            instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
+            if instrument_name in ['IRAF/ARTDATA','',' ','N/A']:
+                self.instrument = 'DEFAULT'
+            else:
+                self.instrument = instrument_name
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr, key=self.wcskey)
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
@@ -355,7 +358,11 @@ class HSTWCS(WCS):
         
         # Use linear WCS as frame in which to perform fit
         # rather than on the sky
-        wcslin = utils.output_wcs([self])
+        undistort = True
+        if self.sip is None:
+            # Only apply distortion if distortion coeffs are present.
+            undistort = False        
+        wcslin = utils.output_wcs([self],undistort=undistort)
         
         # We can only transform 1 position at a time
         for r,d,n in zip(ra,dec,xrange(len(ra))):
@@ -426,7 +433,6 @@ class HSTWCS(WCS):
         ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
         ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
-        
         
     def printwcs(self):
         """
