@@ -30,7 +30,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     # robust in handling regions near the poles or at 0h RA.
     crval1,crval2 = computeFootprintCenter(fra_dec) 
 
-    crval = np.array([crval1,crval2], dtype=np.float64)
+    crval = np.array([crval1,crval2], dtype=np.float64) # this value is now zero-based
     if owcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
@@ -46,20 +46,21 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
         outwcs = owcs.deepcopy()
         outwcs.pscale = sqrt(outwcs.wcs.cd[0,0]**2 + outwcs.wcs.cd[1,0]**2)*3600.
         outwcs.orientat = arctan2(outwcs.wcs.cd[0,1],outwcs.wcs.cd[1,1]) * 180./np.pi
-    
-    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
-    
+
+    tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']
+
     outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
     outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
     crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.], dtype=np.float64)
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
-    tanpix = outwcs.wcs.s2p(fra_dec, 1)['pixcrd']
+    tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']
 
     # shift crpix to take into account (floating-point value of) position of
     # corner pixel relative to output frame size: no rounding necessary... 
     newcrpix = np.array([crpix[0]+tanpix[:,0].min(), crpix[1]+
                          tanpix[:,1].min()])
+
     newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
     outwcs.wcs.set()
