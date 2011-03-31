@@ -1,14 +1,20 @@
 from __future__ import division
+import os
+import tarfile
+import tempfile
 import time
 import numpy as np
+import warnings
 import pyfits
+
+from cStringIO import StringIO
+
 from hstwcs import HSTWCS
 import altwcs
-from pyfits import HDUList
 from mappings import basic_wcs
 
-import logging, time
-logger = logging.getLogger('stwcs.wcsutil.headerlet')
+import logging
+logger = logging.getLogger(__name__)
 
 def isWCSIdentical(scifile, file2, verbose=False):
     """
@@ -36,17 +42,18 @@ def isWCSIdentical(scifile, file2, verbose=False):
     - Velocity aberation
 
     """
-    if verbose == False:
-        logger.setLevel(100)
-    else:
+    if verbose:
         logger.setLevel(verbose)
-    logger.info("Starting isWCSIdentical: %s" %time.asctime())
+    else:
+        logger.setLevel(100)
+
+    logger.info("Starting isWCSIdentical: %s" % time.asctime())
 
     result = True
-    numsci1 = max(countext(scifile, 'SCI'), countext(scifile, 'SIPWCS'))
-    numsci2 = max(countext(file2, 'SCI'), countext(file2, 'SIPWCS'))
+    numsci1 = max(countExt(scifile, 'SCI'), countExt(scifile, 'SIPWCS'))
+    numsci2 = max(countExt(file2, 'SCI'), countExt(file2, 'SIPWCS'))
 
-    if numsci1 == 0 or numsci2==0 or numsci1!= numsci2:
+    if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
         logger.info("Number of SCI and SIPWCS extensions do not match.")
         result = False
 
@@ -62,9 +69,9 @@ def isWCSIdentical(scifile, file2, verbose=False):
     except KeyError:
         extname2 = 'SIPWCS'
 
-    for i in range(1, numsci1+1):
-        w1 = HSTWCS(scifile,ext=(extname1,i))
-        w2 = HSTWCS(file2, ext=(extname2,i))
+    for i in range(1, numsci1 + 1):
+        w1 = HSTWCS(scifile, ext=(extname1, i))
+        w2 = HSTWCS(file2, ext=(extname2, i))
         if not (w1.wcs.crval == w2.wcs.crval).all() or \
             not (w1.wcs.crpix == w2.wcs.crpix).all()  or \
             not  (w1.wcs.cd == w2.wcs.cd).all() or \
@@ -107,6 +114,9 @@ def isWCSIdentical(scifile, file2, verbose=False):
 
     return result
 
+
+# TODO: It would be logical for this to be part of the Headerlet class, perhaps
+# as a classmethod
 def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
     """
     Create a headerlet from a science observation
@@ -117,25 +127,24 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
            Name of file with science observation
     hdrname: string
            Name for the headerlet, stored in the primary header of the headerlet
-           If output is None, hdrname is used as output
     destim: string
            Destination image, stored in the primary header of the headerlet.
            If None ROOTNAME is used of the science observation is used.
            ROOTNAME has precedence, destim is used for observations without
-            ROOTNAME in the primary header
+           ROOTNAME in the primary header
     output: string
-           Name for the headerlet file.
-           HDRNAME is used if output is not given.
+           Save the headerlet to the given filename.
     verbose: False or a python logging level
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
     """
 
-    if verbose == False:
-        logger.setLevel(100)
-    else:
+    if verbose:
         logger.setLevel(verbose)
-    logger.info("Starting createHeaderlet: %s" %time.asctime())
+    else:
+        logger.setLevel(100)
+
+    logger.info("Starting createHeaderlet: %s" % time.asctime())
     fmt="%Y-%m-%dT%H:%M:%S"
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
@@ -155,7 +164,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
 
 
 
-    altkeys = altwcs.wcskeys(fobj[('SCI',1)].header)
+    altkeys = altwcs.wcskeys(fobj[('SCI', 1)].header)
     try:
         upwcsver = fobj[0].header.ascard['STWCSVER']
     except KeyError:
@@ -163,7 +172,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
                                "Version of STWCS used to update the WCS")
     if 'O' in altkeys:
         altkeys.remove('O')
-    numsci = countext(fname, 'SCI')
+    numsci = countExt(fname, 'SCI')
     logger.debug("Number of 'SCI' extensions in file %s is %s"
                  % (fname, numsci))
     hdul = pyfits.HDUList()
@@ -180,15 +189,16 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
                        value=fobj[('SCI',1)].header.get('VAFACTOR', 1.))
     hdul.append(phdu)
 
-    for e in range(1, numsci+1):
-        hwcs = HSTWCS(fname,ext=('SCI', e))
+    for e in range(1, numsci + 1):
+        hwcs = HSTWCS(fname, ext=('SCI', e))
         h = hwcs.wcs2header(sip2hdr=True).ascard
         for ak in altkeys:
             awcs = HSTWCS(fname,ext=('SCI', e), wcskey=ak)
             h.extend(awcs.wcs2header(idc2hdr=False).ascard)
         h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
-                 comment='Extension name'))
-        h.insert(1,pyfits.Card(key='EXTVER', value=e, comment='Extension version'))
+                                comment='Extension name'))
+        h.insert(1, pyfits.Card(key='EXTVER', value=e,
+                                comment='Extension version'))
 
         fhdr = fobj[('SCI', e)].header.ascard
         if phdukw['NPOLFILE']:
@@ -232,15 +242,15 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         # temporary fix for pyfits ticket # 48
         hdu._extver = e
         hdul.append(hdu)
-    numwdvarr = countext(fname, 'WCSDVARR')
-    numd2im = countext(fname, 'D2IMARR')
+    numwdvarr = countExt(fname, 'WCSDVARR')
+    numd2im = countExt(fname, 'D2IMARR')
     for w in range(1, numwdvarr + 1):
         hdu = fobj[('WCSDVARR', w)].copy()
         # temporary fix for pyfits ticket # 48
         hdu._extver = w
         hdul.append(hdu)
-    for d in range(1, numd2im+1):
-        hdu = fobj[('D2IMARR',d)].copy()
+    for d in range(1, numd2im + 1):
+        hdu = fobj[('D2IMARR', d)].copy()
         # temporary fix for pyfits ticket # 48
         hdu._extver = d
         hdul.append(hdu)
@@ -281,10 +291,10 @@ def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None,
              (an integer representing a logging level)
     """
 
-    logger.info("Starting applyHeaderlet: %s" %time.asctime())
+    logger.info("Starting applyHeaderlet: %s" % time.asctime())
     hlet = Headerlet(hdrfile)
-    hlet.apply2obs(destfile, destim=destim, hdrname=hdrname,
-                   createheaderlet=createheaderlet)
+    hlet.apply(destfile, destim=destim, hdrname=hdrname,
+               createheaderlet=createheaderlet)
 
 def updateRefFiles(source, dest):
     """
@@ -311,6 +321,8 @@ def updateRefFiles(source, dest):
             value = source[key]
             dest.insert(wind, value)
         except KeyError:
+            # TODO: I don't understand what the point of this is.  Is it meant
+            # for logging purposes?  Right now it isn't used.
             phdukw[key] = False
 
 def getRootname(fname):
@@ -329,7 +341,7 @@ def mapFitsExt2HDUListInd(fname, extname):
     Map FITS extensions with 'EXTNAME' to HDUList indexes.
     """
 
-    if isinstance(fname, str):
+    if isinstance(fname, basestring):
         f = pyfits.open(fname)
     else:
         f = fname
@@ -343,12 +355,12 @@ def mapFitsExt2HDUListInd(fname, extname):
     f.close()
     return d
 
-def countext(fname, extname):
+def countExt(fname, extname):
     """
     Return the number of extensions with EXTNAME in the file.
     """
 
-    if isinstance(fname, str):
+    if isinstance(fname, basestring):
         f = pyfits.open(fname)
     else:
         f = fname
@@ -360,170 +372,35 @@ def countext(fname, extname):
                  % (f.filename(), numext, extname))
     return numext
 
-def _delDestWCS(dest):
-    """
-    Delete the WCS of a science file
-    """
 
-    logger.info("Deleting all WCSs of file %s" %dest)
-    fobj = pyfits.open(dest, mode='update')
-    numext = len(fobj)
-
-    for e in range(numext):
-        _removeD2IM(fobj[e])
-        _removeSIP(fobj[e])
-        _removeLUT(fobj[e])
-        _removePrimaryWCS(fobj[e])
-        _removeIDCCoeffs(fobj[e])
-        try:
-            del fobj[e].header.ascard['VAFACTOR']
-        except KeyError:
-            pass
-
-    _removeAltWCS(fobj, ext=range(numext))
-    numwdvarr = countext(dest, 'WCSDVARR')
-    numd2im = countext(dest, 'D2IMARR')
-    for i in range(1, numwdvarr + 1):
-        del fobj[('WCSDVARR', i)]
-    for i in range(1, numd2im + 1):
-        del fobj[('D2IMARR', i)]
-    fobj.close()
-
-def _removeSIP(ext):
-    """
-    Remove the SIP distortion of a FITS extension
-    """
-
-    logger.debug("Removing SIP distortion from (%s, %s)"
-                 % (ext.name, ext._extver))
-    for prefix in ['A', 'B', 'AP', 'BP']:
-        try:
-            order = ext.header[prefix + '_ORDER']
-            del ext.header[prefix + '_ORDER']
-        except KeyError:
-            continue
-        for i in range(order + 1):
-            for j in range(order + 1):
-                key = prefix + '_%d_%d' % (i, j)
-                try:
-                    del ext.header[key]
-                except KeyError:
-                    pass
-    try:
-        del ext.header['IDCTAB']
-    except KeyError:
-        pass
-
-def _removeLUT(ext):
-    """
-    Remove the Lookup Table distortion of a FITS extension
-    """
-
-    logger.debug("Removing LUT distortion from (%s, %s)"
-                 % (ext.name, ext._extver))
-    try:
-        cpdis = ext.header['CPDIS*']
-    except KeyError:
-        return
-    try:
-        for c in range(1, len(cpdis) + 1):
-            del ext.header['DP%s.*...' % c]
-            del ext.header[cpdis[c - 1].key]
-        del ext.header['CPERR*']
-        del ext.header['NPOLFILE']
-        del ext.header['NPOLEXT']
-    except KeyError:
-        pass
-
-def _removeD2IM(ext):
-    """
-    Remove the Detector to Image correction of a FITS extension
-    """
-
-    logger.debug("Removing D2IM correction from (%s, %s)"
-                 % (ext.name, ext._extver))
-    d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
-    for k in d2imkeys:
-        try:
-            del ext.header[k]
-        except KeyError:
-            pass
-
-def _removeAltWCS(dest, ext):
-    """
-    Remove Alternate WCSs of a FITS extension.
-    A WCS with wcskey 'O' is never deleted.
-    """
-
-    dkeys = altwcs.wcskeys(dest[('SCI', 1)].header)
-    logger.debug("Removing alternate WCSs with keys %s from %s"
-                 % (dkeys, dest.filename()))
-    for k in dkeys:
-        altwcs.deleteWCS(dest, ext=ext, wcskey=k)
-
-def _removePrimaryWCS(ext):
-    """
-    Remove the primary WCS of a FITS extension
-    """
-
-    logger.debug("Removing Primary WCS from (%s, %s)"
-                 % (ext.name, ext._extver))
-    naxis = ext.header.ascard['NAXIS'].value
-    for key in basic_wcs:
-        for i in range(1, naxis + 1):
-            try:
-                del ext.header.ascard[key + str(i)]
-            except KeyError:
-                pass
-    try:
-        del ext.header.ascard['WCSAXES']
-    except KeyError:
-        pass
-
-def _removeIDCCoeffs(ext):
-    """
-    Remove IDC coefficients of a FITS extension
-    """
-
-    logger.debug("Removing IDC coefficient from (%s, %s)"
-                 % (ext.name, ext._extver))
-    coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
-    for k in coeffs:
-        try:
-            del ext.header.ascard[k]
-        except KeyError:
-            pass
-
-
-class Headerlet(HDUList):
+class Headerlet(pyfits.HDUList):
     """
     A Headerlet class
     Ref: http://stsdas.stsci.edu/stsci_python_sphinxdocs/stwcs/headerlet_def.html
     """
 
-    def __init__(self, fname, wcskeys=[], verbose=False):
+    def __init__(self, fobj, wcskeys=[], mode='copyonwrite', verbose=False):
         """
         Parameters
         ----------
-        fname:  string
-                Name of headerlet file
+        fobj:  string
+                Name of headerlet file, file-like object, a list of HDU
+                instances, or an HDUList instance
         wcskeys: python list
                 a list of wcskeys to be included in the headerlet
                 created from the old WCS solution before the
                 science file is updated. If empty: all alternate (if any)
                 WCSs are copied to the headerlet.
+        mode: string, optional
+                Mode with which to open the given file object
         """
 
         logger.info("Creating a Headerlet object from wcskeys %s" % wcskeys)
         self.wcskeys = wcskeys
-        if isinstance(fname,str):
-            fobj = pyfits.open(fname)
-        elif isinstance(fname, list):
-            fobj = fname
-        else:
-            raise ValueError("Input must be a file name (string) or a pyfits "
-                             "file object (HDUList).")
-        HDUList.__init__(self, fobj)
+        if not isinstance(fobj, list):
+            fobj = pyfits.open(fobj, mode=mode)
+
+        super(Headerlet, self).__init__(fobj)
         self.fname = self.filename()
         self.hdrname = self[0].header["HDRNAME"]
         self.stwcsver = self[0].header.get("STWCSVER", "")
@@ -535,23 +412,25 @@ class Headerlet(HDUList):
         self.d2imerr = 0
         self.axiscorr = 1
 
-    def apply2obs(self,dest, destim=None, hdrname=None, createheaderlet=True):
+    def apply(self, dest, destim=None, hdrname=None, createheaderlet=True):
         """
-        apply this headerlet to a file
+        Apply this headerlet to a file.
         """
 
         self.hverify()
         if self.verify_dest(dest):
             if createheaderlet:
-                createHeaderlet(dest, hdrname, destim)
-            _delDestWCS(dest)
+                # TODO: Currently this does nothing...the created headerlet
+                # isn't used--it should be given an appropriate name and
+                # appended to the end of the file.
+                orig_headerlet = createHeaderlet(dest, hdrname, destim)
             fobj = pyfits.open(dest, mode='update')
-
+            self._delDestWCS(fobj)
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
-            numsip = countext(self, 'SIPWCS')
-            for i in range(1, numsip + 1):
-                fhdr = fobj[('SCI', i)].header.ascard
-                siphdr = self[('SIPWCS', i)].header.ascard
+            numsip = countExt(self, 'SIPWCS')
+            for idx in range(1, numsip + 1):
+                fhdr = fobj[('SCI', idx)].header.ascard
+                siphdr = self[('SIPWCS', idx)].header.ascard
                 # a minimal attempt to get the position of the WCS keywords group
                 # in the header by looking for the PA_APER kw.
                 # at least make sure the WCS kw are written befir the HISTORY kw
@@ -564,6 +443,7 @@ class Headerlet(HDUList):
                     except KeyError:
                         wind = len(fhdr)
                 logger.debug("Inserting WCS keywords at index %s" % wind)
+                # TODO: Drop .keys() when refactored pyfits comes into use
                 for k in siphdr.keys():
                     if k not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
                                  'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN',
@@ -571,21 +451,21 @@ class Headerlet(HDUList):
                         fhdr.insert(wind, siphdr[k])
                     else:
                         pass
-            #! Always attach these extensions last. Otherwise therr headers may
+
+            #! Always attach these extensions last. Otherwise their headers may
             # get updated with the other WCS kw.
-            numwdvar = countext(self,'WCSDVARR')
-            numd2im = countext(self, 'D2IMARR')
-            for e in range(1, numwdvar + 1):
-                hdu = self[('WCSDVARR', e)].copy()
-                fobj.append(self[('WCSDVARR', e)].copy())
-            for e in range(1, numd2im + 1):
-                fobj.append(self[('D2IMARR', e)].copy())
+            numwdvar = countExt(self, 'WCSDVARR')
+            numd2im = countExt(self, 'D2IMARR')
+            for idx in range(1, numwdvar + 1):
+                fobj.append(self[('WCSDVARR', idx)].copy())
+            for idx in range(1, numd2im + 1):
+                fobj.append(self[('D2IMARR', idx)].copy())
             fobj.close()
         else:
             logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" %(dest, self.hdrname))
+                            "%s" % (dest, self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
-                  %(dest, self.hdrname)
+                  % (dest, self.hdrname)
 
 
     def hverify(self):
@@ -621,3 +501,276 @@ class Headerlet(HDUList):
         if not destim or not hdrname:
             self.hverify()
         self.writeto(fname, clobber=clobber)
+
+    def _delDestWCS(self, dest):
+        """
+        Delete the WCS of a science file
+        """
+
+        logger.info("Deleting all WCSs of file %s"
+                    % dest.fileinfo()['filename'])
+        numext = len(dest)
+
+        for idx in range(numext):
+            self._removeD2IM(dest[idx])
+            self._removeSIP(dest[idx])
+            self._removeLUT(dest[idx])
+            self._removePrimaryWCS(dest[idx])
+            self._removeIDCCoeffs(dest[idx])
+            try:
+                del dest[idx].header.ascard['VAFACTOR']
+            except KeyError:
+                pass
+
+        self._removeAltWCS(dest, ext=range(numext))
+        numwdvarr = countExt(dest, 'WCSDVARR')
+        numd2im = countExt(dest, 'D2IMARR')
+        for idx in range(1, numwdvarr + 1):
+            del dest[('WCSDVARR', idx)]
+        for idx in range(1, numd2im + 1):
+            del dest[('D2IMARR', idx)]
+
+    def _removeSIP(self, ext):
+        """
+        Remove the SIP distortion of a FITS extension
+        """
+
+        logger.debug("Removing SIP distortion from (%s, %s)"
+                     % (ext.name, ext._extver))
+        for prefix in ['A', 'B', 'AP', 'BP']:
+            try:
+                order = ext.header[prefix + '_ORDER']
+                del ext.header[prefix + '_ORDER']
+            except KeyError:
+                continue
+            for i in range(order + 1):
+                for j in range(order + 1):
+                    key = prefix + '_%d_%d' % (i, j)
+                    try:
+                        del ext.header[key]
+                    except KeyError:
+                        pass
+        try:
+            del ext.header['IDCTAB']
+        except KeyError:
+            pass
+
+    def _removeLUT(self, ext):
+        """
+        Remove the Lookup Table distortion of a FITS extension
+        """
+
+        logger.debug("Removing LUT distortion from (%s, %s)"
+                     % (ext.name, ext._extver))
+        try:
+            cpdis = ext.header['CPDIS*']
+        except KeyError:
+            return
+        try:
+            for c in range(1, len(cpdis) + 1):
+                del ext.header['DP%s.*...' % c]
+                del ext.header[cpdis[c - 1].key]
+            del ext.header['CPERR*']
+            del ext.header['NPOLFILE']
+            del ext.header['NPOLEXT']
+        except KeyError:
+            pass
+
+    def _removeD2IM(self, ext):
+        """
+        Remove the Detector to Image correction of a FITS extension
+        """
+
+        logger.debug("Removing D2IM correction from (%s, %s)"
+                     % (ext.name, ext._extver))
+        d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
+        for k in d2imkeys:
+            try:
+                del ext.header[k]
+            except KeyError:
+                pass
+
+    def _removeAltWCS(self, dest, ext):
+        """
+        Remove Alternate WCSs of a FITS extension.
+        A WCS with wcskey 'O' is never deleted.
+        """
+
+        dkeys = altwcs.wcskeys(dest[('SCI', 1)].header)
+        logger.debug("Removing alternate WCSs with keys %s from %s"
+                     % (dkeys, dest.filename()))
+        for k in dkeys:
+            altwcs.deleteWCS(dest, ext=ext, wcskey=k)
+
+    def _removePrimaryWCS(self, ext):
+        """
+        Remove the primary WCS of a FITS extension
+        """
+
+        logger.debug("Removing Primary WCS from (%s, %s)"
+                     % (ext.name, ext._extver))
+        naxis = ext.header.ascard['NAXIS'].value
+        for key in basic_wcs:
+            for i in range(1, naxis + 1):
+                try:
+                    del ext.header.ascard[key + str(i)]
+                except KeyError:
+                    pass
+        try:
+            del ext.header.ascard['WCSAXES']
+        except KeyError:
+            pass
+
+    def _removeIDCCoeffs(self, ext):
+        """
+        Remove IDC coefficients of a FITS extension
+        """
+
+        logger.debug("Removing IDC coefficient from (%s, %s)"
+                     % (ext.name, ext._extver))
+        coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
+        for k in coeffs:
+            try:
+                del ext.header.ascard[k]
+            except KeyError:
+                pass
+
+
+class HeaderletHDU(pyfits.core._NonstandardExtHDU):
+    """
+    A non-standard extension HDU for encapsulating Headerlets in a file.  These
+    HDUs have an extension type of HDRLET and their EXTNAME is derived from the
+    Headerlet's HDRNAME.
+
+    The data itself is a tar file containing a single file, which is the
+    Headerlet file itself.  The file name is derived from the HDRNAME keyword,
+    and should be in the form `<HDRNAME>_hdr.fits`.  If the COMPRESS keyword
+    evaluates to `True`, the tar file is compressed with gzip compression.
+
+    The Headerlet contained in the HDU's data can be accessed by the
+    `headerlet` attribute.
+    """
+
+    _xtn = _extension = 'HDRLET'
+
+    def __init__(self, data=None, header=None):
+        super(HeaderletHDU, self).__init__(data=data, header=header)
+        # TODO: This can be removed after the next pyfits release, but for now
+        # the _ExtensionHDU base class sets self._xtn = '' in its __init__().
+        self._xtn = self._extension
+        # For some reason _NonstandardExtHDU.__init__ sets self.name = None,
+        # even if it's already been set by the EXTNAME keyword in
+        # _ExtensionHDU.__init__() -_-;
+        if header and header.has_key('EXTNAME') and not self.name:
+            self.name = header['EXTNAME']
+        # self._extver, if set, is still preserved.  From
+        # _ExtensionHDU.__init__()...totally inconsistent.
+
+    def __getattr__(self, attr):
+        if attr == 'data':
+            size = self.size()
+            self._file.seek(self._datLoc)
+            self.__dict__[attr] = self._file.read(size)
+        elif attr == 'headerlet':
+            self._file.seek(self._datLoc)
+            # TODO: Handle compression
+            t = tarfile.open(fileobj=self._file)
+            members = t.getmembers()
+            if not len(members):
+                raise ValueError('The Headerlet contents are missing.')
+            elif len(members) > 1:
+                warnings.warn('More than one file is contained in this '
+                              'only the headerlet file should be present.')
+            hlt_name = self.name + '_hdr.fits'
+            try:
+                hlt_info = t.getmember(hlt_name)
+            except KeyError:
+                warnings.warn('The file %s was missing from the HDU data.  '
+                              'Assuming that the first file in the data is '
+                              'headerlet file.')
+                hlt_info = members[0]
+            hlt_file = t.extractfile(hlt_info)
+            # hlt_file is a file-like object
+            hlt = Headerlet(hlt_file, mode='readonly')
+            self.__dict__[attr] = hlt
+        else:
+            return pyfits.core._ValidHDU.__getattr__(self, attr)
+        try:
+            return self.__dict__[attr]
+        except KeyError:
+            raise AttributeError(attr)
+
+    @classmethod
+    def fromheaderlet(cls, headerlet, compress=False):
+        """
+        Creates a new HeaderletHDU from a given Headerlet object.
+
+        Parameters
+        ----------
+        headerlet : Headerlet
+            A valid Headerlet object.
+        compress : bool, optional
+            Gzip compress the headerlet data.
+        """
+
+        phdu = headerlet[0]
+        phduhdr = phdu.header
+
+        cards = [
+            pyfits.Card('XTENSION', cls._extension, 'Headerlet extension'),
+            pyfits.Card('EXTNAME', phdu.header['HDRNAME'],
+                        'name of the headerlet extension'),
+            phdu.header.ascard['HDRNAME'],
+            phdu.header.ascard['DATE'],
+            pyfits.Card('SIPNAME', headerlet['SIPWCS', 1].header['WCSNAMEA'],
+                        'SIP distortion model name'),
+            phdu.header.ascard['NPOLFILE'],
+            phdu.header.ascard['D2IMFILE'],
+            pyfits.Card('COMPRESS', compress, 'Uses gzip compression')
+        ]
+
+        hlt_filename = phdu.header['HDRNAME'] + '_hdr.fits'
+        header = pyfits.Header(pyfits.CardList(cards))
+        # TODO: As it stands there's no good way to write out an HDUList in
+        # memory, since it automatically closes the given file-like object when
+        # it's done writing.  I'd argue that if passed an open file handler it
+        # should not close it, but for now we'll have to write to a temp file.
+        fd, name = tempfile.mkstemp()
+        try:
+            f = os.fdopen(fd, 'rb+')
+            headerlet.writeto(f)
+            # The tar file itself we'll write in memory, as it should be
+            # relatively small
+            if compress:
+                mode = 'w:gz'
+            else:
+                mode = 'w'
+            s = StringIO()
+            t = tarfile.open(mode=mode, fileobj=s)
+            t.add(name, arcname=hlt_filename)
+            t.close()
+        finally:
+            os.remove(name)
+
+        hdu = cls(data=pyfits.DELAYED, header=header)
+        hdu._file = s
+        hdu._datLoc = 0
+        return hdu
+
+    def size(self):
+        """
+        Returns the size of the HDU's data portion.
+        """
+
+        self._file.seek(self._datLoc)
+        t = tarfile.open(fileobj=self._file)
+        # This will seek to the end of the tarfile
+        t.getmembers()
+        return self._file.tell() - self._datLoc
+
+    # TODO: Add header verification
+
+    def _summary(self):
+        # TODO: Perhaps make this more descriptive...
+        return '%-6s  %-10s  %3d' % (self.name, self.__class__.__name__,
+                                     len(self._header.ascard))
