@@ -673,8 +673,18 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
             self.__dict__[attr] = self._file.read(size)
         elif attr == 'headerlet':
             self._file.seek(self._datLoc)
-            # TODO: Handle compression
-            t = tarfile.open(fileobj=self._file)
+            s = StringIO()
+            # Read the data into a StringIO--reading directly from the file
+            # won't work (at least for gzipped files) due to problems deep
+            # within the gzip module that make it difficult to read gzip files
+            # embedded in another file
+            s.write(self._file.read(self.size()))
+            s.seek(0)
+            if self._header['COMPRESS']:
+                mode = 'r:gz'
+            else:
+                mode = 'r'
+            t = tarfile.open(mode=mode, fileobj=s)
             members = t.getmembers()
             if not len(members):
                 raise ValueError('The Headerlet contents are missing.')
@@ -715,22 +725,8 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
 
         phdu = headerlet[0]
         phduhdr = phdu.header
-
-        cards = [
-            pyfits.Card('XTENSION', cls._extension, 'Headerlet extension'),
-            pyfits.Card('EXTNAME', phdu.header['HDRNAME'],
-                        'name of the headerlet extension'),
-            phdu.header.ascard['HDRNAME'],
-            phdu.header.ascard['DATE'],
-            pyfits.Card('SIPNAME', headerlet['SIPWCS', 1].header['WCSNAMEA'],
-                        'SIP distortion model name'),
-            phdu.header.ascard['NPOLFILE'],
-            phdu.header.ascard['D2IMFILE'],
-            pyfits.Card('COMPRESS', compress, 'Uses gzip compression')
-        ]
-
         hlt_filename = phdu.header['HDRNAME'] + '_hdr.fits'
-        header = pyfits.Header(pyfits.CardList(cards))
+
         # TODO: As it stands there's no good way to write out an HDUList in
         # memory, since it automatically closes the given file-like object when
         # it's done writing.  I'd argue that if passed an open file handler it
@@ -752,25 +748,61 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
         finally:
             os.remove(name)
 
+        cards = [
+            pyfits.Card('XTENSION', cls._extension, 'Headerlet extension'),
+            pyfits.Card('BITPIX',    8, 'array data type'),
+            pyfits.Card('NAXIS',     1, 'number of array dimensions'),
+            pyfits.Card('NAXIS1',    len(s.getvalue()), 'Axis length'),
+            pyfits.Card('PCOUNT',    0, 'number of parameters'),
+            pyfits.Card('GCOUNT',    1, 'number of groups'),
+            pyfits.Card('EXTNAME', phdu.header['HDRNAME'],
+                        'name of the headerlet extension'),
+            phdu.header.ascard['HDRNAME'],
+            phdu.header.ascard['DATE'],
+            pyfits.Card('SIPNAME', headerlet['SIPWCS', 1].header['WCSNAMEA'],
+                        'SIP distortion model name'),
+            phdu.header.ascard['NPOLFILE'],
+            phdu.header.ascard['D2IMFILE'],
+            pyfits.Card('COMPRESS', compress, 'Uses gzip compression')
+        ]
+
+        header = pyfits.Header(pyfits.CardList(cards))
+
         hdu = cls(data=pyfits.DELAYED, header=header)
         hdu._file = s
         hdu._datLoc = 0
         return hdu
 
-    def size(self):
+    @classmethod
+    def match_header(cls, header):
         """
-        Returns the size of the HDU's data portion.
+        This is a class method used in the pyfits refactoring branch to
+        recognize whether or not this class should be used for instantiating
+        an HDU object based on values in the header.
+
+        It is included here for forward-compatibility.
         """
 
-        self._file.seek(self._datLoc)
-        t = tarfile.open(fileobj=self._file)
-        # This will seek to the end of the tarfile
-        t.getmembers()
-        return self._file.tell() - self._datLoc
+        card = header.ascard[0]
+        if card.key != 'XTENSION':
+            return False
+        xtension = card.value.rstrip()
+        return xtension == cls._extension
 
     # TODO: Add header verification
 
     def _summary(self):
         # TODO: Perhaps make this more descriptive...
-        return '%-6s  %-10s  %3d' % (self.name, self.__class__.__name__,
-                                     len(self._header.ascard))
+        return '%-10s  %-12s  %4d' % (self.name, self.__class__.__name__,
+                                      len(self._header.ascard))
+
+# Monkey-patch pyfits to add minimal support for HeaderletHDUs
+# TODO: Get rid of this ASAP!!! (it won't be necessary with the pyfits
+# refactoring branch)
+__old_updateHDUtype = pyfits.Header._updateHDUtype
+def __updateHDUtype(self):
+    if HeaderletHDU.match_header(self):
+        self._hdutype = HeaderletHDU
+    else:
+        __old_updateHDUtype(self)
+pyfits.Header._updateHDUtype = __updateHDUtype
