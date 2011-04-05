@@ -17,22 +17,22 @@ from mappings import basic_wcs
 
 
 __docformat__ = 'restructuredtext'
-    
+
 class HSTWCS(WCS):
 
     def __init__(self, fobj=None, ext=None, minerr=0.0, wcskey=" "):
         """
         Create a WCS object based on the instrument.
-        
+
         In addition to basic WCS keywords this class provides
         instrument specific information needed in distortion computation.
-        
+
         Parameters
         ----------
         fobj: string or PyFITS HDUList object or None
                 a file name, e.g j9irw4b1q_flt.fits
                 a fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
-                a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the 
+                a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the
                 user is responsible for closing the file object.
         ext:  int or None
                 extension number
@@ -42,14 +42,14 @@ class HSTWCS(WCS):
                 If CPERRja, CQERRja are smaller than minerr, the corersponding
                 distortion is not applied.
         wcskey: str
-                A one character A-Z or " " used to retrieve and define an 
+                A one character A-Z or " " used to retrieve and define an
                 alternate WCS description.
         """
 
         self.inst_kw = ins_spec_kw
         self.minerr = minerr
         self.wcskey = wcskey
-        
+
         if fobj != None:
             filename, hdr0, ehdr, phdu = getinput.parseSingleInput(f=fobj, ext=ext)
             self.filename = filename
@@ -62,14 +62,14 @@ class HSTWCS(WCS):
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
-                phdu.close()   
+                phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
             extname = ehdr.get('EXTNAME', "")
             extnum = ehdr.get('EXTVER', None)
             self.extname = (extname, extnum)
         else:
-            # create a default HSTWCS object 
+            # create a default HSTWCS object
             self.instrument = 'DEFAULT'
             WCS.__init__(self, minerr=self.minerr, key=self.wcskey)
             self.pc2cd()
@@ -89,22 +89,22 @@ class HSTWCS(WCS):
         """
         Populate the instrument specific attributes:
 
-        These can be in different headers but each instrument class has knowledge 
+        These can be in different headers but each instrument class has knowledge
         of where to look for them.
-        
+
         Parameters
         ----------
         prim_hdr: pyfits.Header
                   primary header
         ext_hdr:  pyfits.Header
                   extension header
-        
-        """ 
+
+        """
         if self.instrument in inst_mappings.keys():
             inst_kl = inst_mappings[self.instrument]
             inst_kl = instruments.__dict__[inst_kl]
             insobj = inst_kl(prim_hdr, ext_hdr)
-            
+
             for key in self.inst_kw:
                 try:
                     self.__setattr__(key, insobj.__getattribute__(key))
@@ -115,7 +115,7 @@ class HSTWCS(WCS):
                         raise
                     else:
                         pass
-            
+
         else:
             raise KeyError, "Unsupported instrument - %s" %self.instrument
 
@@ -132,7 +132,7 @@ class HSTWCS(WCS):
             to a CD matrix, if reasonable, by running pc2.cd() method.\n \
             The plate scale can be set then by calling setPscale() method.\n"
             self.pscale = None
-            
+
     def setOrient(self):
         """
         Computes ORIENTAT from the CD matrix
@@ -146,30 +146,30 @@ class HSTWCS(WCS):
             to a CD matrix, if reasonable, by running pc2.cd() method.\n \
             The orientation can be set then by calling setOrient() method.\n"
             self.pscale = None
-            
+
     def updatePscale(self, scale):
         """
         Updates the CD matrix with a new plate scale
         """
         self.wcs.cd = self.wcs.cd/self.pscale*scale
         self.setPscale()
-        
+
     def readModel(self, update=False, header=None):
         """
         Reads distortion model from IDCTAB.
-        
+
         If IDCTAB is not found ('N/A', "", or not found on disk), then
         if SIP coefficients and first order IDCTAB coefficients are present
         in the header, restore the idcmodel from the header.
         If not - assign None to self.idcmodel.
-        
+
         Parameters
         ----------
         header: pyfits.Header
                 fits extension header
         update: boolean (False)
                 if True - record the following IDCTAB quantities as header keywords:
-                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF, 
+                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
                 IDCV2REF, IDCV3REF
         """
         if self.idctab in [None, '', ' ','N/A']:
@@ -187,7 +187,7 @@ class HSTWCS(WCS):
                 self.idcmodel = None
         else:
             self.readModelFromIDCTAB(header=header, update=update)
-            
+
     def _readModelFromHeader(self, header):
         # Recreate idc model from SIP coefficients and header kw
         print 'Restoring IDC model from SIP coefficients\n'
@@ -197,7 +197,7 @@ class HSTWCS(WCS):
         model.cy = cy
         model.name = "sip"
         model.norder = header['A_ORDER']
-        
+
         refpix = {}
         refpix['XREF'] = header['IDCXREF']
         refpix['YREF'] = header['IDCYREF']
@@ -206,23 +206,23 @@ class HSTWCS(WCS):
         refpix['V3REF'] = header['IDCV3REF']
         refpix['THETA'] = header['IDCTHETA']
         model.refpix = refpix
-        
+
         self.idcmodel = model
-        
-        
+
+
     def readModelFromIDCTAB(self, header=None, update=False):
         """
         Read distortion model from idc table.
-        
+
         Parameters
         ----------
         header: pyfits.Header
                 fits extension header
         update: boolean (False)
                 if True - save teh following as header keywords:
-                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF, 
+                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
                 IDCV2REF, IDCV3REF
-                   
+
         """
         if self.date_obs == None:
             print 'date_obs not available\n'
@@ -247,10 +247,10 @@ class HSTWCS(WCS):
     def wcs2header(self, sip2hdr=False, idc2hdr=True):
         """
         Create a pyfits.Header object from WCS keywords.
-        
+
         If the original header had a CD matrix, return a CD matrix,
         otherwise return a PC matrix.
-        
+
         Parameters
         ----------
         sip2hdr: boolean
@@ -259,7 +259,7 @@ class HSTWCS(WCS):
         h = self.to_header()
         if self.wcs.has_cd():
             h = altwcs.pc2cd(h, key=self.wcskey)
-        
+
         if idc2hdr:
             for card in self._idc2hdr():
                 h.update(card.key,value=card.value,comment=card.comment)        
@@ -267,7 +267,7 @@ class HSTWCS(WCS):
             del h.ascard['RESTFRQ']
             del h.ascard['RESTWAV']
         except KeyError: pass
-        
+
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
                 h.update(card.key,value=card.value,comment=card.comment)
@@ -282,7 +282,7 @@ class HSTWCS(WCS):
                 bp = self.sip.bp
             except AssertionError:
                 bp = None
-            
+
             if ap:
                 for card in self._sip2hdr('ap'):
                     h.update(card.key,value=card.value,comment=card.comment)
@@ -290,26 +290,26 @@ class HSTWCS(WCS):
                 for card in self._sip2hdr('bp'):
                     h.update(card.key,value=card.value,comment=card.comment)
         return h
-    
-    
+
+
     def _sip2hdr(self, k):
         """
-        Get a set of SIP coefficients in the form of an array 
-        and turn them into a pyfits.Cardlist. 
+        Get a set of SIP coefficients in the form of an array
+        and turn them into a pyfits.Cardlist.
         k - one of 'a', 'b', 'ap', 'bp'
         """
-    
+
         cards = pyfits.CardList()
         korder = self.sip.__getattribute__(k+'_order')
         cards.append(pyfits.Card(key=k.upper()+'_ORDER', value=korder))
         coeffs = self.sip.__getattribute__(k)
         ind = coeffs.nonzero()
         for i in range(len(ind[0])):
-            card = pyfits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]), 
+            card = pyfits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
                                value=coeffs[ind[0][i], ind[1][i]])
             cards.append(card)
         return cards
-    
+
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
@@ -321,51 +321,51 @@ class HSTWCS(WCS):
                 continue
             cards.append(pyfits.Card(key=c, value=val))
         return cards
-    
+
     def pc2cd(self):
         self.wcs.cd = self.wcs.pc.copy()
-        
+
     def all_sky2pix(self,ra,dec,origin):
-        """ 
-        Performs full inverse transformation using iterative solution 
+        """
+        Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
-        
+
         NOTES
         -----
         We now need to find the position we want by iterative
         improvement of an initial guess - the centre of the chip
-        
+
         The method is to derive an "effective CD matrix" and use that
         to apply a correction until we are close enough (as defined by
         the ERR variable)
-        
+
         Code from the drizzle task TRANBACK (dither$drizzle/tranback.f)
         defined the algorithm for this implementation
-        
+
         """
         from stwcs.distortion import utils
-        
+
         # Define some output arrays
         xout = np.zeros(len(ra),dtype=np.float64)
         yout = np.zeros(len(ra),dtype=np.float64)
         # ... and internal arrays
         x = np.zeros(3,dtype=np.float64)
         y = np.zeros(3,dtype=np.float64)
-    
+
         # define delta for comparison
         err = 0.0001
-        
+
         # Use linear WCS as frame in which to perform fit
         # rather than on the sky
         undistort = True
         if self.sip is None:
             # Only apply distortion if distortion coeffs are present.
-            undistort = False        
+            undistort = False
         wcslin = utils.output_wcs([self],undistort=undistort)
-        
+
         # We can only transform 1 position at a time
         for r,d,n in zip(ra,dec,xrange(len(ra))):
-            # First guess for output 
+            # First guess for output
             x[0],y[0] = self.wcs_sky2pix(r,d,origin)
             # also convert RA,Dec into undistorted linear pixel positions
             lx,ly = wcslin.wcs_sky2pix(r,d,origin)
@@ -374,7 +374,7 @@ class HSTWCS(WCS):
             ev_old = None
             for i in xrange(20):
                 x[1] = x[0] + 1.0
-                y[1] = y[0] 
+                y[1] = y[0]
                 x[2] = x[0]
                 y[2] = y[0] + 1.0
                 # Perform full transformation on pixel position
@@ -382,11 +382,11 @@ class HSTWCS(WCS):
                 # convert RA,Dec into linear pixel positions for fitting
                 xo,yo = wcslin.wcs_sky2pix(rao,deco,origin)
 
-                # Compute deltas between output and initial guess as 
+                # Compute deltas between output and initial guess as
                 # an affine transform then invert that transformation
                 dxymat = np.array([[xo[1]-xo[0],yo[1]-yo[0]],
                           [xo[2]-xo[0],yo[2]-yo[0]]],dtype=np.float64)
-                         
+
                 invmat = np.linalg.inv(dxymat)
                 # compute error in output position
                 dx = lx - xo[0]
@@ -402,14 +402,14 @@ class HSTWCS(WCS):
 
                 # Work out the error vector length
                 ev = np.sqrt((x[0] - xold)**2 + (y[0] - yold)**2)
-                
+
                 # initialize record of previous error measurement during 1st iteration
                 if ev_old is None:
                     ev_old = ev
-                    
-                # Check to see whether we have reached the limit or 
+
+                # Check to see whether we have reached the limit or
                 # the new error is greater than error from previous iteration
-                if ev < err or (np.abs(ev) > np.abs(ev_old)): 
+                if ev < err or (np.abs(ev) > np.abs(ev_old)):
                     break
                 # remember error measurement from previous iteration
                 ev_old = ev
@@ -418,7 +418,7 @@ class HSTWCS(WCS):
             yout[n] = y[0]
 
         return xout,yout
-                
+
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
@@ -432,7 +432,7 @@ class HSTWCS(WCS):
         ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
         ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
         ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
-        
+
     def printwcs(self):
         """
         Print the basic WCS keywords.

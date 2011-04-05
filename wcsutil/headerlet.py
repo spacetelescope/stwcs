@@ -1,20 +1,23 @@
 from __future__ import division
+import logging
 import os
 import tarfile
 import tempfile
 import time
-import numpy as np
 import warnings
-import pyfits
-
 from cStringIO import StringIO
 
-from hstwcs import HSTWCS
-import altwcs
-from mappings import basic_wcs
+import numpy as np
+import pyfits
 
-import logging
+import altwcs
+import wcscorr
+from hstwcs import HSTWCS
+from mappings import basic_wcs
+from pytools.fileutil import countExtn
+
 logger = logging.getLogger(__name__)
+
 
 def isWCSIdentical(scifile, file2, verbose=False):
     """
@@ -50,8 +53,8 @@ def isWCSIdentical(scifile, file2, verbose=False):
     logger.info("Starting isWCSIdentical: %s" % time.asctime())
 
     result = True
-    numsci1 = max(countExt(scifile, 'SCI'), countExt(scifile, 'SIPWCS'))
-    numsci2 = max(countExt(file2, 'SCI'), countExt(file2, 'SIPWCS'))
+    numsci1 = max(countExtn(scifile), countExtn(scifile, 'SIPWCS'))
+    numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
 
     if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
         logger.info("Number of SCI and SIPWCS extensions do not match.")
@@ -149,7 +152,12 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
             'D2IMFILE': True}
-    fobj = pyfits.open(fname)
+    if not isinstance(fname, pyfits.HDUList):
+        fobj = pyfits.open(fname)
+        close_file = True
+    else:
+        fobj = fname
+        close_file = False
     if destim is None:
         try:
             destim = fobj[0].header['ROOTNAME']
@@ -172,7 +180,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
                                "Version of STWCS used to update the WCS")
     if 'O' in altkeys:
         altkeys.remove('O')
-    numsci = countExt(fname, 'SCI')
+    numsci = countExtn(fname)
     logger.debug("Number of 'SCI' extensions in file %s is %s"
                  % (fname, numsci))
     hdul = pyfits.HDUList()
@@ -242,8 +250,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         # temporary fix for pyfits ticket # 48
         hdu._extver = e
         hdul.append(hdu)
-    numwdvarr = countExt(fname, 'WCSDVARR')
-    numd2im = countExt(fname, 'D2IMARR')
+    numwdvarr = countExtn(fname, 'WCSDVARR')
+    numd2im = countExtn(fname, 'D2IMARR')
     for w in range(1, numwdvarr + 1):
         hdu = fobj[('WCSDVARR', w)].copy()
         # temporary fix for pyfits ticket # 48
@@ -259,7 +267,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         if not output.endswith('_hdr.fits'):
             output = output + '_hdr.fits'
         hdul.writeto(output, clobber=True)
-    fobj.close()
+    if close_file:
+        fobj.close()
     return Headerlet(hdul)
 
 def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None,
@@ -341,10 +350,12 @@ def mapFitsExt2HDUListInd(fname, extname):
     Map FITS extensions with 'EXTNAME' to HDUList indexes.
     """
 
-    if isinstance(fname, basestring):
+    if not isinstance(fname, pyfits.HDUList):
         f = pyfits.open(fname)
+        close_file = True
     else:
         f = fname
+        close_file = False
     d = {}
     for hdu in f:
         # TODO: Replace calls to header.has_key() with `in header` once
@@ -352,25 +363,9 @@ def mapFitsExt2HDUListInd(fname, extname):
         if hdu.header.has_key('EXTNAME') and hdu.header['EXTNAME'] == extname:
             extver = hdu.header['EXTVER']
             d[(extname, extver)] = f.index_of((extname, extver))
-    f.close()
+    if close_file:
+        f.close()
     return d
-
-def countExt(fname, extname):
-    """
-    Return the number of extensions with EXTNAME in the file.
-    """
-
-    if isinstance(fname, basestring):
-        f = pyfits.open(fname)
-    else:
-        f = fname
-    numext = 0
-    for hdu in f:
-        if hdu.header.has_key('EXTNAME') and hdu.header['EXTNAME'] == extname:
-            numext+=1
-    logger.debug("file %s has %s extensions with extname=%s"
-                 % (f.filename(), numext, extname))
-    return numext
 
 
 class Headerlet(pyfits.HDUList):
@@ -412,22 +407,43 @@ class Headerlet(pyfits.HDUList):
         self.d2imerr = 0
         self.axiscorr = 1
 
-    def apply(self, dest, destim=None, hdrname=None, createheaderlet=True):
+    def apply(self, dest, createheaderlet=True):
         """
         Apply this headerlet to a file.
         """
 
         self.hverify()
         if self.verify_dest(dest):
+            if not isinstance(dest, pyfits.HDUList):
+                fobj = pyfits.open(dest, mode='update')
+                close_dest = True
+            else:
+                fobj = dest
+                close_dest = False
+
+            # Create the WCSCORR HDU/table from the existing WCS keywords if
+            # necessary
+            try:
+                # TODO: in the pyfits refactoring branch if will be easier to
+                # test whether an HDUList contains a certain extension HDU
+                # without relying on try/except
+                wcscorr = fobj['WCSCORR']
+            except KeyError:
+                # The WCSCORR table needs to be created
+                wcscorr.init_wcscorr(fobj)
+
             if createheaderlet:
-                # TODO: Currently this does nothing...the created headerlet
-                # isn't used--it should be given an appropriate name and
-                # appended to the end of the file.
-                orig_headerlet = createHeaderlet(dest, hdrname, destim)
-            fobj = pyfits.open(dest, mode='update')
+                # Create a headerlet for the original WCS data in the file,
+                # create an HDU from the original headerlet, and append it to
+                # the file
+                hdrname = fobj[0].header['ROOTNAME'] + '_orig'
+                orig_hlt = createHeaderlet(fobj, hdrname)
+                orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
+                fobj.append(orig_hlt_hdu)
+
             self._delDestWCS(fobj)
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
-            numsip = countExt(self, 'SIPWCS')
+            numsip = countExtn(self, 'SIPWCS')
             for idx in range(1, numsip + 1):
                 fhdr = fobj[('SCI', idx)].header.ascard
                 siphdr = self[('SIPWCS', idx)].header.ascard
@@ -454,13 +470,14 @@ class Headerlet(pyfits.HDUList):
 
             #! Always attach these extensions last. Otherwise their headers may
             # get updated with the other WCS kw.
-            numwdvar = countExt(self, 'WCSDVARR')
-            numd2im = countExt(self, 'D2IMARR')
+            numwdvar = countExtn(self, 'WCSDVARR')
+            numd2im = countExtn(self, 'D2IMARR')
             for idx in range(1, numwdvar + 1):
                 fobj.append(self[('WCSDVARR', idx)].copy())
             for idx in range(1, numd2im + 1):
                 fobj.append(self[('D2IMARR', idx)].copy())
-            fobj.close()
+            if close_dest:
+                fobj.close()
         else:
             logger.critical("Observation %s cannot be updated with headerlet "
                             "%s" % (dest, self.hdrname))
@@ -486,7 +503,10 @@ class Headerlet(pyfits.HDUList):
         """
 
         try:
-            droot = pyfits.getval(dest, 'ROOTNAME')
+            if not isinstance(dest, pyfits.HDUList):
+                droot = pyfits.getval(dest, 'ROOTNAME')
+            else:
+                droot = dest[0].header['ROOTNAME']
         except KeyError:
             logger.debug("Keyword 'ROOTNAME' not found in destination file")
             droot = dest.split('.fits')[0]
@@ -507,8 +527,7 @@ class Headerlet(pyfits.HDUList):
         Delete the WCS of a science file
         """
 
-        logger.info("Deleting all WCSs of file %s"
-                    % dest.fileinfo()['filename'])
+        logger.info("Deleting all WCSs of file %s" % dest.filename())
         numext = len(dest)
 
         for idx in range(numext):
@@ -523,8 +542,8 @@ class Headerlet(pyfits.HDUList):
                 pass
 
         self._removeAltWCS(dest, ext=range(numext))
-        numwdvarr = countExt(dest, 'WCSDVARR')
-        numd2im = countExt(dest, 'D2IMARR')
+        numwdvarr = countExtn(dest, 'WCSDVARR')
+        numd2im = countExtn(dest, 'D2IMARR')
         for idx in range(1, numwdvarr + 1):
             del dest[('WCSDVARR', idx)]
         for idx in range(1, numd2im + 1):
@@ -691,13 +710,13 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
             elif len(members) > 1:
                 warnings.warn('More than one file is contained in this '
                               'only the headerlet file should be present.')
-            hlt_name = self.name + '_hdr.fits'
+            hlt_name = self._header['HDRNAME'] + '_hdr.fits'
             try:
                 hlt_info = t.getmember(hlt_name)
             except KeyError:
                 warnings.warn('The file %s was missing from the HDU data.  '
                               'Assuming that the first file in the data is '
-                              'headerlet file.')
+                              'headerlet file.' % hlt_name)
                 hlt_info = members[0]
             hlt_file = t.extractfile(hlt_info)
             # hlt_file is a file-like object
@@ -755,7 +774,7 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
             pyfits.Card('NAXIS1',    len(s.getvalue()), 'Axis length'),
             pyfits.Card('PCOUNT',    0, 'number of parameters'),
             pyfits.Card('GCOUNT',    1, 'number of groups'),
-            pyfits.Card('EXTNAME', phdu.header['HDRNAME'],
+            pyfits.Card('EXTNAME', cls._extension,
                         'name of the headerlet extension'),
             phdu.header.ascard['HDRNAME'],
             phdu.header.ascard['DATE'],
