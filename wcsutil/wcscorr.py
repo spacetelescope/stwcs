@@ -222,7 +222,7 @@ def update_wcscorr(fimg,hdr,selections=None):
 
     # Now, we need to merge this into the existing table
     old_table = fimg['WCSCORR']
-    rowind = find_wcscorr_row(old_table.data,{'wcs_id':' '})
+    rowind = find_wcscorr_row(old_table.data,{'wcs_id':''})
     old_nrows = np.where(rowind)[0][0]
 
     # check to see if there is room for the new row

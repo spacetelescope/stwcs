@@ -172,16 +172,15 @@ class HSTWCS(WCS):
                 CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF, 
                 IDCV2REF, IDCV3REF
         """
-
-        if self.idctab == None or self.idctab == ' ':
+        if self.idctab in [None, '', ' ','N/A']:
             #Keyword idctab is not present in header - check for sip coefficients
-            if header.has_key('IDCSCALE'):
+            if header is not None and header.has_key('IDCSCALE'):
                 self._readModelFromHeader(header)
             else:
                 print "Distortion model is not available: IDCTAB=None\n"
                 self.idcmodel = None
         elif not os.path.exists(fileutil.osfn(self.idctab)):
-            if header.has_key('IDCSCALE'):
+            if header is not None and header.has_key('IDCSCALE'):
                 self._readModelFromHeader(header)
             else:
                 print 'Distortion model is not available: IDCTAB file %s not found\n' % self.idctab
@@ -262,19 +261,19 @@ class HSTWCS(WCS):
             h = altwcs.pc2cd(h, key=self.wcskey)
         
         if idc2hdr:
-            h.ascard.extend(self._idc2hdr())
-        
+            for card in self._idc2hdr():
+                h.update(card.key,value=card.value,comment=card.comment)        
         try:
             del h.ascard['RESTFRQ']
             del h.ascard['RESTWAV']
         except KeyError: pass
         
         if sip2hdr and self.sip:
-            cards = self._sip2hdr('a')
-            h.ascard.extend(cards)
-            cards = self._sip2hdr('b')
-            h.ascard.extend(cards)
-            
+            for card in self._sip2hdr('a'):
+                h.update(card.key,value=card.value,comment=card.comment)
+            for card in self._sip2hdr('b'):
+                h.update(card.key,value=card.value,comment=card.comment)
+                            
             try:
                 ap = self.sip.ap
             except AssertionError:
@@ -285,11 +284,11 @@ class HSTWCS(WCS):
                 bp = None
             
             if ap:
-                cards = self._sip2hdr('ap')
-                h.ascard.extend(cards)
+                for card in self._sip2hdr('ap'):
+                    h.update(card.key,value=card.value,comment=card.comment)
             if bp:
-                cards = self._sip2hdr('bp')
-                h.ascard.extend(cards)
+                for card in self._sip2hdr('bp'):
+                    h.update(card.key,value=card.value,comment=card.comment)
         return h
     
     
