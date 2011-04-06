@@ -50,22 +50,24 @@ class HSTWCS(WCS):
         self.minerr = minerr
         self.wcskey = wcskey
 
-        if fobj != None:
-            filename, hdr0, ehdr, phdu = getinput.parseSingleInput(f=fobj, ext=ext)
+        if fobj is not None:
+            filename, hdr0, ehdr, phdu = getinput.parseSingleInput(f=fobj,
+                                                                   ext=ext)
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
             if instrument_name in ['IRAF/ARTDATA','',' ','N/A']:
                 self.instrument = 'DEFAULT'
             else:
                 self.instrument = instrument_name
-            WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr, key=self.wcskey)
+            WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
+                         key=self.wcskey)
             # If input was a pyfits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, pyfits.HDUList):
                 phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
-            extname = ehdr.get('EXTNAME', "")
+            extname = ehdr.get('EXTNAME', '')
             extnum = ehdr.get('EXTVER', None)
             self.extname = (extname, extnum)
         else:
@@ -262,7 +264,7 @@ class HSTWCS(WCS):
 
         if idc2hdr:
             for card in self._idc2hdr():
-                h.update(card.key,value=card.value,comment=card.comment)        
+                h.update(card.key,value=card.value,comment=card.comment)
         try:
             del h.ascard['RESTFRQ']
             del h.ascard['RESTWAV']
@@ -273,7 +275,7 @@ class HSTWCS(WCS):
                 h.update(card.key,value=card.value,comment=card.comment)
             for card in self._sip2hdr('b'):
                 h.update(card.key,value=card.value,comment=card.comment)
-                            
+
             try:
                 ap = self.sip.ap
             except AssertionError:

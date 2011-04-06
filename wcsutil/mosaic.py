@@ -12,16 +12,16 @@ from stwcs.wcsutil import altwcs
 def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort=True, wkey='V', wname='VirtualMosaic', plot=False, clobber=False):
     """
     Create a virtual mosaic using the WCS of the input images.
-    
+
     Parameters
     ----------
-    fnames: a string or a list 
+    fnames: a string or a list
               a string or a list of filenames, or a list of wcsutil.HSTWCS objects
     outwcs: an HSTWCS object
              if given, represents the output tangent plane
              if None, the output WCS is calculated from the input observations.
     ref_wcs: an HSTWCS object
-             if output wcs is not given, this will be used as a reference for the 
+             if output wcs is not given, this will be used as a reference for the
              calculation of the output WCS. If ref_wcs is None and outwcs is None,
              then the first observation in th einput list is used as reference.
     ext:    an int, a tuple or a list
@@ -34,21 +34,21 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
                undistort (or not) the output WCS
     wkey:   string
               default: 'V'
-              one character A-Z to be used to record the virtual mosaic WCS as 
+              one character A-Z to be used to record the virtual mosaic WCS as
               an alternate WCS in the headers of the input files.
     wname:  string
               default: 'VirtualMosaic
-              a string to be used as a WCSNAME value for the alternate WCS representign 
+              a string to be used as a WCSNAME value for the alternate WCS representign
               the virtual mosaic
     plot:   boolean
               if True and matplotlib is installed will make a plot of the tangent plane
               and the location of the input observations.
     clobber: boolean
-              This covers the case when an alternate WCS with the requested key 
+              This covers the case when an alternate WCS with the requested key
               already exists in the header of the input files.
               if clobber is True, it will be overwritten
               if False, it will compute the new one but will not write it to the headers.
-              
+
     Notes
     -----
     The algorithm is:
@@ -57,7 +57,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
        This represents the virtual mosaic WCS.
     2. For each input observation/chip, an HSTWCS object is created
        and its footprint on the sky is calculated (using only the four corners).
-    3. For each input observation the footprint is projected on the output 
+    3. For each input observation the footprint is projected on the output
        tangent plane and the virtual WCS is recorded in the header.
     """
     wcsobjects = readWCS(fnames, ext, extname)
@@ -65,12 +65,12 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
         outwcs = outwcs.deepcopy()
     else:
         if ref_wcs != None:
-            outwcs = utils.output_wcs(wcsobjects, ref_wcs=ref_wcs, undistort=undistort)  
+            outwcs = utils.output_wcs(wcsobjects, ref_wcs=ref_wcs, undistort=undistort)
         else:
             outwcs = utils.output_wcs(wcsobjects, undistort=undistort)
     if plot:
-        outc=np.array([[0.,0], [outwcs.naxis1,0], 
-                             [outwcs.naxis1, outwcs.naxis2], 
+        outc=np.array([[0.,0], [outwcs.naxis1,0],
+                             [outwcs.naxis1, outwcs.naxis2],
                              [0,outwcs.naxis2], [0,0]])
         plt.plot(outc[:,0], outc[:,1])
     for wobj in wcsobjects:
@@ -93,7 +93,7 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
     f = pyfits.open(fname, mode='update')
-    
+
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
     f[ext].header.update(key=wcsnamekey, value=wcsname)
@@ -101,11 +101,11 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
         f[ext].header.update(key=k[:7]+wkey, value=hwcs[k])
 
     f.close()
-    
+
 def wcs2header(wcsobj):
-    
+
     h = wcsobj.to_header()
-    
+
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
     h.update('CTYPE1', 'RA---TAN')
@@ -113,7 +113,7 @@ def wcs2header(wcsobj):
     norient = np.rad2deg(np.arctan2(h['CD1_2'],h['CD2_2']))
     #okey = 'ORIENT%s' % wkey
     okey = 'ORIENT'
-    h.update(key=okey, value=norient) 
+    h.update(key=okey, value=norient)
     return h
 
 def readWCS(input, exts=None, extname=None):
@@ -133,7 +133,7 @@ def readWCS(input, exts=None, extname=None):
             filelist = input[:]
     wcso = []
     fomited = []
-    # figure out which FITS extension(s) to use 
+    # figure out which FITS extension(s) to use
     if exts == None and extname == None:
         #Assume it's simple FITS and the data is in the primary HDU
         for f in filelist:
@@ -168,8 +168,8 @@ def readWCS(input, exts=None, extname=None):
         for f in fomited:
             print f
     return wcso
-    
-    
+
+
 def validateExt(ext):
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
        and not isinstance(ext, list):
@@ -180,4 +180,4 @@ def validateExt(ext):
         return True
 
 
-        
+

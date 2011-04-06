@@ -24,24 +24,24 @@ atexit.register(logging.shutdown)
 
 __docformat__ = 'restructuredtext'
 
-def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True, 
+def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               checkfiles=True, wcskey=" ", wcsname=" ", clobber=False, verbose=False):
     """
 
     Updates HST science files with the best available calibration information.
-    This allows users to retrieve from the archive self contained science files 
+    This allows users to retrieve from the archive self contained science files
     which do not require additional reference files.
-    
-    Basic WCS keywords are updated in the process and new keywords (following WCS 
+
+    Basic WCS keywords are updated in the process and new keywords (following WCS
     Paper IV and the SIP convention) as well as new extensions are added to the science files.
-    
-    
+
+
     Example
     -------
     >>>from stwcs import updatewcs
     >>>updatewcs.updatewcs(filename)
-    
-    Dependencies 
+
+    Dependencies
     ------------
     `pytools`
     `pyfits`
@@ -54,7 +54,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     vacorr: boolean
               If True, vecocity aberration correction will be applied
     tddcorr: boolean
-             If True, time dependent distortion correction will be applied 
+             If True, time dependent distortion correction will be applied
     npolcorr: boolean
               If True, a Lookup table distortion will be applied
     d2imcorr: boolean
@@ -69,7 +69,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               A-Z - use this key to archive the WCS
     wcsname: a string
               The name under which the primary WCS is archived after it is updated.
-              If an empty string (default), the name of the idctable is used as 
+              If an empty string (default), the name of the idctable is used as
               a base.
     clobber: boolean
               a flag for reusing the wcskey when archiving the primary WCS
@@ -79,11 +79,11 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     else:
         logger.setLevel(verbose)
     args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
-    wcskey=%s, wcsname=%s, clobber=%s" % (str(vacorr), str(tddcorr), str(npolcorr), 
-                                          str(d2imcorr), str(checkfiles), str(wcskey), 
+    wcskey=%s, wcsname=%s, clobber=%s" % (str(vacorr), str(tddcorr), str(npolcorr),
+                                          str(d2imcorr), str(checkfiles), str(wcskey),
                                           str(wcsname), str(clobber))
     logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
-    
+
     files = parseinput.parseinput(input)[0]
     logger.info("\n\tInput files: %s, " % [i for i in files])
     logger.info("\n\tInput arguments: %s" %args)
@@ -91,7 +91,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         files = checkFiles(files)
         if not files:
             print 'No valid input, quitting ...\n'
-            return 
+            return
 
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, \
@@ -99,7 +99,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if 'MakeWCS' in acorr and newIDCTAB(f):
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
-            
+
         #restore the original WCS keywords
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
@@ -109,7 +109,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     Purpose
     =======
     Applies corrections to the WCS of a single file
-    
+
     :Parameters:
     `fname`: string
              file name
@@ -121,7 +121,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
               A-Z - use this key to archive the WCS
     `wname`: a string
               The name under which the primary WCS is archived after it is updated.
-              If an empty string (default), the name of the idctable is used as 
+              If an empty string (default), the name of the idctable is used as
               a base.
     `clobber`: boolean
               a flag for reusing the wcskey when archiving the primary WCS
@@ -134,19 +134,19 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     wcsutil.restoreWCS(f, nrefext, wcskey='O', clobber=True)
     rwcs = HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True,header=f[nrefext].header)
-    
+
     wcsutil.archiveWCS(f, nrefext, 'O', wcsname='OPUS', clobber=True)
-    
+
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
-    
+
     # get a wcskey and wcsname from the first extension header
     idcname = fileutil.osfn(rwcs.idctab)
     key, name = getKeyName(f[1].header, wkey, wname, idcname)
-    
+
     for i in range(len(f))[1:]:
         extn = f[i]
-        
+
         if extn.header.has_key('extname'):
             extname = extn.header['extname'].lower()
             if  extname == 'sci':
@@ -163,7 +163,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
-                #if wkey is None, do not archive the primary WCS  
+                #if wkey is None, do not archive the primary WCS
                 if key is not None:
                     wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, clobber=True)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
@@ -174,7 +174,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                     copyWCS(w, extn.header, key, name)
             else:
                 continue
-    
+
     if 'NPOLCorr' in allowed_corr:
         kw2update = npol.NPOLCorr.updateWCS(f)
         for kw in kw2update:
@@ -207,13 +207,13 @@ def getKeyName(hdr, wkey, wname, idcname):
 
 def copyWCS(w, hdr, wkey, wname):
     """
-    This is a convenience function to copy a WCS object 
-    to a header as a primary WCS. It is used only to copy the 
+    This is a convenience function to copy a WCS object
+    to a header as a primary WCS. It is used only to copy the
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
     hwcs = w.to_header()
-    
+
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
@@ -221,19 +221,19 @@ def copyWCS(w, hdr, wkey, wname):
         hdr.update(key=key, value=hwcs[k])
     norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
     okey = 'ORIENT%s' % wkey
-    hdr.update(key=okey, value=norient) 
+    hdr.update(key=okey, value=norient)
 
 def getNrefchip(fobj):
     """
 
     Finds which FITS extension holds the reference chip.
-    
-    The reference chip has EXTNAME='SCI', can be in any extension and 
-    is instrument specific. This functions provides mappings between 
+
+    The reference chip has EXTNAME='SCI', can be in any extension and
+    is instrument specific. This functions provides mappings between
     sci extensions, chips and fits extensions.
     In the case of a subarray when the reference chip is missing, the
     first 'SCI' extension is the reference chip.
-    
+
     Parameters
     ----------
     fobj: pyfits HDUList object
@@ -241,19 +241,19 @@ def getNrefchip(fobj):
     nrefext = 1
     nrefchip = 1
     instrument = fobj[0].header['INSTRUME']
-    
+
     if instrument == 'WFPC2':
         chipkw = 'DETECTOR'
-        extvers = [("SCI",img.header['EXTVER']) for img in 
+        extvers = [("SCI",img.header['EXTVER']) for img in
                    fobj[1:] if img.header['EXTNAME'].lower()=='sci']
-        detectors = [img.header[chipkw] for img in fobj[1:] if 
+        detectors = [img.header[chipkw] for img in fobj[1:] if
                      img.header['EXTNAME'].lower()=='sci']
-        fitsext = [i for i in range(len(fobj))[1:] if 
+        fitsext = [i for i in range(len(fobj))[1:] if
                    fobj[i].header['EXTNAME'].lower()=='sci']
         det2ext=dict(map(None, detectors,extvers))
         ext2det=dict(map(None, extvers, detectors))
         ext2fitsext=dict(map(None, extvers, fitsext))
-        
+
         if 3 not in detectors:
             nrefchip = ext2det.pop(extvers[0])
             nrefext = ext2fitsext.pop(extvers[0])
@@ -261,20 +261,20 @@ def getNrefchip(fobj):
             nrefchip = 3
             extname = det2ext.pop(nrefchip)
             nrefext = ext2fitsext.pop(extname)
-            
+
     elif (instrument == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC') or \
          (instrument == 'WFC3' and fobj[0].header['DETECTOR'] == 'UVIS'):
         chipkw = 'CCDCHIP'
-        extvers = [("SCI",img.header['EXTVER']) for img in 
+        extvers = [("SCI",img.header['EXTVER']) for img in
                    fobj[1:] if img.header['EXTNAME'].lower()=='sci']
-        detectors = [img.header[chipkw] for img in fobj[1:] if 
+        detectors = [img.header[chipkw] for img in fobj[1:] if
                      img.header['EXTNAME'].lower()=='sci']
-        fitsext = [i for i in range(len(fobj))[1:] if 
+        fitsext = [i for i in range(len(fobj))[1:] if
                    fobj[i].header['EXTNAME'].lower()=='sci']
         det2ext=dict(map(None, detectors,extvers))
         ext2det=dict(map(None, extvers, detectors))
         ext2fitsext=dict(map(None, extvers, fitsext))
-    
+
         if 2 not in detectors:
             nrefchip = ext2det.pop(extvers[0])
             nrefext = ext2fitsext.pop(extvers[0])
@@ -288,7 +288,7 @@ def getNrefchip(fobj):
             if extname != None and extname.lower == 'sci':
                 nrefext = i
                 break
-            
+
     return nrefchip, nrefext
 
 def checkFiles(input):
@@ -312,7 +312,7 @@ def checkFiles(input):
             continue
         # Check for existence of waiver FITS input, and quit if found.
         # Or should we print a warning and continue but not use that file
-        if imgfits: 
+        if imgfits:
             if imgtype == 'waiver':
                 newfilename = waiver2mef(file, convert_dq=True)
                 if newfilename == None:
@@ -323,9 +323,9 @@ def checkFiles(input):
             else:
                 newfiles.append(file)
 
-        # If a GEIS image is provided as input, create a new MEF file with 
+        # If a GEIS image is provided as input, create a new MEF file with
         # a name generated using 'buildFITSName()'
-        # Convert the corresponding data quality file if present    
+        # Convert the corresponding data quality file if present
         if not imgfits:
             newfilename = geis2mef(file, convert_dq=True)
             if newfilename == None:
@@ -337,7 +337,7 @@ def checkFiles(input):
         logger.warning('\n\tThe following files will be removed from the list of files to be processed %s' % removed_files)
         #for f in removed_files:
         #    print f
-            
+
     newfiles = checkFiles(newfiles)[0]
     logger.info("\n\tThese files passed the input check and will be processed: %s" % newfiles)
     return newfiles
@@ -354,7 +354,7 @@ def newIDCTAB(fname):
         return False
     else:
         return True
-    
+
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
@@ -363,16 +363,16 @@ def cleanWCS(fname):
     fext = range(len(f))
     for key in keys:
         wcsutil.deleteWCS(fname, ext=fext,wcskey=key)
-            
+
 def getCorrections(instrument):
     """
     Print corrections available for an instrument
-    
+
     :Parameters:
     `instrument`: string, one of 'WFPC2', 'NICMOS', 'STIS', 'ACS', 'WFC3'
     """
     acorr = apply_corrections.allowed_corrections[instrument]
-    
+
     print "The following corrections will be performed for instrument %s\n" % instrument
     for c in acorr: print c,': ' ,  apply_corrections.cnames[c]
-    
+
