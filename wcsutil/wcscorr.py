@@ -238,6 +238,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     # extension version; if this should not be assumed then this can be
     # modified...
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
+    wcs_keys = filter(None, wcs_keys)
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = wcshdr.keys()
 
@@ -290,9 +291,10 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
                 if key in new_table.data.names:
                     new_table.data.field(key)[idx] = wcshdr[key + wcs_key]
 
+            prihdr = source[0].header
             for key in DEFAULT_PRI_KEYS:
-                if key in new_table.data.names:
-                    new_table.data.field(key)[idx] = source[0].header[key]
+                if key in new_table.data.names and prihdr.has_key(key):
+                    new_table.data.field(key)[idx] = prihdr[key]
 
     # If idx was never incremented, no rows were added, so there's nothing else
     # to do...

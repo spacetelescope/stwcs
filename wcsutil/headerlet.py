@@ -427,11 +427,12 @@ class Headerlet(pyfits.HDUList):
                 # TODO: in the pyfits refactoring branch if will be easier to
                 # test whether an HDUList contains a certain extension HDU
                 # without relying on try/except
-                wcscorr = fobj['WCSCORR']
+                wcscorr_table = fobj['WCSCORR']
             except KeyError:
                 # The WCSCORR table needs to be created
                 wcscorr.init_wcscorr(fobj)
 
+            orig_hlt_hdu = None
             if createheaderlet:
                 # Create a headerlet for the original WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
@@ -439,7 +440,6 @@ class Headerlet(pyfits.HDUList):
                 hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 orig_hlt = createHeaderlet(fobj, hdrname)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
-                fobj.append(orig_hlt_hdu)
 
             self._delDestWCS(fobj)
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
@@ -476,13 +476,24 @@ class Headerlet(pyfits.HDUList):
                 fobj.append(self[('WCSDVARR', idx)].copy())
             for idx in range(1, numd2im + 1):
                 fobj.append(self[('D2IMARR', idx)].copy())
+
+            # Update the WCSCORR table with new rows from the headerlet's WCSs
+            wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
+
+            # Append the original headerlet
+            if createheaderlet and orig_hlt_hdu:
+                fobj.append(orig_hlt_hdu)
+
+            # Finally, append an HDU for this headerlet
+            fobj.append(HeaderletHDU.fromheaderlet(self))
+
             if close_dest:
                 fobj.close()
         else:
             logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" % (dest, self.hdrname))
+                            "%s" % (fobj.filename(), self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
-                  % (dest, self.hdrname)
+                  % (fobj.filename(), self.hdrname)
 
 
     def hverify(self):
@@ -818,10 +829,12 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
 # Monkey-patch pyfits to add minimal support for HeaderletHDUs
 # TODO: Get rid of this ASAP!!! (it won't be necessary with the pyfits
 # refactoring branch)
-__old_updateHDUtype = pyfits.Header._updateHDUtype
-def __updateHDUtype(self):
-    if HeaderletHDU.match_header(self):
-        self._hdutype = HeaderletHDU
-    else:
-        __old_updateHDUtype(self)
-pyfits.Header._updateHDUtype = __updateHDUtype
+if not hasattr(pyfits.Header._updateHDUtype, '_patched'):
+    __old_updateHDUtype = pyfits.Header._updateHDUtype
+    def __updateHDUtype(self):
+        if HeaderletHDU.match_header(self):
+            self._hdutype = HeaderletHDU
+        else:
+            __old_updateHDUtype(self)
+    __updateHDUtype._patched = True
+    pyfits.Header._updateHDUtype = __updateHDUtype
