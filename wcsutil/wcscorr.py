@@ -255,7 +255,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
                 break
         else:
             raise ValueError('A WCS with name %s was not found in the %s '
-                             '%s extension headers in the source HDU list.'
+                             'extension headers in the source HDU list.'
                              % (wcs_id, extname))
         wcs_keys = [wcs_key] # We're only interested in this one
 
