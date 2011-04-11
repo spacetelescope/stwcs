@@ -271,8 +271,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         fobj.close()
     return Headerlet(hdul)
 
-def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None,
-                   createheaderlet=True, verbose=False):
+def applyHeaderlet(hdrfile, destfile, createheaderlet=True, hdrname=None,
+                   verbose=False):
     """
     Apply headerlet 'hdrfile' to a science observation 'destfile'
 
@@ -281,20 +281,14 @@ def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None,
     hdrfile: string
              Headerlet file
     destfile: string
-             File name of science observation wyhose WCS solution willbe updated
-    destim: string or None (default)
-            ROOTNAME of destfile (default)
-            This string will be written as the DESTIM keyword in the headerlet,
-            created from the old WCS solution
-            Normally it should be None, unless the science file is missing the
-            ROOTNAME kw, in which case the name of the file (stripped of .fits)
-            should be specified.
-    hdrname: string or None (default)
-            will be the value of the HDRNAME keyword in the headerlet.
-            It's not  required if createheaderlet is False
+             File name of science observation whose WCS solution will be updated
     createheaderlet: boolean
             True (default): before updating, create a headerlet with the
             WCS old solution.
+    hdrname: string or None (default)
+            will be the value of the HDRNAME keyword in the headerlet generated
+            for the old WCS solution.  If not specified, a sensible default
+            will be used.  Not required if createheaderlet is False
     verbose: False or a python logging level
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
@@ -302,8 +296,7 @@ def applyHeaderlet(hdrfile, destfile, destim=None, hdrname=None,
 
     logger.info("Starting applyHeaderlet: %s" % time.asctime())
     hlet = Headerlet(hdrfile)
-    hlet.apply(destfile, destim=destim, hdrname=hdrname,
-               createheaderlet=createheaderlet)
+    hlet.apply(destfile, createheaderlet=createheaderlet, hdrname=hdrname)
 
 def updateRefFiles(source, dest):
     """
@@ -407,7 +400,7 @@ class Headerlet(pyfits.HDUList):
         self.d2imerr = 0
         self.axiscorr = 1
 
-    def apply(self, dest, createheaderlet=True):
+    def apply(self, dest, createheaderlet=True, hdrname=None):
         """
         Apply this headerlet to a file.
         """
@@ -437,7 +430,8 @@ class Headerlet(pyfits.HDUList):
                 # Create a headerlet for the original WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
                 # the file
-                hdrname = fobj[0].header['ROOTNAME'] + '_orig'
+                if not hdrname:
+                    hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 orig_hlt = createHeaderlet(fobj, hdrname)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
 
