@@ -174,7 +174,9 @@ def find_wcscorr_row(wcstab, selections):
 
     mask = None
     for i in selections:
-        bmask = (wcstab.field(i) == selections[i])
+        icol = wcstab.field(i)
+        if isinstance(icol,np.chararray): icol = icol.rstrip()
+        bmask = (icol == selections[i])
         if mask is None:
             mask = bmask.copy()
         else:
@@ -301,9 +303,9 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     if idx < 0:
         return
 
-
     # Now, we need to merge this into the existing table
-    rowind = find_wcscorr_row(old_table.data, {'wcs_id': ''})
+    rowind = find_wcscorr_row(old_table.data, {'wcs_id':''})
+    
     old_nrows = np.where(rowind)[0][0]
     new_nrows = new_table.data.shape[0]
 
