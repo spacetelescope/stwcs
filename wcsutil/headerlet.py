@@ -426,6 +426,7 @@ class Headerlet(pyfits.HDUList):
                 wcscorr.init_wcscorr(fobj)
 
             orig_hlt_hdu = None
+            numhlt = countExtn(fobj, 'HDRLET')
             if createheaderlet:
                 # Create a headerlet for the original WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
@@ -434,6 +435,8 @@ class Headerlet(pyfits.HDUList):
                     hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 orig_hlt = createHeaderlet(fobj, hdrname)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
+                orig_hlt_hdu.update_ext_version(numhlt + 1)
+                numhlt += 1
 
             self._delDestWCS(fobj)
             updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
@@ -479,7 +482,9 @@ class Headerlet(pyfits.HDUList):
                 fobj.append(orig_hlt_hdu)
 
             # Finally, append an HDU for this headerlet
-            fobj.append(HeaderletHDU.fromheaderlet(self))
+            new_hlt = HeaderletHDU.fromheaderlet(self)
+            new_hlt.update_ext_version(numhlt + 1)
+            fobj.append(new_hlt)
 
             if close_dest:
                 fobj.close()
