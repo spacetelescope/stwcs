@@ -143,5 +143,130 @@ The operation of updating a science file with a `headerlet` only requires the us
 
 These operations do not require any computations and can be done using any FITS library. This allows a `headerlet` to be usable by the community even if they do not use the software we develop based on PyFITS and STWCS, both for creating and applying these files.
 
+Headerlet API
+=============
+This section describes the current draft API for working with `headerlets` as implemented in the `stwcs.wcsutil.headerlet` module.
+First, there's a potentially confusing point that should be cleared up:  A `headerlet`, as implemented, is simply a FITS file containing
+multiple extensions that contain all the parameters necessary to reproduce the WCS solution in the science image it was created from.
+When a `headerlet` is applied to an image, a copy of the original `headerlet` file is appended to the image's HDU list as a special
+extension HDU called a `Headerlet HDU`.  A `Headerlet HDU` consists of a simple header describing the `headerlet`, and has as its data
+the `headerlet` file itself, (which may be compressed).  A `Headerlet HDU` has an 'XTENSION' value of 'HDRLET'.  Though PyFits can
+handle such a non-standard extension type sensibly, this hasn't been tested with other common FITS readers yet.  If it becomes
+necessary, `Headerlet HDUs` could be implemented using a standard extension type like 'IMAGE'.
+
+To create a `headerlet` from an image, a `createHeaderlet()` function is provided::
+
+    >>> from stwcs.wcsutil import headerlet
+    >>> hdrlet = headerlet.createHeaderlet('j94f05bgq_flt.fits', 'VERSION1')
+    >>> type(hdrlet)
+    <class 'stwcs.wcsutil.headerlet.Headerlet'>
+    >>> hdrlet.info()
+    Filename: (No file associated with this HDUList)
+    No.    Name         Type      Cards   Dimensions   Format
+    0    PRIMARY     PrimaryHDU      12  ()            
+    1    SIPWCS      ImageHDU       111  ()            
+    2    SIPWCS      ImageHDU       110  ()            
+    3    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    4    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    5    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    6    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    7    D2IMARR     ImageHDU        12  (4096,)       float32
+
+As you can see, the `Headerlet` object is similar to a normal pyfits `HDUList` object.  `createHeaderlet()` can be given either the path
+to a file, or an already open `HDUList` as its first argument.
+
+What do you do with a `Headerlet` object?  Its main purpose is to apply its WCS solution to another file.  This can be done using the
+`Headerlet.apply()` method::
+
+    >>> hdrlet.apply('some_other_image.fits')
+
+Or you can use the `applyHeaderlet()` convenience function.  It takes an existing `headerlet` file path or object as its first argument;
+the rest of its arguments are the same as `Headerlet.apply()`.  As with `createHeaderlet()` both of these can take a file path or opened
+`HDUList` objects as arguments.
+
+When a `headerlet` is applied to an image, an additional `headerlet` containing that image's original WCS solution is automatically created,
+and is appended to the file's HDU list as a `Headerlet HDU`.  However, this behavior can be disabled by setting the `createheaderlet` keyword
+argument to `False` in either `Headerlet.apply()` or `applyHeaderlet()`.
+
+When opening a file that contains `Headerlet HDU` extensions, it will normally look like this in PyFits::
+
+    >>> import pyfits
+    >>> hdul = pyfits.open('94f05bgq_flt_with_hlet.fits')
+    >>> hdul.info()
+    Filename: j94f05bgq_flt_with_hlet.fits
+    No.    Name         Type      Cards   Dimensions   Format
+    0    PRIMARY     PrimaryHDU     248  ()            int16
+    1    SCI         ImageHDU       286  (4096, 2048)  float32
+    2    ERR         ImageHDU        76  (4096, 2048)  float32
+    3    DQ          ImageHDU        66  (4096, 2048)  int16
+    4    SCI         ImageHDU       282  (4096, 2048)  float32
+    5    ERR         ImageHDU        74  (4096, 2048)  float32
+    6    DQ          ImageHDU        66  (4096, 2048)  int16
+    7    WCSCORR     BinTableHDU     56  10R x 23C     [40A, I, 1A, D, D, D, D, D, D, D, D, 24A, 24A, D, D, D, D, D, D, D, D, J, 40A]
+    8    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    9    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    10   WCSDVARR    ImageHDU        15  (65, 33)      float32
+    11   WCSDVARR    ImageHDU        15  (65, 33)      float32
+    12   D2IMARR     ImageHDU        12  (4096,)       float32
+    13   HDRLET  NonstandardExtHDU   13
+    14   HDRLET  NonstandardExtHDU   13
+
+The names of the `headerlet` extensions are both HDRLET, but its type shows up as `NonstandardExtHDU`.  Their headers can be read, and while
+their data can be read you'd have to know what to do with it (the data is actually either a tar file or a gzipped tar file containing the
+`headerlet` file).  However, if you have `stwcs.wcsutil.headerlet` imported, PyFits will recognize these extensions as `Headerlet HDUs`::
+
+    >>> import stwcs.wcsutil.headerlet
+    >>> # Note that it's necessary to reopen the file
+    >>> hdul = pyfits.open('j94f05bgq_flt_with_hlet.fits')
+    >>> hdul.info()
+    Filename: j94f05bgq_flt_with_hlet.fits
+    No.    Name         Type      Cards   Dimensions   Format
+    0    PRIMARY     PrimaryHDU     248  ()            int16
+    1    SCI         ImageHDU       286  (4096, 2048)  float32
+    2    ERR         ImageHDU        76  (4096, 2048)  float32
+    3    DQ          ImageHDU        66  (4096, 2048)  int16
+    4    SCI         ImageHDU       282  (4096, 2048)  float32
+    5    ERR         ImageHDU        74  (4096, 2048)  float32
+    6    DQ          ImageHDU        66  (4096, 2048)  int16
+    7    WCSCORR     BinTableHDU     56  10R x 23C     [40A, I, 1A, D, D, D, D, D, D, D, D, 24A, 24A, D, D, D, D, D, D, D, D, J, 40A]
+    8    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    9    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    10   WCSDVARR    ImageHDU        15  (65, 33)      float32
+    11   WCSDVARR    ImageHDU        15  (65, 33)      float32
+    12   D2IMARR     ImageHDU        12  (4096,)       float32
+    13   HDRLET      HeaderletHDU    13
+    14   HDRLET      HeaderletHDU    13
+    >>> print hdul['HDRLET', 1].header.ascard
+    XTENSION= 'HDRLET  '           / Headerlet extension                            
+    BITPIX  =                    8 / array data type                                
+    NAXIS   =                    1 / number of array dimensions                     
+    NAXIS1  =               102400 / Axis length                                    
+    PCOUNT  =                    0 / number of parameters                           
+    GCOUNT  =                    1 / number of groups                               
+    EXTNAME = 'HDRLET  '           / name of the headerlet extension                
+    HDRNAME = 'j94f05bgq_orig'     / Headerlet name                                 
+    DATE    = '2011-04-13T12:14:42' / Date FITS file was generated                  
+    SIPNAME = 'IDC_qbu1641sj'      / SIP distortion model name                      
+    NPOLFILE= '/grp/hst/acs/lucas/new-npl/qbu16424j_npl.fits' / Non-polynomial corre
+    D2IMFILE= '/grp/hst/acs/lucas/new-npl/wfc_ref68col_d2i.fits' / Column correction
+    COMPRESS=                    F / Uses gzip compression 
+
+`HeaderletHDU` objects are similar to other HDU objects in PyFits.  However, they have a special `.headerlet` attribute that returns
+the actual `headerlet` contained in the HDU data as a `Headerlet` object::
+
+    >>> hdrlet = hdul['HDERLET', 1].headerlet
+    >>> hdrlet.info()
+    Filename: (No file associated with this HDUList)
+    No.    Name         Type      Cards   Dimensions   Format
+    0    PRIMARY     PrimaryHDU      12  ()            uint8
+    1    SIPWCS      ImageHDU       111  ()            uint8
+    2    SIPWCS      ImageHDU       110  ()            uint8
+    3    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    4    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    5    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    6    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    7    D2IMARR     ImageHDU        12  (4096,)       float32
+
+This is useful if you want to view the contents of the `headerlets` attached to a file.
 
 .. _FITSConventions: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:FITSDistortionConventions
