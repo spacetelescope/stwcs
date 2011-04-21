@@ -305,12 +305,12 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
 
     # Now, we need to merge this into the existing table
     rowind = find_wcscorr_row(old_table.data, {'wcs_id':''})
-    
     old_nrows = np.where(rowind)[0][0]
     new_nrows = new_table.data.shape[0]
 
     # check to see if there is room for the new row
     if (old_nrows + new_nrows) > old_table.data.shape[0]:
+        pad_rows = 5 * new_nrows
         # if not, create a new table with 'pad_rows' new empty rows
         upd_table = pyfits.new_table(old_table.columns,
                                      nrows=old_table.data.shape[0] + pad_rows)
