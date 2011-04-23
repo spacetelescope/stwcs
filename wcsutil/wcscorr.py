@@ -81,10 +81,10 @@ def init_wcscorr(input, force=False):
         # Check to see whether or not there is an OPUS alternate WCS present,
         # if so, get its values directly, otherwise, archive the PRIMARY WCS
         # as the OPUS values in the WCSCORR table
-        if 'O' in used_wcskeys:
-            wkey = 'O'
-        else:
-            wkey = ' '
+        if 'O' not in used_wcskeys:
+            altwcs.archiveWCS(fimg,('SCI',extver),wcskey='O', wcsname='OPUS')
+        wkey = 'O'
+
         wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver), wcskey=wkey)
         wcshdr = wcs.wcs2header(idc2hdr=idc2header)
 
