@@ -179,6 +179,9 @@ class MakeWCS(object):
         except KeyError:
             alpha = 0.0
             beta = 0.0
+            v23_corr = np.array([[0.],[0.]])
+            logger.debug("\n\tTDD Zero point correction for chip %s defaulted to: %s" % (hwcs.chip, v23_corr))
+            return v23_corr
         
         tdd = np.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.

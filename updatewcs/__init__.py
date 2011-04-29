@@ -180,7 +180,19 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])
     # Finally record the version of the software which updated the WCS
-    f[0].header.update(key='UPWCSVER', value=stwcsversion, comment="Version of STWCS used to updated the WCS", before='HISTORY')
+    if f[0].header.has_key('HISTORY'):
+        f[0].header.update(key='UPWCSVER', value=stwcsversion, 
+            comment="Version of STWCS used to updated the WCS", before='HISTORY')
+    elif f[0].header.has_key('ASN_MTYP'):
+        f[0].header.update(key='UPWCSVER', value=stwcsversion, 
+            comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
+    else:
+        # Find index of last non-blank card, and insert this new keyword after that card
+        for i in range(len(f[0].header.ascard)-1,0,-1):
+            if f[0].header[i].strip() != '': break
+            
+            f[0].header.update(key='UPWCSVER', value=stwcsversion, 
+                comment="Version of STWCS used to updated the WCS",after=i)
     f.close()
 
 def getKeyName(hdr, wkey, wname, idcname):
