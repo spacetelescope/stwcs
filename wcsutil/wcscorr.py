@@ -57,6 +57,7 @@ def init_wcscorr(input, force=False):
                          comment='Number of updated rows in table')
     wcsext.header.update('EXTNAME', 'WCSCORR',
                          comment='Table with WCS Update history')
+    wcsext.header.update('EXTVER', 1)
 
     used_wcskeys = None
     wcs1 = stwcs.wcsutil.HSTWCS(fimg,ext=('SCI',1))
@@ -262,7 +263,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
         wcs_keys = [wcs_key] # We're only interested in this one
 
     # create new table for hdr and populate it with the newly updated values
-    new_table = create_wcscorr(numrows=len(wcs_keys) * numext)
+    new_table = create_wcscorr(numrows=numext, padding=numext)
     old_table = dest['WCSCORR']
 
     idx = -1
@@ -307,7 +308,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     rowind = find_wcscorr_row(old_table.data, {'wcs_id':''})
     old_nrows = np.where(rowind)[0][0]
     new_nrows = new_table.data.shape[0]
-
+    
     # check to see if there is room for the new row
     if (old_nrows + new_nrows) > old_table.data.shape[0]:
         pad_rows = 5 * new_nrows
@@ -322,7 +323,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
         upd_table.data.field(name)[old_nrows:old_nrows + new_nrows] = \
                 new_table.data.field(name)
     upd_table.header.update('TROWS', old_nrows + new_nrows)
-
+    
     # replace old extension with newly updated table extension
     dest['WCSCORR'] = upd_table
 
@@ -425,6 +426,7 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                                               dtype='S'))
     # create list of remaining columns to be added to table
     col_list = [id_col, extver_col, wcskey_col] # start with selector columns
+    
     for c in col_names:
         cdef = copy.deepcopy(c[1])
         col_list.append(pyfits.Column(name=c[0], format=cdef['format'],

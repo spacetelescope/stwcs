@@ -209,8 +209,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
                                 comment='Extension version'))
 
         fhdr = fobj[('SCI', e)].header.ascard
-        if phdukw['NPOLFILE']:
-
+        if 'NPOLFILE' in h.keys() and phdukw['NPOLFILE']:
             cpdis = fhdr['CPDIS*...']
             for c in range(1, len(cpdis) + 1):
                 h.append(cpdis[c - 1])
@@ -227,7 +226,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
             except KeyError:
                 pass
 
-        if phdukw['D2IMFILE']:
+        if 'D2IMFILE' in h.keys() and phdukw['D2IMFILE']:
             try:
                 h.append(fhdr['D2IMEXT'])
             except KeyError:
@@ -541,15 +540,17 @@ class Headerlet(pyfits.HDUList):
         numext = len(dest)
 
         for idx in range(numext):
-            self._removeD2IM(dest[idx])
-            self._removeSIP(dest[idx])
-            self._removeLUT(dest[idx])
-            self._removePrimaryWCS(dest[idx])
-            self._removeIDCCoeffs(dest[idx])
-            try:
-                del dest[idx].header.ascard['VAFACTOR']
-            except KeyError:
-                pass
+            # Only delete WCS from extensions which may have WCS keywords
+            if dest[idx].__dict__.has_key('_xtn') and "IMAGE" in dest[idx]._xtn:
+                self._removeD2IM(dest[idx])
+                self._removeSIP(dest[idx])
+                self._removeLUT(dest[idx])
+                self._removePrimaryWCS(dest[idx])
+                self._removeIDCCoeffs(dest[idx])
+                try:
+                    del dest[idx].header.ascard['VAFACTOR']
+                except KeyError:
+                    pass
 
         self._removeAltWCS(dest, ext=range(numext))
         numwdvarr = countExtn(dest, 'WCSDVARR')
