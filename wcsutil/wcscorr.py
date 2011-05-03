@@ -263,7 +263,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
         wcs_keys = [wcs_key] # We're only interested in this one
 
     # create new table for hdr and populate it with the newly updated values
-    new_table = create_wcscorr(numrows=numext, padding=numext)
+    new_table = create_wcscorr(numrows=0, padding=len(wcs_keys)*numext)
     old_table = dest['WCSCORR']
 
     idx = -1
@@ -308,18 +308,22 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     rowind = find_wcscorr_row(old_table.data, {'wcs_id':''})
     old_nrows = np.where(rowind)[0][0]
     new_nrows = new_table.data.shape[0]
-    
+
     # check to see if there is room for the new row
     if (old_nrows + new_nrows) > old_table.data.shape[0]:
-        pad_rows = 5 * new_nrows
+        pad_rows = 2 * new_nrows
         # if not, create a new table with 'pad_rows' new empty rows
-        upd_table = pyfits.new_table(old_table.columns,
-                                     nrows=old_table.data.shape[0] + pad_rows)
+        upd_table = pyfits.new_table(old_table.columns,header=old_table.header,
+                                     nrows=old_table.data.shape[0]+pad_rows)
     else:
         upd_table = old_table
-
+        pad_rows = 0
     # Now, add
     for name in old_table.columns.names:
+        # reset the default values to ones specific to the row definitions
+        for i in range(pad_rows):
+            upd_table.data.field(name)[old_nrows+i] = old_table.data.field(name)[-1]
+        # Now populate with values from new table
         upd_table.data.field(name)[old_nrows:old_nrows + new_nrows] = \
                 new_table.data.field(name)
     upd_table.header.update('TROWS', old_nrows + new_nrows)
