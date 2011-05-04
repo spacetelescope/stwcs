@@ -310,7 +310,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     new_nrows = new_table.data.shape[0]
 
     # check to see if there is room for the new row
-    if (old_nrows + new_nrows) > old_table.data.shape[0]:
+    if (old_nrows + new_nrows) > old_table.data.shape[0]-1:
         pad_rows = 2 * new_nrows
         # if not, create a new table with 'pad_rows' new empty rows
         upd_table = pyfits.new_table(old_table.columns,header=old_table.header,
