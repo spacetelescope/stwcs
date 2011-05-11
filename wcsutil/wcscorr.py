@@ -37,6 +37,10 @@ def init_wcscorr(input, force=False):
         fimg = input
         need_to_close = False
 
+    # Do not try to generate a WCSCORR table for a simple FITS file
+    if len(fimg) == 1:
+        return 
+    
     # Verify that a WCSCORR extension does not already exist...
     for extn in fimg:
         if extn.header.has_key('extname') and \
