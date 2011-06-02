@@ -16,9 +16,20 @@ from hstwcs import HSTWCS
 from mappings import basic_wcs
 from pytools.fileutil import countExtn
 
-logger = logging.getLogger(__name__)
+module_logger = logging.getLogger('headerlet')
 
+import atexit
+atexit.register(logging.shutdown)
 
+def setLogger(logger, level, mode='w'):
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    log_filename = 'headerlet.log'
+    fh = logging.FileHandler(log_filename, mode=mode)
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    logger.setLevel(level)
+    
 def isWCSIdentical(scifile, file2, verbose=False):
     """
     Compares the WCS solution of 2 files.
@@ -46,22 +57,22 @@ def isWCSIdentical(scifile, file2, verbose=False):
 
     """
     if verbose:
-        logger.setLevel(verbose)
+        setLogger(module_logger, verbose)
     else:
-        logger.setLevel(100)
+        module_logger.setLevel(100)
 
-    logger.info("Starting isWCSIdentical: %s" % time.asctime())
+    module_logger.info("Starting isWCSIdentical: %s" % time.asctime())
 
     result = True
     numsci1 = max(countExtn(scifile), countExtn(scifile, 'SIPWCS'))
     numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
 
     if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
-        logger.info("Number of SCI and SIPWCS extensions do not match.")
+        module_logger.info("Number of SCI and SIPWCS extensions do not match.")
         result = False
 
     if getRootname(scifile) != getRootname(file2):
-        logger.info('Rootnames do not match.')
+        module_logger.info('Rootnames do not match.')
         result = False
     try:
         extname1 = pyfits.getval(scifile, 'EXTNAME', ext=('SCI', 1))
@@ -75,44 +86,44 @@ def isWCSIdentical(scifile, file2, verbose=False):
     for i in range(1, numsci1 + 1):
         w1 = HSTWCS(scifile, ext=(extname1, i))
         w2 = HSTWCS(file2, ext=(extname2, i))
-        if not (w1.wcs.crval == w2.wcs.crval).all() or \
-            not (w1.wcs.crpix == w2.wcs.crpix).all()  or \
-            not  (w1.wcs.cd == w2.wcs.cd).all() or \
-            not (np.array(w1.wcs.ctype) == np.array(w2.wcs.ctype)).all():
-            logger.info('Primary WCSs do not match')
+        if not np.allclose(w1.wcs.crval, w2.wcs.crval, rtol=1e-7) or \
+        not np.allclose(w1.wcs.crpix, w2.wcs.crpix, rtol=1e-7)  or \
+        not np.allclose(w1.wcs.cd, w2.wcs.cd, rtol=1e-7) or \
+        not (np.array(w1.wcs.ctype) == np.array(w2.wcs.ctype)).all():
+            module_logger.info('Primary WCSs do not match')
             result = False
         if w1.sip or w2.sip:
             if (w2.sip and not w1.sip) or (w1.sip and not w2.sip) or \
-                not (w1.sip.a == w2.sip.a).all() or \
-                not (w1.sip.b == w2.sip.b).all():
-                logger.info('SIP coefficients do not match')
+               not np.allclose(w1.sip.a, w2.sip.a, rtol=1e-7) or \
+               not np.allclose(w1.sip.b, w2.sip.b, rtol=1e-7):
+                module_logger.info('SIP coefficients do not match')
                 result = False
-        if w1.cpdis1 or w2.cipdis1:
+        if w1.cpdis1 or w2.cpdis1:
             if w1.cpdis1 and not w2.cpdis1 or \
                 w2.cpdis1 and not w1.cpdis1 or \
-                not (w1.cpdis1.data == w2.cpdis1.data).all():
-                logger.info('NPOL distortions do not match')
+                not np.allclose(w1.cpdis1.data, w2.cpdis1.data):
+                module_logger.info('NPOL distortions do not match')
                 result = False
         if w1.cpdis2 or w2.cpdis2:
             if w1.cpdis2 and not w2.cpdis2 or \
                 w2.cpdis2 and not w1.cpdis2 or \
-                not (w1.cpdis2.data == w2.cpdis2.data).all():
-                logger.info('NPOL distortions do not match')
+                not np.allclose(w1.cpdis2.data, w2.cpdis2.data):
+                module_logger.info('NPOL distortions do not match')
                 result = False
         if w1.det2im1 or w2.det2im1:
             if w1.det2im1 and not w2.det2im1 or \
                 w2.det2im1 and not w1.det2im1 or\
-                not (w1.det2im1.data == w2.det2im1.data).all():
-                logger.info('Det2Im corrections do not match')
+                not np.allclose(w1.det2im1.data, w2.det2im1.data):
+                module_logger.info('Det2Im corrections do not match')
                 result =  False
         if w1.det2im2 or w2.det2im2:
             if w1.det2im2 and not w2.det2im2 or \
                 w2.det2im2 and not w1.det2im2 or\
-                not (w1.det2im2.data == w2.det2im2.data).all():
-                logger.info('Det2Im corrections do not match')
+                not np.allclose(w1.det2im2.data, w2.det2im2.data):
+                module_logger.info('Det2Im corrections do not match')
                 result = False
         if w1.vafactor != w2.vafactor:
-            logger.info('VA factors do not match')
+            module_logger.info('VA factors do not match')
             result = False
 
     return result
@@ -120,7 +131,7 @@ def isWCSIdentical(scifile, file2, verbose=False):
 
 # TODO: It would be logical for this to be part of the Headerlet class, perhaps
 # as a classmethod
-def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
+def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, logmode='w'):
     """
     Create a headerlet from a science observation
 
@@ -143,11 +154,11 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
     """
 
     if verbose:
-        logger.setLevel(verbose)
+        setLogger(module_logger, verbose, mode=logmode)
     else:
-        logger.setLevel(100)
+        module_logger.setLevel(100)
 
-    logger.info("Starting createHeaderlet: %s" % time.asctime())
+    module_logger.info("Starting createHeaderlet: %s" % time.asctime())
     fmt="%Y-%m-%dT%H:%M:%S"
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
@@ -162,16 +173,15 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         try:
             destim = fobj[0].header['ROOTNAME']
         except KeyError:
-            logger.exception('Required keyword "DESTIM" not found')
+            module_logger.exception('Required keyword "DESTIM" not found')
             print 'Please provide a value for the DESTIM keyword'
             raise
     if hdrname is None:
-        logger.critical("Required keyword 'HDRNAME' not given")
+        module_logger.critical("Required keyword 'HDRNAME' not given")
         raise ValueError("Please provide a name for the headerlet, HDRNAME is "
                          "a required parameter.")
-
-
-
+    
+    # get all keys for alternate WCSs
     altkeys = altwcs.wcskeys(fobj[('SCI', 1)].header)
     try:
         upwcsver = fobj[0].header.ascard['STWCSVER']
@@ -181,7 +191,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
     if 'O' in altkeys:
         altkeys.remove('O')
     numsci = countExtn(fname)
-    logger.debug("Number of 'SCI' extensions in file %s is %s"
+    module_logger.debug("Number of 'SCI' extensions in file %s is %s"
                  % (fname, numsci))
     hdul = pyfits.HDUList()
     phdu = pyfits.PrimaryHDU()
@@ -192,7 +202,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
                        comment='Date FITS file was generated')
     phdu.header.ascard.append(upwcsver)
 
-    updateRefFiles(fobj[0].header.ascard, phdu.header.ascard)
+    updateRefFiles(fobj[0].header.ascard, phdu.header.ascard, verbose=verbose)
     phdu.header.update(key='VAFACTOR',
                        value=fobj[('SCI',1)].header.get('VAFACTOR', 1.))
     hdul.append(phdu)
@@ -235,7 +245,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
             try:
                 h.append(fhdr['AXISCORR'])
             except KeyError:
-                logger.exception("Required keyword AXISCORR was not found in "
+                module_logger.exception("Required keyword AXISCORR was not found in "
                                  "%s['SCI',%d]" % (fname, e))
                 raise
 
@@ -268,7 +278,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False):
         hdul.writeto(output, clobber=True)
     if close_file:
         fobj.close()
-    return Headerlet(hdul)
+    return Headerlet(hdul,verbose=verbose, logmode='a')
 
 def applyHeaderlet(hdrfile, destfile, createheaderlet=True, hdrname=None,
                    verbose=False):
@@ -292,12 +302,15 @@ def applyHeaderlet(hdrfile, destfile, createheaderlet=True, hdrname=None,
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
     """
-
-    logger.info("Starting applyHeaderlet: %s" % time.asctime())
-    hlet = Headerlet(hdrfile)
+    if verbose:
+        setLogger(module_logger, verbose)
+    else:
+        module_logger.setLevel(100)
+    module_logger.info("Starting applyHeaderlet: %s" % time.asctime())
+    hlet = Headerlet(hdrfile, verbose=verbose, logmode='a')
     hlet.apply(destfile, createheaderlet=createheaderlet, hdrname=hdrname)
 
-def updateRefFiles(source, dest):
+def updateRefFiles(source, dest, verbose=False):
     """
     Update the reference files name in the primary header of 'dest'
     using values from 'source'
@@ -307,8 +320,7 @@ def updateRefFiles(source, dest):
     source: pyfits.Header.ascardlist
     dest:   pyfits.Header.ascardlist
     """
-
-    logger.info("Updating reference files")
+    module_logger.info("Updating reference files")
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
             'D2IMFILE': True}
@@ -366,7 +378,7 @@ class Headerlet(pyfits.HDUList):
     Ref: http://stsdas.stsci.edu/stsci_python_sphinxdocs/stwcs/headerlet_def.html
     """
 
-    def __init__(self, fobj, wcskeys=[], mode='copyonwrite', verbose=False):
+    def __init__(self, fobj, wcskeys=[], mode='copyonwrite', verbose=False, logmode='w'):
         """
         Parameters
         ----------
@@ -381,8 +393,14 @@ class Headerlet(pyfits.HDUList):
         mode: string, optional
                 Mode with which to open the given file object
         """
+        self.verbose = verbose
+        self.hdr_logger = logging.getLogger('headerlet.Headerlet')
+        if self.verbose:
+                setLogger(self.hdr_logger, self.verbose, mode=logmode)
+        else:
+            self.hdr_logger.setLevel(100)
 
-        logger.info("Creating a Headerlet object from wcskeys %s" % wcskeys)
+        self.hdr_logger.info("Creating a Headerlet object from wcskeys %s" % wcskeys)
         self.wcskeys = wcskeys
         if not isinstance(fobj, list):
             fobj = pyfits.open(fobj, mode=mode)
@@ -398,12 +416,11 @@ class Headerlet(pyfits.HDUList):
         self.vafactor = self[1].header.get("VAFACTOR", 1) #None instead of 1?
         self.d2imerr = 0
         self.axiscorr = 1
-
+        
     def apply(self, dest, createheaderlet=True, hdrname=None):
         """
         Apply this headerlet to a file.
         """
-
         self.hverify()
         if self.verify_dest(dest):
             if not isinstance(dest, pyfits.HDUList):
@@ -432,13 +449,13 @@ class Headerlet(pyfits.HDUList):
                 # the file
                 if not hdrname:
                     hdrname = fobj[0].header['ROOTNAME'] + '_orig'
-                orig_hlt = createHeaderlet(fobj, hdrname)
+                orig_hlt = createHeaderlet(fobj, hdrname, verbose=self.verbose, logmode='a')
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                 orig_hlt_hdu.update_ext_version(numhlt + 1)
                 numhlt += 1
 
             self._delDestWCS(fobj)
-            updateRefFiles(self[0].header.ascard, fobj[0].header.ascard)
+            updateRefFiles(self[0].header.ascard, fobj[0].header.ascard, verbose=self.verbose)
             numsip = countExtn(self, 'SIPWCS')
             for idx in range(1, numsip + 1):
                 fhdr = fobj[('SCI', idx)].header.ascard
@@ -454,7 +471,7 @@ class Headerlet(pyfits.HDUList):
                         wind = fhdr.index_of('HISTORY')
                     except KeyError:
                         wind = len(fhdr)
-                logger.debug("Inserting WCS keywords at index %s" % wind)
+                self.hdr_logger.debug("Inserting WCS keywords at index %s" % wind)
                 # TODO: Drop .keys() when refactored pyfits comes into use
                 for k in siphdr.keys():
                     if k not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
@@ -488,7 +505,7 @@ class Headerlet(pyfits.HDUList):
             if close_dest:
                 fobj.close()
         else:
-            logger.critical("Observation %s cannot be updated with headerlet "
+            self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
                             "%s" % (fobj.filename(), self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
                   % (fobj.filename(), self.hdrname)
@@ -517,13 +534,13 @@ class Headerlet(pyfits.HDUList):
             else:
                 droot = dest[0].header['ROOTNAME']
         except KeyError:
-            logger.debug("Keyword 'ROOTNAME' not found in destination file")
+            self.hdr_logger.debug("Keyword 'ROOTNAME' not found in destination file")
             droot = dest.split('.fits')[0]
         if droot == self.destim:
-            logger.debug("verify_destim() returned True")
+            self.hdr_logger.debug("verify_destim() returned True")
             return True
         else:
-            logger.debug("verify_destim() returned False")
+            self.hdr_logger.debug("verify_destim() returned False")
             return False
 
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
@@ -536,7 +553,7 @@ class Headerlet(pyfits.HDUList):
         Delete the WCS of a science file
         """
 
-        logger.info("Deleting all WCSs of file %s" % dest.filename())
+        self.hdr_logger.info("Deleting all WCSs of file %s" % dest.filename())
         numext = len(dest)
 
         for idx in range(numext):
@@ -565,7 +582,7 @@ class Headerlet(pyfits.HDUList):
         Remove the SIP distortion of a FITS extension
         """
 
-        logger.debug("Removing SIP distortion from (%s, %s)"
+        self.hdr_logger.debug("Removing SIP distortion from (%s, %s)"
                      % (ext.name, ext._extver))
         for prefix in ['A', 'B', 'AP', 'BP']:
             try:
@@ -590,7 +607,7 @@ class Headerlet(pyfits.HDUList):
         Remove the Lookup Table distortion of a FITS extension
         """
 
-        logger.debug("Removing LUT distortion from (%s, %s)"
+        self.hdr_logger.debug("Removing LUT distortion from (%s, %s)"
                      % (ext.name, ext._extver))
         try:
             cpdis = ext.header['CPDIS*']
@@ -611,7 +628,7 @@ class Headerlet(pyfits.HDUList):
         Remove the Detector to Image correction of a FITS extension
         """
 
-        logger.debug("Removing D2IM correction from (%s, %s)"
+        self.hdr_logger.debug("Removing D2IM correction from (%s, %s)"
                      % (ext.name, ext._extver))
         d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
         for k in d2imkeys:
@@ -625,9 +642,8 @@ class Headerlet(pyfits.HDUList):
         Remove Alternate WCSs of a FITS extension.
         A WCS with wcskey 'O' is never deleted.
         """
-
         dkeys = altwcs.wcskeys(dest[('SCI', 1)].header)
-        logger.debug("Removing alternate WCSs with keys %s from %s"
+        self.hdr_logger.debug("Removing alternate WCSs with keys %s from %s"
                      % (dkeys, dest.filename()))
         for k in dkeys:
             altwcs.deleteWCS(dest, ext=ext, wcskey=k)
@@ -637,7 +653,7 @@ class Headerlet(pyfits.HDUList):
         Remove the primary WCS of a FITS extension
         """
 
-        logger.debug("Removing Primary WCS from (%s, %s)"
+        self.hdr_logger.debug("Removing Primary WCS from (%s, %s)"
                      % (ext.name, ext._extver))
         naxis = ext.header.ascard['NAXIS'].value
         for key in basic_wcs:
@@ -656,7 +672,7 @@ class Headerlet(pyfits.HDUList):
         Remove IDC coefficients of a FITS extension
         """
 
-        logger.debug("Removing IDC coefficient from (%s, %s)"
+        self.hdr_logger.debug("Removing IDC coefficient from (%s, %s)"
                      % (ext.name, ext._extver))
         coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
         for k in coeffs:

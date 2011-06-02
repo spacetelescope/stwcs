@@ -3,10 +3,6 @@ from __future__ import division # confidence high
 from altwcs import *
 from hstwcs import HSTWCS
 
-import logging
-logger=logging.getLogger("stwcs.wcsutil")
-
-
 __docformat__ = 'restructuredtext'
 
 
