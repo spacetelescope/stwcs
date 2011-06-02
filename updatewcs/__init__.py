@@ -77,6 +77,12 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     if verbose == False:
         logger.setLevel(100)
     else:
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        log_filename = 'stwcs.log'
+        fh = logging.FileHandler(log_filename, mode='w')
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
         logger.setLevel(verbose)
     args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
     wcskey=%s, wcsname=%s, clobber=%s" % (str(vacorr), str(tddcorr), str(npolcorr),

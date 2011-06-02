@@ -15,16 +15,6 @@ import distortion
 import pywcs
 from pytools import fileutil
 
-import logging
-log_filename = 'stwcs.log'
-logging.basicConfig(filename=log_filename, level=logging.DEBUG, filemode='w')
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger('STWCS')
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler(log_filename)
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(formatter)
-logger.addHandler(fh)
 __docformat__ = 'restructuredtext'
 
 DEGTORAD = fileutil.DEGTORAD
