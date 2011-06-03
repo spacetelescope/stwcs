@@ -151,6 +151,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
     verbose: False or a python logging level
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
+    logmode: 'w', 'a'
+            used internally for controling access to the log file
     """
 
     if verbose:
@@ -159,7 +161,6 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
         module_logger.setLevel(100)
 
     module_logger.info("Starting createHeaderlet: %s" % time.asctime())
-    fmt="%Y-%m-%dT%H:%M:%S"
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
             'D2IMFILE': True}
@@ -180,17 +181,21 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
         module_logger.critical("Required keyword 'HDRNAME' not given")
         raise ValueError("Please provide a name for the headerlet, HDRNAME is "
                          "a required parameter.")
-    
-    # get all keys for alternate WCSs
-    altkeys = altwcs.wcskeys(fobj[('SCI', 1)].header)
+        
+    # get the version of STWCS used to create the WCS of the science file.
     try:
         upwcsver = fobj[0].header.ascard['STWCSVER']
     except KeyError:
         upwcsver = pyfits.Card("STWCSVER", " ",
                                "Version of STWCS used to update the WCS")
+    
+    # get all keys for alternate WCSs
+    altkeys = altwcs.wcskeys(fobj[('SCI', 1)].header)
+    
     if 'O' in altkeys:
         altkeys.remove('O')
-    numsci = countExtn(fname)
+    
+    numsci = countExtn(fname, 'SCI')
     module_logger.debug("Number of 'SCI' extensions in file %s is %s"
                  % (fname, numsci))
     hdul = pyfits.HDUList()
@@ -198,11 +203,13 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
     phdu.header.update('DESTIM', destim,
                        comment='Destination observation root name')
     phdu.header.update('HDRNAME', hdrname, comment='Headerlet name')
+    fmt="%Y-%m-%dT%H:%M:%S"
     phdu.header.update('DATE', time.strftime(fmt),
                        comment='Date FITS file was generated')
     phdu.header.ascard.append(upwcsver)
 
-    updateRefFiles(fobj[0].header.ascard, phdu.header.ascard, verbose=verbose)
+    refs = updateRefFiles(fobj[0].header.ascard, phdu.header.ascard, verbose=verbose)
+    phdukw.update(refs)
     phdu.header.update(key='VAFACTOR',
                        value=fobj[('SCI',1)].header.get('VAFACTOR', 1.))
     hdul.append(phdu)
@@ -219,7 +226,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
                                 comment='Extension version'))
 
         fhdr = fobj[('SCI', e)].header.ascard
-        if 'NPOLFILE' in h.keys() and phdukw['NPOLFILE']:
+        if phdukw['NPOLFILE']:
             cpdis = fhdr['CPDIS*...']
             for c in range(1, len(cpdis) + 1):
                 h.append(cpdis[c - 1])
@@ -236,7 +243,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
             except KeyError:
                 pass
 
-        if 'D2IMFILE' in h.keys() and phdukw['D2IMFILE']:
+        if phdukw['D2IMFILE']:
             try:
                 h.append(fhdr['D2IMEXT'])
             except KeyError:
@@ -337,6 +344,7 @@ def updateRefFiles(source, dest, verbose=False):
             # TODO: I don't understand what the point of this is.  Is it meant
             # for logging purposes?  Right now it isn't used.
             phdukw[key] = False
+    return phdukw
 
 def getRootname(fname):
     """
@@ -455,7 +463,7 @@ class Headerlet(pyfits.HDUList):
                 numhlt += 1
 
             self._delDestWCS(fobj)
-            updateRefFiles(self[0].header.ascard, fobj[0].header.ascard, verbose=self.verbose)
+            refs = updateRefFiles(self[0].header.ascard, fobj[0].header.ascard, verbose=self.verbose)
             numsip = countExtn(self, 'SIPWCS')
             for idx in range(1, numsip + 1):
                 fhdr = fobj[('SCI', idx)].header.ascard
