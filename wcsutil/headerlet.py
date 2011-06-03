@@ -598,7 +598,8 @@ class Headerlet(pyfits.HDUList):
                     del dest[idx].header.ascard['VAFACTOR']
                 except KeyError:
                     pass
-
+                
+        self._removeRefFiles(dest[0])
         self._removeAltWCS(dest, ext=range(numext))
         numwdvarr = countExtn(dest, 'WCSDVARR')
         numd2im = countExtn(dest, 'D2IMARR')
@@ -606,7 +607,18 @@ class Headerlet(pyfits.HDUList):
             del dest[('WCSDVARR', idx)]
         for idx in range(1, numd2im + 1):
             del dest[('D2IMARR', idx)]
-
+    
+    def _removeRefFiles(self, phdu):
+        """
+        phdu: Primary HDU
+        """
+        refkw = ['IDCTAB', 'NPOLFILE', 'D2IMFILE']
+        for kw in refkw:
+            try:
+                del phdu.header.ascard[kw]
+            except KeyError:
+                pass
+        
     def _removeSIP(self, ext):
         """
         Remove the SIP distortion of a FITS extension
