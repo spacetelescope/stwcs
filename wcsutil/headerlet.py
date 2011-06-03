@@ -427,7 +427,7 @@ class Headerlet(pyfits.HDUList):
         self.d2imerr = 0
         self.axiscorr = 1
         
-    def apply(self, dest, createheaderlet=True, hdrname=None, attach=True):
+    def apply(self, dest, createheaderlet=True, hdrname=None, attach=True, createsummary=True):
         """
         Apply this headerlet to a file.
         
@@ -444,6 +444,9 @@ class Headerlet(pyfits.HDUList):
                  By default the headerlet being applied will be attached 
                  as an extension to the science file. Set 'attach' to False
                  to disable this.
+        createsummary: boolean, default: True
+                 Set this to False to disable creating and updating of wcscorr table.
+                 This is used primarily for testing.
         """
         self.hverify()
         if self.verify_dest(dest):
@@ -456,14 +459,15 @@ class Headerlet(pyfits.HDUList):
 
             # Create the WCSCORR HDU/table from the existing WCS keywords if
             # necessary
-            try:
-                # TODO: in the pyfits refactoring branch if will be easier to
-                # test whether an HDUList contains a certain extension HDU
-                # without relying on try/except
-                wcscorr_table = fobj['WCSCORR']
-            except KeyError:
-                # The WCSCORR table needs to be created
-                wcscorr.init_wcscorr(fobj)
+            if createsummary:
+                try:
+                    # TODO: in the pyfits refactoring branch if will be easier to
+                    # test whether an HDUList contains a certain extension HDU
+                    # without relying on try/except
+                    wcscorr_table = fobj['WCSCORR']
+                except KeyError:
+                    # The WCSCORR table needs to be created
+                    wcscorr.init_wcscorr(fobj)
 
             orig_hlt_hdu = None
             numhlt = countExtn(fobj, 'HDRLET')
@@ -515,7 +519,8 @@ class Headerlet(pyfits.HDUList):
                 fobj.append(self[('D2IMARR', idx)].copy())
 
             # Update the WCSCORR table with new rows from the headerlet's WCSs
-            wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
+            if createsummary:
+                wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
             # Append the original headerlet
             if createheaderlet and orig_hlt_hdu:
