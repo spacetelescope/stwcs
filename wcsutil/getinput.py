@@ -37,6 +37,9 @@ def parseSingleInput(f=None, ext=None):
         ehdr = f[extnum].header
         hdr0 = f[0].header
         filename = hdr0.get('FILENAME', "")
+        
+    else:
+        raise ValueError('Input must be a file name string or a pyfits file object')
 
     return filename, hdr0, ehdr, phdu
 
