@@ -254,7 +254,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
             try:
                 h.append(fhdr['AXISCORR'])
             except KeyError:
-                module_logger.exception("Required keyword AXISCORR was not found in "
+                module_logger.exception("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
                                  "%s['SCI',%d]" % (fname, e))
                 raise
 
@@ -427,9 +427,23 @@ class Headerlet(pyfits.HDUList):
         self.d2imerr = 0
         self.axiscorr = 1
         
-    def apply(self, dest, createheaderlet=True, hdrname=None):
+    def apply(self, dest, createheaderlet=True, hdrname=None, attach=True):
         """
         Apply this headerlet to a file.
+        
+        Parameters
+        ----------
+        dest:    string
+                 Name of file to which to apply the WCS in the headerlet
+        hdrname: string
+                 A unique name for the headerlet
+        createheaderlet: boolean
+                 A flag which indicates if a headerlet should be created 
+                 from the old WCS and attached to the science file (default: True)
+        attach:  boolean, default: True
+                 By default the headerlet being applied will be attached 
+                 as an extension to the science file. Set 'attach' to False
+                 to disable this.
         """
         self.hverify()
         if self.verify_dest(dest):
@@ -506,11 +520,12 @@ class Headerlet(pyfits.HDUList):
             # Append the original headerlet
             if createheaderlet and orig_hlt_hdu:
                 fobj.append(orig_hlt_hdu)
-
-            # Finally, append an HDU for this headerlet
-            new_hlt = HeaderletHDU.fromheaderlet(self)
-            new_hlt.update_ext_version(numhlt + 1)
-            fobj.append(new_hlt)
+            
+            if attach:
+                # Finally, append an HDU for this headerlet
+                new_hlt = HeaderletHDU.fromheaderlet(self)
+                new_hlt.update_ext_version(numhlt + 1)
+                fobj.append(new_hlt)
 
             if close_dest:
                 fobj.close()
