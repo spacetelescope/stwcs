@@ -220,6 +220,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
         for ak in altkeys:
             awcs = HSTWCS(fname,ext=('SCI', e), wcskey=ak)
             h.extend(awcs.wcs2header(idc2hdr=False).ascard)
+        h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor, 
+                             comment='Velocity aberration plate scale factor'))
         h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
                                 comment='Extension name'))
         h.insert(1, pyfits.Card(key='EXTVER', value=e,
