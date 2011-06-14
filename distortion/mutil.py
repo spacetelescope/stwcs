@@ -159,15 +159,28 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
                 if int(detchip) == int(chip) or int(detchip) == -999:
                     row = i
                     break
+
+    joinstr = ','
+    if 'CLEAR' in filter1: 
+        f1str = ''
+        joinstr = ''
+    else:
+        f1str = filter1.strip()
+    if 'CLEAR' in filter2:
+        f2str = ''
+        joinstr = ''
+    else:
+        f2str = filter2.strip()
+    filtstr = (joinstr.join([f1str,f2str])).strip()
     if row < 0:
         err_str = '\nProblem finding row in IDCTAB! Could not find row matching:\n'
         err_str += '        CHIP: '+str(detchip)+'\n'
-        err_str += '     FILTERS: '+filter1+','+filter2+'\n'
+        err_str += '     FILTERS: '+filstr+'\n'
         ftab.close()
         del ftab
         raise LookupError,err_str
     else:
-        print '- IDCTAB: Distortion model from row',str(row+1),'for chip',detchip,':',filter1.strip(),'and',filter2.strip()
+        print '- IDCTAB: Distortion model from row',str(row+1),'for chip',detchip,':',filtstr
 
     # Read in V2REF and V3REF: this can either come from current table,
     # or from an OFFTAB if time-dependent (i.e., for WFPC2)
