@@ -46,18 +46,26 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", clobber=False):
 
     if isinstance(ext, int) or isinstance(ext, tuple):
         ext = [ext]
+    
+    wcsext = 0
+    eindx = 0
+    for e in f:
+        if 'extname' in e.header and 'sci' in e.header['extname'].lower():
+            wcsext = eindx
+            break
+        eindx += 1
 
     if wcskey == " ":
         # try getting the key from WCSNAME
         if not wcsname.strip():
-            wkey = next_wcskey(f[1].header)
+            wkey = next_wcskey(f[wcsext].header)
         else:
-            wkey = getKeyFromName(f[1].header, wcsname)
+            wkey = getKeyFromName(f[wcsext].header, wcsname)
     else:
-        if wcskey not in available_wcskeys(f[1].header):
+        if wcskey not in available_wcskeys(f[wcsext].header):
             # reuse wcsname
             if not wcsname.strip():
-                wcsname = f[1].header["WCSNAME"+wcskey]
+                wcsname = f[wcsext].header["WCSNAME"+wcskey]
                 wname = wcsname
                 wkey = wcskey
             else:
@@ -397,6 +405,15 @@ def parpasscheck(fobj, ext, wcskey, wcsname, clobber=True):
         print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
         return False
 
+    wcsext = 0
+    eindx = 0
+    for e in fobj:
+        if 'extname' in e.header and 'sci' in e.header['extname'].lower():
+            wcsext = eindx
+            break
+        eindx += 1
+        
+
     if wcskey == " ":
         # try getting the key from WCSNAME
         """
@@ -407,14 +424,14 @@ def parpasscheck(fobj, ext, wcskey, wcsname, clobber=True):
             return False
         """
         if wcsname.strip():
-            wkey = getKeyFromName(fobj[1].header, wcsname)
+            wkey = getKeyFromName(fobj[wcsext].header, wcsname)
             if wkey and not clobber:
                 print 'Wcsname %s is already used.' % wcsname
                 print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
                 print 'or use "clobber=True" to overwrite the values.'
                 return False
     else:
-        if wcskey not in available_wcskeys(fobj[1].header):
+        if wcskey not in available_wcskeys(fobj[wcsext].header):
             if clobber==False:
                 print 'Wcskey %s is already used.' % wcskey
                 print 'Use "wcsutil.next_wcskey" to obtain a valid wcskey'
