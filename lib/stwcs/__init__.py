@@ -13,7 +13,7 @@ from __future__ import division # confidence high
 
 import distortion
 import pywcs
-from pytools import fileutil
+from stsci.tools import fileutil
 
 __docformat__ = 'restructuredtext'
 

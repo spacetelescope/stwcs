@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 
 import pyfits
-from pytools import fileutil
+from stsci.tools import fileutil
 import utils
 import numpy as np
 

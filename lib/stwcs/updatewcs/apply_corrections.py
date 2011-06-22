@@ -3,7 +3,7 @@ from __future__ import division # confidence high
 import os
 import pyfits
 import time
-from pytools import fileutil
+from stsci.tools import fileutil
 import os.path
 from stwcs.wcsutil import altwcs
 

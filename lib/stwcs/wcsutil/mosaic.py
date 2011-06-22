@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import pyfits
 import string
 
-from pytools import parseinput, irafglob
+from stsci.tools import parseinput, irafglob
 from stwcs.distortion import utils
 from stwcs import updatewcs, wcsutil
 from stwcs.wcsutil import altwcs

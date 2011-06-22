@@ -22,12 +22,12 @@ def help():
     3. Create an HSTWCS object using a file name and an extension number. \n
     Example:\n
     w = wcsutil.HSTWCS('j9irw4b1q_flt.fits', ext=2)\n\n
-    
+
     4. Create an HSTWCS object from WCS with key 'O'.\n
     Example:\n
 
     w = wcsutil.HSTWCS('j9irw4b1q_flt.fits', ext=2, wcskey='O')\n\n
-    
+
     5. Create a template HSTWCS object for a DEFAULT object.\n
     Example:\n
     w = wcsutil.HSTWCS(instrument='DEFAULT')\n\n

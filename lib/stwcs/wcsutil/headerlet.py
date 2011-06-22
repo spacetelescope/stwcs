@@ -14,7 +14,7 @@ import altwcs
 import wcscorr
 from hstwcs import HSTWCS
 from mappings import basic_wcs
-from pytools.fileutil import countExtn
+from stsci.tools.fileutil import countExtn
 
 module_logger = logging.getLogger('headerlet')
 

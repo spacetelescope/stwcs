@@ -5,7 +5,7 @@ import pywcs
 import pyfits
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
-from pytools import fileutil
+from stsci.tools import fileutil
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     """

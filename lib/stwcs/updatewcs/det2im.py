@@ -2,7 +2,7 @@ from __future__ import division # confidence high
 
 import time
 import pyfits
-from pytools import fileutil
+from stsci.tools import fileutil
 import utils
 
 import logging

@@ -1,6 +1,6 @@
 from __future__ import division # confidence high
 
-from pytools import fileutil
+from stsci.tools import fileutil
 import numpy as np
 import string
 import calendar

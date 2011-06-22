@@ -5,7 +5,7 @@ try:
 except:
     stwcs = None
 
-from pytools import fileutil
+from stsci.tools import fileutil
 
 OPUS_WCSKEYS = ['OCRVAL1','OCRVAL2','OCRPIX1','OCRPIX2',
                 'OCD1_1','OCD1_2','OCD2_1','OCD2_2',

@@ -1,5 +1,5 @@
 import pyfits
-from pytools import irafglob, fileutil, parseinput
+from stsci.tools import irafglob, fileutil, parseinput
 
 def parseSingleInput(f=None, ext=None):
     if isinstance(f, str):

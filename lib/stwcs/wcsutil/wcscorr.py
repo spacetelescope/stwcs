@@ -2,7 +2,7 @@ import os,copy
 import pyfits
 import numpy as np
 
-from pytools import fileutil
+from stsci.tools import fileutil
 import stwcs
 from stwcs.wcsutil import altwcs
 import convertwcs

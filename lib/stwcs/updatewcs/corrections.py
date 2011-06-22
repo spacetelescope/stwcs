@@ -3,7 +3,7 @@ from __future__ import division # confidence high
 import datetime
 import numpy as np
 from numpy import linalg
-from pytools import fileutil
+from stsci.tools import fileutil
 from utils import diff_angles
 import makewcs, npol
 

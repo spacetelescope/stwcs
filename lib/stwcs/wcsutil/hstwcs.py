@@ -7,8 +7,8 @@ import instruments
 from stwcs.distortion import models, coeff_converter
 import altwcs
 import numpy as np
-from pytools import fileutil
-from pytools.fileutil import DEGTORAD, RADTODEG
+from stsci.tools import fileutil
+from stsci.tools.fileutil import DEGTORAD, RADTODEG
 
 import getinput
 import mappings

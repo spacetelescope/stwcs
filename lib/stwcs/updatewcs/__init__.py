@@ -10,7 +10,7 @@ import pywcs
 
 import utils, corrections, makewcs
 import npol, det2im
-from pytools import parseinput, fileutil
+from stsci.tools import parseinput, fileutil
 import apply_corrections
 
 import time
@@ -43,7 +43,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
     Dependencies
     ------------
-    `pytools`
+    `stsci.tools`
     `pyfits`
     `pywcs`
 
@@ -314,7 +314,7 @@ def checkFiles(input):
     Checks that input files are in the correct format.
     Converts geis and waiver fits files to multiextension fits.
     """
-    from pytools.check_files import geis2mef, waiver2mef, checkFiles
+    from stsci.tools.check_files import geis2mef, waiver2mef, checkFiles
     logger.info("\n\tChecking files %s" % input)
     removed_files = []
     newfiles = []
