@@ -29,7 +29,7 @@ def setLogger(logger, level, mode='w'):
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     logger.setLevel(level)
-    
+
 def isWCSIdentical(scifile, file2, verbose=False):
     """
     Compares the WCS solution of 2 files.
@@ -181,20 +181,20 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
         module_logger.critical("Required keyword 'HDRNAME' not given")
         raise ValueError("Please provide a name for the headerlet, HDRNAME is "
                          "a required parameter.")
-        
+
     # get the version of STWCS used to create the WCS of the science file.
     try:
         upwcsver = fobj[0].header.ascard['STWCSVER']
     except KeyError:
         upwcsver = pyfits.Card("STWCSVER", " ",
                                "Version of STWCS used to update the WCS")
-    
+
     # get all keys for alternate WCSs
     altkeys = altwcs.wcskeys(fobj[('SCI', 1)].header)
-    
+
     if 'O' in altkeys:
         altkeys.remove('O')
-    
+
     numsci = countExtn(fname, 'SCI')
     module_logger.debug("Number of 'SCI' extensions in file %s is %s"
                  % (fname, numsci))
@@ -208,7 +208,8 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
                        comment='Date FITS file was generated')
     phdu.header.ascard.append(upwcsver)
 
-    refs = updateRefFiles(fobj[0].header.ascard, phdu.header.ascard, verbose=verbose)
+    refs = updateRefFiles(fobj[0].header.ascard, phdu.header.ascard,
+                          verbose=verbose)
     phdukw.update(refs)
     phdu.header.update(key='VAFACTOR',
                        value=fobj[('SCI',1)].header.get('VAFACTOR', 1.))
@@ -220,7 +221,7 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
         for ak in altkeys:
             awcs = HSTWCS(fname,ext=('SCI', e), wcskey=ak)
             h.extend(awcs.wcs2header(idc2hdr=False).ascard)
-        h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor, 
+        h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor,
                              comment='Velocity aberration plate scale factor'))
         h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
                                 comment='Extension name'))
@@ -265,20 +266,14 @@ def createHeaderlet(fname, hdrname, destim=None, output=None, verbose=False, log
                                      comment='Maximum error of D2IMARR'))
 
         hdu = pyfits.ImageHDU(header=pyfits.Header(h))
-        # temporary fix for pyfits ticket # 48
-        hdu._extver = e
         hdul.append(hdu)
     numwdvarr = countExtn(fname, 'WCSDVARR')
     numd2im = countExtn(fname, 'D2IMARR')
     for w in range(1, numwdvarr + 1):
         hdu = fobj[('WCSDVARR', w)].copy()
-        # temporary fix for pyfits ticket # 48
-        hdu._extver = w
         hdul.append(hdu)
     for d in range(1, numd2im + 1):
         hdu = fobj[('D2IMARR', d)].copy()
-        # temporary fix for pyfits ticket # 48
-        hdu._extver = d
         hdul.append(hdu)
     if output is not None:
         # write the headerlet to a file
@@ -372,9 +367,7 @@ def mapFitsExt2HDUListInd(fname, extname):
         close_file = False
     d = {}
     for hdu in f:
-        # TODO: Replace calls to header.has_key() with `in header` once
-        # pyfits refactoring branch is in production use
-        if hdu.header.has_key('EXTNAME') and hdu.header['EXTNAME'] == extname:
+        if 'EXTNAME' in hdu.header and hdu.header['EXTNAME'] == extname:
             extver = hdu.header['EXTVER']
             d[(extname, extver)] = f.index_of((extname, extver))
     if close_file:
@@ -388,7 +381,8 @@ class Headerlet(pyfits.HDUList):
     Ref: http://stsdas.stsci.edu/stsci_python_sphinxdocs/stwcs/headerlet_def.html
     """
 
-    def __init__(self, fobj, wcskeys=[], mode='copyonwrite', verbose=False, logmode='w'):
+    def __init__(self, fobj, wcskeys=[], mode='copyonwrite', verbose=False,
+                 logmode='w'):
         """
         Parameters
         ----------
@@ -426,11 +420,12 @@ class Headerlet(pyfits.HDUList):
         self.vafactor = self[1].header.get("VAFACTOR", 1) #None instead of 1?
         self.d2imerr = 0
         self.axiscorr = 1
-        
-    def apply(self, dest, createheaderlet=True, hdrname=None, attach=True, createsummary=True):
+
+    def apply(self, dest, createheaderlet=True, hdrname=None, attach=True,
+              createsummary=True):
         """
         Apply this headerlet to a file.
-        
+
         Parameters
         ----------
         dest:    string
@@ -438,10 +433,10 @@ class Headerlet(pyfits.HDUList):
         hdrname: string
                  A unique name for the headerlet
         createheaderlet: boolean
-                 A flag which indicates if a headerlet should be created 
+                 A flag which indicates if a headerlet should be created
                  from the old WCS and attached to the science file (default: True)
         attach:  boolean, default: True
-                 By default the headerlet being applied will be attached 
+                 By default the headerlet being applied will be attached
                  as an extension to the science file. Set 'attach' to False
                  to disable this.
         createsummary: boolean, default: True
@@ -500,8 +495,7 @@ class Headerlet(pyfits.HDUList):
                     except KeyError:
                         wind = len(fhdr)
                 self.hdr_logger.debug("Inserting WCS keywords at index %s" % wind)
-                # TODO: Drop .keys() when refactored pyfits comes into use
-                for k in siphdr.keys():
+                for k in siphdr:
                     if k not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
                                  'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN',
                                  'INHERIT', 'DATE', 'IRAF-TLM']:
@@ -525,7 +519,7 @@ class Headerlet(pyfits.HDUList):
             # Append the original headerlet
             if createheaderlet and orig_hlt_hdu:
                 fobj.append(orig_hlt_hdu)
-            
+
             if attach:
                 # Finally, append an HDU for this headerlet
                 new_hlt = HeaderletHDU.fromheaderlet(self)
@@ -543,11 +537,10 @@ class Headerlet(pyfits.HDUList):
 
     def hverify(self):
         self.verify()
-        assert(self[0].header.has_key('DESTIM') and
-               self[0].header['DESTIM'].strip())
-        assert(self[0].header.has_key('HDRNAME') and
-               self[0].header['HDRNAME'].strip())
-        assert(self[0].header.has_key('STWCSVER'))
+        header = self[0].header
+        assert('DESTIM' in header and header['DESTIM'].strip())
+        assert('HDRNAME' in header and header['HDRNAME'].strip())
+        assert('STWCSVER' in header)
 
 
     def verify_dest(self, dest):
@@ -588,7 +581,8 @@ class Headerlet(pyfits.HDUList):
 
         for idx in range(numext):
             # Only delete WCS from extensions which may have WCS keywords
-            if dest[idx].__dict__.has_key('_xtn') and "IMAGE" in dest[idx]._xtn:
+            if ('XTENSION' in dest[idx].header and
+                dest[idx].header['XTENSION'] == 'IMAGE'):
                 self._removeD2IM(dest[idx])
                 self._removeSIP(dest[idx])
                 self._removeLUT(dest[idx])
@@ -598,7 +592,7 @@ class Headerlet(pyfits.HDUList):
                     del dest[idx].header.ascard['VAFACTOR']
                 except KeyError:
                     pass
-                
+
         self._removeRefFiles(dest[0])
         self._removeAltWCS(dest, ext=range(numext))
         numwdvarr = countExtn(dest, 'WCSDVARR')
@@ -607,7 +601,7 @@ class Headerlet(pyfits.HDUList):
             del dest[('WCSDVARR', idx)]
         for idx in range(1, numd2im + 1):
             del dest[('D2IMARR', idx)]
-    
+
     def _removeRefFiles(self, phdu):
         """
         phdu: Primary HDU
@@ -618,7 +612,7 @@ class Headerlet(pyfits.HDUList):
                 del phdu.header.ascard[kw]
             except KeyError:
                 pass
-        
+
     def _removeSIP(self, ext):
         """
         Remove the SIP distortion of a FITS extension
@@ -724,7 +718,7 @@ class Headerlet(pyfits.HDUList):
                 pass
 
 
-class HeaderletHDU(pyfits.core._NonstandardExtHDU):
+class HeaderletHDU(pyfits.hdu.base.NonstandardExtHDU):
     """
     A non-standard extension HDU for encapsulating Headerlets in a file.  These
     HDUs have an extension type of HDRLET and their EXTNAME is derived from the
@@ -739,64 +733,46 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
     `headerlet` attribute.
     """
 
-    _xtn = _extension = 'HDRLET'
+    _extension = 'HDRLET'
 
-    def __init__(self, data=None, header=None):
-        super(HeaderletHDU, self).__init__(data=data, header=header)
-        # TODO: This can be removed after the next pyfits release, but for now
-        # the _ExtensionHDU base class sets self._xtn = '' in its __init__().
-        self._xtn = self._extension
-        # For some reason _NonstandardExtHDU.__init__ sets self.name = None,
-        # even if it's already been set by the EXTNAME keyword in
-        # _ExtensionHDU.__init__() -_-;
-        if header and header.has_key('EXTNAME') and not self.name:
-            self.name = header['EXTNAME']
-        # self._extver, if set, is still preserved.  From
-        # _ExtensionHDU.__init__()...totally inconsistent.
+    @pyfits.util.lazyproperty
+    def data(self):
+        size = self.size()
+        self._file.seek(self._datLoc)
+        return self._file.readarray(size)
 
-    def __getattr__(self, attr):
-        if attr == 'data':
-            size = self.size()
-            self._file.seek(self._datLoc)
-            self.__dict__[attr] = self._file.read(size)
-        elif attr == 'headerlet':
-            self._file.seek(self._datLoc)
-            s = StringIO()
-            # Read the data into a StringIO--reading directly from the file
-            # won't work (at least for gzipped files) due to problems deep
-            # within the gzip module that make it difficult to read gzip files
-            # embedded in another file
-            s.write(self._file.read(self.size()))
-            s.seek(0)
-            if self._header['COMPRESS']:
-                mode = 'r:gz'
-            else:
-                mode = 'r'
-            t = tarfile.open(mode=mode, fileobj=s)
-            members = t.getmembers()
-            if not len(members):
-                raise ValueError('The Headerlet contents are missing.')
-            elif len(members) > 1:
-                warnings.warn('More than one file is contained in this '
-                              'only the headerlet file should be present.')
-            hlt_name = self._header['HDRNAME'] + '_hdr.fits'
-            try:
-                hlt_info = t.getmember(hlt_name)
-            except KeyError:
-                warnings.warn('The file %s was missing from the HDU data.  '
-                              'Assuming that the first file in the data is '
-                              'headerlet file.' % hlt_name)
-                hlt_info = members[0]
-            hlt_file = t.extractfile(hlt_info)
-            # hlt_file is a file-like object
-            hlt = Headerlet(hlt_file, mode='readonly')
-            self.__dict__[attr] = hlt
+    @pyfits.util.lazyproperty
+    def headerlet(self):
+        self._file.seek(self._datLoc)
+        s = StringIO()
+        # Read the data into a StringIO--reading directly from the file
+        # won't work (at least for gzipped files) due to problems deep
+        # within the gzip module that make it difficult to read gzip files
+        # embedded in another file
+        s.write(self._file.read(self.size()))
+        s.seek(0)
+        if self._header['COMPRESS']:
+            mode = 'r:gz'
         else:
-            return pyfits.core._ValidHDU.__getattr__(self, attr)
+            mode = 'r'
+        t = tarfile.open(mode=mode, fileobj=s)
+        members = t.getmembers()
+        if not len(members):
+            raise ValueError('The Headerlet contents are missing.')
+        elif len(members) > 1:
+            warnings.warn('More than one file is contained in this '
+                          'only the headerlet file should be present.')
+        hlt_name = self._header['HDRNAME'] + '_hdr.fits'
         try:
-            return self.__dict__[attr]
+            hlt_info = t.getmember(hlt_name)
         except KeyError:
-            raise AttributeError(attr)
+            warnings.warn('The file %s was missing from the HDU data.  '
+                          'Assuming that the first file in the data is '
+                          'headerlet file.' % hlt_name)
+            hlt_info = members[0]
+        hlt_file = t.extractfile(hlt_info)
+        # hlt_file is a file-like object
+        return Headerlet(hlt_file, mode='readonly')
 
     @classmethod
     def fromheaderlet(cls, headerlet, compress=False):
@@ -857,7 +833,10 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
         header = pyfits.Header(pyfits.CardList(cards))
 
         hdu = cls(data=pyfits.DELAYED, header=header)
-        hdu._file = s
+        # TODO: These hacks are a necessary evil, but should be removed once
+        # the pyfits API is improved to better support specifying a backing
+        # file object for an HDU
+        hdu._file = pyfits.file._File(s)
         hdu._datLoc = 0
         return hdu
 
@@ -881,18 +860,6 @@ class HeaderletHDU(pyfits.core._NonstandardExtHDU):
 
     def _summary(self):
         # TODO: Perhaps make this more descriptive...
-        return '%-10s  %-12s  %4d' % (self.name, self.__class__.__name__,
-                                      len(self._header.ascard))
+        return (self.name, self.__class__.__name__, len(self._header.ascard))
 
-# Monkey-patch pyfits to add minimal support for HeaderletHDUs
-# TODO: Get rid of this ASAP!!! (it won't be necessary with the pyfits
-# refactoring branch)
-if not hasattr(pyfits.Header._updateHDUtype, '_patched'):
-    __old_updateHDUtype = pyfits.Header._updateHDUtype
-    def __updateHDUtype(self):
-        if HeaderletHDU.match_header(self):
-            self._hdutype = HeaderletHDU
-        else:
-            __old_updateHDUtype(self)
-    __updateHDUtype._patched = True
-    pyfits.Header._updateHDUtype = __updateHDUtype
+pyfits.register_hdu(HeaderletHDU)
