@@ -496,10 +496,10 @@ class Headerlet(pyfits.HDUList):
                         wind = len(fhdr)
                 self.hdr_logger.debug("Inserting WCS keywords at index %s" % wind)
                 for k in siphdr:
-                    if k not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
-                                 'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN',
-                                 'INHERIT', 'DATE', 'IRAF-TLM']:
-                        fhdr.insert(wind, siphdr[k])
+                    if k.key not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
+                                     'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN',
+                                     'INHERIT', 'DATE', 'IRAF-TLM']:
+                        fhdr.insert(wind, k)
                     else:
                         pass
 
