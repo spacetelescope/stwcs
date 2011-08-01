@@ -26,15 +26,19 @@ DEGTORAD = fileutil.DEGTORAD
 RADTODEG = fileutil.RADTODEG
 
 
-__version__ = ''
-__svn_version = ''
-__full_svn_info__ = ''
-__setup_datetime__ = None
+if False :
+    __version__ = ''
+    __svn_version = ''
+    __full_svn_info__ = ''
+    __setup_datetime__ = None
 
-try:
-    __version__ = __import__('pkg_resources').get_distribution('stwcs').version
-except:
-    pass
+    try:
+        __version__ = __import__('pkg_resources').get_distribution('stwcs').version
+    except:
+        pass
+else :
+    __version__ = '0.9'
+
 
 try:
     from stwcs.svninfo import (__svn_version__, __full_svn_info__,
