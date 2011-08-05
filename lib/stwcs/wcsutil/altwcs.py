@@ -411,7 +411,7 @@ def next_wcskey(fobj, ext=None):
     header: pyfits.Header
     """
     _check_headerpars(fobj, ext)
-    hdr = _getheader(fobj, hdr)
+    hdr = _getheader(fobj, ext)
     allkeys = available_wcskeys(hdr)
     if allkeys != []:
         return allkeys[0]
