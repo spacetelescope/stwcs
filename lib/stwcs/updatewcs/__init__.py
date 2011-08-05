@@ -141,7 +141,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     rwcs = HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True,header=f[nrefext].header)
 
-    wcsutil.archiveWCS(f, nrefext, 'O', wcsname='OPUS', clobber=True)
+    #wcsutil.archiveWCS(f, nrefext, 'O', wcsname='OPUS', clobber=True)
 
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
@@ -161,7 +161,8 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
                 ext_wcs = HSTWCS(fobj=f, ext=i)
-                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", clobber=True)
+                ### check if it exists first!!!
+                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
                 ext_wcs.readModel(update=True,header=hdr)
                 for c in allowed_corr:
                     if c != 'NPOLCorr' and c != 'DET2IMCorr':
@@ -171,7 +172,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                             hdr.update(kw, kw2update[kw])
                 #if wkey is None, do not archive the primary WCS
                 if key is not None:
-                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, clobber=True)
+                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=True)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
