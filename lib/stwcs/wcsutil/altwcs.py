@@ -60,41 +60,56 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
         return
 
     if not ext:
-        ext = range(len(f))
+        simplefits = fu.isFits(f)[1] is 'simple'
+        if simplefits:    
+            ext = range(len(f))
+        else:
+            # Pywcs will create a default WCS if one is not present
+            # this avoids archiving a default WCS in the primary header 
+            # if the file is in MEF format
+            ext = range(1, len(f))
     elif isinstance(ext, int) or isinstance(ext, tuple):
         ext = [ext]
     
+    if not wcskey and not wcsname:
+        raise KeyError("Either wcskey or wcsname should be specified")
+    
     wcsext = ext[0]
-    if wcskey == " ":
-        # try getting the key from WCSNAME
-        if not wcsname.strip():
-            wkey = next_wcskey(f[wcsext].header)
-        else:
-            wkey = getKeyFromName(f[wcsext].header, wcsname)
-    else:
-        if wcskey not in available_wcskeys(f[wcsext].header):
-            # reuse wcsname
-            if not wcsname.strip():
-                wcsname = f[wcsext].header["WCSNAME"+wcskey]
+    if wcskey in wcskeys(f[wcsext].header) and not reusekey:
+        raise KeyError("Wcskey %s is aready used. \
+        Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
+        Alternatively choose another wcskey with altwcs.available_wcskeys()." %wcskey)
+    elif wcskey == " ":
+        # wcsname exists, overwrite it if reuse is True or get the next key
+        if wcsname.strip() in wcsnames(f[wcsext].header).values():
+            if reusekey:
+                # try getting the key from an existing WCS with WCSNAME
+                wkey = getKeyFromName(f[wcsext].header, wcsname)
                 wname = wcsname
-                wkey = wcskey
+                if not wkey:
+                    raise KeyError("Could not get a valid wcskey from wcsname %s" %wcsname)
             else:
-                wkey = wcskey
-                wname = wcsname
+                raise KeyError("Wcsname %s is aready used. \
+                Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
+                Alternatively choose another wcskey with altwcs.available_wcskeys() or\
+                choose another wcsname." %wcsname)
         else:
-            wkey = wcskey
+            wkey = next_wcskey(f[wcsext].header)
             wname = wcsname
-
+    else:
+        wkey = wcskey
+        wname = wcsname
+        
     for e in ext:
         try:
             w = pywcs.WCS(f[e].header, fobj=f)
         except:
-            # this should be revisited, should catchspecific  errors
+            # this should be revisited, should catch specific  errors
             # KeyError - not a valid key, ValueError - not a valid extension, etc
             continue
         hwcs = w.to_header()
         wcsnamekey = 'WCSNAME' + wkey
-        f[e].header.update(key=wcsnamekey, value=wcsname)
+        f[e].header.update(key=wcsnamekey, value=wname)
         if w.wcs.has_cd():
             pc2cd(hwcs)
         for k in hwcs.keys():
@@ -158,8 +173,6 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ",
 
     if isinstance(ext, int) or isinstance(ext, tuple):
         ext = [ext]
-    #if isinstance(fromext, str):
-    #    fromext = [fromext]
     if isinstance(toext, str):
         toext = [toext]
         
@@ -296,6 +309,20 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
     closefobj(fname, fobj)
 
 def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None, toextnam=None):
+    """
+    fobj: string of HDUList
+    ukey: string 'A'-'Z'
+          wcs key
+    fromextnum: int
+                extver of extension from which to copy WCS
+    fromextnam: string
+                extname of extension from which to copy WCS
+    toextnum: int
+              extver of extension to which to copy WCS
+    toextnam: string
+              extname of extension to which to copy WCS
+    """
+    # create an extension tuple, e.g. ('SCI', 2)
     if fromextnam:
         fromextension = (fromextnam, fromextnum)
     else:
@@ -358,7 +385,11 @@ def wcskeys(fobj, ext=None):
 
     Parameters
     ----------
-    hdr: pyfits.Header
+    fobj: string, pyfits.HDUList or pyfits.Header
+          fits file name, pyfits file object or pyfits header
+    ext: int or None
+         extension number 
+         if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
@@ -371,7 +402,12 @@ def wcsnames(fobj, ext=None):
 
     Parameters
     ----------
-    header: pyfits.Header
+    fobj: string, pyfits.HDUList or pyfits.Header
+          fits file name, pyfits file object or pyfits header
+    ext: int or None
+         extension number 
+         if None, fobj must be a header
+    
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
@@ -389,7 +425,11 @@ def available_wcskeys(fobj, ext=None):
 
     Parameters
     ----------
-    header: pyfits.Header
+    fobj: string, pyfits.HDUList or pyfits.Header
+          fits file name, pyfits file object or pyfits header
+    ext: int or None
+         extension number 
+         if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
@@ -408,7 +448,11 @@ def next_wcskey(fobj, ext=None):
 
     Parameters
     ----------
-    header: pyfits.Header
+    fobj: string, pyfits.HDUList or pyfits.Header
+          fits file name, pyfits file object or pyfits header
+    ext: int or None
+         extension number 
+         if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
