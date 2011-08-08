@@ -46,7 +46,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
     
     See Also
     --------
-    wcsutils.restoreWCS: Copy an alternate WCS to the primary WCS
+    wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
 
     """
 
@@ -57,7 +57,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
 
     if not _parpasscheck(f, ext, wcskey, wcsname):
         closefobj(fname, f)
-        return
+        raise ValueError("Input parameters problem")
 
     if not ext:
         simplefits = fu.isFits(f)[1] is 'simple'
@@ -76,6 +76,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
     
     wcsext = ext[0]
     if wcskey in wcskeys(f[wcsext].header) and not reusekey:
+        closefobj(fname, f)
         raise KeyError("Wcskey %s is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
         Alternatively choose another wcskey with altwcs.available_wcskeys()." %wcskey)
@@ -87,8 +88,10 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
                 wname = wcsname
                 if not wkey:
+                    closefobj(fname, f)
                     raise KeyError("Could not get a valid wcskey from wcsname %s" %wcsname)
             else:
+                closefobj(fname, f)
                 raise KeyError("Wcsname %s is aready used. \
                 Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
                 Alternatively choose another wcskey with altwcs.available_wcskeys() or\
@@ -120,19 +123,14 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
         #f[e].header.update(key=okey, value=norient)
     closefobj(fname, f)
 
-def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ", 
-               clobber=False):
+def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     """
     Copy a WCS with key "WCSKEY" to the primary WCS
 
     Reads in a WCS defined with wcskey and saves it as the primary WCS.
-    If clobber is False, writes out a new file whose name is the original
-    name with an attached 3 character string  _'WCSKEY'_.
-    Otherwise overwrites the file. Goes sequentially through the list 
-    of extensions.
-    The WCS is restored from the 'SCI' extension but the WCS of all
-    extensions with the same EXTVER are updated.
-
+    Goes sequentially through the list of extensions in ext.
+    Alternatively uses 'fromext' and 'toext'.
+    
 
     Parameters
     ----------
@@ -151,8 +149,6 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ",
              or " " - find a key from WCSNAMe value
     wcsname: string (optional)
              if given and wcskey is " ", will try to restore by WCSNAME value
-    clobber: boolean, default False
-             A flag to define if the original files should be overwritten
 
     See Also
     --------
@@ -160,29 +156,24 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ",
 
     """
     if isinstance(f, str):
-        if clobber:
-            fobj = pyfits.open(f, mode='update')
-        else:
-            fobj = pyfits.open(f)
+        fobj = pyfits.open(f, mode='update')
     else:
         fobj = f
 
-    if not _parpasscheck(fobj, ext=ext, wcskey=wcskey, fromext=fromext, toext=toext, clobber=clobber):
+    if not _parpasscheck(fobj, ext=ext, wcskey=wcskey, fromext=fromext, toext=toext):
         closefobj(f, fobj)
-        return
+        raise ValueError("Input parameters problem")
 
     if isinstance(ext, int) or isinstance(ext, tuple):
         ext = [ext]
     if isinstance(toext, str):
         toext = [toext]
-        
+
     # the case of an HDUList object in memory without an associated file
-    if fobj.filename() is not None: 
-        if not clobber:
-            name = (fobj.filename().split('.fits')[0] + '_%s_' + '.fits') %wcskey
-        else:
-            name = fobj.filename()
     
+    #if fobj.filename() is not None: 
+    #        name = fobj.filename()
+            
     simplefits = fu.isFits(fobj)[1] is 'simple'
     if simplefits:
         wcskeyext = 0
@@ -193,9 +184,8 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ",
         if wcsname.strip():
             wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
             if not wkey:
-                print 'Could not get a key from wcsname %s .' % wcsname
                 closefobj(f, fobj)
-                return
+                raise KeyError("Could not get a key from wcsname %s ." % wcsname)
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
             print "Could not find alternate WCS with key %s in this file" % wcskey
@@ -226,8 +216,7 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" ",
                 _restore(fobj, wkey, fromextnum=e)
 
     if fobj.filename() is not None:
-        if not clobber:
-            fobj.writeto(name)
+        #fobj.writeto(name)
         closefobj(f, fobj)
 
 def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
@@ -251,7 +240,7 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
 
     if not _parpasscheck(fobj, ext, wcskey, wcsname):
         closefobj(fname, fobj)
-        return
+        raise ValueError("Input parameters problem")
 
     if not ext:
         ext = range(len(fobj))
@@ -269,23 +258,20 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
         wcskeyext = 0
     else:
         wcskeyext = 1
+        
+    if not wcskeys and not wcsname:
+        raise KeyError("Either wcskey or wcsname should be specified")
+    
     if wcskey == " ":
         # try getting the key from WCSNAME
-        if wcsname == " ":
-            print "Could not get a valid key from header"
+        wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
+        if not wkey:
             closefobj(fname, fobj)
-            return
-        else:
-            wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
-            if not wkey:
-                print 'Could not get a key: wcsname "%s" not found in header.' % wcsname
-                closefobj(fname, fobj)
-                return
+            raise KeyError("Could not get a key: wcsname '%s' not found in header." % wcsname)
     else:
-        if wcskey not in wcskeys(fobj[wcskeyext].header):
-            print "Could not find alternate WCS with key %s in this file" % wcskey
+        if wcskey not in wcskeys(fobj[wcskeyext].header):            
             closefobj(fname, fobj)
-            return
+            raise KeyError("Could not find alternate WCS with key %s in this file" % wcskey)
         wkey = wcskey
 
     prexts = []
@@ -509,7 +495,7 @@ def pc2cd(hdr, key=' '):
         hdr.update(key='CD'+c+'%s' %key, value=val)
     return hdr
 
-def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False, clobber=False):
+def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     """
     Check input parameters to altwcs functions
     
@@ -524,8 +510,6 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False, c
              if given and wcskey is " ", will try to restore by WCSNAME value
     reusekey: boolean
              A flag which indicates whether to reuse a wcskey in the header
-    clobber: boolean
-             A flag to define if the original files should be overwritten
     """
     if not isinstance(fobj,pyfits.HDUList):
         print "First parameter must be a fits file object or a file name."
@@ -537,7 +521,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False, c
         pass
     else:
         # an HDUList object with associated file
-        if fobj.fileinfo(0)['filemode'] is not 'update' and clobber:
+        if fobj.fileinfo(0)['filemode'] is not 'update':
             print "First parameter must be a file name or a file object opened in 'update' mode."
             return False
 

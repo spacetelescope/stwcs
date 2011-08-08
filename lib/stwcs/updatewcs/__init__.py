@@ -106,7 +106,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
 
-        #restore the original WCS keywords
         makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
     return files
 
@@ -137,7 +136,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
-    wcsutil.restoreWCS(f, nrefext, wcskey='O', clobber=True)
+    wcsutil.restoreWCS(f, nrefext, wcskey='O')
     rwcs = HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True,header=f[nrefext].header)
 
@@ -156,7 +155,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
         if extn.header.has_key('extname'):
             extname = extn.header['extname'].lower()
             if  extname == 'sci':
-                wcsutil.restoreWCS(f, ext=i, wcskey='O', clobber=True)
+                wcsutil.restoreWCS(f, ext=i, wcskey='O')
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
@@ -172,7 +171,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                             hdr.update(kw, kw2update[kw])
                 #if wkey is None, do not archive the primary WCS
                 if key is not None:
-                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=True)
+                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=False)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
