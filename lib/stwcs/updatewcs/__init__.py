@@ -7,7 +7,11 @@ from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 from stwcs import __version__ as stwcsversion
 import pywcs
-
+try:
+    from pywcs import __version__ as pywcsversion
+except:
+    pywcsversion = 'UNKNOWN'
+    
 import utils, corrections, makewcs
 import npol, det2im
 from stsci.tools import parseinput, fileutil
@@ -132,15 +136,11 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
               a flag for reusing the wcskey when archiving the primary WCS
     """
     f = pyfits.open(fname, mode='update')
-    #restore the original WCS keywords
-    #wcsutil.restoreWCS(f, ext=[], wcskey='O', clobber=True)
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
     rwcs = HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True,header=f[nrefext].header)
-
-    #wcsutil.archiveWCS(f, nrefext, 'O', wcsname='OPUS', clobber=True)
 
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
@@ -170,7 +170,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
                 #if wkey is None, do not archive the primary WCS
-                if key is not None:
+                if key:
                     wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=False)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -188,17 +188,23 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
     # Finally record the version of the software which updated the WCS
     if f[0].header.has_key('HISTORY'):
         f[0].header.update(key='UPWCSVER', value=stwcsversion, 
-            comment="Version of STWCS used to updated the WCS", before='HISTORY')
+                           comment="Version of STWCS used to updated the WCS", before='HISTORY')
+        f[0].header.update(key='PYWCSVER', value=pywcsversion, 
+            comment="Version of PYWCS used to updated the WCS", before='HISTORY')
     elif f[0].header.has_key('ASN_MTYP'):
         f[0].header.update(key='UPWCSVER', value=stwcsversion, 
             comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
+        f[0].header.update(key='PYWCSVER', value=pywcsversion, 
+            comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
         for i in range(len(f[0].header.ascard)-1,0,-1):
-            if f[0].header[i].strip() != '': break
-            
+            if f[0].header[i].strip() != '': 
+                break            
             f[0].header.update(key='UPWCSVER', value=stwcsversion, 
                 comment="Version of STWCS used to updated the WCS",after=i)
+            f[0].header.update(key='PYWCSVER', value=pywcsversion, 
+                comment="Version of PYWCS used to updated the WCS",after=i)
     f.close()
 
 def getKeyName(hdr, wkey, wname, idcname):
