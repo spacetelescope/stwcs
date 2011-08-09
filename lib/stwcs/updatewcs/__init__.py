@@ -161,6 +161,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                 hdr = extn.header
                 ext_wcs = HSTWCS(fobj=f, ext=i)
                 ### check if it exists first!!!
+                # 'O ' can be safely archived again because it has been restored first.
                 wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
                 ext_wcs.readModel(update=True,header=hdr)
                 for c in allowed_corr:
@@ -171,7 +172,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                             hdr.update(kw, kw2update[kw])
                 #if wkey is None, do not archive the primary WCS
                 if key:
-                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=False)
+                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=True)
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
