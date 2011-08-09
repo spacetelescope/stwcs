@@ -29,7 +29,7 @@ atexit.register(logging.shutdown)
 __docformat__ = 'restructuredtext'
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, wcskey=" ", wcsname=" ", clobber=False, verbose=False):
+              checkfiles=True, verbose=False):
     """
 
     Updates HST science files with the best available calibration information.
@@ -67,16 +67,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
-    wcskey: None, one character string A-Z or an empty string of length 1
-              If None - the primary WCS is not archived
-              If an empty string - the next available wcskey is used for the archive
-              A-Z - use this key to archive the WCS
-    wcsname: a string
-              The name under which the primary WCS is archived after it is updated.
-              If an empty string (default), the name of the idctable is used as
-              a base.
-    clobber: boolean
-              a flag for reusing the wcskey when archiving the primary WCS
     """
     if verbose == False:
         logger.setLevel(100)
@@ -89,9 +79,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         logger.addHandler(fh)
         logger.setLevel(verbose)
     args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
-    wcskey=%s, wcsname=%s, clobber=%s" % (str(vacorr), str(tddcorr), str(npolcorr),
-                                          str(d2imcorr), str(checkfiles), str(wcskey),
-                                          str(wcsname), str(clobber))
+    " % (str(vacorr), str(tddcorr), str(npolcorr),
+                                          str(d2imcorr), str(checkfiles))
     logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
 
     files = parseinput.parseinput(input)[0]
@@ -110,10 +99,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
 
-        makecorr(f, acorr, wkey=wcskey, wname=wcsname, clobber=False)
+        makecorr(f, acorr)
     return files
 
-def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
+def makecorr(fname, allowed_corr):
     """
     Purpose
     =======
@@ -124,16 +113,6 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
              file name
     `acorr`: list
              list of corrections to be applied
-    `wkey`: None, one character string A-Z or an empty string of length 1
-              If None - the primary WCS is not archived
-              If an empty string - the next available wcskey is used for the archive
-              A-Z - use this key to archive the WCS
-    `wname`: a string
-              The name under which the primary WCS is archived after it is updated.
-              If an empty string (default), the name of the idctable is used as
-              a base.
-    `clobber`: boolean
-              a flag for reusing the wcskey when archiving the primary WCS
     """
     f = pyfits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
@@ -144,10 +123,6 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
 
     if 'DET2IMCorr' in allowed_corr:
         det2im.DET2IMCorr.updateWCS(f)
-
-    # get a wcskey and wcsname from the first extension header
-    idcname = fileutil.osfn(rwcs.idctab)
-    key, name = getKeyName(f[1].header, wkey, wname, idcname)
 
     for i in range(len(f))[1:]:
         extn = f[i]
@@ -170,15 +145,15 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
-                #if wkey is None, do not archive the primary WCS
-                if key:
-                    wcsutil.archiveWCS(f, ext=i, wcskey=key, wcsname=name, reusekey=True)
+
+                
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
                     hdr = f[('SCI',sciextver)].header
                     w = pywcs.WCS(hdr, f)
-                    copyWCS(w, extn.header, key, name)
+                    copyWCS(w, extn.header)
+                
             else:
                 continue
 
@@ -208,29 +183,7 @@ def makecorr(fname, allowed_corr, wkey=" ", wname=" ", clobber=False):
                 comment="Version of PYWCS used to updated the WCS",after=i)
     f.close()
 
-def getKeyName(hdr, wkey, wname, idcname):
-    if wkey is not None: # archive the primary WCS
-        if wkey == " ":
-            if wname == " " :
-                # get the next available key and use the IDCTABLE name as WCSNAME
-                idcname = os.path.split(idcname)[1]
-                name = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
-                key = wcsutil.getKeyFromName(hdr, name)
-                if not key:
-                    key = wcsutil.next_wcskey(hdr)
-            else:
-                #try to get a key from WCSNAME
-                # if not - get the next availabble key
-                name = wname
-                key = wcsutil.getKeyFromName(hdr, wname)
-                if not key:
-                    key = wcsutil.next_wcskey(hdr)
-        else:
-            key = wkey
-            name = wname
-    return key, name
-
-def copyWCS(w, hdr, wkey, wname):
+def copyWCS(w, ehdr):
     """
     This is a convenience function to copy a WCS object
     to a header as a primary WCS. It is used only to copy the
@@ -242,11 +195,8 @@ def copyWCS(w, hdr, wkey, wname):
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
-        key = k[:7] + wkey
-        hdr.update(key=key, value=hwcs[k])
-    norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
-    okey = 'ORIENT%s' % wkey
-    hdr.update(key=okey, value=norient)
+        key = k[:7]
+        ehdr.update(key=key, value=hwcs[k])
 
 def getNrefchip(fobj):
     """
