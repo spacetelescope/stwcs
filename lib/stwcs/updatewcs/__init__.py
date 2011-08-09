@@ -145,7 +145,12 @@ def makecorr(fname, allowed_corr):
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
                             hdr.update(kw, kw2update[kw])
-
+                # give the primary WCS a WCSNAME value
+                idcname = f[0].header.get('IDCTAB', " ")
+                if idcname.strip() and 'idc.fits' in idcname:
+                    wname = ''.join(['IDC_',idcname.split('_idc.fits')[0]])
+                else: wname = " "
+                hdr.update('WCSNAME', wname)
                 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -181,7 +186,28 @@ def makecorr(fname, allowed_corr):
                 comment="Version of STWCS used to updated the WCS",after=i)
             f[0].header.update(key='PYWCSVER', value=pywcsversion, 
                 comment="Version of PYWCS used to updated the WCS",after=i)
+    # add additional keywords to be used by headerlets
+    distname = construct_distname(f)
+    f[0].header.update('DISTNAME', distname)
+    idcname = f[0].header.get('IDCTAB', " ")
+    f[0].header.update('SIPNAME', idcname)
     f.close()
+
+def construct_distname(fobj):
+    idcname = fobj[0].header.get('IDCTAB', " ")
+    if idcname.strip() and 'fits' in idcname:
+        idcname = idcname.split('.fits')[0]
+    
+    npolname = fobj[0].header.get('NPOLFILE', " ")
+    if npolname.strip() and '.fits' in npolname:
+        npolname = npolname.split('.fits')[0]
+        
+    d2imname = fobj[0].header.get('D2IMFILE', " ")
+    if d2imname.strip() and '.fits' in d2imname:
+        d2imname = d2imname.split('.fits')[0]
+        
+    distname = idcname.strip().join(npolname.strip()).join(d2imname.strip())
+    return distname
 
 def copyWCS(w, ehdr):
     """
