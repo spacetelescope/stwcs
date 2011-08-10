@@ -102,7 +102,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
-        
+    
     for e in ext:
         try:
             w = pywcs.WCS(f[e].header, fobj=f)
@@ -113,14 +113,17 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
         hwcs = w.to_header()
         wcsnamekey = 'WCSNAME' + wkey
         f[e].header.update(key=wcsnamekey, value=wname)
+        
         if w.wcs.has_cd():
             pc2cd(hwcs)
+        try:
+            old_wcsname=hwcs.pop('WCSNAME')
+        except:
+            pass
         for k in hwcs.keys():
+            
             key = k[:7] + wkey
             f[e].header.update(key=key, value=hwcs[k])
-        #norient = np.rad2deg(np.arctan2(hwcs['CD1_2'],hwcs['CD2_2']))
-        #okey = 'ORIENT%s' % wkey
-        #f[e].header.update(key=okey, value=norient)
     closefobj(fname, f)
 
 def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
