@@ -119,8 +119,9 @@ def init_wcscorr(input, force=False):
     # TODO: Much of this appears to be redundant with update_wcscorr; consider
     # merging them...
     for uwkey in used_wcskeys:
-        if wkey == ' ':
+        if uwkey in [' ',''] :
             break
+
         for extver in xrange(1, numsci + 1):
             hdr = fimg['SCI', extver].header
             wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver),
