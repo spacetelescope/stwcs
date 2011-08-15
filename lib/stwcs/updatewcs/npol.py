@@ -148,9 +148,13 @@ class NPOLCorr(object):
                     dpaxis1: 'Axis number of the jth independent variable in a distortion function', 
                     dpaxis2: 'Axis number of the jth independent variable in a distortion function'
                     }
-        
+        # Look for HISTORY keywords. If present, insert new keywords before them
+        before_key = 'HISTORY'        
+        if before_key not in hdr.ascard:
+            before_key = None
+
         for key in keys:
-            hdr.update(key=key, value=values[key], comment=comments[key], before='HISTORY')
+            hdr.update(key=key, value=values[key], comment=comments[key], before=before_key)
         
     addSciExtKw = classmethod(addSciExtKw)
     
