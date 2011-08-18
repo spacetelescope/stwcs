@@ -73,10 +73,11 @@ class MakeWCS(object):
         if ltv1 != 0. or ltv2 != 0.:
             offsetx = ext_wcs.wcs.crpix[0] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
             offsety = ext_wcs.wcs.crpix[1] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
-            fx,fy = ext_wcs.idcmodel.shift(ext_wcs.idcmodel.cx,ext_wcs.idcmodel.cy,offsetx,offsety)
-        else:
-            fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
-
+            ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy = ext_wcs.idcmodel.shift(ext_wcs.idcmodel.cx,ext_wcs.idcmodel.cy,offsetx,offsety)
+        
+        fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
+        
+        ext_wcs.setPscale()
         tddscale = (ref_wcs.pscale/fx[1,1])
         v2 = ext_wcs.idcmodel.refpix['V2REF'] + v23_corr[0,0] * tddscale
         v3 = ext_wcs.idcmodel.refpix['V3REF'] - v23_corr[1,0] * tddscale
@@ -136,9 +137,19 @@ class MakeWCS(object):
         Updates the reference chip
         """
         ltvoffx, ltvoffy = loff[0], loff[1]
+        ltv1 = ref_wcs.ltv1
+        ltv2 = ref_wcs.ltv2
+        if ref_wcs.ltv1 != 0. or ref_wcs.ltv2 != 0.:
+            offsetx = ref_wcs.wcs.crpix[0] - ltv1 - ref_wcs.idcmodel.refpix['XREF']
+            offsety = ref_wcs.wcs.crpix[1] - ltv2 - ref_wcs.idcmodel.refpix['YREF']
+            ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy = ref_wcs.idcmodel.shift(ref_wcs.idcmodel.cx,ref_wcs.idcmodel.cy,offsetx,offsety)
+        
+        rfx, rfy = ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy
+        
+        ref_wcs.setPscale()
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
-        tddscale = (ref_wcs.pscale/ext_wcs.idcmodel.cx[1,1])
+        tddscale = (ref_wcs.pscale/ref_wcs.idcmodel.cx[1,1])
         rv23 = [ref_wcs.idcmodel.refpix['V2REF'] + (rv23_corr_tdd[0,0] *tddscale),
             ref_wcs.idcmodel.refpix['V3REF'] - (rv23_corr_tdd[1,0] * tddscale)]
         # Get an approximate reference position on the sky
