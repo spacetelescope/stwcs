@@ -57,6 +57,10 @@ class MakeWCS(object):
                     'CRPIX1': ext_wcs.wcs.crpix[0],
                     'CRPIX2': ext_wcs.wcs.crpix[1],
                     'IDCTAB': ext_wcs.idctab,
+                    'OCX10' : ext_wcs.idcmodel.cx[1,0],
+                    'OCX11' : ext_wcs.idcmodel.cx[1,1],
+                    'OCY10' : ext_wcs.idcmodel.cy[1,0],
+                    'OCY11' : ext_wcs.idcmodel.cy[1,1]
             }
         return kw2update
 
