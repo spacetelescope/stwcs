@@ -175,7 +175,21 @@ class DET2IMCorr(object):
             cdl.append(pyfits.Card(key=key, value=kw_val0[key], comment=kw_comm0[key]))
         for key in kw_comm1.keys():
             cdl.append(pyfits.Card(key=key, value=kw_val1[key], comment=kw_comm1[key]))
-            
+        # Now add keywords from NPOLFILE header to document source of calibration
+        # include all keywords after and including 'FILENAME' from header
+        d2im_phdr = pyfits.getheader(d2imfile)
+        start_indx = -1
+        end_indx = 0
+        for c,i in zip(d2im_phdr,range(len(d2im_phdr))):
+            if c == 'FILENAME':
+                start_indx = i
+            if c == '': # remove blanks from end of header
+                end_indx = i+1
+                break
+        if start_indx >= 0:
+            for card in d2im_phdr[start_indx:end_indx]:
+                cdl.append(card)
+        
         hdr = pyfits.Header(cards=cdl)
         return hdr
     
