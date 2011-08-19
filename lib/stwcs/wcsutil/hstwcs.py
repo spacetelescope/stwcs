@@ -134,7 +134,7 @@ class HSTWCS(WCS):
             to a CD matrix, if reasonable, by running pc2.cd() method.\n \
             The plate scale can be set then by calling setPscale() method.\n"
             self.pscale = None
-
+    
     def setOrient(self):
         """
         Computes ORIENTAT from the CD matrix
@@ -239,13 +239,35 @@ class HSTWCS(WCS):
                     chip=self.chip, direction='forward', date=self.date_obs,
                     filter1=self.filter1, filter2=self.filter2,
                     offtab=self.offtab, binned=self.binned)
+        
+        if self.ltv1 != 0. or self.ltv2 != 0.:
+            self.resetLTV()
 
         if update:
             if header==None:
                 print 'Update header with IDC model kw requested but header was not provided\n.'
             else:
                 self._updatehdr(header)
-
+    
+    def resetLTV(self):
+        """
+        Reset LTV values for polarizer data
+        
+        The polarizer field is smaller than the detector field. 
+        The distortion coefficients are defined for the entire 
+        polarizer field and the LTV values are set as with subarray 
+        data. This may also be true for other special filters.
+        This is a special case when the observation is considered 
+        a subarray in terms of detector field but a full frame in 
+        terms of distortion model.
+        To avoid shifting the distortion coefficients the LTV values 
+        are reset to 0.
+        """
+        if self.naxis1 == self.idcmodel.refpix['XSIZE'] and  \
+           self.naxis2 == self.idcmodel.refpix['YSIZE']:
+            self.ltv1 = 0.
+            self.ltv2 = 0.
+            
     def wcs2header(self, sip2hdr=False, idc2hdr=True):
         """
         Create a pyfits.Header object from WCS keywords.
