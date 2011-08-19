@@ -343,7 +343,8 @@ class HSTWCS(WCS):
                 val = self.__getattribute__(c)
             except AttributeError:
                 continue
-            cards.append(pyfits.Card(key=c, value=val))
+            if val:
+                cards.append(pyfits.Card(key=c, value=val))
         return cards
 
     def pc2cd(self):
