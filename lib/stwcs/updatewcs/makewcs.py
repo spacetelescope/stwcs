@@ -73,7 +73,7 @@ class MakeWCS(object):
         if ltv1 != 0. or ltv2 != 0.:
             offsetx = ext_wcs.wcs.crpix[0] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
             offsety = ext_wcs.wcs.crpix[1] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
-            ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy = ext_wcs.idcmodel.shift(ext_wcs.idcmodel.cx,ext_wcs.idcmodel.cy,offsetx,offsety)
+            ext_wcs.idcmodel.shift(offsetx,offsety)
         
         fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
         
@@ -142,7 +142,7 @@ class MakeWCS(object):
         if ref_wcs.ltv1 != 0. or ref_wcs.ltv2 != 0.:
             offsetx = ref_wcs.wcs.crpix[0] - ltv1 - ref_wcs.idcmodel.refpix['XREF']
             offsety = ref_wcs.wcs.crpix[1] - ltv2 - ref_wcs.idcmodel.refpix['YREF']
-            ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy = ref_wcs.idcmodel.shift(ref_wcs.idcmodel.cx,ref_wcs.idcmodel.cy,offsetx,offsety)
+            ref_wcs.idcmodel.shift(offsetx,offsety)
         
         rfx, rfy = ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy
         

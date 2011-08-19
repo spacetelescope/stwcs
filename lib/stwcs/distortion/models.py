@@ -63,7 +63,7 @@ class GeometryModel:
 
         self.pscale = 1.0
 
-    def shift(self,cx,cy,xs,ys):
+    def shift(self, xs, ys):
         """
         Shift reference position of coefficients to new center
         where (xs,ys) = old-reference-position - subarray/image center.
@@ -72,8 +72,8 @@ class GeometryModel:
         to the reference position of the chip.
         """
 
-        _cxs = np.zeros(shape=cx.shape,dtype=cx.dtype)
-        _cys = np.zeros(shape=cy.shape,dtype=cy.dtype)
+        _cxs = np.zeros(shape=self.cx.shape,dtype=self.cx.dtype)
+        _cys = np.zeros(shape=self.cy.shape,dtype=self.cy.dtype)
         _k = self.norder + 1
         # loop over each input coefficient
         for m in xrange(_k):
@@ -86,9 +86,10 @@ class GeometryModel:
                         _jlist = range(n, i - (m-n)+1)
                         # sum from n to i-(m-n)
                         for j in _jlist:
-                            _cxs[m,n] += cx[i,j]*combin(j,n)*combin((i-j),(m-n))*pow(xs,(j-n))*pow(ys,((i-j)-(m-n)))
-                            _cys[m,n] += cy[i,j]*combin(j,n)*combin((i-j),(m-n))*pow(xs,(j-n))*pow(ys,((i-j)-(m-n)))
-        return _cxs,_cys
+                            _cxs[m,n] += self.cx[i,j]*combin(j,n)*combin((i-j),(m-n))*pow(xs,(j-n))*pow(ys,((i-j)-(m-n)))
+                            _cys[m,n] += self.cy[i,j]*combin(j,n)*combin((i-j),(m-n))*pow(xs,(j-n))*pow(ys,((i-j)-(m-n)))
+        self.cx = _cxs.copy()
+        self.cy = _cys.copy()
 
     def convert(self, tmpname, xref=None,yref=None,delta=yes):
         """
