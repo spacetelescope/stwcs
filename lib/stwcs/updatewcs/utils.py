@@ -81,11 +81,12 @@ def construct_distname(fobj,wcsobj):
     if d2imname is None and wcsobj.det2im is not None:
         d2imname = 'UNKNOWN'
     
-    distname = idcname.strip()
+    sipname = '%s_%s'%(fobj[0].header.get('rootname',""),idcname)
+    distname = sipname.strip()
     if npolname != 'NONE' or d2imname != 'NONE':
         if d2imname != 'NONE':
             distname+= '-'+npolname.strip() + '-'+d2imname.strip()
         else:
             distname+='-'+npolname.strip()
 
-    return {'DISTNAME':distname,'SIPNAME':idcname}
+    return {'DISTNAME':distname,'SIPNAME':sipname}
