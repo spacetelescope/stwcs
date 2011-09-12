@@ -239,7 +239,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
         except KeyError:
             try:
                 hdrname = fobj[1].header['WCSNAME']
-            except KeyError as detail:
+            except KeyError, detail:
                 message = "Required keyword 'HDRNAME' not given"
                 module_logger.critical(message)
                 print message, detail
