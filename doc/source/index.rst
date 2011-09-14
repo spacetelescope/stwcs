@@ -21,6 +21,7 @@ Contents:
    
    wcsutil
    updatewcs
+   headerlet
    
 Headerlet Definition TSR
 ========================

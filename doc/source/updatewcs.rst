@@ -22,7 +22,7 @@ and is as follows:
 
 - Apply non-polynomial distortion
 
-Mathematicall the entire transformation from detector to sky 
+Mathematically the entire transformation from detector to sky 
 coordinates is described by:
 
 .. math:: (x',y') &= DET2IM(x,y) 
