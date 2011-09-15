@@ -248,7 +248,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
         wname = "".join(["WCSNAME",wcskey.upper()])
         try:
             wcsname = fobj[1].header[wname]
-        except KeyError as detail:
+        except KeyError, detail:
             message = "Missing required keyword 'WCSNAME'."
             module_logger.critical(message)
             print message, detail
