@@ -33,15 +33,15 @@ def setLogger(logger, level, mode='w'):
 
 def hdrnames(fobj):
     """
-    Returns a list of HDRNAME keywords from all HeaderletHDU 
-    extensions in a science file. 
-    
+    Returns a list of HDRNAME keywords from all HeaderletHDU
+    extensions in a science file.
+
     Parameters
     ----------
     fobj: string, pyfits.HDUList
     """
-    
-    
+
+
 def isWCSIdentical(scifile, file2, verbose=False):
     """
     Compares the WCS solution of 2 files.
@@ -141,20 +141,20 @@ def isWCSIdentical(scifile, file2, verbose=False):
     return result
 
 
-def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", wcsname=None, 
-                     sipname=None, npolfile=None, d2imfile=None, 
+def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", wcsname=None,
+                     sipname=None, npolfile=None, d2imfile=None,
                      verbose=100, logmode='w'):
     """
-    Create a headerlet from a WCS in a science file   
-    If both wcskey and wcsname are given they should match, if not 
+    Create a headerlet from a WCS in a science file
+    If both wcskey and wcsname are given they should match, if not
     raise an Exception
-    
+
     Parameters
     ----------
     fname: string or HDUList
            science file
     sciext: string or python list
-           Extension in which the science data is. The headerlet will be created 
+           Extension in which the science data is. The headerlet will be created
            from these extensions.
            If string - a valid EXTNAME is expected
            If list - a list of FITS extension numbers or extension tuples ('SCI', 1)
@@ -163,14 +163,14 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
     hdrname: string
            value of HDRNAME keyword
            Takes the value from the HDRNAME<wcskey> keyword, if not available from WCSNAME<wcskey>
-           It stops if neither is found in the science file and a value is not provided 
+           It stops if neither is found in the science file and a value is not provided
     destim: string or None
             name of file this headerlet can be applied to
             if None, use ROOTNAME keyword
     wcskey: char (A...Z) or " " or None
             a char representing an alternate WCS to be used for the headerlet
-            if " ", use the primary (default) 
-            if None use wcsname           
+            if " ", use the primary (default)
+            if None use wcsname
     wcsname: string or None
             if wcskey is None use wcsname specified here to choose an alternate WCS for the headerlet
     sipname: string or None (default)
@@ -198,12 +198,12 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
              python logging level
     logmode: 'w' or 'a'
              log file open mode
-            
+
     Returns
     -------
     Headerlet object
     """
-    
+
 
     if verbose:
         setLogger(module_logger, verbose, mode=logmode)
@@ -220,7 +220,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
     else:
         fobj = fname
         close_file = False
-    
+
     # get all required keywords
     if destim is None:
         try:
@@ -230,7 +230,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
             module_logger.info('DESTIM not provided')
             module_logger.info('Keyword "ROOTNAME" not found')
             module_logger.info('Using file name as DESTIM')
-            
+
     if not hdrname:
         # check if HDRNAME<wcskey> is in header
         hdrname = "".join(["HDRNAME",wcskey.upper()])
@@ -243,7 +243,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
                 message = "Required keyword 'HDRNAME' not given"
                 module_logger.critical(message)
                 print message, detail
-    
+
     if not wcsname:
         wname = "".join(["WCSNAME",wcskey.upper()])
         try:
@@ -252,7 +252,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
             message = "Missing required keyword 'WCSNAME'."
             module_logger.critical(message)
             print message, detail
-            
+
     if not sipname:
         try:
             sipname = fobj[0].header["SIPNAME"]
@@ -264,7 +264,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
                     sipname = 'UNKNOWN'
                 else:
                     sipname = 'NOMODEL'
-    
+
     if not npolfile:
         try:
             npolfile = fobj[0].header["NPOLFILE"]
@@ -273,7 +273,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
                 npolfile = 'UNKNOWN'
             else:
                 npolfile = 'NOMODEL'
-            
+
     if not d2imfile:
         try:
             d2imfile = fobj[0].header["D2IMFILE"]
@@ -282,9 +282,9 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
                 npolfile = 'UNKNOWN'
             else:
                 npolfile = 'NOMODEL'
-    
+
     distname = "_".join([sipname, npolfile, d2imfile])
-    
+
     # get the version of STWCS used to create the WCS of the science file.
     try:
         upwcsver = fobj[0].header.ascard['STWCSVER']
@@ -311,16 +311,16 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
         message = "Warning: 'O' is a reserved key for the original WCS"
         module_logger.info(message)
         print message
-        
+
     module_logger.debug("Data extensions form which to create headerlet:\n\t %s"
                  % (str(sciext)))
     hdul = pyfits.HDUList()
-    phdu = _createPrimaryHDU(destim, hdrname, distname, wcsname, 
+    phdu = _createPrimaryHDU(destim, hdrname, distname, wcsname,
                              sipname, npolfile, d2imfile, upwcsver, pywcsver)
     hdul.append(phdu)
-    
+
     if fu.isFits(fobj)[1] is not 'simple':
-        
+
         for e in sciext:
             hwcs = HSTWCS(fname, ext=e, wcskey=wcskey)
             h = hwcs.wcs2header(sip2hdr=True).ascard
@@ -332,7 +332,7 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
             else: val = e[1]
             h.insert(1, pyfits.Card(key='EXTVER', value=val,
                                     comment='Extension version'))
-            h.append(pyfits.Card("SCIEXT", str(e), 
+            h.append(pyfits.Card("SCIEXT", str(e),
                                  "Target science data extension"))
             fhdr = fobj[e].header.ascard
             if npolfile is not 'NOMODEL':
@@ -341,36 +341,36 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
                     h.append(cpdis[c - 1])
                     dp = fhdr['DP%s.*...' % c]
                     h.extend(dp)
-    
+
                     try:
                         h.append(fhdr['CPERROR%s' % c])
                     except KeyError:
                         pass
-    
+
                 try:
                     h.append(fhdr['NPOLEXT'])
                 except KeyError:
                     pass
-    
+
             if d2imfile is not 'NOMODEL':
                 try:
                     h.append(fhdr['D2IMEXT'])
                 except KeyError:
                     pass
-    
+
                 try:
                     h.append(fhdr['AXISCORR'])
                 except KeyError:
                     module_logger.exception("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
                                      "%s['SCI',%d]" % (fname, e))
                     raise
-    
+
                 try:
                     h.append(fhdr['D2IMERR'])
                 except KeyError:
                     h.append(pyfits.Card(key='DPERROR', value=0,
                                          comment='Maximum error of D2IMARR'))
-    
+
             hdu = pyfits.ImageHDU(header=pyfits.Header(h))
             hdul.append(hdu)
     numwdvarr = countExtn(fname, 'WCSDVARR')
@@ -381,12 +381,12 @@ def create_headerlet(fname, sciext=None, hdrname=None, destim=None, wcskey=" ", 
     for d in range(1, numd2im + 1):
         hdu = fobj[('D2IMARR', d)].copy()
         hdul.append(hdu)
-    
+
     if close_file:
         fobj.close()
     return Headerlet(hdul,verbose=verbose, logmode='a')
 
-def _createPrimaryHDU(destim, hdrname, distname, wcsname, 
+def _createPrimaryHDU(destim, hdrname, distname, wcsname,
                              sipname, npolfile, d2imfile, upwcsver, pywcsver):
     phdu = pyfits.PrimaryHDU()
     phdu.header.update('DESTIM', destim,
@@ -400,7 +400,7 @@ def _createPrimaryHDU(destim, hdrname, distname, wcsname,
     phdu.header.update('SIPNAME', sipname, comment='origin of SIP polynomial distortion model')
     phdu.header.update('NPOLFILE', npolfile, comment='origin of non-polynmial distortion model')
     phdu.header.update('D2IMFILE', d2imfile, comment='origin of detector to image correction')
-    
+
     phdu.header.ascard.append(upwcsver)
     phdu.header.ascard.append(pywcsver)
     return phdu
@@ -511,10 +511,10 @@ class Headerlet(pyfits.HDUList):
                 instances, or an HDUList instance
         mode: string, optional
                 Mode with which to open the given file object
-        verbose: int 
+        verbose: int
                 python logging level, higher numbers trigger more output
         logmode: 'w' or 'a'
-                for internal use only, indicates whether the log file 
+                for internal use only, indicates whether the log file
                 should be open in attach or write mode
         """
         self.verbose = verbose
@@ -545,26 +545,26 @@ class Headerlet(pyfits.HDUList):
     def apply_as_primary(fobj, attach=True, archive=True, force=False):
         """
         Copy this headerlet as a primary WCS to fobj
-        
+
         Parameters
         ----------
         fobj: string, HDUList
               science file to which the headerlet should be applied
         attach: boolean
-              flag indicating if the headerlet should be attached as a 
-              HeaderletHDU to fobj. If True checks that HDRNAME is unique 
+              flag indicating if the headerlet should be attached as a
+              HeaderletHDU to fobj. If True checks that HDRNAME is unique
               in the fobj and stops if not.
         archive: boolean (default is True)
-              When the distortion model in the headerlet is the same as the 
-              distortion model of the science file, this flag indicates if 
-              the primary WCS should be saved as an alternate and a headerlet 
+              When the distortion model in the headerlet is the same as the
+              distortion model of the science file, this flag indicates if
+              the primary WCS should be saved as an alternate and a headerlet
               extension.
-              When the distortion models do not match this flag indicates if 
-              the current primary and alternate WCSs should be archived as 
+              When the distortion models do not match this flag indicates if
+              the current primary and alternate WCSs should be archived as
               headerlet extensions and alternate WCS.
         force: boolean (default is False)
-              When the distortion models of the headerlet and the primary do 
-              not match, and archive is False this flag forces an update 
+              When the distortion models of the headerlet and the primary do
+              not match, and archive is False this flag forces an update
               of the primary
         """
         self.hverify()
@@ -861,9 +861,8 @@ class HeaderletHDU(pyfits.hdu.base.NonstandardExtHDU):
 
     @pyfits.util.lazyproperty
     def data(self):
-        size = self.size()
         self._file.seek(self._datLoc)
-        return self._file.readarray(size)
+        return self._file.readarray(self.size)
 
     @pyfits.util.lazyproperty
     def headerlet(self):
@@ -873,7 +872,7 @@ class HeaderletHDU(pyfits.hdu.base.NonstandardExtHDU):
         # won't work (at least for gzipped files) due to problems deep
         # within the gzip module that make it difficult to read gzip files
         # embedded in another file
-        s.write(self._file.read(self.size()))
+        s.write(self._file.read(self.size))
         s.seek(0)
         if self._header['COMPRESS']:
             mode = 'r:gz'
