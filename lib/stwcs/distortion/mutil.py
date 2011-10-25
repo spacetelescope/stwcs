@@ -424,7 +424,7 @@ def readWCSCoeffs(header):
     refpix['PSCALE'] = _scale
     refpix['V2REF'] = 0.
     refpix['V3REF'] = 0.
-    refpix['THETA'] = RADTODEG(_theta)
+    refpix['THETA'] = np.rad2deg(_theta)
     refpix['XDELTA'] = 0.0
     refpix['YDELTA'] = 0.0
     refpix['DEFAULT_SCALE'] = yes

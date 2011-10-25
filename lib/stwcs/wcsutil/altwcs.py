@@ -9,6 +9,7 @@ from stsci.tools import fileutil as fu
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
+altwcskw_extra = ['LATPOLE','LONPOLE','RESTWAV','RESTFRQ']
 
 # file operations
 def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
@@ -98,24 +99,23 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
                 choose another wcsname." %wcsname)
         else:
             wkey = next_wcskey(f[wcsext].header)
-            wname = wcsname
+            if wcsname.strip():
+                wname = wcsname
+            else:
+                # determine which WCSNAME needs to be replicated in archived WCS
+                wname = wcsnames(f[wcsext].header)[' ']
     else:
         wkey = wcskey
         wname = wcsname
     
     for e in ext:
-        try:
-            w = pywcs.WCS(f[e].header, fobj=f)
-        except:
-            # this should be revisited, should catch specific  errors
-            # KeyError - not a valid key, ValueError - not a valid extension, etc
+        hwcs = readAltWCS(f,e,wcskey=' ')
+        if hwcs is None:
             continue
-        hwcs = w.to_header()
+
         wcsnamekey = 'WCSNAME' + wkey
         f[e].header.update(key=wcsnamekey, value=wname)
-        
-        if w.wcs.has_cd():
-            pc2cd(hwcs)
+
         try:
             old_wcsname=hwcs.pop('WCSNAME')
         except:
@@ -276,17 +276,13 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
             closefobj(fname, fobj)
             raise KeyError("Could not find alternate WCS with key %s in this file" % wcskey)
         wkey = wcskey
-
+        
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        try:
-            w = pywcs.WCS(hdr, fobj, key=wkey)
-        except KeyError:
+        hwcs = readAltWCs(fobj,i,wcskey=wkey)
+        if hwcs is None:
             continue
-        hwcs = w.to_header()
-        if w.wcs.has_cd():
-            pc2cd(hwcs, key=wkey)
         for k in hwcs.keys():
             del hdr[k]
             #del hdr['ORIENT'+wkey]
@@ -323,17 +319,11 @@ def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None, toextnam=No
             toextension =toextnum
     else:
         toextension = fromextension
-        
-    try:
-        nwcs = pywcs.WCS(fobj[fromextension].header, fobj=fobj, key=ukey)
-    except KeyError:
-        print 'restoreWCS: Could not read WCS with key %s' %ukey 
-        print '            Skipping %s[%s]' % (fobj.filename(), str(fromextension))
-        return
-    hwcs = nwcs.to_header()
 
-    if nwcs.wcs.has_cd():
-        pc2cd(hwcs, key=ukey)
+    hwcs = readAltWCS(fobj,fromextension,wcskey=ukey,verbose=True)
+    if hwcs is None:
+        return
+
     for k in hwcs.keys():
         key = k[:-1]
         if key in fobj[toextension].header.keys():
@@ -367,6 +357,77 @@ def _getheader(fobj, ext):
         hdr = fobj[ext].header
     return hdr
         
+def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
+    """ Reads in alternate WCS from specified extension
+
+    Parameters
+    ----------
+    fobj: string, pyfits.HDUList
+        fits filename or pyfits file object
+        containing alternate/primary WCS(s) to be converted
+    wcskey: string [" ",A-Z]
+        alternate/primary WCS key that will be replaced by the new key
+    ext: int
+        extension number
+    
+    Returns
+    -------
+    hdr: pyfits.Header
+        header object with ONLY the keywords for specified alternate WCS
+    """    
+    if isinstance(fobj, str):
+        fobj = pyfits.open(fobj)
+
+    hdr = _getheader(fobj,ext)
+    try:
+        nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
+    except KeyError:
+        if verbose:
+            print 'readAltWCS: Could not read WCS with key %s' %wcskey 
+            print '            Skipping %s[%s]' % (fobj.filename(), str(ext))
+        return None
+    hwcs = nwcs.to_header()
+
+    if nwcs.wcs.has_cd():
+        hwcs = pc2cd(hwcs, key=wcskey)
+    
+    return hwcs
+    
+def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
+    """ 
+    Translates the alternate/primary WCS with one key to an alternate/primary WCS with 
+    another key.
+    
+    Parameters
+    ----------
+    fobj: string, pyfits.HDUList, or pyfits.Header
+        fits filename, pyfits file object or pyfits header 
+        containing alternate/primary WCS(s) to be converted
+    ext: int
+        extension number
+    oldkey: string [" ",A-Z]
+        alternate/primary WCS key that will be replaced by the new key
+    newkey: string [" ",A-Z]
+        new alternate/primary WCS key 
+    
+    Returns
+    -------
+    hdr: pyfits.Header
+        header object with keywords renamed from oldkey to newkey
+    """
+    hdr = readAltWCS(fobj,ext,wcskey=oldkey)
+    if hdr is None:
+        return None
+    # Converting WCS to new key
+    for card in hdr:
+        if oldkey == ' ' or oldkey == '':
+            cname = card
+        else:
+            cname = card.rstrip(oldkey)
+        hdr.rename_key(card,cname+newkey,force=True)
+
+    return hdr
+
 def wcskeys(fobj, ext=None):
     """
     Returns a list of characters used in the header for alternate
@@ -383,7 +444,12 @@ def wcskeys(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     names = hdr["WCSNAME*"]
-    return [key.split('WCSNAME')[1].upper() for key in names.keys()]
+    d = []
+    for key in names.keys():
+        wkey = key.replace('WCSNAME','')
+        if wkey == '': wkey = ' '
+        d.append(wkey)
+    return d
 
 def wcsnames(fobj, ext=None):
     """
@@ -403,7 +469,9 @@ def wcsnames(fobj, ext=None):
     names = hdr["WCSNAME*"]
     d = {}
     for c in names:
-        d[c.key[-1]] = c.value
+        wkey = c.key.replace('WCSNAME','')
+        if wkey == '': wkey = ' '
+        d[wkey] = c.value
     return d
 
 def available_wcskeys(fobj, ext=None):
@@ -425,7 +493,7 @@ def available_wcskeys(fobj, ext=None):
     all_keys = list(string.ascii_uppercase)
     used_keys = wcskeys(hdr)
     try:
-        used_keys.remove("")
+        used_keys.remove(" ")
     except ValueError:
         pass
     [all_keys.remove(key) for key in used_keys]

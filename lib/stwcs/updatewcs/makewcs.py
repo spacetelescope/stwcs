@@ -1,6 +1,5 @@
 from __future__ import division # confidence high
 
-from stwcs import DEGTORAD, RADTODEG
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 import utils
@@ -149,7 +148,7 @@ class MakeWCS(object):
             ref_wcs.idcmodel.shift(offsetx,offsety)
         
         rfx, rfy = ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy
-        
+
         ref_wcs.setPscale()
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
@@ -244,10 +243,10 @@ def troll(roll, dec, v2, v3):
         Generic Conversion at STScI.
     """
     # Convert all angles to radians
-    _roll = DEGTORAD(roll)
-    _dec = DEGTORAD(dec)
-    _v2 = DEGTORAD(v2 / 3600.)
-    _v3 = DEGTORAD(v3 / 3600.)
+    _roll = np.deg2rad(roll)
+    _dec = np.deg2rad(dec)
+    _v2 = np.deg2rad(v2 / 3600.)
+    _v3 = np.deg2rad(v3 / 3600.)
 
     # compute components
     sin_rho = sqrt((pow(sin(_v2),2)+pow(sin(_v3),2)) - (pow(sin(_v2),2)*pow(sin(_v3),2)))
@@ -260,7 +259,7 @@ def troll(roll, dec, v2, v3):
     B = atan2( sin(A)*cos(_dec), (sin(_dec)*sin_rho - cos(_dec)*cos(rho)*cos(A)))
 
     # compute final value
-    troll = RADTODEG(pi - (gamma+B))
+    troll = np.rad2deg(pi - (gamma+B))
 
     return troll
 

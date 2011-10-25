@@ -5,13 +5,16 @@ import numpy as np
 from stsci.tools import fileutil
 import stwcs
 from stwcs.wcsutil import altwcs
+from stwcs.updatewcs import utils
 import convertwcs
-
 
 DEFAULT_WCS_KEYS = ['CRVAL1','CRVAL2','CRPIX1','CRPIX2',
                     'CD1_1','CD1_2','CD2_1','CD2_2',
-                    'CTYPE1','CTYPE2']
-DEFAULT_PRI_KEYS = ['PA_V3']
+                    'CTYPE1','CTYPE2','ORIENTAT']
+DEFAULT_PRI_KEYS = ['HDRNAME','SIPNAME','NPOLNAME','D2IMNAME','DESCRIP']
+COL_FITSKW_DICT = {'RMS_RA':'pri.rms_ra','RMS_DEC':'pri.rms_dec',
+                'NMatch':'pri.nmatch','Catalog':'pri.catalog'}
+
 ###
 ### WCSEXT table related keyword archive functions
 ###
@@ -25,8 +28,7 @@ def init_wcscorr(input, force=False):
     This function will NOT overwrite any rows already present.
 
     This function works on all SCI extensions at one time.
-    """
-
+    """    
     # TODO: Create some sort of decorator or (for Python2.5) context for
     # opening a FITS file and closing it when done, if necessary
     if not isinstance(input, pyfits.HDUList):
@@ -41,21 +43,22 @@ def init_wcscorr(input, force=False):
     if len(fimg) == 1:
         return 
     
-    # Verify that a WCSCORR extension does not already exist...
-    for extn in fimg:
-        if extn.header.has_key('extname') and \
-           extn.header['extname'] == 'WCSCORR':
-            if not force:
-                return
-            else:
-                del fimg['WCSCORR']
+    enames = []
+    for e in fimg: enames.append(e.name)
+    if 'WCSCORR' in enames:
+        if not force:
+            return
+        else:
+            del fimg['wcscorr']
+    print 'Initializing new WCSCORR table for ',fimg.filename()
+    
     # define the primary columns of the WCSEXT table with initial rows for each
     # SCI extension for the original OPUS solution
     numsci = fileutil.countExtn(fimg)
 
     # create new table with more rows than needed initially to make it easier to
     # add new rows later
-    wcsext = create_wcscorr(numrows=numsci, padding=numsci * 4)
+    wcsext = create_wcscorr(descrip=True,numrows=numsci, padding=numsci * 4)
     # Assign the correct EXTNAME value to this table extension
     wcsext.header.update('TROWS', numsci * 2,
                          comment='Number of updated rows in table')
@@ -63,13 +66,20 @@ def init_wcscorr(input, force=False):
                          comment='Table with WCS Update history')
     wcsext.header.update('EXTVER', 1)
 
-    used_wcskeys = None
+    # define set of WCS keywords which need to be managed and copied to the table
+    used_wcskeys = altwcs.wcskeys(fimg['SCI', 1].header)
     wcs1 = stwcs.wcsutil.HSTWCS(fimg,ext=('SCI',1))
     idc2header = True
     if wcs1.idcscale is None:
         idc2header = False
     wcs_keywords = wcs1.wcs2header(idc2hdr=idc2header).keys()
 
+    prihdr = fimg[0].header
+    prihdr_keys = DEFAULT_PRI_KEYS
+    pri_funcs = {'SIPNAME':stwcs.updatewcs.utils.build_sipname,
+                 'NPOLNAME':stwcs.updatewcs.utils.build_npolname,
+                 'D2IMNAME':stwcs.updatewcs.utils.build_d2imname}
+    
     # Now copy original OPUS values into table
     for extver in xrange(1, numsci + 1):
         rowind = find_wcscorr_row(wcsext.data,
@@ -93,11 +103,6 @@ def init_wcscorr(input, force=False):
         wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver), wcskey=wkey)
         wcshdr = wcs.wcs2header(idc2hdr=idc2header)
 
-        for key in DEFAULT_PRI_KEYS:
-            prihdr_keys = []
-            if not hdr.has_key(key):
-                prihdr_keys.append(key)
-
         if wcsext.data.field('CRVAL1')[rownum] != 0:
             # If we find values for these keywords already in the table, do not
             # overwrite them again
@@ -108,7 +113,11 @@ def init_wcscorr(input, force=False):
                 wcsext.data.field(key)[rownum] = wcshdr[(key+wkey)[:8]]
         # Now get any keywords from PRIMARY header needed for WCS updates
         for key in prihdr_keys:
-            wcsext.data.field(key)[rownum] = fimg[0].header[key]
+            if key in prihdr:
+                val = prihdr[key]
+            else:
+                val = ''
+            wcsext.data.field(key)[rownum] = val
 
     # Now that we have archived the OPUS alternate WCS, remove it from the list
     # of used_wcskeys
@@ -119,9 +128,6 @@ def init_wcscorr(input, force=False):
     # TODO: Much of this appears to be redundant with update_wcscorr; consider
     # merging them...
     for uwkey in used_wcskeys:
-        if uwkey in [' ',''] :
-            break
-
         for extver in xrange(1, numsci + 1):
             hdr = fimg['SCI', extver].header
             wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver),
@@ -142,7 +148,6 @@ def init_wcscorr(input, force=False):
                 rownum = np.where(rowind)[0][0]
             else:
                 print 'No available rows found for updating. '
-            #print 'Archiving current WCS row number ',rownum,' in WCSCORR table for SCI,',extver
 
             # Update selection columns for this row with relevant values
             wcsext.data.field('WCS_ID')[rownum] = wcsid
@@ -155,7 +160,14 @@ def init_wcscorr(input, force=False):
                     wcsext.data.field(key)[rownum] = wcshdr[key + uwkey]
             # Now get any keywords from PRIMARY header needed for WCS updates
             for key in prihdr_keys:
-                wcsext.data.field(key)[rownum] = fimg[0].header[key]
+                if key in pri_funcs:
+                    val = pri_funcs[key](fimg)
+                else:
+                    if key in prihdr:
+                        val = prihdr[key]
+                    else:
+                        val = ''
+                wcsext.data.field(key)[rownum] = val
 
     # Append this table to the image FITS file
     fimg.append(wcsext)
@@ -181,8 +193,10 @@ def find_wcscorr_row(wcstab, selections):
     mask = None
     for i in selections:
         icol = wcstab.field(i)
-        if isinstance(icol,np.chararray): icol = icol.rstrip()
-        bmask = (icol == selections[i])
+        if isinstance(icol,np.chararray): icol = icol.rstrip()        
+        selecti = selections[i]
+        if isinstance(selecti,str): selecti = selecti.rstrip()
+        bmask = (icol == selecti)
         if mask is None:
             mask = bmask.copy()
         else:
@@ -210,7 +224,7 @@ def archive_wcs_file(image, wcs_id=None):
         fimg.close()
 
 
-def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
+def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     """
     Update WCSCORR table with a new row or rows for this extension header. It
     copies the current set of WCS keywords as a new row of the table based on
@@ -232,7 +246,14 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     wcs_id : str, optional
         The name of the WCS to add, as in the WCSNAMEa keyword.  If
         unspecified, all the WCSs in the specified extensions are added.
+    active: bool, optional
+        When True, indicates that the update should reflect an update of the
+        active WCS information, not just appending the WCS to the file as a
+        headerlet
     """
+    if not isinstance(dest,pyfits.HDUList):
+        dest = pyfits.open(dest,mode='update')
+    fname = dest.filename()
 
     if source is None:
         source = dest
@@ -241,51 +262,56 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
     if numext == 0:
         raise ValueError('No %s extensions found in the source HDU list.'
                          % extname)
+    # Initialize the WCSCORR table extension in dest if not already present
+    init_wcscorr(dest)
 
     # Current implementation assumes the same WCS keywords are in each
     # extension version; if this should not be assumed then this can be
     # modified...
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
     wcs_keys = filter(None, wcs_keys)
+    if ' ' not in wcs_keys: wcs_keys.append(' ') # Insure that primary WCS gets used
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = wcshdr.keys()
 
     if 'O' in wcs_keys:
         wcs_keys.remove('O') # 'O' is reserved for original OPUS WCS
-
-    # If we're looking for a particular wcs_id, test ahead of time that it's
-    # actually present in the specified extension headers
-    if wcs_id:
-        wcs_key = ''
-        for wcs_key in wcs_keys:
-            wcsname = source[(extname, 1)].header['WCSNAME' + wcs_key]
-            if wcs_id == wcsname:
-                break
-        else:
-            raise ValueError('A WCS with name %s was not found in the %s '
-                             'extension headers in the source HDU list.'
-                             % (wcs_id, extname))
-        wcs_keys = [wcs_key] # We're only interested in this one
-
+    
     # create new table for hdr and populate it with the newly updated values
-    new_table = create_wcscorr(numrows=0, padding=len(wcs_keys)*numext)
+    new_table = create_wcscorr(descrip=True,numrows=0, padding=len(wcs_keys)*numext)
     old_table = dest['WCSCORR']
-
+    prihdr = source[0].header
+    
+    # Get headerlet related keywords here
+    sipname = utils.build_sipname(source)
+    npolname = utils.build_npolname(source)
+    d2imname = utils.build_d2imname(source)
+    if 'hdrname' in prihdr:
+        hdrname = prihdr['hdrname']
+    else:
+        hdrname = ''
+    
     idx = -1
     for wcs_key in wcs_keys:
         for extver in range(1, numext + 1):
             extn = (extname, extver)
+            if 'SIPWCS' in extname and not active:
+                tab_extver = 0 # Since it has not been added to the SCI header yet
+            else:
+                tab_extver = extver
             hdr = source[extn].header
             wcsname = hdr['WCSNAME' + wcs_key]
-            selection = {'WCS_ID': wcsname, 'EXTVER': extver,
-                         'WCS_key': wcs_key}
-
+            selection = {'WCS_ID': wcsname, 'EXTVER': tab_extver,
+                         'SIPNAME':sipname, 'HDRNAME': hdrname,
+                         'NPOLNAME': npolname, 'D2IMNAME':d2imname
+                         }
+    
             # Ensure that an entry for this WCS is not already in the dest
             # table; if so just skip it
             rowind = find_wcscorr_row(old_table.data, selection)
             if np.any(rowind):
                 continue
-
+            
             idx += 1
 
             wcs = stwcs.wcsutil.HSTWCS(source, ext=extn, wcskey=wcs_key)
@@ -293,16 +319,29 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None):
 
             # Update selection column values
             for key, val in selection.iteritems():
-                new_table.data.field(key)[idx] = val
+                if key in new_table.data.names:
+                    new_table.data.field(key)[idx] = val            
 
             for key in wcs_keywords:
                 if key in new_table.data.names:
                     new_table.data.field(key)[idx] = wcshdr[key + wcs_key]
 
-            prihdr = source[0].header
             for key in DEFAULT_PRI_KEYS:
-                if key in new_table.data.names and prihdr.has_key(key):
+                if key in new_table.data.names and key in prihdr:
                     new_table.data.field(key)[idx] = prihdr[key]
+            # Now look for additional, non-WCS-keyword table column data 
+            for key in COL_FITSKW_DICT:
+                fitskw = COL_FITSKW_DICT[key]
+                # Interpret any 'pri.hdrname' or 
+                # 'sci.crpix1' formatted keyword names
+                if '.' in fitskw: 
+                    srchdr,fitskw = fitskw.split('.')
+                    if 'pri' in srchdr.lower(): srchdr = prihdr
+                    else: srchdr = wcshdr
+                else:
+                    srchdr = wcshdr
+                if key in srchdr:
+                    new_table.data.field(key)[idx] = srchdr[fitskw]
 
     # If idx was never incremented, no rows were added, so there's nothing else
     # to do...
@@ -411,16 +450,15 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                      'array': np.array([0]*trows,dtype=np.int32)}
 
     # If more columns are needed, simply add their definitions to this list
-    col_names = [('CRVAL1',   def_float_col), ('CRVAL2',    def_float_col),
+    col_names = [('HDRNAME',  def_str24_col), ('SIPNAME',   def_str24_col),
+                 ('NPOLNAME', def_str24_col), ('D2IMNAME',  def_str24_col),
+                 ('CRVAL1',   def_float_col), ('CRVAL2',    def_float_col),
                  ('CRPIX1',   def_float_col), ('CRPIX2',    def_float_col),
                  ('CD1_1',    def_float_col), ('CD1_2',     def_float_col),
                  ('CD2_1',    def_float_col), ('CD2_2',     def_float_col),
                  ('CTYPE1',   def_str24_col), ('CTYPE2',    def_str24_col),
                  ('ORIENTAT', def_float_col), ('PA_V3',     def_float_col),
-                 ('Delta_RA', def_float_col), ('Delta_Dec', def_float_col),
                  ('RMS_RA',   def_float_col), ('RMS_Dec',   def_float_col),
-                 ('Delta_Orientat', def_float_col),
-                 ('Delta_Scale', def_float1_col),
                  ('NMatch',   def_int32_col), ('Catalog',   def_str40_col)]
 
     # Define selector columns
@@ -443,7 +481,7 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
 
     if descrip:
         col_list.append(
-            pyfits.Column(name='Descrip', format='128A',
+            pyfits.Column(name='DESCRIP', format='128A',
                           array=np.array(
                               ['Original WCS computed by OPUS'] * numrows,
                               dtype='S128')))
@@ -457,3 +495,117 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
 
     return newtab
 
+def delete_wcscorr_row(wcstab,selections=None,rows=None):
+    """
+    Sets all values in a specified row or set of rows to default values
+    
+    This function will essentially erase the specified row from the table 
+    without actually removing the row from the table. This avoids the problems 
+    with trying to resize the number of rows in the table while preserving the 
+    ability to update the table with new rows again without resizing the table.
+    
+    Parameters
+    ----------
+    wcstab: object
+        PyFITS binTable object for WCSCORR table
+    selections: dict
+        Dictionary of wcscorr column names and values to be used to select
+        the row or set of rows to erase
+    rows: int, list
+        If specified, will specify what rows from the table to erase regardless
+        of the value of 'selections'
+    """
+    
+    if selections is None and rows is None:
+        print 'ERROR: Some row selection information must be provided!'
+        print '       Either a row numbers or "selections" must be provided.'
+        raise ValueError
+    
+    delete_rows = None
+    if rows is None:
+        if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
+            delete_rows = None
+            print 'WARNING: OPUS WCS information can not be deleted from WCSCORR table.'
+            print '         This row will not be deleted!'
+        else:
+            rowind = find_wcscorr_row(wcstab, selections=selections)
+            delete_rows = np.where(rowind)[0].tolist()
+    else:
+        if not isinstance(rows,list):
+            rows = [rows]
+        delete_rows = rows
+        
+    # Insure that rows pointing to OPUS WCS do not get deleted, even by accident
+    for row in delete_rows:
+        if wcstab['WCS_key'][row] == 'O' or wcstab['WCS_ID'][row] == 'OPUS':
+            del delete_rows[delete_rows.index(row)]
+
+    if delete_rows is None:
+        return
+
+    # identify next empty row
+    rowind = find_wcscorr_row(wcstab, selections={'wcs_id': ''})
+    last_blank_row = np.where(rowind)[0][-1]
+    
+    # copy values from blank row into user-specified rows
+    for colname in wcstab.names:
+        wcstab[colname][delete_rows] = wcstab[colname][last_blank_row]
+
+def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
+    """
+    Update the values in 'column' with 'values' for selected rows
+
+    Parameters
+    ----------
+    wcstab: object
+        PyFITS binTable object for WCSCORR table
+    column: string
+        Name of table column with values that need to be updated
+    values: string, int, or list
+        Value or set of values to copy into the selected rows for the column
+    selections: dict
+        Dictionary of wcscorr column names and values to be used to select
+        the row or set of rows to erase
+    rows: int, list
+        If specified, will specify what rows from the table to erase regardless
+        of the value of 'selections'
+    """
+    if selections is None and rows is None:
+        print 'ERROR: Some row selection information must be provided!'
+        print '       Either a row numbers or "selections" must be provided.'
+        raise ValueError
+    
+    if not isinstance(values, list):
+        values = [values]
+
+    update_rows = None
+    if rows is None:
+        if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
+            update_rows = None
+            print 'WARNING: OPUS WCS information can not be deleted from WCSCORR table.'
+            print '         This row will not be deleted!'
+        else:
+            rowind = find_wcscorr_row(wcstab, selections=selections)
+            update_rows = np.where(rowind)[0].tolist()
+    else:
+        if not isinstance(rows,list):
+            rows = [rows]
+        update_rows = rows
+
+    if update_rows is None:
+        return
+
+    # Expand single input value to apply to all selected rows
+    if len(values) > 1 and len(values) < len(update_rows):
+        print 'ERROR: Number of new values',len(values)
+        print '       does not match number of rows',len(update_rows),' to be updated!'
+        print '       Please enter either 1 value or the same number of values'
+        print '       as there are rows to be updated.'
+        print '    Table will not be updated...'
+        raise ValueError
+    
+    if len(values) == 1 and len(values) < len(update_rows):
+        values = values * len(update_rows)
+    # copy values from blank row into user-specified rows
+    for row in update_rows:
+        wcstab[column][row] = values[row]

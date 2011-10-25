@@ -8,7 +8,6 @@ from stwcs.distortion import models, coeff_converter
 import altwcs
 import numpy as np
 from stsci.tools import fileutil
-from stsci.tools.fileutil import DEGTORAD, RADTODEG
 
 import getinput
 import mappings
@@ -142,7 +141,7 @@ class HSTWCS(WCS):
         try:
             cd12 = self.wcs.cd[0][1]
             cd22 = self.wcs.cd[1][1]
-            self.orientat = RADTODEG(np.arctan2(cd12,cd22))
+            self.orientat = np.rad2deg(np.arctan2(cd12,cd22))
         except AttributeError:
             print "This file has a PC matrix. You may want to convert it \n \
             to a CD matrix, if reasonable, by running pc2.cd() method.\n \

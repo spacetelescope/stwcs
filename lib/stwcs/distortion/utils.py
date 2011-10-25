@@ -72,15 +72,15 @@ def computeFootprintCenter(edges):
         
         This algorithm should be more robust against discontinuities at the poles. 
     """
-    alpha = fileutil.DEGTORAD(edges[:,0])
-    dec = fileutil.DEGTORAD(edges[:,1])
+    alpha = np.deg2rad(edges[:,0])
+    dec = np.deg2rad(edges[:,1])
     
     xmean = np.mean(np.cos(dec)*np.cos(alpha))
     ymean = np.mean(np.cos(dec)*np.sin(alpha))
     zmean = np.mean(np.sin(dec))
     
-    crval1 = fileutil.RADTODEG(np.arctan2(ymean,xmean))%360.0
-    crval2 = fileutil.RADTODEG(np.arctan2(zmean,np.sqrt(xmean*xmean+ymean*ymean)))
+    crval1 = np.rad2deg(np.arctan2(ymean,xmean))%360.0
+    crval2 = np.rad2deg(np.arctan2(zmean,np.sqrt(xmean*xmean+ymean*ymean)))
     
     return crval1,crval2
 

@@ -100,6 +100,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             cleanWCS(f)
 
         makecorr(f, acorr)
+        
     return files
 
 def makecorr(fname, allowed_corr):
@@ -359,4 +360,3 @@ def getCorrections(instrument):
 
     print "The following corrections will be performed for instrument %s\n" % instrument
     for c in acorr: print c,': ' ,  apply_corrections.cnames[c]
-

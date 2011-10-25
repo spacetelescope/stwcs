@@ -15,16 +15,14 @@ descriptions in the headers.
 
 """
 from __future__ import division # confidence high
+import os
 
 import distortion
 import pywcs
 from stsci.tools import fileutil
+from stsci.tools import teal
 
 __docformat__ = 'restructuredtext'
-
-DEGTORAD = fileutil.DEGTORAD
-RADTODEG = fileutil.RADTODEG
-
 
 if False :
     __version__ = ''
@@ -37,7 +35,7 @@ if False :
     except:
         pass
 else :
-    __version__ = '0.9'
+    __version__ = '0.9.1'
 
 
 try:
@@ -45,3 +43,10 @@ try:
                                __setup_datetime__)
 except ImportError:
     __svn_version__ = 'Unable to determine SVN revision'
+
+try:
+    import gui
+    teal.print_tasknames(gui.__name__, os.path.dirname(gui.__file__))
+    print '\n'
+except:
+    print 'No TEAL-based tasks available for this package!'

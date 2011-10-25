@@ -57,7 +57,7 @@ def extract_rootname(kwvalue):
     else:
         rootname = fname
         
-    return rootname
+    return rootname.strip()
 
 def construct_distname(fobj,wcsobj):
     """ 
@@ -73,15 +73,24 @@ def construct_distname(fobj,wcsobj):
     if idcname is None and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
         
-    npolname = extract_rootname(fobj[0].header.get('NPOLFILE', "NONE"))
+    npolname = build_npolname(fobj)
     if npolname is None and wcsobj.cpdis1 is not None:
         npolname = 'UNKNOWN'
     
-    d2imname = extract_rootname(fobj[0].header.get('D2IMFILE', "NONE"))
+    d2imname = build_d2imname(fobj)
     if d2imname is None and wcsobj.det2im is not None:
         d2imname = 'UNKNOWN'
     
-    sipname = '%s_%s'%(fobj[0].header.get('rootname',""),idcname)
+    sipname = build_sipname(fobj)
+
+    distname = build_distname(sipname,npolname,d2imname)
+    return {'DISTNAME':distname,'SIPNAME':sipname}
+
+def build_distname(sipname,npolname,d2imname):
+    """ 
+    Core function to build DISTNAME keyword value without the HSTWCS input.
+    """
+
     distname = sipname.strip()
     if npolname != 'NONE' or d2imname != 'NONE':
         if d2imname != 'NONE':
@@ -89,4 +98,38 @@ def construct_distname(fobj,wcsobj):
         else:
             distname+='-'+npolname.strip()
 
-    return {'DISTNAME':distname,'SIPNAME':sipname}
+    return distname
+
+def build_sipname(fobj):
+    try:
+        sipname = fobj[0].header["SIPNAME"]
+    except KeyError:
+        try:
+            sipname = fobj[0].header['rootname']+'_'+ \
+                    extract_rootname(fobj[0].header["IDCTAB"])
+        except KeyError:
+            if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
+                sipname = 'UNKNOWN'
+            else:
+                sipname = 'NOMODEL'
+    return sipname
+
+def build_npolname(fobj):
+    try:
+        npolfile = extract_rootname(fobj[0].header["NPOLFILE"])
+    except KeyError:
+        if countExtn(f, 'WCSDVARR'):
+            npolfile = 'UNKNOWN'
+        else:
+            npolfile = 'NOMODEL'
+    return npolfile
+
+def build_d2imname(fobj):
+    try:
+        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"])
+    except KeyError:
+        if countExtn(f, 'D2IMARR'):
+            d2imfile = 'UNKNOWN'
+        else:
+            d2imfile = 'NOMODEL'
+    return d2imfile
