@@ -76,7 +76,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
         raise KeyError("Either wcskey or wcsname should be specified")
     
     wcsext = ext[0]
-    if wcskey in wcskeys(f[wcsext].header) and not reusekey:
+    if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
         raise KeyError("Wcskey %s is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \

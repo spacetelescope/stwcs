@@ -751,7 +751,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     hdrletobj.writeto(output)
     print 'Create Headerlet file: ',output
     
-def create_headerlet(filename, sciext=None, hdrname=None, destim=None, wcskey=" ", wcsname=None, 
+def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey=" ", wcsname=None, 
                      sipname=None, npolfile=None, d2imfile=None, 
                      author=None, descrip=None, history=None,
                      rms_ra=None, rms_dec = None, nmatch=None, catalog=None, 
@@ -767,13 +767,14 @@ def create_headerlet(filename, sciext=None, hdrname=None, destim=None, wcskey=" 
            Either a filename or PyFITS HDUList object for the input science file
             An input filename (str) will be expanded as necessary to interpret 
             any environmental variables included in the filename.
-    sciext: string or python list
+    sciext: string or python list (default: 'SCI')
            Extension in which the science data is. The headerlet will be created 
            from these extensions.
            If string - a valid EXTNAME is expected
+           If int - specifies an extension with a valid WCS, such as 0 for a 
+                simple FITS file
            If list - a list of FITS extension numbers or extension tuples ('SCI', 1)
            is expected.
-           If None, loops over all extensions in the file, including the primary [BROKEN-22Sept2011]
     hdrname: string
            value of HDRNAME keyword
            Takes the value from the HDRNAME<wcskey> keyword, if not available from WCSNAME<wcskey>
@@ -898,15 +899,17 @@ def create_headerlet(filename, sciext=None, hdrname=None, destim=None, wcskey=" 
         pywcsver = pyfits.Card("PYWCSVER", " ",
                                "Version of PYWCS used to update the WCS")
 
-    if not sciext:
-        sciext = range(len(fobj))
+    if isinstance(sciext,int):
+        sciext = [sciext] # allow for specification of simple FITS header
     elif isinstance(sciext, str):
         numsciext = countExtn(fobj, sciext)
         sciext = [(sciext, i) for i in range(1, numsciext+1)]
     elif isinstance(sciext, list):
         pass
     else:
-        raise ValueError("Expected sciext to be a list of FITS extensions with science data or a string of valid EXTNAME")
+        errstr = "Expected sciext to be a list of FITS extensions with science data\n"+\
+              "    a valid EXTNAME string, or an integer."
+        raise ValueError(errstr)
 
     if wcskey is 'O':
         message = "Warning: 'O' is a reserved key for the original WCS. Quitting..."
@@ -930,7 +933,7 @@ def create_headerlet(filename, sciext=None, hdrname=None, destim=None, wcskey=" 
     orient_comment = "positions angle of image y axis (deg. e of n)"
     
     if fu.isFits(fobj)[1] is not 'simple':
-        
+
         for e in sciext:
             wkeys = altwcs.wcskeys(fname,ext=e)
             if wcskey != ' ' and wkeys > 0:
@@ -941,23 +944,30 @@ def create_headerlet(filename, sciext=None, hdrname=None, destim=None, wcskey=" 
     
             # This reads in full model: alternate WCS keywords plus SIP
             hwcs = HSTWCS(fname,ext=e,wcskey=' ') 
+            if hwcs.wcs.is_unity():
+                # This extension does not contain a valid WCS, so 
+                #  skip on to the next
+                continue
             h = hwcs.wcs2header(sip2hdr=True)
-            h.update('ORIENTAT',hwcs.orientat, comment=orient_comment)
+            if hasattr(hwcs,'orientat'):
+                h.update('ORIENTAT',hwcs.orientat, comment=orient_comment)
+
             if wcskey != ' ':
                 # Now read in specified linear WCS terms from alternate WCS
                 try:
                     althdr = altwcs.convertAltWCS(fname,e,oldkey=wcskey,newkey=" ")
                     althdrwcs = HSTWCS(fname,e,wcskey=wcskey)
-                    alt_orient = althdrwcs.orientat
                 except KeyError:
                     continue # Skip over any extension which does not have a WCS
                 althdr = althdr.ascard
                 # Update full WCS with values from alternate WCS 
                 for card in althdr:
                     h.update(card.key,card.value)
-                h.update('ORIENTAT',alt_orientat, comment=orient_comment)
+                if hasattr(althdrwcs,'orientat'):
+                    h.update('ORIENTAT',althdrwcs.orientat, comment=orient_comment)
             h = h.ascard
-            h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor,
+            if hasattr(hwcs,'vafactor'):
+                h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor,
                                  comment='Velocity aberration plate scale factor'))
             h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
                                     comment='Extension name'))
