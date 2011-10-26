@@ -931,7 +931,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                              author, descrip, history)
     hdul.append(phdu)
     orient_comment = "positions angle of image y axis (deg. e of n)"
-    
+    wcsdvarr_extns = []
     if fu.isFits(fobj)[1] is not 'simple':
 
         for e in sciext:
@@ -986,9 +986,14 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                 cpdis = fhdr['CPDIS*...']
                 for c in range(1, len(cpdis) + 1):
                     h.append(cpdis[c - 1])
-                    dp = fhdr['DP%s*' % c]
+                    dp = fhdr['DP%s*...' % c]
+                    for kw in dp:
+                        dpval = kw.value
+                        if 'EXTVER' in kw.key:
+                            wcsdvarr_extns.append(dpval)
+                            break
+
                     h.extend(dp)
-    
                     try:
                         h.append(fhdr['CPERROR%s' % c])
                     except KeyError:
@@ -1022,11 +1027,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
     
             hdu = pyfits.ImageHDU(header=pyfits.Header(h))
             hdul.append(hdu)
-    numwdvarr = countExtn(fname, 'WCSDVARR')
-    numd2im = countExtn(fname, 'D2IMARR')
-    for w in range(1, numwdvarr + 1):
+
+    for w in wcsdvarr_extns:
         hdu = fobj[('WCSDVARR', w)].copy()
         hdul.append(hdu)
+    numd2im = countExtn(fname, 'D2IMARR')
     for d in range(1, numd2im + 1):
         hdu = fobj[('D2IMARR', d)].copy()
         hdul.append(hdu)
