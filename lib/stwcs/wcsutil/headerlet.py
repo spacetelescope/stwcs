@@ -257,8 +257,12 @@ def isWCSIdentical(scifile, file2, verbose=False):
 
     Parameters
     ----------
-    scifile: file1
-    file2: file2
+    scifile: string
+             name of file1 (usually science file)
+             IRAF style extension syntax is accepted as well
+             for example scifile[1] or scifile[sci,1]
+    file2:   string
+             name of second file (for example headerlet)
     verbose: False or a python logging level
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
@@ -278,15 +282,30 @@ def isWCSIdentical(scifile, file2, verbose=False):
 
     """
     initLogging('isWCSIdentical', level=100, verbose=False)
-
+    fname, extname = fu.parseFilename(scifile)
+    scifile = fname
+    if extname is not None:
+        sciext = fu.parseExtn(extname)
+    else:
+        sciext = None
+    fname, extname = fu.parseFilename(file2)
+    file2 = fname
+    if extname is not None:
+        fext = fu.parseExtn(extname)
+    else:
+        fext = None    
     result = True
-    numsci1 = max(countExtn(scifile), countExtn(scifile, 'SIPWCS'))
-    numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
-
-    if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
-        module_logger.info("Number of SCI and SIPWCS extensions do not match.")
-        result = False
-
+    if sciext is None and fext is None:
+        numsci1 = max(countExtn(scifile), countExtn(scifile, 'SIPWCS'))
+        numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
+    
+        if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
+            module_logger.info("Number of SCI and SIPWCS extensions do not match.")
+            result = False
+    else:
+        numsci1 = None
+        numsci2 = None
+        
     if getRootname(scifile) != getRootname(file2):
         module_logger.info('Rootnames do not match.')
         result = False
@@ -299,9 +318,16 @@ def isWCSIdentical(scifile, file2, verbose=False):
     except KeyError:
         extname2 = 'SIPWCS'
 
-    for i in range(1, numsci1 + 1):
-        w1 = HSTWCS(scifile, ext=(extname1, i))
-        w2 = HSTWCS(file2, ext=(extname2, i))
+    if numsci1 and numsci2:
+        sciextlist = [(extname1, i) for i in range(1, numsci1+1)]
+        fextlist = [(extname2, i) for i in range(1, numsci2+1)]
+    else:
+        sciextlist = [sciext]
+        fextlist = [fext]
+        
+    for i, j in zip(sciextlist, fextlist):
+        w1 = HSTWCS(scifile, ext=i)
+        w2 = HSTWCS(file2, ext=j)
         if not np.allclose(w1.wcs.crval, w2.wcs.crval, rtol=1e-7) or \
         not np.allclose(w1.wcs.crpix, w2.wcs.crpix, rtol=1e-7)  or \
         not np.allclose(w1.wcs.cd, w2.wcs.cd, rtol=1e-7) or \
