@@ -917,9 +917,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                 hdrname = fobj[wcsext].header[wcsnamekw]
                 print 'Using default value for HDRNAME of "%s"'%(hdrname),
                 print ' derived from %s.'%(wcsnamekw)
-        else:
+            else:
                 message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
-            module_logger.critical(message)
+                module_logger.critical(message)
                 print message
                 raise KeyError,message
             
