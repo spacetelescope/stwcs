@@ -1,6 +1,8 @@
 from __future__ import division # confidence high
 import os
 
+from stsci.tools import fileutil
+
 def diff_angles(a,b):
     """ 
     Perform angle subtraction a-b taking into account
@@ -118,7 +120,7 @@ def build_npolname(fobj):
     try:
         npolfile = extract_rootname(fobj[0].header["NPOLFILE"])
     except KeyError:
-        if countExtn(f, 'WCSDVARR'):
+        if fileutil.countExtn(f, 'WCSDVARR'):
             npolfile = 'UNKNOWN'
         else:
             npolfile = 'NOMODEL'
@@ -128,7 +130,7 @@ def build_d2imname(fobj):
     try:
         d2imfile = extract_rootname(fobj[0].header["D2IMFILE"])
     except KeyError:
-        if countExtn(f, 'D2IMARR'):
+        if fileutil.countExtn(f, 'D2IMARR'):
             d2imfile = 'UNKNOWN'
         else:
             d2imfile = 'NOMODEL'
