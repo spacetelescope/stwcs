@@ -870,14 +870,38 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             'D2IMFILE': True}
     fobj,fname,close_file = parseFilename(filename)
 
+    # Define extension to evaluate for verification of input parameters
+    wcsext = 1
+    if fu.isFits(fname)[1] == 'simple':
+        wcsext = 0
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY': wcskey = ' '
+    wcsnamekw = "".join(["WCSNAME",wcskey.upper()]).rstrip()
     
-    # get all required keywords
+    if not wcsname:
+        # User did not specify a value for 'wcsname'
+        if wcsnamekw in fobj[wcsext].header:
+            wcsname = fobj[wcsext].header[wcsnamekw]
+        else:
+            message = "WCS in header Missing required keyword '%s'."%(wcsnamekw)
+            module_logger.critical(message)
+            raise KeyError,message
+    else:
+        # Verify that 'wcsname' and 'wcskey' values specified by user reference
+        # the same WCS
+        wname = fobj[wcsext].header[wcsnamekw]
+        if wcsname != wname:
+            message = "Inconsistent values for 'wcskey' and 'wcsname' specified!\n"
+            message += "    'wcskey' = %s and 'wcsname' = %s. \n"%(wcskey,wcsname)
+            message += "Actual value of %s found to be %s. \n"%(wcsnamekw,wname)
+            print message
+            raise KeyError,"Inconsistent values for 'wcskey' and 'wcsname' parameters"
+
+    # get remaining required keywords
     if destim is None:
-        try:
+        if 'ROOTNAME' in fobj[0].header:
             destim = fobj[0].header['ROOTNAME']
-        except KeyError:
+        else:
             destim = fname
             module_logger.info('DESTIM not provided')
             module_logger.info('Keyword "ROOTNAME" not found')
@@ -885,28 +909,19 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             
     if not hdrname:
         # check if HDRNAME<wcskey> is in header
-        hdrname = "".join(["HDRNAME",wcskey.upper()])
-        try:
-            hdrname = fobj[1].header['HDRNAME']
-        except KeyError:
-            try:
-                wname = ('WCSNAME'+wcskey).rstrip()
-                hdrname = fobj[1].header['WCSNAME'+wcskey]
-                print 'Using default value for HDRNAME of "%s"'%(hdrname),
-                print ' derived from %s.'%(wname)
-            except KeyError, detail:
-                message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
-                module_logger.critical(message)
-                print message, detail
-    
-    if not wcsname:
-        wname = "".join(["WCSNAME",wcskey.upper()])
-        if wname in fobj[1].header:
-            wcsname = fobj[1].header[wname]
+        hdrnamekw = "".join(["HDRNAME",wcskey.upper()]).rstrip()
+        if hdrnamekw in fobj[wcsext].header:
+            hdrname = fobj[wcsext].header[hdrnamekw]
         else:
-            message = "Missing required keyword 'WCSNAME'."
+            if wcsnamekw in fobj[wcsext].header:
+                hdrname = fobj[wcsext].header[wcsnamekw]
+                print 'Using default value for HDRNAME of "%s"'%(hdrname),
+                print ' derived from %s.'%(wcsnamekw)
+        else:
+                message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
             module_logger.critical(message)
-            print message, detail
+                print message
+                raise KeyError,message
             
     if not sipname:
         sipname = utils.build_sipname(fobj)
