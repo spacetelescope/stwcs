@@ -936,9 +936,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
     
     # get the version of STWCS used to create the WCS of the science file.
     try:
-        upwcsver = fobj[0].header.ascard['STWCSVER']
+        upwcsver = fobj[0].header.ascard['UPWCSVER']
     except KeyError:
-        upwcsver = pyfits.Card("STWCSVER", " ",
+        upwcsver = pyfits.Card("UPWCSVER", " ",
                                "Version of STWCS used to update the WCS")
     try:
         pywcsver = fobj[0].header.ascard['PYWCSVER']
@@ -2131,7 +2131,7 @@ class Headerlet(pyfits.HDUList):
         header = self[0].header
         assert('DESTIM' in header and header['DESTIM'].strip())
         assert('HDRNAME' in header and header['HDRNAME'].strip())
-        assert('STWCSVER' in header)
+        assert('UPWCSVER' in header)
        
     def verify_hdrname(self,dest):
         """
