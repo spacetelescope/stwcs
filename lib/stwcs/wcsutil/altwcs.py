@@ -12,7 +12,7 @@ altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
 altwcskw_extra = ['LATPOLE','LONPOLE','RESTWAV','RESTFRQ']
 
 # file operations
-def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
+def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     """
     Copy the primary WCS to the header as an alternate WCS
     with wcskey and name WCSNAME. It loops over all extensions in 'ext'
@@ -21,9 +21,10 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
     ----------
     fname:  string or pyfits.HDUList
             a file name or a file object
-    ext:    an int, a tuple, a python list of integers or a python list of tuples (e.g.('sci',1))
+    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
             fits extensions to work with
-            if None, work with a list of all extensions
+            If a string is provided, it should specify the EXTNAME of extensions
+            with WCSs to be archived
     wcskey: string "A"-"Z" or " "
             if " ": get next available key if wcsname is also " " or try
             to get a key from WCSNAME value
@@ -60,18 +61,9 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
         closefobj(fname, f)
         raise ValueError("Input parameters problem")
 
-    if not ext:
-        simplefits = fu.isFits(f)[1] is 'simple'
-        if simplefits:    
-            ext = range(len(f))
-        else:
-            # Pywcs will create a default WCS if one is not present
-            # this avoids archiving a default WCS in the primary header 
-            # if the file is in MEF format
-            ext = range(1, len(f))
-    elif isinstance(ext, int) or isinstance(ext, tuple):
-        ext = [ext]
-    
+    # Interpret input 'ext' value to get list of extensions to process
+    ext = _buildExtlist(f, ext)
+        
     if not wcskey and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
     
@@ -126,7 +118,7 @@ def archiveWCS(fname, ext=None, wcskey=" ", wcsname=" ", reusekey=False):
             f[e].header.update(key=key, value=hwcs[k])
     closefobj(fname, f)
 
-def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
+def restoreWCS(f, ext, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     """
     Copy a WCS with key "WCSKEY" to the primary WCS
 
@@ -144,9 +136,10 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     toext:   string or python list
              extname or a list of extnames to which the WCS will be copied as 
              primary, for example ['SCI', 'ERR', 'DQ']
-    ext:     an int, a tuple, a python list of integers or a python list
-             of tuples (e.g.('sci',1))
-             fits extensions to work with
+    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
+            fits extensions to work with
+            If a string is provided, it should specify the EXTNAME of extensions
+            with WCSs to be archived
     wcskey:  a charater
              "A"-"Z" - Used for one of 26 alternate WCS definitions.
              or " " - find a key from WCSNAMe value
@@ -167,8 +160,9 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
         closefobj(f, fobj)
         raise ValueError("Input parameters problem")
 
-    if isinstance(ext, int) or isinstance(ext, tuple):
-        ext = [ext]
+    # Interpret input 'ext' value to get list of extensions to process
+    ext = _buildExtlist(fobj, ext)
+
     if isinstance(toext, str):
         toext = [toext]
 
@@ -222,7 +216,7 @@ def restoreWCS(f, ext=None, fromext=None, toext=None, wcskey=" ", wcsname=" "):
         #fobj.writeto(name)
         closefobj(f, fobj)
 
-def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
+def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     """
     Delete an alternate WCS defined with wcskey.
     If wcskey is " " try to get a key from WCSNAME.
@@ -230,8 +224,10 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
     Parameters
     ----------
     fname:   sting or a pyfits.HDUList object
-    ext:     an int, a tuple, a python list of integers or a python list of tuples (e.g.('sci',1))
-             fits extensions to work with
+    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
+            fits extensions to work with
+            If a string is provided, it should specify the EXTNAME of extensions
+            with WCSs to be archived
     wcskey:  one of 'A'-'Z' or " "
     wcsname: string
              Name of alternate WCS description
@@ -245,10 +241,8 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
         closefobj(fname, fobj)
         raise ValueError("Input parameters problem")
 
-    if not ext:
-        ext = range(len(fobj))
-    elif isinstance(ext, int) or isinstance(ext, tuple):
-        ext = [ext]
+    # Interpret input 'ext' value to get list of extensions to process
+    ext = _buildExtlist(fobj, ext)
 
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
@@ -292,6 +286,34 @@ def deleteWCS(fname, ext=None, wcskey=" ", wcsname=" "):
     else:
         print "Did not find WCS with key %s in any of the extensions" % wkey
     closefobj(fname, fobj)
+
+def _buildExtlist(fobj, ext):
+    """
+    Utility function to interpret the provided value of 'ext' and return a list 
+    of 'valid' values which can then be used by the rest of the functions in 
+    this module.
+    
+    Parameters
+    ----------
+    fobj: HDUList
+        file to be examined
+    ext:    an int, a tuple, string, list of integers or tuples (e.g.('sci',1))
+            fits extensions to work with
+            If a string is provided, it should specify the EXTNAME of extensions
+            with WCSs to be archived
+    """
+    if not isinstance(ext,list):
+        if isinstance(ext,str):    
+            extstr = ext
+            ext = []
+            for extn in range(1, len(fobj)):
+                if 'extname' in fobj[extn].header and fobj[extn].header['extname'] == extstr:
+                    ext.append(extn)
+        elif isinstance(ext, int) or isinstance(ext, tuple):
+            ext = [ext]
+        else:
+            raise KeyError("Valid extensions in 'ext' parameter need to be specified.")
+    return ext
 
 def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None, toextnam=None):
     """
@@ -597,8 +619,9 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
             return False
 
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
-       and not isinstance(ext, list) and ext is not None:
-        print "Ext must be integer, tuple, a list of int extension numbers, \
+        and not isinstance(ext,str) \
+        and not isinstance(ext, list) and ext is not None:
+        print "Ext must be integer, tuple, string,a list of int extension numbers, \n\
         or a list of tuples representing a fits extension, for example ('sci', 1)."
         return False
     

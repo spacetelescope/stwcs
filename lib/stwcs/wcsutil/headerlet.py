@@ -689,6 +689,11 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     """
     initLogging('write_headerlet')
 
+    if isinstance(filename,str):
+        fname = filename
+    else:
+        fname = filename.filename()
+
     if wcsname in [None,' ','','INDEF'] and wcskey is None:
         print '='*60
         print '[write_headerlet]'
@@ -885,9 +890,10 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             hdrname = fobj[1].header['HDRNAME']
         except KeyError:
             try:
+                wname = ('WCSNAME'+wcskey).rstrip()
                 hdrname = fobj[1].header['WCSNAME'+wcskey]
-                print 'Using default value for HDRNAME of "%d"',
-                print ' derived from WCSNAME%d.'%(hdrname,wcskey)
+                print 'Using default value for HDRNAME of "%s"'%(hdrname),
+                print ' derived from %s.'%(wname)
             except KeyError, detail:
                 message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
                 module_logger.critical(message)
@@ -1693,12 +1699,8 @@ class Headerlet(pyfits.HDUList):
               of the primary
         """
         self.hverify()
+        fobj,fname,close_dest = parseFilename(fobj,mode='update')
         if self.verify_dest(fobj):
-            if not isinstance(fobj, pyfits.HDUList):
-                fobj = pyfits.open(fobj, mode='update')
-                close_dest = True
-            else:
-                close_dest = False
 
             # Check to see whether the distortion model in the destination
             # matches the distortion model in the headerlet being applied
@@ -1749,7 +1751,7 @@ class Headerlet(pyfits.HDUList):
                     numhlt += 1
                     orig_hlt_hdu.header.update('EXTVER',numhlt)
 
-                wcsextn = mapFitsExt2HDUListInd(fobj.filename(),"SCI")[('SCI',1)]
+                wcsextn = mapFitsExt2HDUListInd(fname,"SCI")[('SCI',1)]
                 if dist_models_equal:
                     # Use the WCSNAME to determine whether or not to archive 
                     # Primary WCS as altwcs
@@ -1870,9 +1872,9 @@ class Headerlet(pyfits.HDUList):
                 fobj.close()
         else:
             self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" % (fobj.filename(), self.hdrname))
+                            "%s" % (fname, self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
-                  % (fobj.filename(), self.hdrname)
+                  % (fname, self.hdrname)
 
     def apply_as_alternate(self, fobj, attach=True, wcskey=None, wcsname=None):
         """
@@ -1896,13 +1898,8 @@ class Headerlet(pyfits.HDUList):
         
                     """
         self.hverify()
+        fobj,fname,close_dest = parseFilename(fobj,mode='update')
         if self.verify_dest(fobj):
-            if not isinstance(fobj, pyfits.HDUList):
-                fobj = pyfits.open(fobj, mode='update')
-                close_dest = True
-            else:
-                close_dest = False
-            fname = fobj.filename()
             
             # Verify whether this headerlet has the same distortion found in
             # the image being updated
@@ -1995,13 +1992,13 @@ class Headerlet(pyfits.HDUList):
                 new_hlt.update_ext_version(numhlt + 1)
                 fobj.append(new_hlt)
 
-            if close_dest:
-                fobj.close()
         else:
             self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
                             "%s" % (fname, self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
                   % (fname, self.hdrname)
+        if close_dest:
+            fobj.close()
 
     def attach_to_file(self,fobj):
         """
@@ -2021,11 +2018,8 @@ class Headerlet(pyfits.HDUList):
         - update wcscorr 
         """
         self.hverify()
-        if not isinstance(fobj, pyfits.HDUList):
-            fobj = pyfits.open(fobj, mode='update')
-            close_dest = True
-        else:
-            close_dest = False
+        fobj,fname,close_dest = parseFilename(fobj,mode='update')
+
         if self.verify_dest(fobj) and self.verify_hdrname(fobj):
 
             numhlt = countExtn(fobj, 'HDRLET')
@@ -2037,9 +2031,9 @@ class Headerlet(pyfits.HDUList):
 
         else:
             self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" % (fobj.filename(), self.hdrname))
+                            "%s" % (fname, self.hdrname))
             print "Observation %s cannot be updated with headerlet %s" \
-                  % (fobj.filename(), self.hdrname)
+                  % (fname, self.hdrname)
 
         if close_dest:
             fobj.close()
