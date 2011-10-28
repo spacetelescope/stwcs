@@ -2,12 +2,12 @@ from __future__ import division # confidence high
 
 import sys
 
-pkg =  ["stwcs", 'stwcs.updatewcs', 'stwcs.wcsutil', 'stwcs.distortion']
+pkg =  ["stwcs", 'stwcs.updatewcs', 'stwcs.wcsutil', 'stwcs.distortion', 'stwcs.gui']
 
 setupargs = {
     'version' :         "0.8",
     'description' :		"Recomputes the WCS of an HST observation and puts all istortion corrections in the headers.",
-    'package_dir': {'stwcs':'lib/stwcs', 'stwcs.updatewcs': 'lib/stwcs/updatewcs',
+    'package_dir': {'stwcs':'lib/stwcs', 'stwcs.updatewcs': 'lib/stwcs/updatewcs', 'lib/stwcs/gui',
                     'stwcs.wcsutil': 'lib/stwcs/wcsutil', 'stwcs.distortion': 'lib/stwcs/distortion'},
 
     'author' :		    "Nadia Dencheva, Warren Hack",
