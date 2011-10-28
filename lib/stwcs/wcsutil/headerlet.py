@@ -725,8 +725,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                                 d2imfile=d2imfile, author=author, 
                                 descrip=descrip, history=history,
                                 rms_ra=rms_ra, rms_dec=rms_dec, nmatch=nmatch, 
-                                catalog=catalog,
-                                hdrletnum=numhlt + 1, verbose=False) 
+                                catalog=catalog, verbose=False) 
             
     if attach:
         # Check to see whether or not a HeaderletHDU with this hdrname already 
@@ -741,7 +740,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             fobj.append(hdrlet_hdu)
             
             # Update the WCSCORR table with new rows from the headerlet's WCSs
-            wcscorr.update_wcscorr(fobj, hdrletobj, 'SIPWCS')
+            wcscorr.update_wcscorr(fobj, source=hdrletobj, extname='SIPWCS')
 
             fobj.flush()
         else:
@@ -1003,6 +1002,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                 # This extension does not contain a valid WCS, so 
                 #  skip on to the next
                 continue
+
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs,'orientat'):
                 h.update('ORIENTAT',hwcs.orientat, comment=orient_comment)
@@ -1021,6 +1021,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                 if hasattr(althdrwcs,'orientat'):
                     h.update('ORIENTAT',althdrwcs.orientat, comment=orient_comment)
             h = h.ascard
+            
             if hasattr(hwcs,'vafactor'):
                 h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor,
                                  comment='Velocity aberration plate scale factor'))
@@ -1627,8 +1628,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
                                     d2imfile=d2imfile, author=author, 
                                     descrip=descrip, history=history,
                                     rms_ra=rms_ra, rms_dec=rms_dec, nmatch=nmatch, 
-                                    catalog=catalog,                                    
-                                    hdrletnum=numhlt + 1, verbose=False) 
+                                    catalog=catalog, verbose=False) 
         hlt_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
 
         if destim is not None:
@@ -1769,7 +1769,7 @@ class Headerlet(pyfits.HDUList):
                                     hdrname=hdrname, sipname=None, 
                                     npolfile=None, d2imfile=None, 
                                     author=None, descrip=None, history=None,
-                                    hdrletnum=numhlt + 1, verbose=self.verbose) 
+                                    verbose=self.verbose) 
                     orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                     numhlt += 1
                     orig_hlt_hdu.header.update('EXTVER',numhlt)
@@ -1806,7 +1806,7 @@ class Headerlet(pyfits.HDUList):
                                     hdrname=hname, sipname=None, 
                                     npolfile=None, d2imfile=None, 
                                     author=None, descrip=None, history=None,
-                                    hdrletnum=numhlt + 1, verbose=self.verbose) 
+                                    verbose=self.verbose) 
                             numhlt += 1
                             alt_hlet_hdu = HeaderletHDU.fromheaderlet(alt_hlet)
                             alt_hlet_hdu.header.update('EXTVER',numhlt)
@@ -2197,6 +2197,7 @@ class Headerlet(pyfits.HDUList):
                 self._removeLUT(dest[idx])
                 self._removePrimaryWCS(dest[idx])
                 self._removeIDCCoeffs(dest[idx])
+                self._removeFitValues(dest[idx])
                 try:
                     del dest[idx].header.ascard['VAFACTOR']
                 except KeyError:
@@ -2221,6 +2222,21 @@ class Headerlet(pyfits.HDUList):
                 del phdu.header.ascard[kw]
             except KeyError:
                 pass
+
+    def _removeFitValues(self, ext):
+        """
+        Remove the any existing astrometric fit values from a FITS extension
+        """
+
+        self.hdr_logger.debug("Removing astrometric fit values from (%s, %s)"%
+                     (ext.name,ext._extver))
+        dkeys = altwcs.wcskeys(ext.header)
+        if 'O' in dkeys: dkeys.remove('O') # Do not remove wcskey='O' values
+        for fitkw in ['RMS_RA', 'RMS_DEC', 'NMATCH', 'CATALOG']:
+            for k in dkeys:
+                fkw = (fitkw+k).rstrip()
+                if fkw in ext.header:
+                    del ext.header[fkw]
 
     def _removeSIP(self, ext):
         """
@@ -2288,11 +2304,13 @@ class Headerlet(pyfits.HDUList):
         A WCS with wcskey 'O' is never deleted.
         """
         dkeys = altwcs.wcskeys(dest[('SCI', 1)].header)
+        for val in ['O','',' ']:
+            if val in dkeys: dkeys.remove(val) # Never delete WCS with wcskey='O'
+            
         self.hdr_logger.debug("Removing alternate WCSs with keys %s from %s"
                      % (dkeys, dest.filename()))
         for k in dkeys:
-            if k not in ['O',' ','']: # Never delete WCS with wcskey='O'
-                altwcs.deleteWCS(dest, ext=ext, wcskey=k)
+            altwcs.deleteWCS(dest, ext=ext, wcskey=k)
 
     def _removePrimaryWCS(self, ext):
         """
