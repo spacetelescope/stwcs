@@ -248,7 +248,7 @@ class NPOLCorr(object):
                 continue
         npl.close()
         
-        naxis = pyfits.getval(npolfile, ext=1, key='NAXIS')
+        naxis = pyfits.getval(npolfile, 'NAXIS', ext=1)
         ccdchip = nplextname #npol_header['CCDCHIP']
         
         kw = { 'NAXIS': 'Size of the axis', 

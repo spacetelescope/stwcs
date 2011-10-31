@@ -69,7 +69,7 @@ class DET2IMCorr(object):
     
     def getAxisCorr(cls, refname):
         try:
-            direction = pyfits.getval(refname, ext=1, key='EXTNAME')
+            direction = pyfits.getval(refname, 'EXTNAME', ext=1)
             if direction == 'DX': return 1
             elif direction == 'DY': return 2
             else: 
@@ -127,7 +127,7 @@ class DET2IMCorr(object):
         axiscorr = cls.getAxisCorr(d2imfile)
         sci_hdr = fobj[1].header
         data_shape = pyfits.getdata(d2imfile, ext=1).shape
-        naxis = pyfits.getval(d2imfile, ext=1, key='NAXIS')
+        naxis = pyfits.getval(d2imfile, 'NAXIS', ext=1 )
         
         kw = { 'NAXIS': 'Size of the axis', 
                 'CRPIX': 'Coordinate system reference pixel', 
