@@ -383,22 +383,23 @@ def updateRefFiles(source, dest, verbose=False):
 
     Parameters
     ----------
-    source: pyfits.Header.ascardlist
-    dest:   pyfits.Header.ascardlist
+    source: pyfits.Header
+    dest:   pyfits.Header
     """
     module_logger.info("Updating reference files")
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
             'D2IMFILE': True}
 
-    try:
-        wind = dest.index_of('HISTORY')
-    except KeyError:
+    if 'HISTORY' in dest:
+        wind = dest.ascard.index_of('HISTORY')
+    else:
         wind = len(dest)
+        
     for key in phdukw.keys():
         try:
-            value = source[key]
-            dest.insert(wind, value)
+            srckey = source.ascard[key]
+            dest.update(key, srckey.value, after=wind, comment=srckey.comment)
         except KeyError:
             # TODO: I don't understand what the point of this is.  Is it meant
             # for logging purposes?  Right now it isn't used.
@@ -517,8 +518,10 @@ def _createPrimaryHDU(destim, hdrname, distname, wcsname,
     phdu.header.update('DESCRIP', descrip, comment='Short description of headerlet solution')
     phdu.header.update('RMS_RA',rms_ra,comment='RMS in RA at ref pix of headerlet solution')
     phdu.header.update('RMS_DEC',rms_dec,comment='RMS in Dec at ref pix of headerlet solution')
-    phdu.header.update('NMATCH',rms_ra,comment='Number of sources used for headerlet solution')
-    phdu.header.update('CATALOG',rms_ra,comment='Astrometric catalog used for headerlet solution')
+    phdu.header.update('NMATCH',nmatch,comment='Number of sources used for headerlet solution')
+    phdu.header.update('CATALOG',catalog,comment='Astrometric catalog used for headerlet solution')
+    phdu.header.update('UPWCSVER',upwcsver.value,comment=upwcsver.comment)
+    phdu.header.update('PYWCSVER',pywcsver.value,comment=pywcsver.comment)
     
     # clean up history string in order to remove whitespace characters that
     # would cause problems with FITS
@@ -532,8 +535,6 @@ def _createPrimaryHDU(destim, hdrname, distname, wcsname,
     for hline in history_lines:
         phdu.header.add_history(hline)
     
-    phdu.header.ascard.append(upwcsver)
-    phdu.header.ascard.append(pywcsver)
     return phdu
 
 #### Public Interface functions
@@ -990,7 +991,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
 
         for e in sciext:
             wkeys = altwcs.wcskeys(fname,ext=e)
-            if wcskey != ' ' and len(wkeys) > 1: # >1 to not include " " WCS
+            if wcskey != ' ':
                 if wcskey not in wkeys:
                     if verbose > 100:
                         module_logger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...'%(wcskey,str(e)))
@@ -1689,6 +1690,7 @@ class Headerlet(pyfits.HDUList):
         self.author = self[0].header["AUTHOR"]
         self.descrip = self[0].header["DESCRIP"]
 
+        self.fit_kws = ['HDRNAME','RMS_RA','RMS_DEC','NMATCH','CATALOG']
         self.history = ''
         for card in self[0].header['HISTORY*']:
             self.history += card.value+'\n'
@@ -1824,7 +1826,7 @@ class Headerlet(pyfits.HDUList):
                 for idx in range(1, numd2im + 1):
                     fobj.append(self[('D2IMARR', idx)].copy())
 
-            refs = updateRefFiles(self[0].header.ascard, fobj[0].header.ascard, verbose=self.verbose)
+            refs = updateRefFiles(self[0].header, fobj[0].header, verbose=self.verbose)
             numsip = countExtn(self, 'SIPWCS')
             for idx in range(1, numsip + 1):
                 fhdr = fobj[('SCI', idx)].header
@@ -1865,7 +1867,8 @@ class Headerlet(pyfits.HDUList):
                     else:
                         pass
                 # Update WCS with HDRNAME as well
-                fhdr.update('HDRNAME',self[0].header['hdrname'],after='WCSNAME')
+                for kw in self.fit_kws:
+                    fhdr.update(kw,self[0].header[kw],after='WCSNAME')
                 
                 # Update header with record-valued keywords here
                 if update_cpdis:
@@ -1988,11 +1991,6 @@ class Headerlet(pyfits.HDUList):
                 self.hdr_logger.debug("Inserting WCS keywords at index %s" % wind)
 
                 for k in siphdr:
-                    """
-                    if k.key not in ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
-                                     'GCOUNT','EXTNAME', 'EXTVER', 'ORIGIN',
-                                     'INHERIT', 'DATE', 'IRAF-TLM']:
-                    """
                     for akw in altwcs.altwcskw:
                         if akw in k.key:
                             fhdr.ascard.insert(wind,pyfits.Card(
@@ -2003,9 +2001,9 @@ class Headerlet(pyfits.HDUList):
 
                 fhdr.ascard.insert(wind,pyfits.Card('WCSNAME'+wkey,wname))
                 # also update with HDRNAME (a non-WCS-standard kw)
-                fhdr.ascard.insert(wind,pyfits.Card('HDRNAME'+wkey,
-                                        self[0].header['hdrname']))
-
+                for kw in self.fit_kws:
+                    fhdr.ascard.insert(wind,pyfits.Card(kw+wkey,
+                                        self[0].header[kw]))
             # Update the WCSCORR table with new rows from the headerlet's WCSs
             wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
             
@@ -2042,8 +2040,10 @@ class Headerlet(pyfits.HDUList):
         """
         self.hverify()
         fobj,fname,close_dest = parseFilename(fobj,mode='update')
+        destver = self.verify_dest(fobj)
+        hdrver = self.verify_hdrname(fobj)
 
-        if self.verify_dest(fobj) and self.verify_hdrname(fobj):
+        if destver and hdrver:
 
             numhlt = countExtn(fobj, 'HDRLET')
             new_hlt = HeaderletHDU.fromheaderlet(self)
@@ -2053,11 +2053,17 @@ class Headerlet(pyfits.HDUList):
             wcscorr.update_wcscorr(fobj, self, 'SIPWCS',active=False)
 
         else:
-            self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" % (fname, self.hdrname))
-            print "Observation %s cannot be updated with headerlet %s" \
-                  % (fname, self.hdrname)
-
+            message = "Observation %s cannot be updated with headerlet"%(fname)
+            message += " '%s'\n" % (self.hdrname)
+            if not destver:
+                message += " * Image %s keyword ROOTNAME not equal to "%(fname)
+                message += " DESTIM = '%s'\n"%(self.destim)
+            if not hdrver:
+                message += " * Image %s already has headerlet "%(fname)
+                message += "with HDRNAME='%s'\n"%(self.hdrname)
+            self.hdr_logger.critical(message)
+            print message
+            
         if close_dest:
             fobj.close()
 

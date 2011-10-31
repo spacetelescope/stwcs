@@ -48,17 +48,10 @@ def extract_rootname(kwvalue):
         fullval = kwvalue
     # Extract filename without path from kwvalue
     fname = os.path.basename(fullval).strip()
-
+    
     # Now, rip out just the rootname from the full filename
-    if '_' in fname:
-        rootname = fname[:fname.rfind('_')]
-    elif '.fit' in fname: # on some systems, only .fit is used instead of .fits
-        rootname = fname[:fname.rfind('.fit')]
-    elif '.' in fname: # account for non-standard file extensions
-        rootname = fname[:fname.rfind('.')]
-    else:
-        rootname = fname
-        
+    rootname = fileutil.buildNewRootname(fname)
+
     return rootname.strip()
 
 def construct_distname(fobj,wcsobj):
@@ -118,7 +111,7 @@ def build_sipname(fobj):
 
 def build_npolname(fobj):
     try:
-        npolfile = extract_rootname(fobj[0].header["NPOLFILE"])
+        npolfile = extract_rootname(fobj[0].header["NPOLFILE"]).replace('_npl','')
     except KeyError:
         if fileutil.countExtn(f, 'WCSDVARR'):
             npolfile = 'UNKNOWN'
@@ -128,7 +121,7 @@ def build_npolname(fobj):
 
 def build_d2imname(fobj):
     try:
-        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"])
+        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"]).replace('_d2i','')
     except KeyError:
         if fileutil.countExtn(f, 'D2IMARR'):
             d2imfile = 'UNKNOWN'
