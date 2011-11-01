@@ -29,12 +29,13 @@ def getBinning(fobj, extver=1):
         binned = fobj['SCI', extver].header.get('BINAXIS',1)
     return binned
 
-def extract_rootname(kwvalue):
+def extract_rootname(kwvalue,suffix=""):
     """ Returns the rootname from a full reference filename
 
         If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
             simply return a string value of 'NONE'
             
+        This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
     if kwvalue.strip() in ['','N/A','NONE','INDEF',None]:
@@ -52,6 +53,8 @@ def extract_rootname(kwvalue):
     # Now, rip out just the rootname from the full filename
     rootname = fileutil.buildNewRootname(fname)
 
+    # Now, remove any known suffix from rootname
+    rootname = rootname.replace(suffix,'')
     return rootname.strip()
 
 def construct_distname(fobj,wcsobj):
@@ -64,7 +67,8 @@ def construct_distname(fobj,wcsobj):
         <idctab rootname>-<npolfile rootname>-<d2imfile rootname>
     and have a value of 'NONE' if no reference files are specified.
     """
-    idcname = extract_rootname(fobj[0].header.get('IDCTAB', "NONE"))
+    idcname = extract_rootname(fobj[0].header.get('IDCTAB', "NONE"),
+                                suffix='_idc')
     if idcname is None and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
         
@@ -100,8 +104,8 @@ def build_sipname(fobj):
         sipname = fobj[0].header["SIPNAME"]
     except KeyError:
         try:
-            sipname = fobj[0].header['rootname']+'_'+ \
-                    extract_rootname(fobj[0].header["IDCTAB"])
+            idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')
+            sipname = fobj[0].header['rootname']+'_'+ idcname
         except KeyError:
             if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
                 sipname = 'UNKNOWN'
@@ -111,9 +115,9 @@ def build_sipname(fobj):
 
 def build_npolname(fobj):
     try:
-        npolfile = extract_rootname(fobj[0].header["NPOLFILE"]).replace('_npl','')
+        npolfile = extract_rootname(fobj[0].header["NPOLFILE"],suffix='_npl')
     except KeyError:
-        if fileutil.countExtn(f, 'WCSDVARR'):
+        if fileutil.countExtn(fobj, 'WCSDVARR'):
             npolfile = 'UNKNOWN'
         else:
             npolfile = 'NOMODEL'
@@ -121,9 +125,9 @@ def build_npolname(fobj):
 
 def build_d2imname(fobj):
     try:
-        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"]).replace('_d2i','')
+        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"],suffix='_d2i')
     except KeyError:
-        if fileutil.countExtn(f, 'D2IMARR'):
+        if fileutil.countExtn(fobj, 'D2IMARR'):
             d2imfile = 'UNKNOWN'
         else:
             d2imfile = 'NOMODEL'

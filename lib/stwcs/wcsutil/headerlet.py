@@ -1396,7 +1396,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True, fo
         else:
             if 'idctab' in scihdr:
                 priwcs_hdrname = ''.join(['IDC_',
-                        utils.extract_rootname(scihdr['idctab'])])
+                        utils.extract_rootname(scihdr['idctab'],suffix='_idc')])
             else:
                 priwcs_hdrname = 'UNKNOWN'
             priwcs_name = priwcs_hdrname
@@ -1790,7 +1790,8 @@ class Headerlet(pyfits.HDUList):
                         else:
                             if 'idctab' in scihdr:
                                 priwcs_name = ''.join(['IDC_',
-                                        utils.extract_rootname(scihdr['idctab'])])
+                                    utils.extract_rootname(scihdr['idctab'],
+                                                            suffix='_idc')])
                             else:
                                 priwcs_name = 'UNKNOWN'
                     nextkey = altwcs.next_wcskey(fobj,ext=wcsextn)

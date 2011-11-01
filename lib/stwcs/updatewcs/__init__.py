@@ -149,7 +149,8 @@ def makecorr(fname, allowed_corr):
                 # give the primary WCS a WCSNAME value
                 idcname = f[0].header.get('IDCTAB', " ")
                 if idcname.strip() and 'idc.fits' in idcname:
-                    wname = ''.join(['IDC_',utils.extract_rootname(idcname)])
+                    wname = ''.join(['IDC_',
+                                utils.extract_rootname(idcname,suffix='_idc')])
                 else: wname = " "
                 hdr.update('WCSNAME', wname)
                 
