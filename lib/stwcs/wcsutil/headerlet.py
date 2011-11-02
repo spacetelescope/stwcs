@@ -257,7 +257,7 @@ def verifyHdrnameIsUnique(fobj,hdrname):
     return unique
 
     
-def isWCSIdentical(scifile, file2, verbose=False):
+def isWCSIdentical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
     """
     Compares the WCS solution of 2 files.
 
@@ -269,6 +269,10 @@ def isWCSIdentical(scifile, file2, verbose=False):
              for example scifile[1] or scifile[sci,1]
     file2:   string
              name of second file (for example headerlet)
+    scikey:  string
+             alternate WCS key in scifile
+    file2key: string
+             alternate WCS key in file2
     verbose: False or a python logging level
              (one of 'INFO', 'DEBUG' logging levels)
              (an integer representing a logging level)
@@ -332,8 +336,8 @@ def isWCSIdentical(scifile, file2, verbose=False):
         fextlist = [fext]
         
     for i, j in zip(sciextlist, fextlist):
-        w1 = HSTWCS(scifile, ext=i)
-        w2 = HSTWCS(file2, ext=j)
+        w1 = HSTWCS(scifile, ext=i, wcskey=scikey)
+        w2 = HSTWCS(file2, ext=j, wcskey=file2key)
         if not np.allclose(w1.wcs.crval, w2.wcs.crval, rtol=1e-7) or \
         not np.allclose(w1.wcs.crpix, w2.wcs.crpix, rtol=1e-7)  or \
         not np.allclose(w1.wcs.cd, w2.wcs.cd, rtol=1e-7) or \
