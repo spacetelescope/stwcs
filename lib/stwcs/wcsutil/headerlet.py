@@ -1777,7 +1777,6 @@ class Headerlet(pyfits.HDUList):
                     hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                     wcsname = None
                 wcskey = ' '
-                print 'hdrname in primary', hdrname
                 # Check the HDRNAME for all current headerlet extensions
                 # to see whether this PRIMARY WCS has already been appended
                 wcsextn = self[1].header['SCIEXT']
@@ -1785,6 +1784,7 @@ class Headerlet(pyfits.HDUList):
                     wcsextn = int(wcsextn)
                 except ValueError:
                     wcsextn = fu.parseExtn(wcsextn)
+                
                 if hdrname not in hdrlet_extnames:
                     # -  if WCS has not been saved, write out WCS as headerlet extension
                     # Create a headerlet for the original Primary WCS data in the file,
@@ -1914,10 +1914,7 @@ class Headerlet(pyfits.HDUList):
                     fobj.append(ahdu)
             if attach:
                 # Finally, append an HDU for this headerlet
-                new_hlt = HeaderletHDU.fromheaderlet(self)
-                new_hlt.update_ext_version(numhlt + 1)
-                fobj.append(new_hlt)
-
+                self.attach_to_file(fobj)
             if close_dest:
                 fobj.close()
         else:
