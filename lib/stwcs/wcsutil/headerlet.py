@@ -1730,7 +1730,7 @@ class Headerlet(pyfits.HDUList):
         self.hverify()
         fobj,fname,close_dest = parseFilename(fobj,mode='update')
         if self.verify_dest(fobj):
-
+           
             # Check to see whether the distortion model in the destination
             # matches the distortion model in the headerlet being applied
             dist_models_equal=True
@@ -1740,7 +1740,7 @@ class Headerlet(pyfits.HDUList):
                     print '    Headerlet model  : ',self[0].header['DISTNAME']
                     print '    Destination model: ',fobj[0].header['DISTNAME']
                 dist_models_equal = False
-
+            
             if not dist_models_equal and not force:
                 raise ValueError
             
@@ -1978,12 +1978,10 @@ class Headerlet(pyfits.HDUList):
                     if wcskey in available_keys:
                         wkey = wcskey
                     else:
-                        self.hdr_logger.critical("Observation %s already contains alternate WCS with key \
-                                        %s" % (fname, wcskey))
-                        print ("Observation %s already contains alternate WCS with key \
-                                        %s" % (fname, wcskey))
+                        mess = "Observation %s already contains alternate WCS with key %s" % (fname, wcskey)
+                        self.hdr_logger.critical(mess)
                         if close_dest: fobj.close()
-                        raise ValueError
+                        raise ValueError(mess)
 
                 # a minimal attempt to get the position of the WCS keywords group
                 # in the header by looking for the PA_APER kw.
@@ -2014,15 +2012,11 @@ class Headerlet(pyfits.HDUList):
             
             if attach:
                 # Finally, append an HDU for this headerlet
-                new_hlt = HeaderletHDU.fromheaderlet(self)
-                new_hlt.update_ext_version(numhlt + 1)
-                fobj.append(new_hlt)
-
+                self.attach_to_file(fobj)
         else:
-            self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
-                            "%s" % (fname, self.hdrname))
-            print "Observation %s cannot be updated with headerlet %s" \
-                  % (fname, self.hdrname)
+            mess = "Observation %s cannot be updated with headerlet %s" % (fname, self.hdrname)
+            self.hdr_logger.critical(mess)
+            print mess
         if close_dest:
             fobj.close()
 
@@ -2047,7 +2041,6 @@ class Headerlet(pyfits.HDUList):
         fobj,fname,close_dest = parseFilename(fobj,mode='update')
         destver = self.verify_dest(fobj)
         hdrver = self.verify_hdrname(fobj)
-
         if destver and hdrver:
 
             numhlt = countExtn(fobj, 'HDRLET')
