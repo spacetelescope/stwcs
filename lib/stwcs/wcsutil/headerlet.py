@@ -799,8 +799,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
            If string - a valid EXTNAME is expected
            If int - specifies an extension with a valid WCS, such as 0 for a 
                 simple FITS file
-           If list - a list of FITS extension numbers or extension tuples ('SCI', 1)
-           is expected.
+           If list - a list of FITS extension numbers or strings representing 
+           extension tuples, e.g. ('SCI, 1') is expected.
     hdrname: string
            value of HDRNAME keyword
            Takes the value from the HDRNAME<wcskey> keyword, if not available from WCSNAME<wcskey>
@@ -898,6 +898,14 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             message += "Actual value of %s found to be %s. \n"%(wcsnamekw,wname)
             print message
             raise KeyError,"Inconsistent values for 'wcskey' and 'wcsname' parameters"
+    
+    wkeys = altwcs.wcskeys(fname,ext=wcsext)
+    if wcskey != ' ':
+        if wcskey not in wkeys:
+            if verbose > 100:
+                module_logger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...'%(wcskey,str(e)))
+            raise ValueError(' No WCS with wcskey=%s found in extension %s.  \
+            Skipping...'%(wcskey,str(e)))
 
     # get remaining required keywords
     if destim is None:
@@ -960,7 +968,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
         sciext = [sciext] # allow for specification of simple FITS header
     elif isinstance(sciext, str):
         numsciext = countExtn(fobj, sciext)
-        sciext = [(sciext, i) for i in range(1, numsciext+1)]
+        sciext = [(sciext + ", "+ str(i)) for i in range(1, numsciext+1)]
     elif isinstance(sciext, list):
         pass
     else:
@@ -994,7 +1002,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
     if fu.isFits(fobj)[1] is not 'simple':
 
         for e in sciext:
-            wkeys = altwcs.wcskeys(fname,ext=e)
+            try:
+                fext = int(e)
+            except ValueError:
+                fext = fu.parseExtn(e)
+            wkeys = altwcs.wcskeys(fname,ext=fext)
             if wcskey != ' ':
                 if wcskey not in wkeys:
                     if verbose > 100:
@@ -1002,12 +1014,13 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                     continue # skip any extension which does not have this wcskey
     
             # This reads in full model: alternate WCS keywords plus SIP
-            hwcs = HSTWCS(fname,ext=e,wcskey=' ') 
+            hwcs = HSTWCS(fname,ext=fext,wcskey=' ') 
+            """
             if hwcs.wcs.is_unity():
                 # This extension does not contain a valid WCS, so 
                 #  skip on to the next
                 continue
-
+            """
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs,'orientat'):
                 h.update('ORIENTAT',hwcs.orientat, comment=orient_comment)
@@ -1015,7 +1028,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             if wcskey != ' ':
                 # Now read in specified linear WCS terms from alternate WCS
                 try:
-                    althdr = altwcs.convertAltWCS(fname,e,oldkey=wcskey,newkey=" ")
+                    althdr = altwcs.convertAltWCS(fname,fext,oldkey=wcskey,newkey=" ")
                     althdrwcs = HSTWCS(fname,e,wcskey=wcskey)
                 except KeyError:
                     continue # Skip over any extension which does not have a WCS
@@ -1032,17 +1045,17 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                                  comment='Velocity aberration plate scale factor'))
             h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
                                     comment='Extension name'))
-            if isinstance(e, int): 
-                if 'extver' in fobj[e].header:
-                    val = fobj[e].header['extver']
+            if isinstance(fext, int): 
+                if 'extver' in fobj[fext].header:
+                    val = fobj[fext].header['extver']
                 else:
-                    val = e
-            else: val = e[1]
+                    val = fext
+            else: val = fext[1]
             h.insert(1, pyfits.Card(key='EXTVER', value=val,
                                     comment='Extension version'))
-            h.append(pyfits.Card("SCIEXT", str(e), 
-                                 "Target science data extension"))
-            fhdr = fobj[e].header.ascard
+            h.append(pyfits.Card(key="SCIEXT", value=e, 
+                                 comment="Target science data extension"))
+            fhdr = fobj[fext].header.ascard
             if npolfile is not 'NOMODEL':
                 cpdis = fhdr['CPDIS*...']
                 for c in range(1, len(cpdis) + 1):
@@ -1756,6 +1769,7 @@ class Headerlet(pyfits.HDUList):
             # If archive has been specified
             #   regardless of whether or not the distortion models are equal...
             if archive:
+                
                 if 'wcsname' in fobj[('SCI',1)].header: 
                     hdrname = fobj[('SCI',1)].header['WCSNAME']
                     wcsname = hdrname
@@ -1763,14 +1777,20 @@ class Headerlet(pyfits.HDUList):
                     hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                     wcsname = None
                 wcskey = ' '
+                print 'hdrname in primary', hdrname
                 # Check the HDRNAME for all current headerlet extensions
                 # to see whether this PRIMARY WCS has already been appended
+                wcsextn = self[1].header['SCIEXT']
+                try:
+                    wcsextn = int(wcsextn)
+                except ValueError:
+                    wcsextn = fu.parseExtn(wcsextn)
                 if hdrname not in hdrlet_extnames:
                     # -  if WCS has not been saved, write out WCS as headerlet extension
                     # Create a headerlet for the original Primary WCS data in the file,
                     # create an HDU from the original headerlet, and append it to
                     # the file
-                    orig_hlt = create_headerlet(fobj,sciext='SCI',
+                    orig_hlt = create_headerlet(fobj,sciext=wcsextn[0],
                                     wcsname=wcsname, wcskey=wcskey,
                                     hdrname=hdrname, sipname=None, 
                                     npolfile=None, d2imfile=None, 
@@ -1779,8 +1799,7 @@ class Headerlet(pyfits.HDUList):
                     orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                     numhlt += 1
                     orig_hlt_hdu.header.update('EXTVER',numhlt)
-
-                wcsextn = mapFitsExt2HDUListInd(fname,"SCI")[('SCI',1)]
+                
                 if dist_models_equal:
                     # Use the WCSNAME to determine whether or not to archive 
                     # Primary WCS as altwcs
@@ -1963,25 +1982,38 @@ class Headerlet(pyfits.HDUList):
                 wname = wcsname
             else:
                 wname = self[0].header['WCSNAME']
-
+            
+            sciext = self[('SIPWCS', 1)].header['SCIEXT']
+            try:
+                sciext = int(sciext)
+            except ValueError:
+                sciext = fu.parseExtn(sciext)
+            # determine what alternate WCS this headerlet will be assigned to
+            if wcskey is None:
+                wkey = altwcs.next_wcskey(fobj[sciext].header)
+            else:
+                available_keys = altwcs.available_wcskeys(fobj[sciext].header)
+                if wcskey in available_keys:
+                    wkey = wcskey
+                else:
+                    mess = "Observation %s already contains alternate WCS with key %s" % (fname, wcskey)
+                    self.hdr_logger.critical(mess)
+                    if close_dest: fobj.close()
+                    raise ValueError(mess)
+                    
             numhlt = countExtn(fobj, 'HDRLET')
             numsip = countExtn(self, 'SIPWCS')            
             for idx in range(1, numsip + 1):
-                fhdr = fobj[('SCI', idx)].header
+                sciext = self[('SIPWCS', idx)].header['SCIEXT']
+                try:
+                    sciext = int(sciext)
+                except ValueError:
+                    sciext = fu.parseExtn(sciext)
+                #fhdr = fobj[('SCI', idx)].header
+                fhdr = fobj[sciext].header
                 siphdr = self[('SIPWCS', idx)].header.ascard
                 
-                # determine what alternate WCS this headerlet will be assigned to
-                if wcskey is None:
-                    wkey = altwcs.next_wcskey(fobj[('SCI',idx)].header)
-                else:
-                    available_keys = altwcs.available_wcskeys(fobj[('SCI',idx)].header)
-                    if wcskey in available_keys:
-                        wkey = wcskey
-                    else:
-                        mess = "Observation %s already contains alternate WCS with key %s" % (fname, wcskey)
-                        self.hdr_logger.critical(mess)
-                        if close_dest: fobj.close()
-                        raise ValueError(mess)
+                
 
                 # a minimal attempt to get the position of the WCS keywords group
                 # in the header by looking for the PA_APER kw.
