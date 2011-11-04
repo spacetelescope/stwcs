@@ -134,10 +134,7 @@ def init_wcscorr(input, force=False):
                                        wcskey=uwkey)
             wcshdr = wcs.wcs2header()
             if 'WCSNAME' + uwkey not in wcshdr:
-                idctab = fileutil.osfn(fimg[0].header['idctab'])
-                idcname = os.path.split(idctab)[-1]
-                idcname = idcname[:idcname.find('_')]
-                wcsid = 'IDC_' + idcname
+                wcsid = utils.build_default_wcsname(fimg[0].header['idctab'])
             else:
                 wcsid = wcshdr['WCSNAME' + uwkey]
 
@@ -300,7 +297,10 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             else:
                 tab_extver = extver
             hdr = source[extn].header
-            wcsname = hdr['WCSNAME' + wcs_key]
+            if 'WCSNAME'+wcs_key in hdr:
+                wcsname = hdr['WCSNAME' + wcs_key]
+            else:
+                wcsname = utils.build_default_wcsname(hdr['idctab'])
             selection = {'WCS_ID': wcsname, 'EXTVER': tab_extver,
                          'SIPNAME':sipname, 'HDRNAME': hdrname,
                          'NPOLNAME': npolname, 'D2IMNAME':d2imname

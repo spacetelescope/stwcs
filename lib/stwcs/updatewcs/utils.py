@@ -99,6 +99,12 @@ def build_distname(sipname,npolname,d2imname):
 
     return distname
 
+def build_default_wcsname(idctab):
+
+    idcname = extract_rootname(idctab,suffix='_idc')
+    wcsname = 'IDC_' + idcname
+    return wcsname
+
 def build_sipname(fobj):
     try:
         sipname = fobj[0].header["SIPNAME"]
