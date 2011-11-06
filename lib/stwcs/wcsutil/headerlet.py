@@ -553,10 +553,12 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     
     Parameters
     ----------
-    filename: string or HDUList
+    filename: string or HDUList or Python list of filenames
            Either a filename or PyFITS HDUList object for the input science file
             An input filename (str) will be expanded as necessary to interpret 
             any environmental variables included in the filename.
+            If a list of filenames has been specified, it will extract a 
+            headerlet from the same extnum from all filenames.
     output: string
            Filename or just rootname of output headerlet FITS file
            If string does not contain '.fits', it will create a filename with
@@ -575,27 +577,31 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     """
     
     initLogging('extract_headerlet', verbose=verbose)
-    fobj,fname,close_fobj = parseFilename(filename)
-
-    if hdrname in ['',' ',None, 'INDEF']:
-        if  extnum is None:
-            print 'No valid headerlet specified! Quitting...'
-            if close_fobj: fobj.close()
+    if isinstance(filename, pyfits.HDUList) or isinstance(filename,str):
+        filename = [filename]
+    for f in filename:
+        fobj,fname,close_fobj = parseFilename(f)
+        frootname = fu.buildNewRootname(fname)
+        if hdrname in ['',' ',None, 'INDEF']:
+            if  extnum is None:
+                print 'No valid headerlet specified! Quitting...'
+                if close_fobj: fobj.close()
+            else:
+                hdrhdu = fobj[extnum]
         else:
-            hdrhdu = fobj[extnum]
-    else:
-        extnum = findHeaderletHDUs(fobj,hdrname=hdrname)[0]
-        hdrhdu = fobj[extnum]
-    hdrlet = hdrhdu.headerlet
-    
-    if '.fits' in output:
-        outname = output
-    else:
-        outname = '%s_hlet.fits'%(output)
-    hdrlet.write_to(outname)
+            extnumber = findHeaderletHDUs(fobj,hdrname=hdrname)[0]
+            hdrhdu = fobj[extnumber]
 
-    if close_fobj:
-        fobj.close()
+        hdrlet = hdrhdu.headerlet
+
+        if '.fits' in output:
+            outname = output
+        else:
+            outname = '%s_%s_hlet.fits'%(frootname,output)
+        hdrlet.write_to(outname)
+
+        if close_fobj:
+            fobj.close()
 
 def write_headerlet(filename, hdrname, output=None, sciext='SCI', 
                         wcsname=None, wcskey=None, destim=None,
@@ -618,16 +624,18 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
 
     Parameters
     ----------
-    filename: string or HDUList
-           Either a filename or PyFITS HDUList object for the input science file
-            An input filename (str) will be expanded as necessary to interpret 
-            any environmental variables included in the filename.
+    filename: string or HDUList or Python list
+       Either a filename, PyFITS HDUList object or Python list of 
+       filenames for the input science file or files. The filename
+       could also be a comma-separated list of filenames. 
+       An input filename (str) will be expanded as necessary to interpret 
+       any environmental variables included in the filename.
     hdrname: string
         Unique name for this headerlet, stored as HDRNAME keyword 
     output: string or None
         Filename or just rootname of output headerlet FITS file
-        If string does not contain '.fits', it will create a filename with
-        '_hlet.fits' suffix
+        If string does not contain '.fits', it will create a filename 
+        starting with the science filename and ending with '_hlet.fits'.
         If None, a default filename based on the input filename will be 
         generated for the headerlet FITS filename
     sciext: string
@@ -683,99 +691,109 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     """
     initLogging('write_headerlet')
 
-    if isinstance(filename,str):
-        fname = filename
-    else:
-        fname = filename.filename()
-
-    if wcsname in [None,' ','','INDEF'] and wcskey is None:
-        print '='*60
-        print '[write_headerlet]'
-        print 'No valid WCS found found in %s.'%fname
-        print '   A valid value for either "wcsname" or "wcskey" '
-        print '   needs to be specified. '
-        print '='*60
-        raise ValueError
-    
-    if hdrname in [None, ' ','']:
-        print '='*60
-        print '[write_headerlet]'
-        print 'No valid name for this headerlet was provided for %s.'%fname
-        print '   A valid value for "hdrname" needs to be specified. '
-        print '='*60
-        raise ValueError
-        
-    # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
-    if wcskey == 'PRIMARY': wcskey = ' '
-    
-    if attach: umode = 'update'
-    else: umode='readonly'
-    
-    fobj,fname,close_fobj = parseFilename(filename,mode=umode)
-
-    # Insure that WCSCORR table has been created with all original
-    # WCS's recorded prior to adding the headerlet WCS
-    wcscorr.init_wcscorr(fobj)
-
-    numhlt = countExtn(fobj, 'HDRLET')
-
-    if wcsname is None:
-        scihdr = fobj[sciext,1].header
-        wcsname = scihdr['wcsname'+wcskey]
-
-    hdrletobj = create_headerlet(fobj,sciext=sciext,
-                                wcsname=wcsname, wcskey=wcskey,
-                                hdrname=hdrname,
-                                sipname=sipname, npolfile=npolfile, 
-                                d2imfile=d2imfile, author=author, 
-                                descrip=descrip, history=history,
-                                rms_ra=rms_ra, rms_dec=rms_dec, nmatch=nmatch, 
-                                catalog=catalog, verbose=False) 
-            
-    if attach:
-        # Check to see whether or not a HeaderletHDU with this hdrname already 
-        # exists
-        hdrnames = getHeaderletKwNames(fobj)
-        if hdrname not in hdrnames:
-            hdrlet_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
-
-            if destim is not None:
-                hdrlet_hdu[0].header['destim'] = destim
-
-            fobj.append(hdrlet_hdu)
-            
-            # Update the WCSCORR table with new rows from the headerlet's WCSs
-            wcscorr.update_wcscorr(fobj, source=hdrletobj, extname='SIPWCS')
-
-            fobj.flush()
+    if isinstance(filename, str) or isinstance(filename, pyfits.HDUList):
+        if ',' in filename: # string of comma-separated filenames 
+            filename = filename.split(',')
         else:
-            print 'WARNING:'
-            print '    Headerlet with hdrname ',hdrname,' already archived for WCS ',wcsname
-            print '    No new headerlet appended to ',fname,'.'
-        
-        
-    if close_fobj:
-        fobj.close()
-
-    if output is None:
-        # Generate default filename for headerlet FITS file
-        output = fname[:fname.find('.fits')]
-    if '.fits' not in output:
-        output = output+'_hlet.fits'
-
-    # If user specifies an output filename for headerlet, write it out
-    write_hdrlet = True
-    if os.path.exists(output):
-        if clobber:
-            os.remove(output)
+            filename = [filename]
+    for f in filename:
+        if isinstance(f,str):
+            fname = f
         else:
-            print 'WARNING:'
-            print '    Headerlet file ',output,' already written out!'
-            print '    This headerlet file will not be created now.'
-            write_hdrlet = False
-    if write_hdrlet:
-        hdrletobj.writeto(output)
-        print 'Created Headerlet file: ',output
+            fname = f.filename()
+
+        if wcsname in [None,' ','','INDEF'] and wcskey is None:
+            print '='*60
+            print '[write_headerlet]'
+            print 'No valid WCS found found in %s.'%fname
+            print '   A valid value for either "wcsname" or "wcskey" '
+            print '   needs to be specified. '
+            print '='*60
+            raise ValueError
+
+        if hdrname in [None, ' ','']:
+            print '='*60
+            print '[write_headerlet]'
+            print 'No valid name for this headerlet was provided for %s.'%fname
+            print '   A valid value for "hdrname" needs to be specified. '
+            print '='*60
+            raise ValueError
+
+        # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
+        if wcskey == 'PRIMARY': wcskey = ' '
+
+        if attach: umode = 'update'
+        else: umode='readonly'
+
+        fobj,fname,close_fobj = parseFilename(f,mode=umode)
+
+        # Insure that WCSCORR table has been created with all original
+        # WCS's recorded prior to adding the headerlet WCS
+        wcscorr.init_wcscorr(fobj)
+
+        numhlt = countExtn(fobj, 'HDRLET')
+
+        if wcsname is None:
+            scihdr = fobj[sciext,1].header
+            wname = scihdr['wcsname'+wcskey]
+        else:
+            wname = wcsname
+            
+        print 'Creating the headerlet from image :',fname
+        hdrletobj = create_headerlet(fobj,sciext=sciext,
+                                    wcsname=wname, wcskey=wcskey,
+                                    hdrname=hdrname,
+                                    sipname=sipname, npolfile=npolfile, 
+                                    d2imfile=d2imfile, author=author, 
+                                    descrip=descrip, history=history,
+                                    rms_ra=rms_ra, rms_dec=rms_dec, nmatch=nmatch, 
+                                    catalog=catalog, verbose=False) 
+
+        if attach:
+            # Check to see whether or not a HeaderletHDU with this hdrname already 
+            # exists
+            hdrnames = getHeaderletKwNames(fobj)
+            if hdrname not in hdrnames:
+                hdrlet_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
+
+                if destim is not None:
+                    hdrlet_hdu[0].header['destim'] = destim
+
+                fobj.append(hdrlet_hdu)
+
+                # Update the WCSCORR table with new rows from the headerlet's WCSs
+                wcscorr.update_wcscorr(fobj, source=hdrletobj, extname='SIPWCS')
+
+                fobj.flush()
+            else:
+                print 'WARNING:'
+                print '    Headerlet with hdrname ',hdrname,' already archived for WCS ',wname
+                print '    No new headerlet appended to ',fname,'.'
+
+
+        if close_fobj:
+            fobj.close()
+
+        frootname = fu.buildNewRootname(fname)
+        if output is None:
+            # Generate default filename for headerlet FITS file
+            outname = frootname
+        if '.fits' not in output:
+            outname = frootname+'_'+output+'_hlet.fits'
+
+        # If user specifies an output filename for headerlet, write it out
+        write_hdrlet = True
+        if os.path.exists(outname):
+            if clobber:
+                os.remove(outname)
+            else:
+                print 'WARNING:'
+                print '    Headerlet file ',outname,' already written out!'
+                print '    This headerlet file will not be created now.'
+                write_hdrlet = False
+        if write_hdrlet:
+            hdrletobj.writeto(outname)
+            print 'Created Headerlet file: ',outname
     
 def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey=" ", wcsname=None, 
                      sipname=None, npolfile=None, d2imfile=None, 
@@ -870,7 +888,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
     if wcskey == 'PRIMARY': wcskey = ' '
     wcsnamekw = "".join(["WCSNAME",wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME",wcskey.upper()]).rstrip()
-    
+
     if not wcsname:
         # User did not specify a value for 'wcsname'
         if wcsnamekw in fobj[wcsext].header:
@@ -1029,7 +1047,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
                 # Now read in specified linear WCS terms from alternate WCS
                 try:
                     althdr = altwcs.convertAltWCS(fname,fext,oldkey=wcskey,newkey=" ")
-                    althdrwcs = HSTWCS(fname,e,wcskey=wcskey)
+                    althdrwcs = HSTWCS(fname,fext,wcskey=wcskey)
                 except KeyError:
                     continue # Skip over any extension which does not have a WCS
                 althdr = althdr.ascard
