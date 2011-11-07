@@ -21,6 +21,7 @@ from stwcs.updatewcs import utils
 
 from stsci.tools.fileutil import countExtn
 from stsci.tools import fileutil as fu
+from stsci.tools import parseinput
 
 #### Logging support functions
 module_logger = logging.getLogger('headerlet')
@@ -577,8 +578,11 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     """
     
     initLogging('extract_headerlet', verbose=verbose)
-    if isinstance(filename, pyfits.HDUList) or isinstance(filename,str):
+    if isinstance(filename, pyfits.HDUList):
         filename = [filename]
+    else:
+        filename,oname = parseinput.parseinput(filename)
+
     for f in filename:
         fobj,fname,close_fobj = parseFilename(f)
         frootname = fu.buildNewRootname(fname)
@@ -594,6 +598,9 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
 
         hdrlet = hdrhdu.headerlet
 
+        if output is None:
+            output = frootname
+            
         if '.fits' in output:
             outname = output
         else:
@@ -691,11 +698,11 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     """
     initLogging('write_headerlet')
 
-    if isinstance(filename, str) or isinstance(filename, pyfits.HDUList):
-        if ',' in filename: # string of comma-separated filenames 
-            filename = filename.split(',')
-        else:
-            filename = [filename]
+    if isinstance(filename, pyfits.HDUList):
+        filename = [filename]
+    else:
+        filename,oname = parseinput.parseinput(filename)
+
     for f in filename:
         if isinstance(f,str):
             fname = f
@@ -777,9 +784,11 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         frootname = fu.buildNewRootname(fname)
         if output is None:
             # Generate default filename for headerlet FITS file
-            outname = frootname
-        if '.fits' not in output:
-            outname = frootname+'_'+output+'_hlet.fits'
+            outname = '%s_hlet.fits'%(frootname)
+        else:
+            outname = output
+        if '.fits' not in outname:
+            outname = '%s_%s_hlet.fits'%(frootname,outname)
 
         # If user specifies an output filename for headerlet, write it out
         write_hdrlet = True

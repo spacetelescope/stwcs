@@ -2,6 +2,7 @@ import os
 
 import pyfits
 from stsci.tools import teal
+from stsci.tools import parseinput
 
 import stwcs
 from stwcs.wcsutil import headerlet
@@ -32,7 +33,8 @@ def getHelpAsString(docstring=False):
     return helpString
 
 def run(configObj=None):
-    if not os.path.exists(configObj['filename']):
+    flist,oname = parseinput.parseinput(configObj['filename'])
+    if len(flist) == 0:
         print '='*60
         print 'ERROR:'
         print '    No valid "filename" parameter value provided!'
@@ -47,7 +49,16 @@ def run(configObj=None):
         print '    Please restart this task and provide a value for this parameter.'
         print '='*60
         return
-            
+
+    if configObj['output'] in ['',' ','INDEF']:
+        print '='*60
+        print 'ERROR:'
+        print '    No valid "output" parameter value provided!'
+        print '    Please restart this task and provide a value for this parameter.'
+        print '='*60
+        return
+        
+    
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',
             'descrip','history','author','output']
 
@@ -71,5 +82,5 @@ def run(configObj=None):
     #                    sipname=None, npolfile=None, d2imfile=None, 
     #                    author=None, descrip=None, history=None,
     #                    attach=True, clobber=False)
-    headerlet.write_headerlet(configObj['filename'], configObj['hdrname'], 
+    headerlet.write_headerlet(flist, configObj['hdrname'], 
                               **cdict)
