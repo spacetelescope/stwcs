@@ -554,12 +554,15 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     
     Parameters
     ----------
-    filename: string or HDUList or Python list of filenames
-           Either a filename or PyFITS HDUList object for the input science file
-            An input filename (str) will be expanded as necessary to interpret 
-            any environmental variables included in the filename.
-            If a list of filenames has been specified, it will extract a 
-            headerlet from the same extnum from all filenames.
+    filename: string or HDUList or Python list
+        This specifies the name(s) of science file(s) from which headerlets
+        will be extracted.
+        String input formats supported include use of wild-cards, IRAF-style
+        '@'-files (given as '@<filename>') and comma-separated list of names.
+        An input filename (str) will be expanded as necessary to interpret 
+        any environmental variables included in the filename.
+        If a list of filenames has been specified, it will extract a 
+        headerlet from the same extnum from all filenames.
     output: string
            Filename or just rootname of output headerlet FITS file
            If string does not contain '.fits', it will create a filename with
@@ -632,11 +635,12 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     Parameters
     ----------
     filename: string or HDUList or Python list
-       Either a filename, PyFITS HDUList object or Python list of 
-       filenames for the input science file or files. The filename
-       could also be a comma-separated list of filenames. 
-       An input filename (str) will be expanded as necessary to interpret 
-       any environmental variables included in the filename.
+        This specifies the name(s) of science file(s) from which headerlets
+        will be created and written out.
+        String input formats supported include use of wild-cards, IRAF-style
+        '@'-files (given as '@<filename>') and comma-separated list of names.
+        An input filename (str) will be expanded as necessary to interpret 
+        any environmental variables included in the filename.
     hdrname: string
         Unique name for this headerlet, stored as HDRNAME keyword 
     output: string or None
