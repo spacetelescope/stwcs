@@ -773,7 +773,8 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 fobj.append(hdrlet_hdu)
 
                 # Update the WCSCORR table with new rows from the headerlet's WCSs
-                wcscorr.update_wcscorr(fobj, source=hdrletobj, extname='SIPWCS')
+                wcscorr.update_wcscorr(fobj, source=hdrletobj, extname='SIPWCS',
+                    wcs_id=wname)
 
                 fobj.flush()
             else:
@@ -975,13 +976,13 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
     distname = utils.build_distname(sipname, npolfile, d2imfile)
     
     rms_ra = getHeaderKWVals(fobj[wcsext].header, 
-                ("RMS_RA"+wcskey).rstrip(), rms_ra, default=0)
+                    ("RMS_RA"+wcskey).rstrip(), rms_ra, default=0)
     rms_dec = getHeaderKWVals(fobj[wcsext].header, 
-                ("RMS_DEC"+wcskey).rstrip(), rms_dec, default=0)
+                    ("RMS_DEC"+wcskey).rstrip(), rms_dec, default=0)
     nmatch = getHeaderKWVals(fobj[wcsext].header, 
-                ("NMATCH"+wcskey).rstrip(), nmatch, default=0)
+                    ("NMATCH"+wcskey).rstrip(), nmatch, default=0)
     catalog = getHeaderKWVals(fobj[wcsext].header, 
-                ("CATALOG"+wcskey).rstrip(), catalog, default="")
+                    ("CATALOG"+wcskey).rstrip(), catalog, default="")
 
     # get the version of STWCS used to create the WCS of the science file.
     try:
@@ -1055,6 +1056,14 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, wcskey="
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs,'orientat'):
                 h.update('ORIENTAT',hwcs.orientat, comment=orient_comment)
+            h.update('RMS_RA',rms_ra,
+                    comment='RMS in RA at ref pix of headerlet solution')
+            h.update('RMS_DEC',rms_dec,
+                    comment='RMS in Dec at ref pix of headerlet solution')
+            h.update('NMATCH',nmatch,
+                    comment='Number of sources used for headerlet solution')
+            h.update('CATALOG',catalog,
+                    comment='Astrometric catalog used for headerlet solution')
 
             if wcskey != ' ':
                 # Now read in specified linear WCS terms from alternate WCS

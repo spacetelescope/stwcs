@@ -12,8 +12,8 @@ DEFAULT_WCS_KEYS = ['CRVAL1','CRVAL2','CRPIX1','CRPIX2',
                     'CD1_1','CD1_2','CD2_1','CD2_2',
                     'CTYPE1','CTYPE2','ORIENTAT']
 DEFAULT_PRI_KEYS = ['HDRNAME','SIPNAME','NPOLNAME','D2IMNAME','DESCRIP']
-COL_FITSKW_DICT = {'RMS_RA':'pri.rms_ra','RMS_DEC':'pri.rms_dec',
-                'NMatch':'pri.nmatch','Catalog':'pri.catalog'}
+COL_FITSKW_DICT = {'RMS_RA':'sci.rms_ra','RMS_DEC':'sci.rms_dec',
+                'NMatch':'sci.nmatch','Catalog':'sci.catalog'}
 
 ###
 ### WCSEXT table related keyword archive functions
@@ -139,7 +139,8 @@ def init_wcscorr(input, force=False):
                 wcsid = wcshdr['WCSNAME' + uwkey]
 
             # identify next empty row
-            rowind = find_wcscorr_row(wcsext.data, selections={'wcs_id': ''})
+            rowind = find_wcscorr_row(wcsext.data, 
+                                    selections={'wcs_id':['','0.0']})
             rows = np.where(rowind)
             if len(rows[0]) > 0:
                 rownum = np.where(rowind)[0][0]
@@ -192,13 +193,26 @@ def find_wcscorr_row(wcstab, selections):
         icol = wcstab.field(i)
         if isinstance(icol,np.chararray): icol = icol.rstrip()        
         selecti = selections[i]
-        if isinstance(selecti,str): selecti = selecti.rstrip()
-        bmask = (icol == selecti)
-        if mask is None:
-            mask = bmask.copy()
+        if not isinstance(selecti,list):
+            if isinstance(selecti,str): 
+                selecti = selecti.rstrip()
+            bmask = (icol == selecti)
+            if mask is None:
+                mask = bmask.copy()
+            else:
+                mask = np.logical_and(mask,bmask)
+            del bmask
         else:
-            mask = np.logical_and(mask,bmask)
-        del bmask
+            for si in selecti:
+                if isinstance(si,str): 
+                    si = si.rstrip()
+                bmask = (icol == si)
+                if mask is None:
+                    mask = bmask.copy()
+                else:
+                    mask = np.logical_or(mask,bmask)
+                del bmask
+            
     return mask
 
 
@@ -268,6 +282,18 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
     wcs_keys = filter(None, wcs_keys)
     if ' ' not in wcs_keys: wcs_keys.append(' ') # Insure that primary WCS gets used
+    # apply logic for only updating WCSCORR table with specified keywords 
+    # corresponding to the WCS with WCSNAME=wcs_id
+    if wcs_id is not None:
+        wnames = altwcs.wcsnames(source[(extname, 1)].header)
+        wkeys = []
+        for letter in wnames:
+            if wnames[letter] == wcs_id:
+                wkeys.append(letter)
+        if len(wkeys) > 1:
+            wkeys.remove(' ')
+        wcs_keys = wkeys
+            
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = wcshdr.keys()
 
@@ -301,6 +327,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
                 wcsname = hdr['WCSNAME' + wcs_key]
             else:
                 wcsname = utils.build_default_wcsname(hdr['idctab'])
+
             selection = {'WCS_ID': wcsname, 'EXTVER': tab_extver,
                          'SIPNAME':sipname, 'HDRNAME': hdrname,
                          'NPOLNAME': npolname, 'D2IMNAME':d2imname
@@ -311,12 +338,12 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             rowind = find_wcscorr_row(old_table.data, selection)
             if np.any(rowind):
                 continue
-            
+
             idx += 1
 
             wcs = stwcs.wcsutil.HSTWCS(source, ext=extn, wcskey=wcs_key)
             wcshdr = wcs.wcs2header()
-
+            
             # Update selection column values
             for key, val in selection.iteritems():
                 if key in new_table.data.names:
@@ -331,17 +358,19 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
                     new_table.data.field(key)[idx] = prihdr[key]
             # Now look for additional, non-WCS-keyword table column data 
             for key in COL_FITSKW_DICT:
-                fitskw = COL_FITSKW_DICT[key]
+                fitkw = COL_FITSKW_DICT[key]
                 # Interpret any 'pri.hdrname' or 
                 # 'sci.crpix1' formatted keyword names
-                if '.' in fitskw: 
-                    srchdr,fitskw = fitskw.split('.')
+                if '.' in fitkw: 
+                    srchdr,fitkw = fitkw.split('.')
                     if 'pri' in srchdr.lower(): srchdr = prihdr
-                    else: srchdr = wcshdr
+                    else: srchdr = source[extn].header
                 else:
-                    srchdr = wcshdr
-                if key in srchdr:
-                    new_table.data.field(key)[idx] = srchdr[fitskw]
+                    srchdr = source[extn].header
+                    
+                if fitkw+wcs_key in srchdr:
+                    new_table.data.field(key)[idx] = srchdr[fitkw+wcs_key]
+            
 
     # If idx was never incremented, no rows were added, so there's nothing else
     # to do...
@@ -349,7 +378,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         return
 
     # Now, we need to merge this into the existing table
-    rowind = find_wcscorr_row(old_table.data, {'wcs_id':''})
+    rowind = find_wcscorr_row(old_table.data, {'wcs_id':['','0.0']})
     old_nrows = np.where(rowind)[0][0]
     new_nrows = new_table.data.shape[0]
 
@@ -364,12 +393,13 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         pad_rows = 0
     # Now, add
     for name in old_table.columns.names:
-        # reset the default values to ones specific to the row definitions
-        for i in range(pad_rows):
-            upd_table.data.field(name)[old_nrows+i] = old_table.data.field(name)[-1]
-        # Now populate with values from new table
-        upd_table.data.field(name)[old_nrows:old_nrows + new_nrows] = \
-                new_table.data.field(name)
+        if name in new_table.data.names:
+            # reset the default values to ones specific to the row definitions
+            for i in range(pad_rows):
+                upd_table.data.field(name)[old_nrows+i] = old_table.data.field(name)[-1]
+            # Now populate with values from new table
+            upd_table.data.field(name)[old_nrows:old_nrows + new_nrows] = \
+                    new_table.data.field(name)
     upd_table.header.update('TROWS', old_nrows + new_nrows)
     
     # replace old extension with newly updated table extension
@@ -544,7 +574,7 @@ def delete_wcscorr_row(wcstab,selections=None,rows=None):
         return
 
     # identify next empty row
-    rowind = find_wcscorr_row(wcstab, selections={'wcs_id': ''})
+    rowind = find_wcscorr_row(wcstab, selections={'wcs_id':['','0.0']})
     last_blank_row = np.where(rowind)[0][-1]
     
     # copy values from blank row into user-specified rows
