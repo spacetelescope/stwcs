@@ -4,19 +4,19 @@ import os
 from stsci.tools import fileutil
 
 def diff_angles(a,b):
-    """ 
-    Perform angle subtraction a-b taking into account
-    small-angle differences across 360degree line. 
     """
-    
+    Perform angle subtraction a-b taking into account
+    small-angle differences across 360degree line.
+    """
+
     diff = a - b
-    
+
     if diff > 180.0:
         diff -= 360.0
 
     if diff < -180.0:
         diff += 360.0
-    
+
     return diff
 
 def getBinning(fobj, extver=1):
@@ -34,13 +34,13 @@ def extract_rootname(kwvalue,suffix=""):
 
         If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
             simply return a string value of 'NONE'
-            
+
         This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
     if kwvalue.strip() in ['','N/A','NONE','INDEF',None]:
         return 'NONE' # no valid value, so return 'NONE'
-    
+
     # for a valid kwvalue, parse out the rootname
     # strip off any environment variable from input filename, if any are given
     if '$' in kwvalue:
@@ -58,11 +58,11 @@ def extract_rootname(kwvalue,suffix=""):
     return rootname.strip()
 
 def construct_distname(fobj,wcsobj):
-    """ 
-    This function constructs the value for the keyword 'DISTNAME'. 
+    """
+    This function constructs the value for the keyword 'DISTNAME'.
     It relies on the reference files specified by the keywords 'IDCTAB',
-    'NPOLFILE', and 'D2IMFILE'.  
-    
+    'NPOLFILE', and 'D2IMFILE'.
+
     The final constructed value will be of the form:
         <idctab rootname>-<npolfile rootname>-<d2imfile rootname>
     and have a value of 'NONE' if no reference files are specified.
@@ -71,22 +71,22 @@ def construct_distname(fobj,wcsobj):
                                 suffix='_idc')
     if idcname is None and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
-        
+
     npolname = build_npolname(fobj)
     if npolname is None and wcsobj.cpdis1 is not None:
         npolname = 'UNKNOWN'
-    
+
     d2imname = build_d2imname(fobj)
     if d2imname is None and wcsobj.det2im is not None:
         d2imname = 'UNKNOWN'
-    
+
     sipname = build_sipname(fobj)
 
     distname = build_distname(sipname,npolname,d2imname)
     return {'DISTNAME':distname,'SIPNAME':sipname}
 
 def build_distname(sipname,npolname,d2imname):
-    """ 
+    """
     Core function to build DISTNAME keyword value without the HSTWCS input.
     """
 
