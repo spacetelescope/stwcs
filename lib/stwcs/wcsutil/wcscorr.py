@@ -290,7 +290,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         for letter in wnames:
             if wnames[letter] == wcs_id:
                 wkeys.append(letter)
-        if len(wkeys) > 1:
+        if len(wkeys) > 1 and ' ' in wkeys:
             wkeys.remove(' ')
         wcs_keys = wkeys
             
