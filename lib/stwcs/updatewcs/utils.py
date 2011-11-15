@@ -69,7 +69,7 @@ def construct_distname(fobj,wcsobj):
     """
     idcname = extract_rootname(fobj[0].header.get('IDCTAB', "NONE"),
                                 suffix='_idc')
-    if idcname is None and wcsobj.sip is not None:
+    if (idcname is None or idcname=='NONE') and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
 
     npolname = build_npolname(fobj)
@@ -122,6 +122,8 @@ def build_sipname(fobj):
 def build_npolname(fobj):
     try:
         npolfile = extract_rootname(fobj[0].header["NPOLFILE"],suffix='_npl')
+        if npolfile == 'NONE':
+            npolfile = 'NOMODEL'
     except KeyError:
         if fileutil.countExtn(fobj, 'WCSDVARR'):
             npolfile = 'UNKNOWN'
@@ -132,6 +134,8 @@ def build_npolname(fobj):
 def build_d2imname(fobj):
     try:
         d2imfile = extract_rootname(fobj[0].header["D2IMFILE"],suffix='_d2i')
+        if d2imfile == 'NONE':
+            d2imfile = 'NOMODEL'
     except KeyError:
         if fileutil.countExtn(fobj, 'D2IMARR'):
             d2imfile = 'UNKNOWN'
