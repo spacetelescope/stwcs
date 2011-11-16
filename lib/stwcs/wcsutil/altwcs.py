@@ -95,7 +95,20 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                 wname = wcsname
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
-                wname = wcsnames(f[wcsext].header)[' ']
+                wnames = wcsnames(f[wcsext].header)
+                if 'O' in wnames: del wnames['O'] # we don't want OPUS/original
+                if len(wnames) > 0:
+                    if ' ' in wnames:
+                        wname = wnames[' ']
+                    else:
+                        akeys = string.uppercase
+                        wname = "DEFAULT"
+                        for key in akeys[-1::]:
+                            if key in wnames:
+                                wname = wnames
+                                break
+                else:
+                    wname = "DEFAULT"
     else:
         wkey = wcskey
         wname = wcsname
