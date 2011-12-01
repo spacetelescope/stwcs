@@ -609,16 +609,23 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     for f in filename:
         fobj, fname, close_fobj = parse_filename(f)
         frootname = fu.buildNewRootname(fname)
-        if hdrname in ['', ' ', None, 'INDEF']:
-            if  extnum is None:
-                print 'No valid headerlet specified! Quitting...'
-                if close_fobj: 
-                    fobj.close()
+        if hdrname in ['', ' ', None, 'INDEF'] and extnum is None:
+            if close_fobj:
+                fobj.close()
+                raise ValueError("Expected a valid extnum or hdrname parameter")
+        if hdrname is not None:
+            extn_from_hdrname = find_headerlet_HDUs(fobj, hdrname=hdrname)[0]
+            if extn_from_hdrname != extnum:
+                raise ValueError(
+                    "hdrname and extnmu should refer to the same FITS extension"
+                )
             else:
-                hdrhdu = fobj[extnum]
+                hdrhdu = fobj[extn_from_hdrname]
         else:
-            extnumber = find_headerlet_HDUs(fobj, hdrname=hdrname)[0]
-            hdrhdu = fobj[extnumber]
+            hdrhdu = fobj[extnum]
+            
+        if not isinstance(hdrhdu, HeaderletHDU):
+            raise ValueError("Specified extension is not a headerlet")
 
         hdrlet = hdrhdu.headerlet
 
@@ -628,12 +635,13 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
         if '.fits' in output:
             outname = output
         else:
-            outname = '%s_%s_hlet.fits' % (frootname, output)
-        hdrlet.write_to(outname)
+            outname = '%s_hlet.fits' % output
+            
+        hdrlet.tofile(outname, clobber=clobber)
 
         if close_fobj:
             fobj.close()
-
+            
 def write_headerlet(filename, hdrname, output=None, sciext='SCI', 
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
