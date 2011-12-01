@@ -1,3 +1,14 @@
+"""
+This module implements headerlets.
+
+A headerlet serves as a mechanism for encapsulating WCS information 
+which can be used to update the WCS solution of an image. The idea 
+came up first from the desire for passing improved astrometric 
+solutions for HST data and provide those solutions in a manner 
+that would not require getting entirely new images from the archive 
+when only the WCS information has been updated. 
+
+"""
 from __future__ import division
 import logging
 import os
@@ -1368,7 +1379,8 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                     for key in COLUMN_DICT:
                         summary_dict[kw][key].extend(ext_summary[kw][key])
             except:
-                print 'Skipping headerlet...Could not read Headerlet from extension ',hdrlet_indx
+                print "Skipping headerlet"
+                print "Could not read Headerlet from extension ", hdrlet_indx
 
     if close_fobj:
         fobj.close()
@@ -1720,7 +1732,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
         fobj.flush()
     else:
         print 'WARNING:'
-        print '    Headerlet with hdrname ', hdrname, ' already archived for WCS ',wcsname
+        print '    Headerlet with hdrname ', hdrname, ' already archived for WCS ', wcsname
         print '    No new headerlet appended to ', fname, '.'
 
     if close_fobj:
@@ -1921,7 +1933,7 @@ class Headerlet(pyfits.HDUList):
                 siphdr = self[('SIPWCS', idx)].header.ascard
 
                 if dist_models_equal:
-                    hwcs = HSTWCS(fobj,ext=('SCI', idx))
+                    hwcs = HSTWCS(fobj, ext=('SCI', idx))
                     hwcshdr = hwcs.wcs2header(sip2hdr=not(dist_models_equal))
 
                 # a minimal attempt to get the position of the WCS keywords group
@@ -2233,13 +2245,17 @@ class Headerlet(pyfits.HDUList):
         return summary_cols, summary
 
     def hverify(self):
+        """
+        Verify the headerlet file is a valid fits file and has
+        the required Primary Header keywords
+        """
         self.verify()
         header = self[0].header
         assert('DESTIM' in header and header['DESTIM'].strip())
         assert('HDRNAME' in header and header['HDRNAME'].strip())
         assert('UPWCSVER' in header)
 
-    def verify_hdrname(self,dest):
+    def verify_hdrname(self, dest):
         """
         Verifies that the headerlet can be applied to the observation
 
@@ -2274,6 +2290,20 @@ class Headerlet(pyfits.HDUList):
             return False
 
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
+        """
+        Write this headerlet to a file
+        
+        Parameters
+        ----------
+        fname: string
+               file name
+        destim: string (optional)
+                provide a value for DESTIM keyword
+        hdrname: string (optional)
+                provide a value for HDRNAME keyword
+        clobber: boolean
+                a flag which allows to overwrte an existing file
+        """
         if not destim or not hdrname:
             self.hverify()
         self.writeto(fname, clobber=clobber)
