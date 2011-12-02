@@ -750,15 +750,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             print '   needs to be specified. '
             print '='*60
             raise ValueError
-
-        if hdrname in [None, ' ','']:
-            print '='*60
-            print '[write_headerlet]'
-            print 'No valid name for this headerlet was provided for %s.' % fname
-            print '   A valid value for "hdrname" needs to be specified. '
-            print '='*60
-            raise ValueError
-
+        
         # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
         if wcskey == 'PRIMARY': 
             wcskey = ' '
@@ -781,7 +773,9 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             wname = scihdr['wcsname'+wcskey]
         else:
             wname = wcsname
-            
+        if hdrname in [None, ' ', '']:
+            hdrname = wcsname
+  
         print 'Creating the headerlet from image :', fname
         hdrletobj = create_headerlet(fobj, sciext=sciext,
                                     wcsname=wname, wcskey=wcskey,
@@ -1699,16 +1693,6 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
             fobj.close()
         raise ValueError
 
-    if hdrname in [None, ' ', '']:
-        print '='*60
-        print '[archive_as_headerlet]'
-        print 'No valid name for this headerlet was provided for %s.' % fname
-        print '   A valid value for "hdrname" needs to be specified. '
-        print '='*60
-        if close_fobj:
-            fobj.close()
-        raise ValueError
-
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY': 
         wcskey = ' '
@@ -1719,7 +1703,9 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
     if wcsname is None:
         scihdr = fobj[sciext, 1].header
         wcsname = scihdr['wcsname'+wcskey]
-
+        
+    if hdrname in [None, ' ', '']:
+        hdrname = wcsname
 
     # Check to see whether or not a HeaderletHDU with this hdrname already
     # exists
