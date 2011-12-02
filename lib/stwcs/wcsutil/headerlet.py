@@ -935,6 +935,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY': 
         wcskey = ' '
+    wcskey = wcskey.upper()
     wcsnamekw = "".join(["WCSNAME", wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
 
@@ -1711,7 +1712,8 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY': 
         wcskey = ' '
-
+    wcskey = wcskey.upper()
+    
     numhlt = countExtn(fobj, 'HDRLET')
 
     if wcsname is None:
@@ -2031,6 +2033,7 @@ class Headerlet(pyfits.HDUList):
 
                     """
         self.hverify()
+        wcskey = wcskey.upper()
         fobj, fname, close_dest = parse_filename(fobj, mode='update')
         if self.verify_dest(fobj):
 
