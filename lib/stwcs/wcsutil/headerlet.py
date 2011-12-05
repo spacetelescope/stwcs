@@ -936,13 +936,20 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     if not wcsname:
         # User did not specify a value for 'wcsname'
         if wcsnamekw in fobj[wcsext].header:
+            #check if there's a WCSNAME for this wcskey in the header
             wcsname = fobj[wcsext].header[wcsnamekw]
         else:
             if hdrname not in ['', ' ', None, "INDEF"]:
+                """
+                If wcsname for this wcskey was not provided
+                and WCSNAME<wcskey> does not exist in the header
+                and hdrname is provided, then
+                use hdrname as WCSNAME for the headerlet.
+                """
                 wcsname = hdrname
             else:
                 if hdrnamekw in fobj[wcsext].header:
-                    wcsname = fobj[wcsext].header
+                    wcsname = fobj[wcsext].header[hdrnamekw]
                 else:
                     message = "Required keywords 'HDRNAME' or 'WCSNAME' not found!\n"
                     message += "Please specify a value for parameter 'hdrname',\n"
