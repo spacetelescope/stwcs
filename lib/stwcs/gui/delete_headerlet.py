@@ -46,5 +46,6 @@ def run(configObj=None):
     headerlet.delete_headerlet(configObj['filename'], 
                                 hdrname = configObj['hdrname'], 
                                 hdrext = configObj['hdrext'], 
-                                distname = configObj['distname'])
+                                distname = configObj['distname'],
+                                logging = configObj['logging'])
 

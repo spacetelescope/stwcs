@@ -39,3 +39,5 @@ hdrname: string
 hdrext: int or tuple
     Headerlet extension number of tuple ('HDRLET',2) 
 
+logging: boolean
+        enable file logging

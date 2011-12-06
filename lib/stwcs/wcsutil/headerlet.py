@@ -30,10 +30,14 @@ from stsci.tools import fileutil as fu
 from stsci.tools import parseinput
 
 #### Logging support functions
-modulelogger = logging.getLogger('headerlet')
-
-import atexit
-atexit.register(logging.shutdown)
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter(
+            "%(funcName)s %(levelname)s: %(message)s")
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+ch.setLevel(logging.CRITICAL)
+logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
 
 FITS_STD_KW = ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
              'GCOUNT', 'EXTNAME', 'EXTVER', 'ORIGIN',
@@ -43,41 +47,41 @@ DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
                         'SIPNAME', 'NPOLFILE', 'D2IMFILE', 'DESCRIP']
 COLUMN_DICT = {'vals': [], 'width': []}
 COLUMN_FMT = '{:<{width}}'
-
-def set_logger(logger, level, mode='w'):
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    log_filename = 'headerlet.log'
-    fh = logging.FileHandler(log_filename, mode=mode)
-    fh.setLevel(logging.DEBUG)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    logger.setLevel(level)
-
-def init_logging(function_name, logger = None, level=100, 
-                verbose=False, logmode='w'):
+    
+def init_logging(funcname=None, level=100, mode='w', **kwargs):
     """ Initialize logging for a function
 
     Parameters
     ----------
-    function_name: string
+    funcname: string
         Name of function which will be recorded in log
-    level: int
-        Logging level
-    verbose: bool
-        If True, will set logging to report more activity
+    level: int, or bool, or string
+           int or string : Logging level
+           bool: False - switch off logging
+        Text logging level for the message ("DEBUG", "INFO",
+                        "WARNING", "ERROR", "CRITICAL")
+    mode: 'w' or 'a'
+           attach to logfile ('a' or start a new logfile ('w')
     """
-    if logger is None:
-        logger = modulelogger
-
-    if verbose:
-        set_logger(logger, verbose, mode=logmode)
-    else:
-        logger.setLevel(level)
-
-    logger.info("Starting %s: %s" % (function_name, time.asctime()))
-
-
+    for hndl in logger.handlers:
+        if isinstance(hndl, logging.FileHandler):
+            has_file_handler = True
+        else:
+            has_file_handler = False
+    if level:
+        if not has_file_handler:
+            logname = 'headerlet.log'
+            fh = logging.FileHandler(logname, mode=mode)
+            fh.setFormatter(formatter)
+            fh.setLevel(logging.DEBUG)
+            logger.addHandler(fh)
+        logger.info("%s: Starting %s with arguments:\n\t %s" % 
+                    (time.asctime(), funcname, kwargs))
+    
+def release_handlers():
+    for hndl in logger.handlers:
+        hndl.close()
+    
 #### Utility functions
 def is_par_blank(par):
     return par in ['', ' ', 'INDEF', "None", None]
@@ -160,7 +164,7 @@ def get_header_kw_vals(hdr, kwname, kwval, default=0):
     return kwval
 
 def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
-                      strict=True):
+                      strict=True, logging=False, logmode='w'):
     """
     Returns all HeaderletHDU extensions in a science file that matches
     the inputs specified by the user.  If no hdrext, hdrname or distname are
@@ -181,21 +185,33 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
         If False, all extension indices returned if hdrext, hdrname and distname
         are all None. If True and hdrext, hdrname, and distname are all None,
         raise an Exception requiring one to be specified.
-
+    logging: boolean
+             enable logging to a file called headerlet.log
+    logmode: 'w' or 'a'
+             log file open mode
+    
     Returns
     -------
     hdrlets: list
         A list of all matching HeaderletHDU extension indices (could be just one)
+    
     """
+    kwargs = locals()
+    init_logging('find_headerlet_HDUs', level=logging, 
+                 mode=logmode, **kwargs)
+    
     get_all = False
     if hdrext is None and hdrname is None and distname is None:
         if not strict:
             get_all = True
         else:
-            print '====================================================='
-            print 'No valid Headerlet extension specified.'
-            print '  Either "hdrname", "hdrext", or "distname" needs to be specified.'
-            print '====================================================='
+            mess = """\n
+            =====================================================
+            No valid Headerlet extension specified.
+            Either "hdrname", "hdrext", or "distname" needs to be specified.
+            =====================================================
+            """
+            logger.critical(mess)
             raise ValueError
 
     fobj, fname, open_fobj = parse_filename(fobj)
@@ -242,10 +258,13 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
         else:
             kwerr = 'distname'
             kwval = distname
-        print '====================================================='
-        print 'No valid Headerlet extension found!'
-        print '  "%s" = %s not found in %s.' % (kwerr, kwval, fname)
-        print '====================================================='
+        message = """\n
+        =====================================================
+        No valid Headerlet extension found!'
+        "%s" = %s not found in %s.' % (kwerr, kwval, fname)
+        =====================================================
+        """
+        logger.critical(message)
         raise ValueError
 
     return hdrlets
@@ -272,7 +291,7 @@ def verify_hdrname_is_unique(fobj, hdrname):
     return unique
 
 
-def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
+def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", logging=False):
     """
     Compares the WCS solution of 2 files.
 
@@ -288,9 +307,8 @@ def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
              alternate WCS key in scifile
     file2key: string
              alternate WCS key in file2
-    verbose: False or a python logging level
-             (one of 'INFO', 'DEBUG' logging levels)
-             (an integer representing a logging level)
+    logging: boolean
+             True: enable file logging
 
     Notes
     -----
@@ -306,7 +324,7 @@ def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
     - Velocity aberation
 
     """
-    init_logging('isWCSIdentical', level=100, verbose=False)
+    init_logging('is_wcs_identical', level=logging)
     fname, extname = fu.parseFilename(scifile)
     scifile = fname
     if extname is not None:
@@ -325,15 +343,14 @@ def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
         numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
 
         if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
-            modulelogger.info(
-                "Number of SCI and SIPWCS extensions do not match.")
+            logger.info("Number of SCI and SIPWCS extensions do not match.")
             result = False
     else:
         numsci1 = None
         numsci2 = None
 
     if get_rootname(scifile) != get_rootname(file2):
-        modulelogger.info('Rootnames do not match.')
+        logger.info('Rootnames do not match.')
         result = False
     try:
         extname1 = pyfits.getval(scifile, 'EXTNAME', ext=('SCI', 1))
@@ -358,40 +375,40 @@ def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", verbose=False):
         not np.allclose(w1.wcs.crpix, w2.wcs.crpix, rtol=1e-7)  or \
         not np.allclose(w1.wcs.cd, w2.wcs.cd, rtol=1e-7) or \
         not (np.array(w1.wcs.ctype) == np.array(w2.wcs.ctype)).all():
-            modulelogger.info('Primary WCSs do not match')
+            logger.info('Primary WCSs do not match')
             result = False
         if w1.sip or w2.sip:
             if (w2.sip and not w1.sip) or (w1.sip and not w2.sip) or \
                not np.allclose(w1.sip.a, w2.sip.a, rtol=1e-7) or \
                not np.allclose(w1.sip.b, w2.sip.b, rtol=1e-7):
-                modulelogger.info('SIP coefficients do not match')
+                logger.info('SIP coefficients do not match')
                 result = False
         if w1.cpdis1 or w2.cpdis1:
             if w1.cpdis1 and not w2.cpdis1 or \
                 w2.cpdis1 and not w1.cpdis1 or \
                 not np.allclose(w1.cpdis1.data, w2.cpdis1.data):
-                modulelogger.info('NPOL distortions do not match')
+                logger.info('NPOL distortions do not match')
                 result = False
         if w1.cpdis2 or w2.cpdis2:
             if w1.cpdis2 and not w2.cpdis2 or \
                 w2.cpdis2 and not w1.cpdis2 or \
                 not np.allclose(w1.cpdis2.data, w2.cpdis2.data):
-                modulelogger.info('NPOL distortions do not match')
+                logger.info('NPOL distortions do not match')
                 result = False
         if w1.det2im1 or w2.det2im1:
             if w1.det2im1 and not w2.det2im1 or \
                 w2.det2im1 and not w1.det2im1 or\
                 not np.allclose(w1.det2im1.data, w2.det2im1.data):
-                modulelogger.info('Det2Im corrections do not match')
+                logger.info('Det2Im corrections do not match')
                 result =  False
         if w1.det2im2 or w2.det2im2:
             if w1.det2im2 and not w2.det2im2 or \
                 w2.det2im2 and not w1.det2im2 or\
                 not np.allclose(w1.det2im2.data, w2.det2im2.data):
-                modulelogger.info('Det2Im corrections do not match')
+                logger.info('Det2Im corrections do not match')
                 result = False
         if w1.vafactor != w2.vafactor:
-            modulelogger.info('VA factors do not match')
+            logger.info('VA factors do not match')
             result = False
 
     return result
@@ -406,7 +423,7 @@ def update_ref_files(source, dest):
     source: pyfits.Header
     dest:   pyfits.Header
     """
-    modulelogger.info("Updating reference files")
+    logger.info("Updating reference files")
     phdukw = {'IDCTAB': True,
             'NPOLFILE': True,
             'D2IMFILE': True}
@@ -563,7 +580,7 @@ def _create_primary_HDU(destim, hdrname, distname, wcsname,
 
 #### Public Interface functions
 def extract_headerlet(filename, output, extnum=None, hdrname=None,
-                    clobber=False, verbose=100):
+                    clobber=False, logging=True):
     """
     Finds a headerlet extension in a science file and writes it out as
     a headerlet FITS file.
@@ -595,12 +612,12 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     clobber: bool
         If output file already exists, this parameter specifies whether or not
         to overwrite that file [Default: False]
-    verbose: int
-             python logging level
+    logging: boolean
+             enable logging to a file
 
     """
 
-    init_logging('extract_headerlet', verbose=verbose)
+    init_logging('extract_headerlet', level=logging)
     if isinstance(filename, pyfits.HDUList):
         filename = [filename]
     else:
@@ -612,20 +629,21 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
         if hdrname in ['', ' ', None, 'INDEF'] and extnum is None:
             if close_fobj:
                 fobj.close()
-                raise ValueError("Expected a valid extnum or hdrname parameter")
+                logger.critical("Expected a valid extnum or hdrname parameter")
+                raise ValueError
         if hdrname is not None:
             extn_from_hdrname = find_headerlet_HDUs(fobj, hdrname=hdrname)[0]
             if extn_from_hdrname != extnum:
-                raise ValueError(
-                    "hdrname and extnmu should refer to the same FITS extension"
-                )
+                logger.critical("hdrname and extnmu should refer to the same FITS extension")
+                raise ValueError
             else:
                 hdrhdu = fobj[extn_from_hdrname]
         else:
             hdrhdu = fobj[extnum]
             
         if not isinstance(hdrhdu, HeaderletHDU):
-            raise ValueError("Specified extension is not a headerlet")
+            logger.critical("Specified extension is not a headerlet")
+            raise ValueError
 
         hdrlet = hdrhdu.headerlet
 
@@ -647,7 +665,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                         sipname=None, npolfile=None, d2imfile=None,
                         author=None, descrip=None, history=None,
                         rms_ra=None, rms_dec=None, nmatch=None, catalog=None,
-                        attach=True, clobber=False):
+                        attach=True, clobber=False, logging=False):
 
     """
     Save a WCS as a headerlet FITS file.
@@ -728,8 +746,10 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     clobber: bool
         If output file already exists, this parameter specifies whether or not
         to overwrite that file [Default: False]
+    logging: boolean
+         enable file logging
     """
-    init_logging('write_headerlet')
+    init_logging('write_headerlet', logging=logging)
 
     if isinstance(filename, pyfits.HDUList):
         filename = [filename]
@@ -743,12 +763,12 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             fname = f.filename()
 
         if wcsname in [None, ' ', '', 'INDEF'] and wcskey is None:
-            print '='*60
-            print '[write_headerlet]'
-            print 'No valid WCS found found in %s.' % fname
-            print '   A valid value for either "wcsname" or "wcskey" '
-            print '   needs to be specified. '
-            print '='*60
+            message = """\n
+            No valid WCS found found in %s.' % fname
+            A valid value for either "wcsname" or "wcskey" '
+            needs to be specified.
+            """
+            logger.critical(message)
             raise ValueError
         
         # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
@@ -785,7 +805,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                                     descrip=descrip, history=history,
                                     rms_ra=rms_ra, rms_dec=rms_dec, 
                                     nmatch=nmatch, catalog=catalog, 
-                                    verbose=False)
+                                    logging=False)
 
         if attach:
             # Check to see whether or not a HeaderletHDU with 
@@ -805,11 +825,12 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
 
                 fobj.flush()
             else:
-                print 'WARNING:'
-                print '    Headerlet with hdrname ', hdrname, ' already archived for WCS ', wname
-                print '    No new headerlet appended to ', fname, '.'
-
-
+                message = """
+                Headerlet with hdrname ', hdrname, ' already archived for WCS ', wname
+                No new headerlet appended to ', fname, '.'
+                """
+                logger.critical(message)
+                
         if close_fobj:
             fobj.close()
 
@@ -823,25 +844,16 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             outname = '%s_%s_hlet.fits' % (frootname, outname)
 
         # If user specifies an output filename for headerlet, write it out
-        write_hdrlet = True
-        if os.path.exists(outname):
-            if clobber:
-                os.remove(outname)
-            else:
-                print 'WARNING:'
-                print '    Headerlet file ', outname, ' already written out!'
-                print '    This headerlet file will not be created now.'
-                write_hdrlet = False
-        if write_hdrlet:
-            hdrletobj.writeto(outname)
-            print 'Created Headerlet file: ', outname
+        
+        hdrletobj.tofile(outname, clobber=clobber)
+        logger.critical( 'Created Headerlet file %s ' % outname)
 
 def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None, 
                      wcskey=" ", wcsname=None,
                      sipname=None, npolfile=None, d2imfile=None,
                      author=None, descrip=None, history=None,
                      rms_ra=None, rms_dec = None, nmatch=None, catalog=None,
-                     verbose=100, logmode='w'):
+                     logging=False, logmode='w'):
     """
     Create a headerlet from a WCS in a science file
     If both wcskey and wcsname are given they should match, if not
@@ -908,8 +920,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             to the headerlet PRIMARY header
             If filename is specified, it will format and attach all text from
             that file as the history.
-    verbose: int
-             python logging level
+    logging: boolean
+             enable file logging
     logmode: 'w' or 'a'
              log file open mode
 
@@ -917,11 +929,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     -------
     Headerlet object
     """
-
-    init_logging('createHeaderlet', verbose=verbose)
-
+    kwargs = locals()
+    init_logging('create_headerlet', level=logging, mode=logmode, **kwargs)
+    logger.info("%s: cr_h starting with arguments:\n\t %s" % 
+                    (time.asctime(), kwargs))
     fobj, fname, close_file = parse_filename(filename)
-
     # Define extension to evaluate for verification of input parameters
     wcsext = 1
     if fu.isFits(fname)[1] == 'simple':
@@ -929,6 +941,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY': 
         wcskey = ' '
+        logger.info("wcskey reset from 'PRIMARY' to ' '")
     wcskey = wcskey.upper()
     wcsnamekw = "".join(["WCSNAME", wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
@@ -938,6 +951,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         if wcsnamekw in fobj[wcsext].header:
             #check if there's a WCSNAME for this wcskey in the header
             wcsname = fobj[wcsext].header[wcsnamekw]
+            logger.info("Setting wcsname from header[%s] to %s" % (wcsnamekw, wcsname))
         else:
             if hdrname not in ['', ' ', None, "INDEF"]:
                 """
@@ -947,43 +961,43 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 use hdrname as WCSNAME for the headerlet.
                 """
                 wcsname = hdrname
+                logger.debug("Setting wcsname from hdrname to %s" % hdrname)
             else:
                 if hdrnamekw in fobj[wcsext].header:
                     wcsname = fobj[wcsext].header[hdrnamekw]
+                    logger.debug("Setting wcsname from header[%s] to %s" % (hdrnamekw, wcsname))
                 else:
                     message = "Required keywords 'HDRNAME' or 'WCSNAME' not found!\n"
                     message += "Please specify a value for parameter 'hdrname',\n"
                     message += "  or update header with 'WCSNAME' keyword."
-                    print message
-                    modulelogger.critical(message)
-                    raise KeyError,"Required keywords 'HDRNAME' or 'WCSNAME' not found!"
+                    logger.critical(message)
+                    raise KeyError
     else:
         # Verify that 'wcsname' and 'wcskey' values specified by user reference
         # the same WCS
         wname = fobj[wcsext].header[wcsnamekw]
         if wcsname != wname:
-            message = "Inconsistent values for 'wcskey' and 'wcsname' specified!\n"
+            message = "\tInconsistent values for 'wcskey' and 'wcsname' specified!\n"
             message += "    'wcskey' = %s and 'wcsname' = %s. \n" % (wcskey, wcsname)
             message += "Actual value of %s found to be %s. \n" % (wcsnamekw, wname)
-            print message
-            raise KeyError,"Inconsistent values for 'wcskey' and 'wcsname' parameters"
-    
+            logger.critical(message)
+            raise KeyError 
     wkeys = altwcs.wcskeys(fname, ext=wcsext)
     if wcskey != ' ':
         if wcskey not in wkeys:
-            if verbose > 100:
-                modulelogger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(wcsext)))
-            raise ValueError(' No WCS with wcskey=%s found in extension %s.Skipping...' % (wcskey, str(wcsext)))
+            logger.critical('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(wcsext)))
+            raise ValueError
 
     # get remaining required keywords
     if destim is None:
         if 'ROOTNAME' in fobj[0].header:
             destim = fobj[0].header['ROOTNAME']
+            logger.info("Setting destim to rootname of the science file")
         else:
             destim = fname
-            modulelogger.info('DESTIM not provided')
-            modulelogger.info('Keyword "ROOTNAME" not found')
-            modulelogger.info('Using file name as DESTIM')
+            logger.info('DESTIM not provided')
+            logger.info('Keyword "ROOTNAME" not found')
+            logger.info('Using file name as DESTIM')
 
     if not hdrname:
         # check if HDRNAME<wcskey> is in header
@@ -992,25 +1006,29 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         else:
             if wcsnamekw in fobj[wcsext].header:
                 hdrname = fobj[wcsext].header[wcsnamekw]
-                print 'Using default value for HDRNAME of "%s"' % (hdrname),
-                print ' derived from %s.' % (wcsnamekw)
+                message = """
+                Using default value for HDRNAME of "%s"' % (hdrname),
+                derived from %s.' % (wcsnamekw)
+                """
+                logger.info(message)
+                logger.info("Setting hdrname to %s from header[%s]" 
+                            % (hdrname, wcsnamekw))
             else:
                 message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
-                modulelogger.critical(message)
-                print message
-                raise KeyError, message
+                logger.critical(message)
+                raise KeyError
 
     if not sipname:
         sipname = utils.build_sipname(fobj)
-
+        logger.info("Setting sipname value to %s" % sipname)
     if not npolfile:
         npolfile = utils.build_npolname(fobj)
-
+        logger.info("Setting npolfile value to %s" % npolfile)
     if not d2imfile:
         d2imfile = utils.build_d2imname(fobj)
-
+        logger.info("Setting d2imfile value to %s" % d2imfile)
     distname = utils.build_distname(sipname, npolfile, d2imfile)
-
+    logger.info("Setting distname to %s" % distname)
     rms_ra = get_header_kw_vals(fobj[wcsext].header,
                     ("RMS_RA"+wcskey).rstrip(), rms_ra, default=0)
     rms_dec = get_header_kw_vals(fobj[wcsext].header,
@@ -1042,12 +1060,12 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     else:
         errstr = "Expected sciext to be a list of FITS extensions with science data\n"+\
               "    a valid EXTNAME string, or an integer."
-        raise ValueError(errstr)
+        logger.critical(errstr)
+        raise ValueError
 
     if wcskey is 'O':
         message = "Warning: 'O' is a reserved key for the original WCS. Quitting..."
-        modulelogger.info(message)
-        print message
+        logger.info(message)
         return
 
     # open file and parse comments
@@ -1056,7 +1074,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         history = f.readlines()
         f.close()
 
-    modulelogger.debug("Data extensions form which to create headerlet:\n\t %s"
+    logger.debug("Data extensions from which to create headerlet:\n\t %s"
                  % (str(sciext)))
     hdul = pyfits.HDUList()
     phdu = _create_primary_HDU(destim, hdrname, distname, wcsname,
@@ -1068,7 +1086,6 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     orient_comment = "positions angle of image y axis (deg. e of n)"
     wcsdvarr_extns = []
     if fu.isFits(fobj)[1] is not 'simple':
-
         for e in sciext:
             try:
                 fext = int(e)
@@ -1077,17 +1094,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             wkeys = altwcs.wcskeys(fname, ext=fext)
             if wcskey != ' ':
                 if wcskey not in wkeys:
-                    if verbose > 100:
-                        modulelogger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(e)))
+                    logger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(e)))
                     continue # skip any extension which does not have this wcskey
 
             # This reads in full model: alternate WCS keywords plus SIP
             hwcs = HSTWCS(fname, ext=fext, wcskey=' ') 
-            
-            #if hwcs.wcs.is_unity():
-            #    # This extension does not contain a valid WCS, so
-            #    #  skip on to the next
-            #    continue
             
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs, 'orientat'):
@@ -1163,12 +1174,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 try:
                     h.append(fhdr['AXISCORR'])
                 except KeyError:
-                    print ("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
-                                     "%s['SCI',%d]" % (fname, val))
-                    modulelogger.exception("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
+                    logger.critical("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
                                      "%s['SCI',%d]" % (fname, val))
                     raise
-
                 try:
                     h.append(fhdr['D2IMERR'])
                 except KeyError:
@@ -1188,11 +1196,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
     if close_file:
         fobj.close()
-    return Headerlet(hdul, verbose=verbose, logmode='a')
+    return Headerlet(hdul, logging=logging, logmode='a')
 
 
 def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
-                                force=False, verbose=False):
+                                force=False, logging=False, logmode='a'):
     """
     Apply headerlet 'hdrfile' to a science observation 'destfile' as the primary WCS
 
@@ -1210,17 +1218,20 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
     force: boolean
             If True, this will cause the headerlet to replace the current PRIMARY
             WCS even if it has a different distortion model. [Default: False]
-    verbose: False or a python logging level
-             (one of 'INFO', 'DEBUG' logging levels)
-             (an integer representing a logging level)
+    logging: boolean
+            enable file logging
+    logmode: 'w' or 'a'
+             log file open mode
     """
-    init_logging('apply_headerlet_as_primary', verbose=verbose)
+    kwargs = locals()
+    init_logging('apply_headerlet_as_primary', level=logging, 
+                 mode=logmode, **kwargs)
 
-    hlet = Headerlet(hdrlet, verbose=verbose, logmode='a')
+    hlet = Headerlet(hdrlet, logging=logging)
     hlet.apply_as_primary(filename, attach=attach, archive=archive, force=force)
 
-def apply_headerlet_as_alternate(filename, hdrlet, attach=True,
-                                wcskey=None, wcsname=None, verbose=False):
+def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
+                                wcsname=None, logging=False, logmode='w'):
     """
     Apply headerlet to a science observation as an alternate WCS
 
@@ -1241,17 +1252,19 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True,
           Name to be assigned to this alternate WCS
           WCSNAME is a required keyword in a Headerlet but this allows the
           user to change it as desired.
-    verbose: False or a python logging level
-             (one of 'INFO', 'DEBUG' logging levels)
-             (an integer representing a logging level)
+    logging: boolean
+          enable file logging
+    logmode: 'a' or 'w'
     """
-    init_logging('apply_headerlet_as_alternate', verbose=verbose)
+    kwargs = locals()
+    init_logging('apply_headerlet_as_alternate', level=logging, 
+                 mode=logmode, **kwargs)
 
-    hlet = Headerlet(hdrlet, verbose=verbose, logmode='a')
+    hlet = Headerlet(hdrlet, logging=logging, logmode=logmode)
     hlet.apply_as_alternate(filename, attach=attach, 
                             wcsname=wcsname, wcskey=wcskey)
 
-def attach_headerlet(filename, hdrlet, verbose=False):
+def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
     """
     Attach Headerlet as an HeaderletHDU to a science file
 
@@ -1261,13 +1274,19 @@ def attach_headerlet(filename, hdrlet, verbose=False):
             science file to which the headerlet should be applied
     hdrlet: string or Headerlet object
             string representing a headerlet file
+    logging: boolean
+            enable file logging
+    logmode: 'a' or 'w'
     """
-    init_logging('attach_headerlet', verbose=verbose)
+    kwargs = locals()
+    init_logging('attach_headerlet', level=logging, 
+                 mode=logmode, **kwargs)
 
-    hlet = Headerlet(hdrlet, verbose=verbose, logmode='a')
+    hlet = Headerlet(hdrlet, logging=logging, logmode='a')
     hlet.attach_to_file(filename)
 
-def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None):
+def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
+                     logging=False, logmode='w'):
     """
     Deletes HeaderletHDU(s) from a science file
 
@@ -1292,17 +1311,25 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None):
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
+    logging: boolean
+             enable file logging
+    logmode: 'a' or 'w'
     """
-    init_logging('delete_headerlet')
+    kwargs = locals()
+    init_logging('delete_headerlet', level=logging, 
+                 mode=logmode, **kwargs)
+    
     hdrlet_ind = find_headerlet_HDUs(filename, hdrname=hdrname, hdrext=hdrext,
-                            distname=distname)
+                            distname=distname, logging=logging, logmode='a')
     if len(hdrlet_ind) == 0:
-        print 'ERROR: '
-        print 'No HDUs deleted... No Headerlet HDUs found with '
-        print '    hdrname = ', hdrname
-        print '    hdrext  = ', hdrext
-        print '   distname = ', distname
-        print 'Please review input parameters and try again. '
+        message = """
+        No HDUs deleted... No Headerlet HDUs found with '
+        hdrname = %s
+        hdrext  = %s
+        distname = %s
+        Please review input parameters and try again.
+        """ % (hdrname, str(hdrext), distname)
+        logger.critical(message)
         return
 
     fobj, fname, close_fobj = parse_filename(filename, mode='update')
@@ -1327,7 +1354,7 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None):
     # close file, if was opened by this function
     if close_fobj:
         fobj.close()
-    print 'Deleted headerlet from extension(s): ', hdrlet_ind
+    logger.critical('Deleted headerlet from extension(s) %s ' % str(hdrlet_ind))
 
 def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                         output=None, clobber=True, quiet=False):
@@ -1399,8 +1426,8 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                     idcol=extnums_col, output=output,
                     clobber=clobber, quiet=quiet)
 
-def restore_from_headerlet(filename, hdrname=None, hdrext=None, 
-                           archive=True, force=False):
+def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
+                           force=False, logging=False, logmode='w'):
     """
     Restores a headerlet as a primary WCS
 
@@ -1423,8 +1450,13 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None,
     force: boolean (default:False)
         When the distortion models of the headerlet and the primary do not match, and archive
         is False, this flag forces an update of the primary.
+    logging: boolean
+           enable file logging
+    logmode: 'a' or 'w'
     """
-    init_logging('restore_from_headerlet')
+    kwargs = locals()
+    init_logging('restore_from_headerlet', level=logging,
+                 mode=logmode, **kwargs)
 
     hdrlet_ind = find_headerlet_HDUs(filename, hdrext=hdrext, hdrname=hdrname)
 
@@ -1437,14 +1469,13 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None,
         else:
             kwerr = 'hdrname'
             kwval = hdrname
-        print '====================================================='
-        print '[restore_from_headerlet]'
-        print 'Multiple Headerlet extensions found with the same name.'
-        print '  %d Headerlets with "%s" = %s found in %s.' % (
-                    len(hdrlet_ind), kwerr, kwval, fname)
-        print '====================================================='
+        message = """
+        Multiple Headerlet extensions found with the same name.
+        %d Headerlets with "%s" = %s found in %s.
+        """% (len(hdrlet_ind), kwerr, kwval, fname)
         if close_fobj:
             fobj.close()
+        logger.critical(message)
         raise ValueError
 
     hdrlet_indx = hdrlet_ind[0]
@@ -1470,12 +1501,12 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None,
         if not archive and not force:
             if close_fobj:
                 fobj.close()
-            print '====================================================='
-            print '[restore_from_headerlet]'
-            print 'Headerlet does not have the same distortion as image!'
-            print '  Set "archive"=True to save old distortion model, or'
-            print '  set "force"=True to overwrite old model with new.'
-            print '====================================================='
+            message = """
+            Headerlet does not have the same distortion as image!
+            Set "archive"=True to save old distortion model, or
+            set "force"=True to overwrite old model with new.
+            """
+            logger.critical(message)
             raise ValueError
 
     # check whether primary WCS has been archived already
@@ -1513,8 +1544,8 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None,
     if close_fobj:
         fobj.close()
 
-def restore_all_with_distname(filename, distname, primary, 
-                              archive=True, sciext='SCI'):
+def restore_all_with_distname(filename, distname, primary, archive=True, 
+                              sciext='SCI', logging=False, logmode='w'):
     """
     Restores all HeaderletHDUs with a given distortion model as alternate WCSs and a primary
 
@@ -1535,22 +1566,30 @@ def restore_all_with_distname(filename, distname, primary,
         flag indicating if HeaderletHDUs should be created from the
         primary and alternate WCSs in fname before restoring all matching
         headerlet extensions
+    logging: boolean
+         enable file logging
+    logmode: 'a' or 'w'
     """
-    init_logging('restore_all_with_distname')
+    kwargs = locals()
+    init_logging('restore_all_with_distname', level=logging,
+                 mode=logmode, **kwargs)
 
     fobj, fname, close_fobj = parse_filename(filename, mode='update')
 
     hdrlet_ind = find_headerlet_HDUs(fobj, distname=distname)
     if len(hdrlet_ind) == 0:
-        print '====================================================='
-        print '[restore_all_with_distname]'
-        print 'No Headerlet extensions found with '
-        print '  "DISTNAME" = %s in %s.' % (distname, fname)
-        print 'Full list of DISTNAMEs found in all headerlet extensions: '
-        print get_headerlet_kw_names(fobj, kw='DISTNAME')
-        print '====================================================='
+        message = """
+        No Headerlet extensions found with 
+
+        DISTNAME = %s in %s.
+
+        For a full list of DISTNAMEs found in all headerlet extensions:
+        
+        get_headerlet_kw_names(fobj, kw='DISTNAME')
+        """ % (distname, fname)
         if close_fobj:
             fobj.close()
+        logger.critical(message)
         raise ValueError
 
     # Interpret 'primary' parameter input into extension number
@@ -1567,11 +1606,11 @@ def restore_all_with_distname(filename, distname, primary,
         if primary_ind is None:
             if close_fobj:
                 fobj.close()
-            print '====================================================='
-            print '[restore_all_from_distname]'
-            print 'No Headerlet extensions found with '
-            print '  "DISTNAME" = %s in %s.' % (primary, fname)
-            print '====================================================='
+            message = """
+            No Headerlet extensions found with
+            print '  "DISTNAME" = %s in %s.
+            """ % (primary, fname)
+            logger.critical(message)
             raise ValueError
     # Check to see whether 'primary' HeaderletHDU has same distname as user
     # specified on input
@@ -1585,13 +1624,13 @@ def restore_all_with_distname(filename, distname, primary,
     if pri_distname != distname:
         if close_fobj:
             fobj.close()
-        print '====================================================='
-        print '[restore_all_from_distname]'
-        print 'Headerlet extension to be used as PRIMARY WCS '
-        print '  has "DISTNAME" = %s while  %s.' % (pri_distname)
-        print '  "DISTNAME" = %s was specified on input.' % (distname)
-        print '  All updated WCSs must have same DISTNAME. Quitting...'
-        print '====================================================='
+        message = """
+        Headerlet extension to be used as PRIMARY WCS
+        has "DISTNAME" = %s 
+        "DISTNAME" = %s was specified on input.
+        All updated WCSs must have same DISTNAME. Quitting...'
+        """ % (pri_distname, distname)
+        logger.critical(message)
         raise ValueError
 
     # read in the names of the WCSs which the HeaderletHDUs will update
@@ -1623,7 +1662,8 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
                         author=None, descrip=None, history=None,
-                        rms_ra=None, rms_dec=None, nmatch=None, catalog=None):
+                        rms_ra=None, rms_dec=None, nmatch=None, catalog=None,
+                        logging=False, logmode='w'):
     """
     Save a WCS as a headerlet extension and write it out to a file.
 
@@ -1685,19 +1725,26 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
             to the headerlet PRIMARY header
             If filename is specified, it will format and attach all text from
             that file as the history.
+    logging: boolean
+            enable file folling
+    logmode: 'w' or 'a'
+             log file open mode
     """
-    init_logging('archive_as_headerlet')
+    kwargs = locals()
+    init_logging('archive_as_headerlet', level=logging, 
+                 mode=logmode, **kwargs)
+    
     fobj, fname, close_fobj = parse_filename(filename, mode='update')
     
     if wcsname in [None, ' ', '', 'INDEF'] and wcskey is None:
-        print '='*60
-        print '[archive_as_headerlet]'
-        print 'No valid WCS found found in %s.' % fname
-        print '   A valid value for either "wcsname" or "wcskey" '
-        print '   needs to be specified. '
-        print '='*60
+        message = """
+        No valid WCS found found in %s.
+        A valid value for either "wcsname" or "wcskey"
+        needs to be specified.
+        """ % fname
         if close_fobj:
             fobj.close()
+        logger.critical(message)
         raise ValueError
 
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
@@ -1726,7 +1773,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
                                     descrip=descrip, history=history,
                                     rms_ra=rms_ra, rms_dec=rms_dec, 
                                     nmatch=nmatch, catalog=catalog, 
-                                    verbose=False)
+                                    logging=False)
         hlt_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
 
         if destim is not None:
@@ -1736,9 +1783,11 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
 
         fobj.flush()
     else:
-        print 'WARNING:'
-        print '    Headerlet with hdrname ', hdrname, ' already archived for WCS ', wcsname
-        print '    No new headerlet appended to ', fname, '.'
+        message = """
+        Headerlet with hdrname %s already archived for WCS %s
+        No new headerlet appended to %s .
+        """ % (hdrname, wcsname, fname)
+        logger.critical(message)
 
     if close_fobj:
         fobj.close()
@@ -1750,7 +1799,7 @@ class Headerlet(pyfits.HDUList):
     Ref: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:Headerlets
     """
 
-    def __init__(self, fobj, mode='copyonwrite', verbose=False, logmode='w'):
+    def __init__(self, fobj, mode='copyonwrite', logging=False, logmode='w'):
         """
         Parameters
         ----------
@@ -1759,16 +1808,14 @@ class Headerlet(pyfits.HDUList):
                 instances, or an HDUList instance
         mode: string, optional
                 Mode with which to open the given file object
-        verbose: int
-                python logging level, higher numbers trigger more output
+        logging: boolean
+                 enable file logging
         logmode: 'w' or 'a'
                 for internal use only, indicates whether the log file
                 should be open in attach or write mode
         """
-        self.verbose = verbose
-        self.hdr_logger = logging.getLogger('headerlet.Headerlet')
-        init_logging('class Headerlet', logger=self.hdr_logger, level=100,
-                    verbose=self.verbose, logmode=logmode)
+        self.logging = logging
+        init_logging('class Headerlet', level=logging, mode=logmode)
 
         fobj, fname, close_file = parse_filename(fobj)
 
@@ -1828,10 +1875,13 @@ class Headerlet(pyfits.HDUList):
             # matches the distortion model in the headerlet being applied
             dist_models_equal = True
             if  self[0].header['DISTNAME'] != fobj[0].header['DISTNAME']:
-                if self.verbose:
-                    print 'Distortion model in headerlet not the same as destination model'
-                    print '    Headerlet model  : ', self[0].header['DISTNAME']
-                    print '    Destination model: ', fobj[0].header['DISTNAME']
+                if self.logging:
+                    message = """
+                    Distortion model in headerlet not the same as destination model
+                    Headerlet model  : %s 
+                    Destination model: %s
+                    """ % (self[0].header['DISTNAME'], fobj[0].header['DISTNAME'])
+                    logger.critical(message)
                 dist_models_equal = False
             
             if not dist_models_equal and not force:
@@ -1875,7 +1925,7 @@ class Headerlet(pyfits.HDUList):
                                     hdrname=hdrname, sipname=None,
                                     npolfile=None, d2imfile=None,
                                     author=None, descrip=None, history=None,
-                                    verbose=self.verbose)
+                                    logging=self.logging)
                     orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                     numhlt += 1
                     orig_hlt_hdu.header.update('EXTVER', numhlt)
@@ -1913,7 +1963,7 @@ class Headerlet(pyfits.HDUList):
                                     hdrname=hname, sipname=None,
                                     npolfile=None, d2imfile=None,
                                     author=None, descrip=None, history=None,
-                                    verbose=self.verbose)
+                                    logging=self.logging)
                             numhlt += 1
                             alt_hlet_hdu = HeaderletHDU.fromheaderlet(alt_hlet)
                             alt_hlet_hdu.header.update('EXTVER', numhlt)
@@ -1952,7 +2002,7 @@ class Headerlet(pyfits.HDUList):
                 else:
                     if 'HISTORY' in fhdr:
                         bkeywd = 'HISTORY'
-                self.hdr_logger.debug(
+                logger.debug(
                     "Updating WCS keywords after %s and/or before %s " %
                     (akeywd,bkeywd))
                 update_cpdis = False
@@ -1999,10 +2049,8 @@ class Headerlet(pyfits.HDUList):
             if close_dest:
                 fobj.close()
         else:
-            self.hdr_logger.critical("Observation %s cannot be updated with headerlet "
+            logger.critical("Observation %s cannot be updated with headerlet "
                             "%s" % (fname, self.hdrname))
-            print "Observation %s cannot be updated with headerlet %s" \
-                  % (fname, self.hdrname)
 
     def apply_as_alternate(self, fobj, attach=True, wcskey=None, wcsname=None):
         """
@@ -2039,17 +2087,14 @@ class Headerlet(pyfits.HDUList):
                 distname = 'UNKNOWN'
 
             if distname == 'UNKNOWN' or self.distname != distname:
-                self.hdr_logger.critical("Observation %s cannot be updated with headerlet %s"\
-                                        % (fname, self.hdrname))
-                print ("Observation %s cannot be updated with headerlet %s"\
-                                % (fname, self.hdrname))
-                self.hdr_logger.critical("  Distortion in image:  %s \n    did not match \n headerlet distortion: %s"
-                                % (distname, self.distname))
-                print ( "  Distortion in image:  %s \n  did not match \n headerlet distortion: %s"
-                                % (distname, self.distname))
-                print ("The method .attach_to_file() can be used to append this headerlet to %s"\
-                                % (fname))
-                if close_dest: fobj.close()
+                message = """
+                Observation %s cannot be updated with headerlet %s
+                Distortion in image:  %s \n    did not match \n headerlet distortion: %s
+                The method .attach_to_file() can be used to append this headerlet to %s"
+                """ % (fname, self.hdrname, distname, self.distname, fname)
+                if close_dest: 
+                    fobj.close()
+                logger.critical(message)
                 raise ValueError
 
             # Insure that WCSCORR table has been created with all original
@@ -2076,7 +2121,7 @@ class Headerlet(pyfits.HDUList):
                     wkey = wcskey
                 else:
                     mess = "Observation %s already contains alternate WCS with key %s" % (fname, wcskey)
-                    self.hdr_logger.critical(mess)
+                    logger.critical(mess)
                     if close_dest: 
                         fobj.close()
                     raise ValueError(mess)
@@ -2089,12 +2134,9 @@ class Headerlet(pyfits.HDUList):
                     sciext = int(sciext)
                 except ValueError:
                     sciext = fu.parseExtn(sciext)
-                #fhdr = fobj[('SCI', idx)].header
                 fhdr = fobj[sciext].header
                 siphdr = self[('SIPWCS', idx)].header.ascard
-
                 
-
                 # a minimal attempt to get the position of the WCS keywords group
                 # in the header by looking for the PA_APER kw.
                 # at least make sure the WCS kw are written before the HISTORY kw
@@ -2103,7 +2145,7 @@ class Headerlet(pyfits.HDUList):
                     wind = fhdr.ascard.index_of('HISTORY')
                 except KeyError:
                     wind = len(fhdr)
-                self.hdr_logger.debug("Inserting WCS keywords at index %s" % wind)
+                logger.debug("Inserting WCS keywords at index %s" % wind)
 
                 for k in siphdr:
                     for akw in altwcs.altwcskw:
@@ -2127,7 +2169,7 @@ class Headerlet(pyfits.HDUList):
                 self.attach_to_file(fobj)
         else:
             mess = "Observation %s cannot be updated with headerlet %s" % (fname, self.hdrname)
-            self.hdr_logger.critical(mess)
+            logger.critical(mess)
             print mess
         if close_dest:
             fobj.close()
@@ -2171,8 +2213,7 @@ class Headerlet(pyfits.HDUList):
             if not hdrver:
                 message += " * Image %s already has headerlet " % (fname)
                 message += "with HDRNAME='%s'\n" % (self.hdrname)
-            self.hdr_logger.critical(message)
-            print message
+            logger.critical(message)
             
         if close_dest:
             fobj.close()
@@ -2269,7 +2310,7 @@ class Headerlet(pyfits.HDUList):
         HDRNAME.
         """
         unique = verify_hdrname_is_unique(dest, self.hdrname)
-        self.hdr_logger.debug("verify_hdrname() returned %s"%unique)
+        logger.debug("verify_hdrname() returned %s"%unique)
         return unique
 
     def verify_dest(self, dest):
@@ -2286,13 +2327,13 @@ class Headerlet(pyfits.HDUList):
             else:
                 droot = dest[0].header['ROOTNAME']
         except KeyError:
-            self.hdr_logger.debug("Keyword 'ROOTNAME' not found in destination file")
+            logger.debug("Keyword 'ROOTNAME' not found in destination file")
             droot = dest.split('.fits')[0]
         if droot == self.destim:
-            self.hdr_logger.debug("verify_destim() returned True")
+            logger.debug("verify_destim() returned True")
             return True
         else:
-            self.hdr_logger.debug("verify_destim() returned False")
+            logger.debug("verify_destim() returned False")
             return False
 
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
@@ -2319,7 +2360,7 @@ class Headerlet(pyfits.HDUList):
         Delete the WCS of a science file
         """
 
-        self.hdr_logger.info("Deleting all WCSs of file %s" % dest.filename())
+        logger.info("Deleting all WCSs of file %s" % dest.filename())
         numext = len(dest)
 
         for idx in range(numext):
@@ -2362,7 +2403,7 @@ class Headerlet(pyfits.HDUList):
         Remove the any existing astrometric fit values from a FITS extension
         """
 
-        self.hdr_logger.debug("Removing astrometric fit values from (%s, %s)"%
+        logger.debug("Removing astrometric fit values from (%s, %s)"%
                      (ext.name, ext._extver))
         dkeys = altwcs.wcskeys(ext.header)
         if 'O' in dkeys: dkeys.remove('O') # Do not remove wcskey='O' values
@@ -2377,7 +2418,7 @@ class Headerlet(pyfits.HDUList):
         Remove the SIP distortion of a FITS extension
         """
 
-        self.hdr_logger.debug("Removing SIP distortion from (%s, %s)"
+        logger.debug("Removing SIP distortion from (%s, %s)"
                      % (ext.name, ext._extver))
         for prefix in ['A', 'B', 'AP', 'BP']:
             try:
@@ -2402,7 +2443,7 @@ class Headerlet(pyfits.HDUList):
         Remove the Lookup Table distortion of a FITS extension
         """
 
-        self.hdr_logger.debug("Removing LUT distortion from (%s, %s)"
+        logger.debug("Removing LUT distortion from (%s, %s)"
                      % (ext.name, ext._extver))
         try:
             cpdis = ext.header['CPDIS*']
@@ -2423,7 +2464,7 @@ class Headerlet(pyfits.HDUList):
         Remove the Detector to Image correction of a FITS extension
         """
 
-        self.hdr_logger.debug("Removing D2IM correction from (%s, %s)"
+        logger.debug("Removing D2IM correction from (%s, %s)"
                      % (ext.name, ext._extver))
         d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
         for k in d2imkeys:
@@ -2442,7 +2483,7 @@ class Headerlet(pyfits.HDUList):
             if val in dkeys: 
                 dkeys.remove(val) # Never delete WCS with wcskey='O'
 
-        self.hdr_logger.debug("Removing alternate WCSs with keys %s from %s"
+        logger.debug("Removing alternate WCSs with keys %s from %s"
                      % (dkeys, dest.filename()))
         for k in dkeys:
             altwcs.deleteWCS(dest, ext=ext, wcskey=k)
@@ -2452,7 +2493,7 @@ class Headerlet(pyfits.HDUList):
         Remove the primary WCS of a FITS extension
         """
 
-        self.hdr_logger.debug("Removing Primary WCS from (%s, %s)"
+        hdr_logger.debug("Removing Primary WCS from (%s, %s)"
                      % (ext.name, ext._extver))
         naxis = ext.header.ascard['NAXIS'].value
         for key in basic_wcs:
@@ -2471,7 +2512,7 @@ class Headerlet(pyfits.HDUList):
         Remove IDC coefficients of a FITS extension
         """
 
-        self.hdr_logger.debug("Removing IDC coefficient from (%s, %s)"
+        ogger.debug("Removing IDC coefficient from (%s, %s)"
                      % (ext.name, ext._extver))
         coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
         for k in coeffs:

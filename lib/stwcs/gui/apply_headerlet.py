@@ -38,7 +38,7 @@ def run(configObj=None):
         headerlet.apply_headerlet_as_primary(configObj['filename'],
                         configObj['hdrlet'],attach=configObj['attach'],
                         archive=configObj['archive'],force=configObj['force'],
-                        verbose=configObj['verbose'])
+                        logging=configObj['logging'])
     else:
         wcsname = configObj['wcsname']
         if wcsname in ['',' ','INDEF']: wcsname = None
@@ -50,5 +50,5 @@ def run(configObj=None):
         headerlet.apply_headerlet_as_alternate(configObj['filename'],
                         configObj['hdrlet'], attach=configObj['attach'],
                         wcsname=wcsname, wcskey=wcskey,
-                        verbose=configObj['verbose'])
+                        logging=configObj['logging'])
 

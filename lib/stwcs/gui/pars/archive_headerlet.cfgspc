@@ -11,3 +11,4 @@ d2imfile = string_kw(default="", comment="Name for source of detector correction
 author = string_kw(default="", comment="Author name for creator of headerlet")
 descrip = string_kw(default="", comment="Short description of headerlet solution")
 history = string_kw(default="", comment="Name of ASCII file containing history for headerlet")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")

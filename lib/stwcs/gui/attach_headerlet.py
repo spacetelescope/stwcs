@@ -32,5 +32,6 @@ def getHelpAsString(docstring=False):
 
 def run(configObj=None):
     
-    headerlet.attach_headerlet(configObj['filename'],configObj['hdrlet'])
+    headerlet.attach_headerlet(configObj['filename'],configObj['hdrlet'],
+                               configObj['logging'])
 

@@ -34,7 +34,5 @@ wcsname: string
       Name to be assigned to this alternate WCS
       WCSNAME is a required keyword in a Headerlet but this allows the
       user to change it as desired.
-
-verbose: False or a python logging level
-         (one of 'INFO', 'DEBUG' logging levels)
-         (an integer representing a logging level)
+logging: boolean
+        enable file logging

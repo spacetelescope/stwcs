@@ -14,3 +14,4 @@ sipname = string_kw(default="", comment="Name for source of polynomial distortio
 npolfile = string_kw(default="", comment="Name for source of non-polynomial residuals")
 d2imfile = string_kw(default="", comment="Name for source of detector correction table")
 attach = boolean_kw(default=True, comment="Create headerlet FITS extension?")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")

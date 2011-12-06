@@ -38,12 +38,13 @@ def run(configObj=None):
         headerlet.restore_all_with_distname(configObj['filename'],
                         configObj['distname'],configObj['primary'],
                         archive=configObj['archive'],sciext=configObj['sciext'],
-                        verbose=configObj['verbose'])
+                        logging=configObj['logging'])
     else:
         # Call function with properly interpreted input parameters
         #         restore_from_headerlet(filename, hdrname=None, hdrext=None, 
         #           archive=True, force=False)
         headerlet.restore_from_headerlet(configObj['filename'],
                         hdrname=configObj['hdrname'],hdrext=configObj['hdrext'],
-                        archive=configObj['archive'], force=configObj['force'])
+                        archive=configObj['archive'], force=configObj['force'],
+                        logging=configObj['logging'])
 

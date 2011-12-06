@@ -7,6 +7,6 @@ archive = boolean_kw(default=True, active_if="_rule1_", comment="Save PRIMARY WC
 force = boolean_kw(default=False, active_if="_rule1_", comment="If distortions do not match, force update anyway?")
 wcskey = option_kw("A","B","C","D","E","F","G","H","I","J","K","L","M","N","P","Q","R","S","T","U","V","W","X","Y","Z","", default="", inactive_if="_rule1_", comment="Apply headerlet as alternate WCS with this letter")
 wcsname = string_kw(default="", inactive_if="_rule1_", comment="Apply headerlet as alternate WCS with this name")
-verbose = boolean_kw(default=False, comment= "Print logging messages?")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")
 [ _RULES_ ]
 _rule1_ = string_kw(default=True, code='tyfn={"yes":True, "no":False}; OUT = tyfn[VAL]')
