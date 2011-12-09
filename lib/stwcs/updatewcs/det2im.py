@@ -10,43 +10,43 @@ logger = logging.getLogger('stwcs.updatewcs.Det2IM')
 
 class DET2IMCorr(object):
     """
-    Stores a small correction to the detector coordinates as a d2imarr 
+    Stores a small correction to the detector coordinates as a d2imarr
     extension in the science file.
-    
+
     Notes
     -----
     For the case of ACS/WFC every 68th column is wider than the rest.
-    To compensate for this a small correction needs to be applied to the 
-    detector coordinates. We call this a detector to image transformation. 
-    The so obtained image coordinates are the input to all other distortion 
-    corrections. The correction is originally stored in an external 
-    reference file pointed to by 'D2IMFILE' keyword in the primary header. 
-    This class attaches the correction array as an extension to the science 
-    file with extname = `d2imarr`. 
-    
+    To compensate for this a small correction needs to be applied to the
+    detector coordinates. We call this a detector to image transformation.
+    The so obtained image coordinates are the input to all other distortion
+    corrections. The correction is originally stored in an external
+    reference file pointed to by 'D2IMFILE' keyword in the primary header.
+    This class attaches the correction array as an extension to the science
+    file with extname = `d2imarr`.
+
     Other keywords used in this correction are:
 
-    `AXISCORR`: integer (1 or 2) - axis to which the detector to image 
+    `AXISCORR`: integer (1 or 2) - axis to which the detector to image
                 correction is applied
-                
+
     `D2IMEXT`:  string = name of reference file which was used to create
                 the lookup table extension
-                
+
     `D2IMERR`:  float, optional - maximum value of the correction
-    
+
     """
     def updateWCS(cls, fobj):
         """
         Parameters
         ----------
         fobj: pyfits object
-              Science file, for which a detector to image correction 
+              Science file, for which a detector to image correction
               is available
-              
+
         Notes
         -----
-        Uses the file pointed to in the primary header keyword 'D2IMFILE' 
-        to create an extension with a detector to image correction. 
+        Uses the file pointed to in the primary header keyword 'D2IMFILE'
+        to create an extension with a detector to image correction.
         """
         logger.info("\n\tStarting Det2IM Correction: %s" % time.asctime())
         try:
@@ -54,7 +54,7 @@ class DET2IMCorr(object):
         except AssertionError:
             logger.exception('\n\tInput must be a pyfits.HDUList object')
             raise
-        
+
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)
         d2imerr = pyfits.getdata(d2imfile, ext=1).max()
@@ -64,15 +64,15 @@ class DET2IMCorr(object):
             new_kw = {'D2IMEXT': d2imfile, 'AXISCORR': axiscorr, 'D2IMERR': d2imerr}
             cls.applyDet2ImCorr(fobj,axiscorr)
         cls.updatehdr(fobj, new_kw)
-    
-    updateWCS = classmethod(updateWCS)        
-    
+
+    updateWCS = classmethod(updateWCS)
+
     def getAxisCorr(cls, refname):
         try:
             direction = pyfits.getval(refname, 'EXTNAME', ext=1)
             if direction == 'DX': return 1
             elif direction == 'DY': return 2
-            else: 
+            else:
                 logger.warning('\n\tDET2IM correction expects the reference file to have \
                 an EXTNAME keyword of value "DX"  or "DY", EXTNAMe %s detected' % direction)
                 return None
@@ -82,7 +82,7 @@ class DET2IMCorr(object):
             direction = None
         return direction
     getAxisCorr = classmethod(getAxisCorr)
-    
+
     def applyDet2ImCorr(cls,fobj, axiscorr):
         binned = utils.getBinning(fobj)
         hdu = cls.createDgeoHDU(fobj, axiscorr, binned)
@@ -92,7 +92,7 @@ class DET2IMCorr(object):
         else:
             fobj.append(hdu)
     applyDet2ImCorr = classmethod(applyDet2ImCorr)
-    
+
     def getD2imIndex(cls,fobj):
         index = None
         for e in range(len(fobj)):
@@ -104,43 +104,43 @@ class DET2IMCorr(object):
                 index = e
         return index
     getD2imIndex = classmethod(getD2imIndex)
-    
+
     def createDgeoHDU(cls, fobj, axiscorr, binned=1):
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         d2im_data = pyfits.getdata(d2imfile, ext=1)
         sci_hdr = fobj['sci',1].header
         d2im_hdr = cls.createDet2ImHdr(fobj, binned)
         hdu = pyfits.ImageHDU(header=d2im_hdr, data=d2im_data)
-        
+
         return hdu
-    
+
     createDgeoHDU = classmethod(createDgeoHDU)
-    
-    def createDet2ImHdr(cls, fobj, binned=1):        
+
+    def createDet2ImHdr(cls, fobj, binned=1):
         """
-        Creates a header for the D2IMARR extension based on the 
+        Creates a header for the D2IMARR extension based on the
         reference file recorded in D2IMFILE keyword in the primary header.
         fobj - the science  file
-        
+
         """
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)
         sci_hdr = fobj[1].header
         data_shape = pyfits.getdata(d2imfile, ext=1).shape
         naxis = pyfits.getval(d2imfile, 'NAXIS', ext=1 )
-        
-        kw = { 'NAXIS': 'Size of the axis', 
-                'CRPIX': 'Coordinate system reference pixel', 
+
+        kw = { 'NAXIS': 'Size of the axis',
+                'CRPIX': 'Coordinate system reference pixel',
                 'CRVAL': 'Coordinate system value at reference pixel',
                 'CDELT': 'Coordinate increment along axis'}
-                
+
         kw_comm1 = {}
         kw_val1 = {}
         for key in kw.keys():
             for i in range(1, naxis+1):
                 si = str(i)
                 kw_comm1[key+si] = kw[key]
-                
+
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = data_shape[i-1]
@@ -148,8 +148,8 @@ class DET2IMCorr(object):
             kw_val1['CDELT'+si] = 1./binned
             kw_val1['CRVAL'+si] = (sci_hdr.get('NAXIS'+si, 1)/2. + \
                                         sci_hdr.get('LTV'+si, 0.)) / binned
-        
-                        
+
+
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',
@@ -158,7 +158,7 @@ class DET2IMCorr(object):
                     'PCOUNT': 'Special data area of size 0',
                     'GCOUNT': 'One data group',
                     'AXISCORR': 'Direction in which the det2im correction is applied'}
-        
+
         kw_val0 = { 'XTENSION': 'IMAGE',
                     'BITPIX': -32,
                     'NAXIS': naxis,
@@ -168,8 +168,8 @@ class DET2IMCorr(object):
                     'GCOUNT': 1,
                     'AXISCORR': axiscorr
                 }
-                    
-        
+
+
         cdl = pyfits.CardList()
         for key in kw_comm0.keys():
             cdl.append(pyfits.Card(key=key, value=kw_val0[key], comment=kw_comm0[key]))
@@ -189,15 +189,15 @@ class DET2IMCorr(object):
         if start_indx >= 0:
             for card in d2im_phdr[start_indx:end_indx]:
                 cdl.append(card)
-        
+
         hdr = pyfits.Header(cards=cdl)
         return hdr
-    
+
     createDet2ImHdr = classmethod(createDet2ImHdr)
-    
+
     def updatehdr(cls, fobj, kwdict):
         """
-        Update extension headers to keep record of the files used for the 
+        Update extension headers to keep record of the files used for the
         detector to image correction.
         """
         for ext in fobj:
@@ -211,4 +211,4 @@ class DET2IMCorr(object):
             else:
                 continue
     updatehdr = classmethod(updatehdr)
-    
+
