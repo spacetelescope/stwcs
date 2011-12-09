@@ -9,7 +9,9 @@ that would not require getting entirely new images from the archive
 when only the WCS information has been updated.
 
 """
+
 from __future__ import division
+import functools
 import logging
 import os
 import textwrap
@@ -30,9 +32,23 @@ from stsci.tools import fileutil as fu
 from stsci.tools import parseinput
 
 #### Logging support functions
+class FuncNameLoggingFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None):
+        if '%(funcName)s' not in fmt:
+            fmt = '%(funcName)s' + fmt
+        logging.Formatter.__init__(self, fmt=fmt, datefmt=datefmt)
+
+    def format(self, record):
+        record = copy.copy(record)
+        if hasattr(record, 'funcName') and record.funcName == 'init_logging':
+            record.funcName = ''
+        else:
+            record.funcName += ' '
+        return logging.Formatter.format(self, record)
+
+
 logger = logging.getLogger(__name__)
-formatter = logging.Formatter(
-            "%(funcName)s %(levelname)s: %(message)s")
+formatter = FuncNameLoggingFormatter("%(levelname)s: %(message)s")
 ch = logging.StreamHandler()
 ch.setFormatter(formatter)
 ch.setLevel(logging.CRITICAL)
@@ -47,6 +63,7 @@ DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
                         'SIPNAME', 'NPOLFILE', 'D2IMFILE', 'DESCRIP']
 COLUMN_DICT = {'vals': [], 'width': []}
 COLUMN_FMT = '{:<{width}}'
+
 
 def init_logging(funcname=None, level=100, mode='w', **kwargs):
     """ Initialize logging for a function
@@ -77,6 +94,20 @@ def init_logging(funcname=None, level=100, mode='w', **kwargs):
             logger.addHandler(fh)
         logger.info("%s: Starting %s with arguments:\n\t %s" %
                     (time.asctime(), funcname, kwargs))
+
+
+def with_logging(func):
+    @functools.wraps(func)
+    def wrapped(*args, **kw):
+        level = kw.get('logging', 100)
+        mode = kw.get('logmode', 'w')
+        func_args = kw.copy()
+        for argname, arg in zip(func.func_code.co_varnames, args):
+            func_args[argname] = arg
+        init_logging(func.__name__, level, mode, **func_args)
+        return func(*args, **kw)
+    return wrapped
+
 
 def release_handlers():
     for hndl in logger.handlers:
@@ -163,8 +194,10 @@ def get_header_kw_vals(hdr, kwname, kwval, default=0):
             kwval = default
     return kwval
 
+
+@with_logging
 def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
-                      strict=True, logging=False, logmode='w'):
+                        strict=True, logging=False, logmode='w'):
     """
     Returns all HeaderletHDU extensions in a science file that matches
     the inputs specified by the user.  If no hdrext, hdrname or distname are
@@ -196,9 +229,6 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
         A list of all matching HeaderletHDU extension indices (could be just one)
 
     """
-    kwargs = locals()
-    init_logging('find_headerlet_HDUs', level=logging,
-                 mode=logmode, **kwargs)
 
     get_all = False
     if hdrext is None and hdrname is None and distname is None:
@@ -291,6 +321,7 @@ def verify_hdrname_is_unique(fobj, hdrname):
     return unique
 
 
+@with_logging
 def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", logging=False):
     """
     Compares the WCS solution of 2 files.
@@ -324,7 +355,7 @@ def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", logging=False):
     - Velocity aberation
 
     """
-    init_logging('is_wcs_identical', level=logging)
+
     fname, extname = fu.parseFilename(scifile)
     scifile = fname
     if extname is not None:
@@ -578,9 +609,11 @@ def _create_primary_HDU(destim, hdrname, distname, wcsname,
 
     return phdu
 
+
 #### Public Interface functions
+@with_logging
 def extract_headerlet(filename, output, extnum=None, hdrname=None,
-                    clobber=False, logging=True):
+                      clobber=False, logging=True):
     """
     Finds a headerlet extension in a science file and writes it out as
     a headerlet FITS file.
@@ -617,7 +650,6 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
 
     """
 
-    init_logging('extract_headerlet', level=logging)
     if isinstance(filename, pyfits.HDUList):
         filename = [filename]
     else:
@@ -660,6 +692,8 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
         if close_fobj:
             fobj.close()
 
+
+@with_logging
 def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
@@ -749,7 +783,6 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     logging: boolean
          enable file logging
     """
-    init_logging('write_headerlet', logging=logging)
 
     if isinstance(filename, pyfits.HDUList):
         filename = [filename]
@@ -848,6 +881,8 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         hdrletobj.tofile(outname, clobber=clobber)
         logger.critical( 'Created Headerlet file %s ' % outname)
 
+
+@with_logging
 def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                      wcskey=" ", wcsname=None,
                      sipname=None, npolfile=None, d2imfile=None,
@@ -929,10 +964,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     -------
     Headerlet object
     """
-    kwargs = locals()
-    init_logging('create_headerlet', level=logging, mode=logmode, **kwargs)
-    logger.info("%s: cr_h starting with arguments:\n\t %s" %
-                    (time.asctime(), kwargs))
+
     fobj, fname, close_file = parse_filename(filename)
     # Define extension to evaluate for verification of input parameters
     wcsext = 1
@@ -1199,6 +1231,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     return Headerlet(hdul, logging=logging, logmode='a')
 
 
+@with_logging
 def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
                                 force=False, logging=False, logmode='a'):
     """
@@ -1223,13 +1256,13 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
     logmode: 'w' or 'a'
              log file open mode
     """
-    kwargs = locals()
-    init_logging('apply_headerlet_as_primary', level=logging,
-                 mode=logmode, **kwargs)
 
     hlet = Headerlet(hdrlet, logging=logging)
-    hlet.apply_as_primary(filename, attach=attach, archive=archive, force=force)
+    hlet.apply_as_primary(filename, attach=attach, archive=archive,
+                          force=force)
 
+
+@with_logging
 def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
                                 wcsname=None, logging=False, logmode='w'):
     """
@@ -1256,14 +1289,13 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
           enable file logging
     logmode: 'a' or 'w'
     """
-    kwargs = locals()
-    init_logging('apply_headerlet_as_alternate', level=logging,
-                 mode=logmode, **kwargs)
 
     hlet = Headerlet(hdrlet, logging=logging, logmode=logmode)
     hlet.apply_as_alternate(filename, attach=attach,
                             wcsname=wcsname, wcskey=wcskey)
 
+
+@with_logging
 def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
     """
     Attach Headerlet as an HeaderletHDU to a science file
@@ -1278,13 +1310,12 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
             enable file logging
     logmode: 'a' or 'w'
     """
-    kwargs = locals()
-    init_logging('attach_headerlet', level=logging,
-                 mode=logmode, **kwargs)
 
     hlet = Headerlet(hdrlet, logging=logging, logmode='a')
     hlet.attach_to_file(filename)
 
+
+@with_logging
 def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
                      logging=False, logmode='w'):
     """
@@ -1315,9 +1346,6 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
              enable file logging
     logmode: 'a' or 'w'
     """
-    kwargs = locals()
-    init_logging('delete_headerlet', level=logging,
-                 mode=logmode, **kwargs)
 
     hdrlet_ind = find_headerlet_HDUs(filename, hdrname=hdrname, hdrext=hdrext,
                             distname=distname, logging=logging, logmode='a')
@@ -1356,8 +1384,9 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         fobj.close()
     logger.critical('Deleted headerlet from extension(s) %s ' % str(hdrlet_ind))
 
+
 def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
-                        output=None, clobber=True, quiet=False):
+                      output=None, clobber=True, quiet=False):
     """
     Print a summary of all HeaderletHDUs in a science file to STDOUT, and
     optionally to a text file
@@ -1426,6 +1455,8 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                     idcol=extnums_col, output=output,
                     clobber=clobber, quiet=quiet)
 
+
+@with_logging
 def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
                            force=False, logging=False, logmode='w'):
     """
@@ -1454,9 +1485,6 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
            enable file logging
     logmode: 'a' or 'w'
     """
-    kwargs = locals()
-    init_logging('restore_from_headerlet', level=logging,
-                 mode=logmode, **kwargs)
 
     hdrlet_ind = find_headerlet_HDUs(filename, hdrext=hdrext, hdrname=hdrname)
 
@@ -1544,6 +1572,8 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     if close_fobj:
         fobj.close()
 
+
+@with_logging
 def restore_all_with_distname(filename, distname, primary, archive=True,
                               sciext='SCI', logging=False, logmode='w'):
     """
@@ -1570,9 +1600,6 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
          enable file logging
     logmode: 'a' or 'w'
     """
-    kwargs = locals()
-    init_logging('restore_all_with_distname', level=logging,
-                 mode=logmode, **kwargs)
 
     fobj, fname, close_fobj = parse_filename(filename, mode='update')
 
@@ -1658,6 +1685,8 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
     if close_fobj:
         fobj.close()
 
+
+@with_logging
 def archive_as_headerlet(filename, hdrname, sciext='SCI',
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
@@ -1730,9 +1759,6 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
     logmode: 'w' or 'a'
              log file open mode
     """
-    kwargs = locals()
-    init_logging('archive_as_headerlet', level=logging,
-                 mode=logmode, **kwargs)
 
     fobj, fname, close_fobj = parse_filename(filename, mode='update')
 
