@@ -108,11 +108,6 @@ def with_logging(func):
         return func(*args, **kw)
     return wrapped
 
-
-def release_handlers():
-    for hndl in logger.handlers:
-        hndl.close()
-
 #### Utility functions
 def is_par_blank(par):
     return par in ['', ' ', 'INDEF', "None", None]
@@ -484,23 +479,7 @@ def get_rootname(fname):
     except KeyError:
         rootname = pyfits.getval(fname, 'DESTIM')
     return rootname
-"""
-def map_fits_ext_to_HDUList_ind(fname, extname):
 
-    #Map FITS extensions with 'EXTNAME' to HDUList indexes.
-
-
-    f, fname, close_fobj = parse_filename(fname)
-
-    d = {}
-    for hdu in f:
-        if 'EXTNAME' in hdu.header and hdu.header['EXTNAME'] == extname:
-            extver = hdu.header['EXTVER']
-            d[(extname, extver)] = f.index_of((extname, extver))
-    if close_fobj:
-        f.close()
-    return d
-"""
 def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
                     output=None, clobber=True, quiet=False ):
     """
@@ -797,10 +776,10 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
 
         if wcsname in [None, ' ', '', 'INDEF'] and wcskey is None:
             message = """\n
-            No valid WCS found found in %s.' % fname
-            A valid value for either "wcsname" or "wcskey" '
+            No valid WCS found found in %s.
+            A valid value for either "wcsname" or "wcskey" 
             needs to be specified.
-            """
+            """ % fname
             logger.critical(message)
             raise ValueError
 
@@ -819,8 +798,6 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         # WCS's recorded prior to adding the headerlet WCS
         wcscorr.init_wcscorr(fobj)
 
-        #numhlt = countExtn(fobj, 'HDRLET')
-
         if wcsname is None:
             scihdr = fobj[sciext, 1].header
             wname = scihdr['wcsname'+wcskey]
@@ -829,7 +806,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         if hdrname in [None, ' ', '']:
             hdrname = wcsname
 
-        print 'Creating the headerlet from image :', fname
+        logger.critical('Creating the headerlet from image %s' % fname)
         hdrletobj = create_headerlet(fobj, sciext=sciext,
                                     wcsname=wname, wcskey=wcskey,
                                     hdrname=hdrname,
@@ -859,9 +836,9 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 fobj.flush()
             else:
                 message = """
-                Headerlet with hdrname ', hdrname, ' already archived for WCS ', wname
-                No new headerlet appended to ', fname, '.'
-                """
+                Headerlet with hdrname %s already archived for WCS %s.
+                No new headerlet appended to %s.
+                """ % (hdrname, wname, fname)
                 logger.critical(message)
 
         if close_fobj:
@@ -1039,9 +1016,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             if wcsnamekw in fobj[wcsext].header:
                 hdrname = fobj[wcsext].header[wcsnamekw]
                 message = """
-                Using default value for HDRNAME of "%s"' % (hdrname),
-                derived from %s.' % (wcsnamekw)
-                """
+                Using default value for HDRNAME of "%s" derived from %s.
+                """ % (hdrname, wcsnamekw)
                 logger.info(message)
                 logger.info("Setting hdrname to %s from header[%s]"
                             % (hdrname, wcsnamekw))
@@ -1634,8 +1610,7 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
             if close_fobj:
                 fobj.close()
             message = """
-            No Headerlet extensions found with
-            print '  "DISTNAME" = %s in %s.
+            No Headerlet extensions found with DISTNAME = %s in %s.
             """ % (primary, fname)
             logger.critical(message)
             raise ValueError
@@ -2196,7 +2171,6 @@ class Headerlet(pyfits.HDUList):
         else:
             mess = "Observation %s cannot be updated with headerlet %s" % (fname, self.hdrname)
             logger.critical(mess)
-            print mess
         if close_dest:
             fobj.close()
 
