@@ -793,6 +793,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             umode = 'readonly'
 
         fobj, fname, close_fobj = parse_filename(f, mode=umode)
+        wnames = altwcs.wcsnames(fobj,ext=('sci',1))
 
         # Insure that WCSCORR table has been created with all original
         # WCS's recorded prior to adding the headerlet WCS
@@ -816,7 +817,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                                     rms_ra=rms_ra, rms_dec=rms_dec,
                                     nmatch=nmatch, catalog=catalog,
                                     logging=False)
-
+        
         if attach:
             # Check to see whether or not a HeaderletHDU with
             #this hdrname already exists
@@ -955,6 +956,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     wcsnamekw = "".join(["WCSNAME", wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
 
+    wnames = altwcs.wcsnames(fobj,ext=wcsext)
+
     if not wcsname:
         # User did not specify a value for 'wcsname'
         if wcsnamekw in fobj[wcsext].header:
@@ -991,7 +994,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             message += "Actual value of %s found to be %s. \n" % (wcsnamekw, wname)
             logger.critical(message)
             raise KeyError
-    wkeys = altwcs.wcskeys(fname, ext=wcsext)
+    wkeys = altwcs.wcskeys(fobj, ext=wcsext)
     if wcskey != ' ':
         if wcskey not in wkeys:
             logger.critical('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(wcsext)))
@@ -1099,14 +1102,14 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 fext = int(e)
             except ValueError:
                 fext = fu.parseExtn(e)
-            wkeys = altwcs.wcskeys(fname, ext=fext)
+            wkeys = altwcs.wcskeys(fobj, ext=fext)
             if wcskey != ' ':
                 if wcskey not in wkeys:
                     logger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(e)))
                     continue # skip any extension which does not have this wcskey
 
             # This reads in full model: alternate WCS keywords plus SIP
-            hwcs = HSTWCS(fname, ext=fext, wcskey=' ')
+            hwcs = HSTWCS(fobj, ext=fext, wcskey=' ')
 
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs, 'orientat'):
@@ -1123,8 +1126,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             if wcskey != ' ':
                 # Now read in specified linear WCS terms from alternate WCS
                 try:
-                    althdr = altwcs.convertAltWCS(fname, fext, oldkey=wcskey, newkey=" ")
-                    althdrwcs = HSTWCS(fname, fext, wcskey=wcskey)
+                    althdr = altwcs.convertAltWCS(fobj, fext, oldkey=wcskey, newkey=" ")
+                    althdrwcs = HSTWCS(fobj, fext, wcskey=wcskey)
                 except KeyError:
                     continue # Skip over any extension which does not have a WCS
                 althdr = althdr.ascard
@@ -1197,7 +1200,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     for w in wcsdvarr_extns:
         hdu = fobj[('WCSDVARR', w)].copy()
         hdul.append(hdu)
-    numd2im = countExtn(fname, 'D2IMARR')
+    numd2im = countExtn(fobj, 'D2IMARR')
     for d in range(1, numd2im + 1):
         hdu = fobj[('D2IMARR', d)].copy()
         hdul.append(hdu)
