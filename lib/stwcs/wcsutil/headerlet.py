@@ -1878,13 +1878,15 @@ class Headerlet(pyfits.HDUList):
             # Check to see whether the distortion model in the destination
             # matches the distortion model in the headerlet being applied
             dist_models_equal = True
-            if  self[0].header['DISTNAME'] != fobj[0].header['DISTNAME']:
+            if  not self.verify_model(fobj):
+                if 'distname' not in fobj[0].header:
+                    dname = self.build_distname(fobj)
                 if self.logging:
                     message = """
                     Distortion model in headerlet not the same as destination model
                     Headerlet model  : %s
                     Destination model: %s
-                    """ % (self[0].header['DISTNAME'], fobj[0].header['DISTNAME'])
+                    """ % (self[0].header['DISTNAME'], dname)
                     logger.critical(message)
                 dist_models_equal = False
 
@@ -2088,8 +2090,11 @@ class Headerlet(pyfits.HDUList):
                 distname = fobj[0].header['DISTNAME']
             else:
                 # perhaps call 'updatewcs.utils.construct_distname()' instead
-                distname = 'UNKNOWN'
-
+                try:
+                    distname = self.build_distname(fobj)
+                except:
+                    distname = 'UNKNOWN'
+                    
             if distname == 'UNKNOWN' or self.distname != distname:
                 message = """
                 Observation %s cannot be updated with headerlet %s
@@ -2316,6 +2321,31 @@ class Headerlet(pyfits.HDUList):
         logger.debug("verify_hdrname() returned %s"%unique)
         return unique
 
+    def verify_model(self, dest):
+        """ 
+        Verifies that the headerlet can be applied to the observation
+        
+        Determines whether or not the file specifies the same distortion
+        model/reference files.  
+        """
+        destim_opened = False
+        if not isinstance(dest, pyfits.HDUList):
+            destim = pyfits.open(dest)
+            destim_opened = True
+        else:
+            destim = dest
+            
+        if 'distname' in destim[0].header:    
+            dname = destim[0].header['DISTNAME']
+        else:
+            dname = self.build_distname(dest)
+        if destim_opened:
+            destim.close()
+        if dname == self[0].header['DISTNAME']:
+            return True
+        else:
+            return False
+        
     def verify_dest(self, dest):
         """
         verifies that the headerlet can be applied to the observation
@@ -2339,6 +2369,16 @@ class Headerlet(pyfits.HDUList):
             logger.debug("verify_destim() returned False")
             return False
 
+    def build_distname(self, dest):
+        """
+        Builds the DISTNAME for dest based on reference file names. 
+        """
+        sipname = utils.build_sipname(destim)
+        npolname = utils.build_npolname(destim)
+        d2imname = utils.build_d2imname(destim)
+        dname = utils.build_distname(sipname,npolname,d2imname)
+        return dname
+    
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
         """
         Write this headerlet to a file
