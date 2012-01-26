@@ -17,6 +17,46 @@ from mappings import basic_wcs
 
 __docformat__ = 'restructuredtext'
 
+#
+#### Utility functions copied from 'updatewcs.utils' to avoid circular imports
+#
+def extract_rootname(kwvalue,suffix=""):
+    """ Returns the rootname from a full reference filename
+
+        If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
+            simply return a string value of 'NONE'
+
+        This function will also replace any 'suffix' specified with a blank.
+    """
+    # check to see whether a valid kwvalue has been provided as input
+    if kwvalue.strip() in ['','N/A','NONE','INDEF',None]:
+        return 'NONE' # no valid value, so return 'NONE'
+
+    # for a valid kwvalue, parse out the rootname
+    # strip off any environment variable from input filename, if any are given
+    if '$' in kwvalue:
+        fullval = kwvalue[kwvalue.find('$')+1:]
+    else:
+        fullval = kwvalue
+    # Extract filename without path from kwvalue
+    fname = os.path.basename(fullval).strip()
+    
+    # Now, rip out just the rootname from the full filename
+    rootname = fileutil.buildNewRootname(fname)
+
+    # Now, remove any known suffix from rootname
+    rootname = rootname.replace(suffix,'')
+    return rootname.strip()
+
+def build_default_wcsname(idctab):
+
+    idcname = extract_rootname(idctab,suffix='_idc')
+    wcsname = 'IDC_' + idcname
+    return wcsname
+
+# 
+#### HSTWCS Class definition
+#
 class HSTWCS(WCS):
 
     def __init__(self, fobj=None, ext=None, minerr=0.0, wcskey=" "):
@@ -283,6 +323,13 @@ class HSTWCS(WCS):
         if self.wcs.has_cd():
             h = altwcs.pc2cd(h, key=self.wcskey)
 
+        if 'wcsname' not in h:
+            if self.idctab is not None:
+                wname = build_default_wcsname(self.idctab)
+            else:
+                wname = 'DEFAULT'
+            h.update('wcsname',value=wname)
+            
         if idc2hdr:
             for card in self._idc2hdr():
                 h.update(card.key,value=card.value,comment=card.comment)

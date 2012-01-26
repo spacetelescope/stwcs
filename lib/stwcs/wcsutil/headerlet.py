@@ -677,7 +677,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
                         author=None, descrip=None, history=None,
-                        rms_ra=None, rms_dec=None, nmatch=None, catalog=None,
+                        nmatch=None, catalog=None,
                         attach=True, clobber=False, logging=False):
 
     """
@@ -814,7 +814,6 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                                     sipname=sipname, npolfile=npolfile,
                                     d2imfile=d2imfile, author=author,
                                     descrip=descrip, history=history,
-                                    rms_ra=rms_ra, rms_dec=rms_dec,
                                     nmatch=nmatch, catalog=catalog,
                                     logging=False)
         
@@ -865,7 +864,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                      wcskey=" ", wcsname=None,
                      sipname=None, npolfile=None, d2imfile=None,
                      author=None, descrip=None, history=None,
-                     rms_ra=None, rms_dec = None, nmatch=None, catalog=None,
+                     nmatch=None, catalog=None,
                      logging=False, logmode='w'):
     """
     Create a headerlet from a WCS in a science file
@@ -1041,9 +1040,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     distname = utils.build_distname(sipname, npolfile, d2imfile)
     logger.info("Setting distname to %s" % distname)
     rms_ra = get_header_kw_vals(fobj[wcsext].header,
-                    ("RMS_RA"+wcskey).rstrip(), rms_ra, default=0)
+                    ("CRDER1"+wcskey).rstrip(), None, default=0)
     rms_dec = get_header_kw_vals(fobj[wcsext].header,
-                    ("RMS_DEC"+wcskey).rstrip(), rms_dec, default=0)
+                    ("CRDER2"+wcskey).rstrip(), None, default=0)
     nmatch = get_header_kw_vals(fobj[wcsext].header,
                     ("NMATCH"+wcskey).rstrip(), nmatch, default=0)
     catalog = get_header_kw_vals(fobj[wcsext].header,
@@ -1114,10 +1113,6 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             h = hwcs.wcs2header(sip2hdr=True)
             if hasattr(hwcs, 'orientat'):
                 h.update('ORIENTAT', hwcs.orientat, comment=orient_comment)
-            h.update('RMS_RA', rms_ra,
-                    comment='RMS in RA at ref pix of headerlet solution')
-            h.update('RMS_DEC', rms_dec,
-                    comment='RMS in Dec at ref pix of headerlet solution')
             h.update('NMATCH', nmatch,
                     comment='Number of sources used for headerlet solution')
             h.update('CATALOG', catalog,
@@ -1669,7 +1664,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
                         wcsname=None, wcskey=None, destim=None,
                         sipname=None, npolfile=None, d2imfile=None,
                         author=None, descrip=None, history=None,
-                        rms_ra=None, rms_dec=None, nmatch=None, catalog=None,
+                        nmatch=None, catalog=None,
                         logging=False, logmode='w'):
     """
     Save a WCS as a headerlet extension and write it out to a file.
@@ -1775,7 +1770,6 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
                                     sipname=sipname, npolfile=npolfile,
                                     d2imfile=d2imfile, author=author,
                                     descrip=descrip, history=history,
-                                    rms_ra=rms_ra, rms_dec=rms_dec,
                                     nmatch=nmatch, catalog=catalog,
                                     logging=False)
         hlt_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
@@ -1838,7 +1832,7 @@ class Headerlet(pyfits.HDUList):
         self.author = self[0].header["AUTHOR"]
         self.descrip = self[0].header["DESCRIP"]
 
-        self.fit_kws = ['HDRNAME', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'CATALOG']
+        self.fit_kws = ['HDRNAME', 'NMATCH', 'CATALOG']
         self.history = ''
         for card in self[0].header['HISTORY*']:
             self.history += card.value+'\n'
@@ -2027,6 +2021,12 @@ class Headerlet(pyfits.HDUList):
                             update_cpdis = True
                     else:
                         pass
+                # Update WCS with optional CRDER (error) kws from headerlet
+                if 'crder1' in siphdr:
+                    for kw in siphdr['crder*']:
+                        fhdr.update(kw.key, kw.value, comment=kw.comment, 
+                                    after='WCSNAME')
+
                 # Update WCS with HDRNAME as well
                 for kw in self.fit_kws:
                     fhdr.update(kw, self[0].header[kw], after='WCSNAME')
@@ -2373,9 +2373,9 @@ class Headerlet(pyfits.HDUList):
         """
         Builds the DISTNAME for dest based on reference file names. 
         """
-        sipname = utils.build_sipname(destim)
-        npolname = utils.build_npolname(destim)
-        d2imname = utils.build_d2imname(destim)
+        sipname = utils.build_sipname(dest)
+        npolname = utils.build_npolname(dest)
+        d2imname = utils.build_d2imname(dest)
         dname = utils.build_distname(sipname,npolname,d2imname)
         return dname
     
@@ -2450,7 +2450,7 @@ class Headerlet(pyfits.HDUList):
                      (ext.name, ext._extver))
         dkeys = altwcs.wcskeys(ext.header)
         if 'O' in dkeys: dkeys.remove('O') # Do not remove wcskey='O' values
-        for fitkw in ['RMS_RA', 'RMS_DEC', 'NMATCH', 'CATALOG']:
+        for fitkw in ['NMATCH', 'CATALOG']:
             for k in dkeys:
                 fkw = (fitkw+k).rstrip()
                 if fkw in ext.header:

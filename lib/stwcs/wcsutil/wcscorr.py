@@ -12,7 +12,7 @@ DEFAULT_WCS_KEYS = ['CRVAL1','CRVAL2','CRPIX1','CRPIX2',
                     'CD1_1','CD1_2','CD2_1','CD2_2',
                     'CTYPE1','CTYPE2','ORIENTAT']
 DEFAULT_PRI_KEYS = ['HDRNAME','SIPNAME','NPOLNAME','D2IMNAME','DESCRIP']
-COL_FITSKW_DICT = {'RMS_RA':'sci.rms_ra','RMS_DEC':'sci.rms_dec',
+COL_FITSKW_DICT = {'RMS_RA':'sci.crder1','RMS_DEC':'sci.crder2',
                 'NMatch':'sci.nmatch','Catalog':'sci.catalog'}
 
 ###
