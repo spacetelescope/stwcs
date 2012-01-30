@@ -51,14 +51,17 @@ def init_wcscorr(input, force=False):
         else:
             del fimg['wcscorr']
     print 'Initializing new WCSCORR table for ',fimg.filename()
+
+    used_wcskeys = altwcs.wcskeys(fimg['SCI', 1].header)
     
     # define the primary columns of the WCSEXT table with initial rows for each
     # SCI extension for the original OPUS solution
     numsci = fileutil.countExtn(fimg)
+    numwcs = len(used_wcskeys)
 
     # create new table with more rows than needed initially to make it easier to
     # add new rows later
-    wcsext = create_wcscorr(descrip=True,numrows=numsci, padding=numsci * 4)
+    wcsext = create_wcscorr(descrip=True,numrows=numsci, padding=(numsci*numwcs) + numsci * 4)
     # Assign the correct EXTNAME value to this table extension
     wcsext.header.update('TROWS', numsci * 2,
                          comment='Number of updated rows in table')
@@ -67,7 +70,6 @@ def init_wcscorr(input, force=False):
     wcsext.header.update('EXTVER', 1)
 
     # define set of WCS keywords which need to be managed and copied to the table
-    used_wcskeys = altwcs.wcskeys(fimg['SCI', 1].header)
     wcs1 = stwcs.wcsutil.HSTWCS(fimg,ext=('SCI',1))
     idc2header = True
     if wcs1.idcscale is None:
