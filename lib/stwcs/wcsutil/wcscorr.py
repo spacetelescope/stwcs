@@ -271,10 +271,13 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     if source is None:
         source = dest
 
+    if extname == 'PRIMARY':
+        return
+
     numext = fileutil.countExtn(source, extname)
     if numext == 0:
         raise ValueError('No %s extensions found in the source HDU list.'
-                         % extname)
+                        % extname)
     # Initialize the WCSCORR table extension in dest if not already present
     init_wcscorr(dest)
 
