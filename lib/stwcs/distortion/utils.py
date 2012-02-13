@@ -25,6 +25,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
               a flag whether to create an undistorted output WCS
     """
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
+    wcsname = list_of_wcsobj[0].wcs.name
     
     # This new algorithm may not be strictly necessary, but it may be more 
     # robust in handling regions near the poles or at 0h RA.
@@ -64,6 +65,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     newcrval = outwcs.wcs.p2s([newcrpix], 1)['world'][0]
     outwcs.wcs.crval = newcrval
     outwcs.wcs.set()
+    outwcs.wcs.name = wcsname # keep track of label for this solution
     return outwcs
 
 def computeFootprintCenter(edges):
