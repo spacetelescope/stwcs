@@ -281,6 +281,21 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     # Initialize the WCSCORR table extension in dest if not already present
     init_wcscorr(dest)
 
+    # check to see whether or not this is an up-to-date table
+    # replace with newly initialized table with current format
+    old_table = dest['WCSCORR']
+    wcscorr_cols = ['WCS_ID','EXTVER', 'SIPNAME', 
+                    'HDRNAME', 'NPOLNAME', 'D2IMNAME']
+
+    for colname in wcscorr_cols:
+        if colname not in old_table.data.columns.names:
+            print "WARNING:    Replacing outdated WCSCORR table..."
+            outdated_table = old_table.copy()
+            del dest['WCSCORR']
+            init_wcscorr(dest)
+            old_table = dest['WCSCORR']            
+            break
+
     # Current implementation assumes the same WCS keywords are in each
     # extension version; if this should not be assumed then this can be
     # modified...
@@ -307,7 +322,6 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     
     # create new table for hdr and populate it with the newly updated values
     new_table = create_wcscorr(descrip=True,numrows=0, padding=len(wcs_keys)*numext)
-    old_table = dest['WCSCORR']
     prihdr = source[0].header
     
     # Get headerlet related keywords here
