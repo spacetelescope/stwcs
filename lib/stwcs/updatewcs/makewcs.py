@@ -149,7 +149,6 @@ class MakeWCS(object):
         
         rfx, rfy = ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy
 
-        ref_wcs.setPscale()
         offshift = offsh
         dec = ref_wcs.wcs.crval[1]
         tddscale = (ref_wcs.pscale/ref_wcs.idcmodel.cx[1,1])
