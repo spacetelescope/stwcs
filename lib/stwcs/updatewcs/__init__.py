@@ -11,7 +11,7 @@ try:
     from pywcs import __version__ as pywcsversion
 except:
     pywcsversion = 'UNKNOWN'
-    
+
 import utils, corrections, makewcs
 import npol, det2im
 from stsci.tools import parseinput, fileutil
@@ -100,7 +100,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             cleanWCS(f)
 
         makecorr(f, acorr)
-        
+
     return files
 
 def makecorr(fname, allowed_corr):
@@ -153,14 +153,14 @@ def makecorr(fname, allowed_corr):
                                 utils.extract_rootname(idcname,suffix='_idc')])
                 else: wname = " "
                 hdr.update('WCSNAME', wname)
-                
+
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
                     hdr = f[('SCI',sciextver)].header
                     w = pywcs.WCS(hdr, f)
                     copyWCS(w, extn.header)
-                
+
             else:
                 continue
 
@@ -170,28 +170,30 @@ def makecorr(fname, allowed_corr):
             f[1].header.update(kw, kw2update[kw])
     # Finally record the version of the software which updated the WCS
     if f[0].header.has_key('HISTORY'):
-        f[0].header.update(key='UPWCSVER', value=stwcsversion, 
+        f[0].header.update(key='UPWCSVER', value=stwcsversion,
                            comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=pywcsversion, 
+        f[0].header.update(key='PYWCSVER', value=pywcsversion,
             comment="Version of PYWCS used to updated the WCS", before='HISTORY')
     elif f[0].header.has_key('ASN_MTYP'):
-        f[0].header.update(key='UPWCSVER', value=stwcsversion, 
+        f[0].header.update(key='UPWCSVER', value=stwcsversion,
             comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
-        f[0].header.update(key='PYWCSVER', value=pywcsversion, 
+        f[0].header.update(key='PYWCSVER', value=pywcsversion,
             comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
-        for i in range(len(f[0].header.ascard)-1,0,-1):
-            if f[0].header[i].strip() != '': 
-                break            
-            f[0].header.update(key='UPWCSVER', value=stwcsversion, 
-                comment="Version of STWCS used to updated the WCS",after=i)
-            f[0].header.update(key='PYWCSVER', value=pywcsversion, 
-                comment="Version of PYWCS used to updated the WCS",after=i)
+        for i in range(len(f[0].header) - 1, 0, -1):
+            if f[0].header[i].strip() != '':
+                break
+            f[0].header.set('UPWCSVER', stwcsversion,
+                            "Version of STWCS used to updated the WCS",
+                            after=i)
+            f[0].header.set('PYWCSVER', pywcsversion,
+                            "Version of PYWCS used to updated the WCS",
+                            after=i)
     # add additional keywords to be used by headerlets
     distdict = utils.construct_distname(f,rwcs)
-    f[0].header.update('DISTNAME', distdict['DISTNAME'])
-    f[0].header.update('SIPNAME', distdict['SIPNAME'])
+    f[0].header['DISTNAME'] = distdict['DISTNAME']
+    f[0].header['SIPNAME'] = distdict['SIPNAME']
     f.close()
 
 def copyWCS(w, ehdr):
@@ -330,10 +332,11 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     #When this is called we know there's a kw IDCTAB in the header
-    idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
+    hdul = pyfits.open(fname)
+    idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
     try:
         #check for the presence of IDCTAB in the first extension
-        oldidctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB', ext=1))
+        oldidctab = fileutil.osfn(hdul[1].header['IDCTAB'])
     except KeyError:
         return False
     if idctab == oldidctab:
@@ -344,11 +347,11 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
-    keys = wcsutil.wcskeys(pyfits.getheader(fname, ext=1))
     f = pyfits.open(fname, mode='update')
+    keys = wcsutil.wcskeys(f[1].header)
     fext = range(len(f))
     for key in keys:
-        wcsutil.deleteWCS(fname, ext=fext,wcskey=key)
+        wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
 
 def getCorrections(instrument):
     """

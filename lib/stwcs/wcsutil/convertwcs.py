@@ -65,7 +65,7 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
         for key in wcskeys:
             okey = 'O'+key[:7]
             hdr = fobj[(extname,e)].header
-            if hdr.has_key(okey):
+            if okey in hdr:
                 # Update alternate WCS keyword with prefix-O OPUS keyword value
                 hdr[key] = hdr[okey]
 
@@ -102,7 +102,7 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
             raise IOError
 
     # check for existance of O-prefix WCS
-    if not fobj['sci',1].header.has_key(owcskeys[0]):
+    if owcskeys[0] not in fobj['sci',1].header:
 
         # find out how many SCI extensions are in the image
         numextn = fileutil.countExtn(fobj,extname=extname)
@@ -111,7 +111,7 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
         for extn in xrange(1,numextn+1):
             hdr = fobj[(extname,extn)].header
             for okey in owcskeys:
-                hdr.update(okey,hdr[okey[1:]+'O'])
+                hdr[okey] = hdr[okey[1:]+'O']
 
     # Close FITS image if we had to open it...
     if closefits:

@@ -7,7 +7,7 @@ import pywcs
 def sip2idc(wcs):
     """
     Converts SIP style coefficients to IDCTAB coefficients.
-    
+
     :Parameters:
     `wcs`: pyfits.Header or pywcs.WCS object
     """
@@ -47,11 +47,11 @@ def sip2idc(wcs):
     else:
         print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
         return
-    
-    
+
+
     if None in [ocx10, ocx11, ocy10, ocy11]:
         print 'First order IDC coefficients not found, exiting ...\n'
-        return 
+        return
     idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
     cx = np.zeros((order+1,order+1), dtype=np.double)
     cy = np.zeros((order+1,order+1), dtype=np.double)
@@ -62,12 +62,12 @@ def sip2idc(wcs):
                 idcval = np.dot(idc_coeff, sipval)
                 cx[n,m] = idcval[0]
                 cy[n,m] = idcval[1]
-    
+
     cx[1,0] = ocx10
     cx[1,1] = ocx11
     cy[1,0] = ocy10
     cy[1,1] = ocy11
-                
+
     return cx, cy
 
 def _read_sip_kw(header):
@@ -100,7 +100,7 @@ def _read_sip_kw(header):
     else:
         a = None
         b = None
-            
+
     return a , b
 
 
@@ -113,7 +113,7 @@ def idc2sip(wcsobj, idctab = None):
             cy10 = wcsobj.cy10
             cy11 = wcsobj.cy11
         except AttributeError:
-            print 
+            print
         try:
             order = wcs.sip.a_order
         except AttributeError:
@@ -122,7 +122,7 @@ def idc2sip(wcsobj, idctab = None):
     else:
         print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
         return
-    
+
     if None in [ocx10, ocx11, ocy10, ocy11]:
         print 'First order IDC coefficients not found, exiting ...\n'
         return
@@ -136,6 +136,6 @@ def idc2sip(wcsobj, idctab = None):
                 idcval = numpy.dot(idc_coeff, sipval)
                 cx[m,n-m] = idcval[0]
                 cy[m,n-m] = idcval[1]
-                
+
     return cx, cy
 """

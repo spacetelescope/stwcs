@@ -451,21 +451,17 @@ def update_ref_files(source, dest):
     """
     logger.info("Updating reference files")
     phdukw = {'IDCTAB': True,
-            'NPOLFILE': True,
-            'D2IMFILE': True}
+              'NPOLFILE': True,
+              'D2IMFILE': True}
 
-    if 'HISTORY' in dest:
-        wind = dest.ascard.index_of('HISTORY')
-    else:
-        wind = len(dest)
-
-    for key in phdukw.keys():
+    for key in phdukw:
         try:
-            srckey = source.ascard[key]
-            dest.update(key, srckey.value, after=wind, comment=srckey.comment)
+            try:
+                del dest[key]
+            except:
+                pass
+            dest.append((key, source[key], source.comments[key]), bottom=True)
         except KeyError:
-            # TODO: I don't understand what the point of this is.  Is it meant
-            # for logging purposes?  Right now it isn't used.
             phdukw[key] = False
     return phdukw
 
@@ -474,10 +470,11 @@ def get_rootname(fname):
     returns the value of ROOTNAME or DESTIM
     """
 
+    hdr = pyfits.getheader(fname)
     try:
-        rootname = pyfits.getval(fname, 'ROOTNAME')
+        rootname = hdr['ROOTNAME']
     except KeyError:
-        rootname = pyfits.getval(fname, 'DESTIM')
+        rootname = hdr['DESTIM']
     return rootname
 
 def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
@@ -554,25 +551,32 @@ def _create_primary_HDU(destim, hdrname, distname, wcsname,
 
     # build Primary HDU
     phdu = pyfits.PrimaryHDU()
-    phdu.header.update('DESTIM', destim,
-                       comment='Destination observation root name')
-    phdu.header.update('HDRNAME', hdrname, comment='Headerlet name')
+    phdu.header['DESTIM'] = (destim, 'Destination observation root name')
+    phdu.header['HDRNAME'] = (hdrname, 'Headerlet name')
     fmt = "%Y-%m-%dT%H:%M:%S"
-    phdu.header.update('DATE', time.strftime(fmt),
-                       comment='Date FITS file was generated')
-    phdu.header.update('WCSNAME', wcsname, comment='WCS name')
-    phdu.header.update('DISTNAME', distname, comment='Distortion model name')
-    phdu.header.update('SIPNAME', sipname, comment='origin of SIP polynomial distortion model')
-    phdu.header.update('NPOLFILE', npolfile, comment='origin of non-polynmial distortion model')
-    phdu.header.update('D2IMFILE', d2imfile, comment='origin of detector to image correction')
-    phdu.header.update('AUTHOR', author, comment='headerlet created by this user')
-    phdu.header.update('DESCRIP', descrip, comment='Short description of headerlet solution')
-    phdu.header.update('RMS_RA', rms_ra, comment='RMS in RA at ref pix of headerlet solution')
-    phdu.header.update('RMS_DEC', rms_dec, comment='RMS in Dec at ref pix of headerlet solution')
-    phdu.header.update('NMATCH', nmatch, comment='Number of sources used for headerlet solution')
-    phdu.header.update('CATALOG', catalog, comment='Astrometric catalog used for headerlet solution')
-    phdu.header.update('UPWCSVER', upwcsver.value, comment=upwcsver.comment)
-    phdu.header.update('PYWCSVER', pywcsver.value, comment=pywcsver.comment)
+    phdu.header['DATE'] = (time.strftime(fmt), 'Date FITS file was generated')
+    phdu.header['WCSNAME'] = (wcsname, 'WCS name')
+    phdu.header['DISTNAME'] = (distname, 'Distortion model name')
+    phdu.header['SIPNAME'] = (sipname,
+                              'origin of SIP polynomial distortion model')
+    phdu.header['NPOLFILE'] = (npolfile,
+                               'origin of non-polynmial distortion model')
+    phdu.header['D2IMFILE'] = (d2imfile,
+                               'origin of detector to image correction')
+    phdu.header['AUTHOR'] = (author, 'headerlet created by this user')
+    phdu.header['DESCRIP'] = (descrip,
+                              'Short description of headerlet solution')
+    phdu.header['RMS_RA'] = (rms_ra,
+                             'RMS in RA at ref pix of headerlet solution')
+    phdu.header['RMS_DEC'] = (rms_dec,
+                              'RMS in Dec at ref pix of headerlet solution')
+    phdu.header['NMATCH'] = (nmatch,
+                             'Number of sources used for headerlet solution')
+    phdu.header['CATALOG'] = (catalog,
+                              'Astrometric catalog used for headerlet '
+                              'solution')
+    phdu.header['UPWCSVER'] = (upwcsver.value, upwcsver.comment)
+    phdu.header['PYWCSVER'] = (pywcsver.value, pywcsver.comment)
 
     # clean up history string in order to remove whitespace characters that
     # would cause problems with FITS
@@ -777,7 +781,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         if wcsname in [None, ' ', '', 'INDEF'] and wcskey is None:
             message = """\n
             No valid WCS found found in %s.
-            A valid value for either "wcsname" or "wcskey" 
+            A valid value for either "wcsname" or "wcskey"
             needs to be specified.
             """ % fname
             logger.critical(message)
@@ -816,7 +820,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                                     descrip=descrip, history=history,
                                     nmatch=nmatch, catalog=catalog,
                                     logging=False)
-        
+
         if attach:
             # Check to see whether or not a HeaderletHDU with
             #this hdrname already exists
@@ -1050,12 +1054,12 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
     # get the version of STWCS used to create the WCS of the science file.
     try:
-        upwcsver = fobj[0].header.ascard['UPWCSVER']
+        upwcsver = fobj[0].header.cards[fobj[0].header.index('UPWCSVER')]
     except KeyError:
         upwcsver = pyfits.Card("UPWCSVER", " ",
                                "Version of STWCS used to update the WCS")
     try:
-        pywcsver = fobj[0].header.ascard['PYWCSVER']
+        pywcsver = fobj[0].header.cards[fobj[0].header.index('PYWCSVER')]
     except KeyError:
         pywcsver = pyfits.Card("PYWCSVER", " ",
                                "Version of PYWCS used to update the WCS")
@@ -1121,42 +1125,36 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             if wcskey != ' ':
                 # Now read in specified linear WCS terms from alternate WCS
                 try:
-                    althdr = altwcs.convertAltWCS(fobj, fext, oldkey=wcskey, newkey=" ")
+                    althdr = altwcs.convertAltWCS(fobj, fext, oldkey=wcskey,
+                                                  newkey=" ")
                     althdrwcs = HSTWCS(fobj, fext, wcskey=wcskey)
                 except KeyError:
                     continue # Skip over any extension which does not have a WCS
-                althdr = althdr.ascard
                 # Update full WCS with values from alternate WCS
-                for card in althdr:
-                    h.update(card.key, card.value)
+                for keyword, value in althdr.items():
+                    h[keyword] = value
                 if hasattr(althdrwcs, 'orientat'):
-                    h.update('ORIENTAT', althdrwcs.orientat, comment=orient_comment)
-            h = h.ascard
-
+                    h['ORIENTAT'] = (althdrwcs.orientat, orient_comment)
             if hasattr(hwcs, 'vafactor'):
-                h.append(pyfits.Card(key='VAFACTOR', value=hwcs.vafactor,
-                                 comment='Velocity aberration plate scale factor'))
-            h.insert(0, pyfits.Card(key='EXTNAME', value='SIPWCS',
-                                    comment='Extension name'))
+                h.append(('VAFACTOR', hwcs.vafactor,
+                          'Velocity aberration plate scale factor'))
+            h.insert(0, ('EXTNAME', 'SIPWCS', 'Extension name'))
             if isinstance(fext, int):
                 if 'extver' in fobj[fext].header:
                     val = fobj[fext].header['extver']
                 else:
                     val = fext
             else: val = fext[1]
-            h.insert(1, pyfits.Card(key='EXTVER', value=val,
-                                    comment='Extension version'))
-            h.append(pyfits.Card(key="SCIEXT", value=e,
-                                 comment="Target science data extension"))
-            fhdr = fobj[fext].header.ascard
+            h.insert(1, ('EXTVER', val, 'Extension version'))
+            h.append(('SCIEXT', e, 'Target science data extension'))
+            fhdr = fobj[fext].header
             if npolfile is not 'NOMODEL':
                 cpdis = fhdr['CPDIS*...']
                 for c in range(1, len(cpdis) + 1):
                     h.append(cpdis[c - 1])
                     dp = fhdr['DP%s*...' % c]
-                    for kw in dp:
-                        dpval = kw.value
-                        if 'EXTVER' in kw.key:
+                    for kw, dpval in dp.items():
+                        if 'EXTVER' in kw:
                             wcsdvarr_extns.append(dpval)
                             break
 
@@ -1834,8 +1832,9 @@ class Headerlet(pyfits.HDUList):
 
         self.fit_kws = ['HDRNAME', 'NMATCH', 'CATALOG']
         self.history = ''
-        for card in self[0].header['HISTORY*']:
-            self.history += card.value+'\n'
+        # header['HISTORY'] returns an iterable of all HISTORY values
+        for hist in self[0].header['HISTORY']:
+            self.history += hist + '\n'
 
         self.d2imerr = 0
         self.axiscorr = 1
@@ -1985,7 +1984,7 @@ class Headerlet(pyfits.HDUList):
             numsip = countExtn(self, 'SIPWCS')
             for idx in range(1, numsip + 1):
                 fhdr = fobj[('SCI', idx)].header
-                siphdr = self[('SIPWCS', idx)].header.ascard
+                siphdr = self[('SIPWCS', idx)].header
 
                 if dist_models_equal:
                     hwcs = HSTWCS(fobj, ext=('SCI', idx))
@@ -2004,40 +2003,41 @@ class Headerlet(pyfits.HDUList):
                         bkeywd = 'HISTORY'
                 logger.debug(
                     "Updating WCS keywords after %s and/or before %s " %
-                    (akeywd,bkeywd))
+                    (akeywd, bkeywd))
                 update_cpdis = False
-                for k in siphdr[-1::-1]:
+                for c in siphdr.cards[-1::-1]:
                     # Replace or add WCS keyword from headerlet as PRIMARY WCS
                     # In the case that the distortion models are not equal,
                     # this will copy all keywords from headerlet into fobj
                     # When the distortion models are equal, though, it will
                     # only copy the primary WCS keywords (CRVAL,CRPIX,...)
-                    if (dist_models_equal and (k.key in hwcshdr)) or \
-                     (not dist_models_equal and k.key not in FITS_STD_KW):
+                    if ((dist_models_equal and (c.keyword in hwcshdr)) or
+                        (not dist_models_equal and
+                         c.keyword not in FITS_STD_KW)):
                         if 'DP' not in k.key:
-                            fhdr.update(k.key, k.value, comment=k.comment,
-                                        after=akeywd, before=bkeywd)
+                            fhdr.set(c.keyword, c.value, c.comment,
+                                     after=akeywd, before=bkeywd)
                         else:
                             update_cpdis = True
                     else:
                         pass
                 # Update WCS with optional CRDER (error) kws from headerlet
                 if 'crder1' in siphdr:
-                    for kw in siphdr['crder*']:
-                        fhdr.update(kw.key, kw.value, comment=kw.comment, 
-                                    after='WCSNAME')
+                    for card in siphdr['crder*'].cards:
+                        fhdr.set(card.keyword, card.value, card.comment,
+                                 after='WCSNAME')
 
                 # Update WCS with HDRNAME as well
                 for kw in self.fit_kws:
-                    fhdr.update(kw, self[0].header[kw], after='WCSNAME')
+                    fhdr.set(kw, self[0].header[kw], after='WCSNAME')
 
                 # Update header with record-valued keywords here
                 if update_cpdis:
                     numdp = len(siphdr['CPDIS*'])
                     for dpaxis in range(1, numdp+1):
-                        cpdis_indx = fhdr.ascard.index_of('CPDIS%d' % (dpaxis))
-                        for dpcard in siphdr['DP%d*' % (dpaxis)][-1::-1]:
-                            fhdr.ascard.insert(cpdis_indx, dpcard)
+                        cpdis_indx = fhdr.index('CPDIS%d' % (dpaxis))
+                        for dpcard in siphdr['DP%d*' % (dpaxis)][-1::-1].cards:
+                            fhdr.insert(cpdis_indx, dpcard)
 
             # Update the WCSCORR table with new rows from the headerlet's WCSs
             wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
@@ -2094,7 +2094,7 @@ class Headerlet(pyfits.HDUList):
                     distname = self.build_distname(fobj)
                 except:
                     distname = 'UNKNOWN'
-                    
+
             if distname == 'UNKNOWN' or self.distname != distname:
                 message = """
                 Observation %s cannot be updated with headerlet %s
@@ -2144,32 +2144,33 @@ class Headerlet(pyfits.HDUList):
                 except ValueError:
                     sciext = fu.parseExtn(sciext)
                 fhdr = fobj[sciext].header
-                siphdr = self[('SIPWCS', idx)].header.ascard
+                siphdr = self[('SIPWCS', idx)].header
 
                 # a minimal attempt to get the position of the WCS keywords group
                 # in the header by looking for the PA_APER kw.
                 # at least make sure the WCS kw are written before the HISTORY kw
                 # if everything fails, append the kw to the header
                 try:
-                    wind = fhdr.ascard.index_of('HISTORY')
+                    wind = fhdr.index('HISTORY')
                 except KeyError:
                     wind = len(fhdr)
                 logger.debug("Inserting WCS keywords at index %s" % wind)
 
-                for k in siphdr:
+                for card in siphdr.cards:
                     for akw in altwcs.altwcskw:
-                        if akw in k.key:
-                            fhdr.ascard.insert(wind, pyfits.Card(
-                                            key=k.key[:7]+wkey, value=k.value,
-                                            comment=k.comment))
+                        if akw in card.keyword:
+                            fhdr.insert(wind,
+                                        pyfits.Card(card.keyword[:7] + wkey,
+                                                    value=card.value,
+                                                    comment=card.comment))
                     else:
                         pass
 
-                fhdr.ascard.insert(wind, pyfits.Card('WCSNAME'+wkey, wname))
+                fhdr.insert(wind, pyfits.Card('WCSNAME' + wkey, wname))
                 # also update with HDRNAME (a non-WCS-standard kw)
                 for kw in self.fit_kws:
-                    fhdr.ascard.insert(wind, pyfits.Card(kw+wkey,
-                                        self[0].header[kw]))
+                    fhdr.insert(wind, pyfits.Card(kw + wkey,
+                                                  self[0].header[kw]))
             # Update the WCSCORR table with new rows from the headerlet's WCSs
             wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2322,11 +2323,11 @@ class Headerlet(pyfits.HDUList):
         return unique
 
     def verify_model(self, dest):
-        """ 
+        """
         Verifies that the headerlet can be applied to the observation
-        
+
         Determines whether or not the file specifies the same distortion
-        model/reference files.  
+        model/reference files.
         """
         destim_opened = False
         if not isinstance(dest, pyfits.HDUList):
@@ -2334,8 +2335,8 @@ class Headerlet(pyfits.HDUList):
             destim_opened = True
         else:
             destim = dest
-            
-        if 'distname' in destim[0].header:    
+
+        if 'distname' in destim[0].header:
             dname = destim[0].header['DISTNAME']
         else:
             dname = self.build_distname(dest)
@@ -2345,7 +2346,7 @@ class Headerlet(pyfits.HDUList):
             return True
         else:
             return False
-        
+
     def verify_dest(self, dest):
         """
         verifies that the headerlet can be applied to the observation
@@ -2371,14 +2372,14 @@ class Headerlet(pyfits.HDUList):
 
     def build_distname(self, dest):
         """
-        Builds the DISTNAME for dest based on reference file names. 
+        Builds the DISTNAME for dest based on reference file names.
         """
         sipname = utils.build_sipname(dest)
         npolname = utils.build_npolname(dest)
         d2imname = utils.build_d2imname(dest)
         dname = utils.build_distname(sipname,npolname,d2imname)
         return dname
-    
+
     def tofile(self, fname, destim=None, hdrname=None, clobber=False):
         """
         Write this headerlet to a file
@@ -2417,7 +2418,7 @@ class Headerlet(pyfits.HDUList):
                 self._remove_idc_coeffs(dest[idx])
                 self._remove_fit_values(dest[idx])
                 try:
-                    del dest[idx].header.ascard['VAFACTOR']
+                    del dest[idx].header['VAFACTOR']
                 except KeyError:
                     pass
 
@@ -2437,7 +2438,7 @@ class Headerlet(pyfits.HDUList):
         refkw = ['IDCTAB', 'NPOLFILE', 'D2IMFILE']
         for kw in refkw:
             try:
-                del phdu.header.ascard[kw]
+                del phdu.header[kw]
             except KeyError:
                 pass
 
@@ -2495,7 +2496,7 @@ class Headerlet(pyfits.HDUList):
         try:
             for c in range(1, len(cpdis) + 1):
                 del ext.header['DP%s*...' % c]
-                del ext.header[cpdis[c - 1].key]
+                del ext.header[cpdis.cards[c - 1].keyword]
             del ext.header['CPERR*']
             del ext.header['NPOLFILE']
             del ext.header['NPOLEXT']
@@ -2538,15 +2539,15 @@ class Headerlet(pyfits.HDUList):
 
         hdr_logger.debug("Removing Primary WCS from (%s, %s)"
                      % (ext.name, ext._extver))
-        naxis = ext.header.ascard['NAXIS'].value
+        naxis = ext.header['NAXIS']
         for key in basic_wcs:
             for i in range(1, naxis + 1):
                 try:
-                    del ext.header.ascard[key + str(i)]
+                    del ext.header[key + str(i)]
                 except KeyError:
                     pass
         try:
-            del ext.header.ascard['WCSAXES']
+            del ext.header['WCSAXES']
         except KeyError:
             pass
 
@@ -2560,7 +2561,7 @@ class Headerlet(pyfits.HDUList):
         coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
         for k in coeffs:
             try:
-                del ext.header.ascard[k]
+                del ext.header[k]
             except KeyError:
                 pass
 
@@ -2628,19 +2629,19 @@ class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
         else:
             sipname = phdu.header['WCSNAME']
 
-        hlet.header.update('HDRNAME', phdu.header['HDRNAME'],
-                           phdu.header.ascard['HDRNAME'].comment)
-        hlet.header.update('DATE', phdu.header['DATE'],
-                           phdu.header.ascard['DATE'].comment)
-        hlet.header.update('SIPNAME', sipname, 'SIP distortion model name')
-        hlet.header.update('WCSNAME', phdu.header['WCSNAME'], 'WCS name'),
-        hlet.header.update('DISTNAME', phdu.header['DISTNAME'],
-                           'Distortion model name'),
-        hlet.header.update('NPOLFILE', phdu.header['NPOLFILE'],
-                           phdu.header.ascard['NPOLFILE'].comment)
-        hlet.header.update('D2IMFILE', phdu.header['D2IMFILE'],
-                           phdu.header.ascard['D2IMFILE'].comment)
-        hlet.header.update('EXTNAME', cls._extension, 'Extension name')
+        hlet.header['HDRNAME'] = (phdu.header['HDRNAME'],
+                                  phdu.header.comments['HDRNAME'])
+        hlet.header['DATE'] = (phdu.header['DATE'],
+                               phdu.header.comments['DATE'])
+        hlet.header['SIPNAME'] = (sipname, 'SIP distortion model name')
+        hlet.header['WCSNAME'] = (phdu.header['WCSNAME'], 'WCS name'),
+        hlet.header['DISTNAME'] = (phdu.header['DISTNAME'],
+                                   'Distortion model name'),
+        hlet.header['NPOLFILE'] = (phdu.header['NPOLFILE'],
+                                   phdu.header.comments['NPOLFILE'])
+        hlet.header['D2IMFILE'] = (phdu.header['D2IMFILE'],
+                                   phdu.header.comments['D2IMFILE'])
+        hlet.header['EXTNAME'] = (cls._extension, 'Extension name')
 
         return hlet
 

@@ -1,8 +1,7 @@
-from __future__ import division # confidence high 
-import os 
+from __future__ import division # confidence high
+import os
 import numpy as np
 import pywcs
-import pyfits
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil
@@ -10,14 +9,14 @@ from stsci.tools import fileutil
 def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     """
     Create an output WCS.
-    
+
     Parameters
     ----------
     list_of_wcsobj: Python list
                     a list of HSTWCS objects
-    ref_wcs: an HSTWCS object 
+    ref_wcs: an HSTWCS object
              to be used as a reference WCS, in case outwcs is None.
-             if ref_wcs is None (default), the first member of the list 
+             if ref_wcs is None (default), the first member of the list
              is used as a reference
     outwcs:  an HSTWCS object
              the tangent plane defined by this object is used as a reference
@@ -26,16 +25,16 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     """
     fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
     wcsname = list_of_wcsobj[0].wcs.name
-    
-    # This new algorithm may not be strictly necessary, but it may be more 
+
+    # This new algorithm may not be strictly necessary, but it may be more
     # robust in handling regions near the poles or at 0h RA.
-    crval1,crval2 = computeFootprintCenter(fra_dec) 
+    crval1,crval2 = computeFootprintCenter(fra_dec)
 
     crval = np.array([crval1,crval2], dtype=np.float64) # this value is now zero-based
     if owcs is None:
         if ref_wcs == None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
-        if undistort:    
+        if undistort:
             outwcs = undistortWCS(ref_wcs)
         else:
             outwcs = ref_wcs.deepcopy()
@@ -58,7 +57,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']
 
     # shift crpix to take into account (floating-point value of) position of
-    # corner pixel relative to output frame size: no rounding necessary... 
+    # corner pixel relative to output frame size: no rounding necessary...
     newcrpix = np.array([crpix[0]+tanpix[:,0].min(), crpix[1]+
                          tanpix[:,1].min()])
 
@@ -71,37 +70,37 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
 def computeFootprintCenter(edges):
     """ Geographic midpoint in spherical coords for points defined by footprints.
         Algorithm derived from: http://www.geomidpoint.com/calculation.html
-        
-        This algorithm should be more robust against discontinuities at the poles. 
+
+        This algorithm should be more robust against discontinuities at the poles.
     """
     alpha = np.deg2rad(edges[:,0])
     dec = np.deg2rad(edges[:,1])
-    
+
     xmean = np.mean(np.cos(dec)*np.cos(alpha))
     ymean = np.mean(np.cos(dec)*np.sin(alpha))
     zmean = np.mean(np.sin(dec))
-    
+
     crval1 = np.rad2deg(np.arctan2(ymean,xmean))%360.0
     crval2 = np.rad2deg(np.arctan2(zmean,np.sqrt(xmean*xmean+ymean*ymean)))
-    
+
     return crval1,crval2
 
 def  undistortWCS(wcsobj):
     """
     Creates an undistorted linear WCS by applying the IDCTAB distortion model
-    to a 3-point square. The new ORIENTAT angle is calculated as well as the 
+    to a 3-point square. The new ORIENTAT angle is calculated as well as the
     plate scale in the undistorted frame.
     """
     assert isinstance(wcsobj, pywcs.WCS)
     import coeff_converter
-    
+
     cx, cy = coeff_converter.sip2idc(wcsobj)
-    # cx, cy can be None because either there is no model available 
+    # cx, cy can be None because either there is no model available
     # or updatewcs was not run.
     if cx == None or cy == None:
         if foundIDCTAB(wcsobj.idctab):
             m = """IDCTAB is present but distortion model is missing.
-            Run updatewcs() to update the headers or 
+            Run updatewcs() to update the headers or
             pass 'undistort=False' keyword to output_wcs().\n
             """
             raise RuntimeError, m
@@ -116,7 +115,7 @@ def  undistortWCS(wcsobj):
     #order = wcsobj.sip.a_order
     pscale = wcsobj.idcscale
     #pixref = np.array([wcsobj.sip.SIPREF1, wcsobj.sip.SIPREF2])
-    
+
     tan_pix = apply_idc(px, cx, cy, wcsobj.wcs.crpix, pscale, order=1)
     xc = tan_pix[:,0]
     yc = tan_pix[:,1]
@@ -131,8 +130,8 @@ def  undistortWCS(wcsobj):
     if ( _det == 0.0):
         print 'Singular matrix in updateWCS, aborting ...'
         return
-    
-    lin_wcsobj = pywcs.WCS()   
+
+    lin_wcsobj = pywcs.WCS()
     cd_inv = np.linalg.inv(cd_mat)
     cd = np.dot(wcsobj.wcs.cd, cd_inv).astype(np.float64)
     lin_wcsobj.wcs.cd = cd
@@ -149,16 +148,16 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
     """
     Apply the IDCTAB polynomial distortion model to pixel positions.
     pixpos must be already corrected for ltv1/2.
-    
+
     Parameters
     ----------
     pixpos: a 2D numpy array of (x,y) pixel positions to be distortion corrected
     cx, cy: IDC model distortion coefficients
     pixref: reference opixel position
-    
+
     """
     if cx == None:
-        return pixpos  
+        return pixpos
 
     if order is None:
         print 'Unknown order of distortion model \n'
@@ -166,23 +165,23 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
     if pscale is None:
         print 'Unknown model plate scale\n'
         return pixpos
-        
+
     # Apply in the same way that 'drizzle' would...
     _cx = cx/pscale
     _cy = cy/ pscale
     _p = pixpos
-    
+
     # Do NOT include any zero-point terms in CX,CY here
     # as they should not be scaled by plate-scale like rest
     # of coeffs...  This makes the computations consistent
     # with 'drizzle'.  WJH 17-Feb-2004
     _cx[0,0] = 0.
     _cy[0,0] = 0.
-    
+
     dxy = _p - pixref
     # Apply coefficients from distortion model here...
-    
-    c = _p * 0. 
+
+    c = _p * 0.
     for i in range(order+1):
         for j in range(i+1):
             c[:,0] = c[:,0] + _cx[i][j] * pow(dxy[:,0],j) * pow(dxy[:,1],(i-j))
@@ -194,7 +193,7 @@ def foundIDCTAB(idctab):
     idctab_found = True
     try:
         idctab = fileutil.osfn(idctab)
-        if idctab == 'N/A' or idctab == "": 
+        if idctab == 'N/A' or idctab == "":
             idctab_found = False
         if os.path.exists(idctab):
             idctab_found = True

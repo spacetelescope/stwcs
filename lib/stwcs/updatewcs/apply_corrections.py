@@ -31,7 +31,7 @@ cnames = {'DET2IMCorr': 'Detector to Image Correction',
          'VACorr':  'Velocity Aberration Correction',
          'NPOLCorr': 'Lookup Table Distortion'
          }
-                            
+
 def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True):
     """
     Creates a list of corrections to be applied to a file
@@ -41,20 +41,20 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     instrument = pyfits.getval(fname, 'INSTRUME')
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
-    
+
     # Check if idctab is present on disk
-    # If kw IDCTAB is present in the header but the file is 
+    # If kw IDCTAB is present in the header but the file is
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
     if not foundIDCTAB(fname):
         if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
         if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
-        if 'CompSIP' in acorr: acorr.remove('CompSIP')   
-            
+        if 'CompSIP' in acorr: acorr.remove('CompSIP')
+
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
         tddcorr = applyTDDCorr(fname, tddcorr)
         if tddcorr == False: acorr.remove('TDDCorr')
-        
+
     if 'NPOLCorr' in acorr:
         npolcorr = applyNpolCorr(fname, npolcorr)
         if npolcorr == False: acorr.remove('NPOLCorr')
@@ -69,13 +69,13 @@ def foundIDCTAB(fname):
         idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
     except KeyError:
         return False
-    if idctab == 'N/A' or idctab == "": 
+    if idctab == 'N/A' or idctab == "":
         return False
     if os.path.exists(idctab):
         return True
     else:
         return False
-   
+
 def applyTDDCorr(fname, utddcorr):
     """
     The default value of tddcorr for all ACS images is True.
@@ -84,20 +84,22 @@ def applyTDDCorr(fname, utddcorr):
     - the detector is WFC
     - the idc table specified in the primary header is available.
     """
-    instrument = pyfits.getval(fname, 'INSTRUME')
+
+    phdr = pyfits.getheader(fname)
+    instrument = phdr['INSTRUME']
     try:
-        detector = pyfits.getval(fname, 'DETECTOR')
+        detector = phdr['DETECTOR']
     except KeyError:
         detector = None
     try:
-        tddswitch = pyfits.getval(fname, 'TDDCORR')
+        tddswitch = phdr['TDDCORR']
     except KeyError:
         tddswitch = 'PERFORM'
-        
+
     if instrument == 'ACS' and detector == 'WFC' and utddcorr == True and tddswitch == 'PERFORM':
         tddcorr = True
         try:
-            idctab = pyfits.getval(fname, 'IDCTAB')    
+            idctab = phdr['IDCTAB']
         except KeyError:
             tddcorr = False
             #print "***IDCTAB keyword not found - not applying TDD correction***\n"
@@ -106,21 +108,21 @@ def applyTDDCorr(fname, utddcorr):
         else:
             tddcorr = False
             #print "***IDCTAB file not found - not applying TDD correction***\n"
-    else: 
+    else:
         tddcorr = False
 
     return tddcorr
 
 def applyNpolCorr(fname, unpolcorr):
     """
-    Determines whether non-polynomial distortion lookup tables should be added 
-    as extensions to the science file based on the 'NPOLFILE' keyword in the 
+    Determines whether non-polynomial distortion lookup tables should be added
+    as extensions to the science file based on the 'NPOLFILE' keyword in the
     primary header and NPOLEXT kw in the first extension.
     This is a default correction and will always run in the pipeline.
-    The file used to generate the extensions is 
+    The file used to generate the extensions is
     recorded in the NPOLEXT keyword in the first science extension.
-    If 'NPOLFILE' in the primary header is different from 'NPOLEXT' in the 
-    extension header and the file exists on disk and is a 'new type' npolfile, 
+    If 'NPOLFILE' in the primary header is different from 'NPOLEXT' in the
+    extension header and the file exists on disk and is a 'new type' npolfile,
     then the lookup tables will be updated as 'WCSDVARR' extensions.
     """
     applyNPOLCorr = True
@@ -136,7 +138,7 @@ def applyNpolCorr(fname, unpolcorr):
                     """ % fnpol0
             logger.critical(msg)
             applyNPOLCorr = False
-            return applyNPOLCorr 
+            return applyNPOLCorr
         try:
             # get NPOLEXT kw from first extension header
             fnpol1 = pyfits.getval(fname, 'NPOLEXT', ext=1)
@@ -149,32 +151,34 @@ def applyNpolCorr(fname, unpolcorr):
                              NPOL correction will not be applied."""
                     logger.info(msg)
                     applyNPOLCorr = False
-            else: 
+            else:
                 # npl file defined in first extension may not be found
-                # but if a valid kw exists in the primary header, non-polynomial 
+                # but if a valid kw exists in the primary header, non-polynomial
                 #distortion correction should be applied.
                 applyNPOLCorr = True
         except KeyError:
-            # the case of "NPOLFILE" kw present in primary header but "NPOLEXT" missing 
+            # the case of "NPOLFILE" kw present in primary header but "NPOLEXT" missing
             # in first extension header
             applyNPOLCorr = True
     except KeyError:
         logger.info('\n\t"NPOLFILE" keyword not found in primary header')
         applyNPOLCorr = False
-        return applyNPOLCorr 
-    
+        return applyNPOLCorr
+
     if isOldStyleDGEO(fname, fnpol0):
-            applyNPOLCorr = False       
+            applyNPOLCorr = False
     return (applyNPOLCorr and unpolcorr)
 
 def isOldStyleDGEO(fname, dgname):
-    # checks if the file defined in a NPOLFILE kw is a full size 
+    # checks if the file defined in a NPOLFILE kw is a full size
     # (old style) image
-    
-    sci_naxis1 = pyfits.getval(fname, 'NAXIS1', ext=1)
-    sci_naxis2 = pyfits.getval(fname, 'NAXIS2', ext=1)
-    dg_naxis1 = pyfits.getval(dgname, 'NAXIS1', ext=1)
-    dg_naxis2 = pyfits.getval(dgname, 'NAXIS2', ext=1)
+
+    sci_hdr = pyfits.getheader(fname, ext=1)
+    dgeo_hdr = pyfits.getheader(dgname, ext=1)
+    sci_naxis1 = sci_hdr['NAXIS1']
+    sci_naxis2 = sci_hdr['NAXIS2']
+    dg_naxis1 = dgeo_hdr['NAXIS1']
+    dg_naxis2 = dgeo_hdr['NAXIS2']
     if sci_naxis1 <= dg_naxis1 or sci_naxis2 <= dg_naxis2:
         msg = """\n\tOnly full size (old style) DGEO file was found.\n
                  Non-polynomial distortion  correction will not be applied."""
@@ -182,7 +186,7 @@ def isOldStyleDGEO(fname, dgname):
         return True
     else:
         return False
-    
+
 def applyD2ImCorr(fname, d2imcorr):
     applyD2IMCorr = True
     try:
@@ -197,7 +201,7 @@ def applyD2ImCorr(fname, d2imcorr):
             logger.critical(msg)
             print msg
             applyD2IMCorr = False
-            return applyD2IMCorr 
+            return applyD2IMCorr
         try:
             # get D2IMEXT kw from first extension header
             fd2imext = pyfits.getval(fname, 'D2IMEXT', ext=1)
@@ -207,17 +211,17 @@ def applyD2ImCorr(fname, d2imcorr):
                     applyD2IMCorr = True
                 else:
                     applyD2IMCorr = False
-            else: 
+            else:
                 # D2IM file defined in first extension may not be found
-                # but if a valid kw exists in the primary header, 
+                # but if a valid kw exists in the primary header,
                 # detector to image correction should be applied.
                 applyD2IMCorr = True
         except KeyError:
-            # the case of D2IMFILE kw present in primary header but D2IMEXT missing 
+            # the case of D2IMFILE kw present in primary header but D2IMEXT missing
             # in first extension header
             applyD2IMCorr = True
     except KeyError:
         print 'D2IMFILE keyword not found in primary header'
         applyD2IMCorr = False
-        return applyD2IMCorr 
+        return applyD2IMCorr
 

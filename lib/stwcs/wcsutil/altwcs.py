@@ -35,9 +35,9 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     Examples
     --------
-    Copy the primary WCS of an in memory headrlet object to an 
+    Copy the primary WCS of an in memory headrlet object to an
     alternate WCS with key 'T'
-    
+
     >>> hlet=headerlet.createHeaderlet('junk.fits', 'hdr1.fits')
     >>> altwcs.wcskeys(hlet[1].header)
     ['A']
@@ -45,7 +45,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     >>> altwcs.wcskeys(hlet[1].header)
     ['A', 'T']
 
-    
+
     See Also
     --------
     wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
@@ -63,10 +63,10 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     # Interpret input 'ext' value to get list of extensions to process
     ext = _buildExtlist(f, ext)
-        
+
     if not wcskey and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
-    
+
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
@@ -112,23 +112,23 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
-    
+
     for e in ext:
         hwcs = readAltWCS(f,e,wcskey=' ')
         if hwcs is None:
             continue
 
         wcsnamekey = 'WCSNAME' + wkey
-        f[e].header.update(key=wcsnamekey, value=wname)
+        f[e].header[wcsnamekey] = wname
 
         try:
             old_wcsname=hwcs.pop('WCSNAME')
         except:
             pass
         for k in hwcs.keys():
-            
+
             key = k[:7] + wkey
-            f[e].header.update(key=key, value=hwcs[k])
+            f[e].header[key] = hwcs[k]
     closefobj(fname, f)
 
 def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
@@ -138,16 +138,16 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     Reads in a WCS defined with wcskey and saves it as the primary WCS.
     Goes sequentially through the list of extensions in ext.
     Alternatively uses 'fromext' and 'toext'.
-    
+
 
     Parameters
     ----------
     f:       string or pyfits.HDUList object
              a file name or a file object
-    fromext: string 
+    fromext: string
              extname from which to read in the alternate WCS, for example 'SCI'
     toext:   string or python list
-             extname or a list of extnames to which the WCS will be copied as 
+             extname or a list of extnames to which the WCS will be copied as
              primary, for example ['SCI', 'ERR', 'DQ']
     wcskey:  a charater
              "A"-"Z" - Used for one of 26 alternate WCS definitions.
@@ -177,16 +177,16 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
         toext = [toext]
 
     # the case of an HDUList object in memory without an associated file
-    
-    #if fobj.filename() is not None: 
+
+    #if fobj.filename() is not None:
     #        name = fobj.filename()
-            
+
     simplefits = fu.isFits(fobj)[1] is 'simple'
     if simplefits:
         wcskeyext = 0
     else:
         wcskeyext = 1
-        
+
     if wcskey == " ":
         if wcsname.strip():
             wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
@@ -199,7 +199,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
             closefobj(f, fobj)
             return
         wkey = wcskey
-    
+
     countext = fu.countExtn(fobj, fromext)
     if not countext:
         raise KeyError("File does not have extension with extname %s", fromext)
@@ -211,7 +211,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     if fobj.filename() is not None:
         #fobj.writeto(name)
         closefobj(f, fobj)
-        
+
 def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
     """
     Copy a WCS with key "WCSKEY" to the primary WCS
@@ -219,7 +219,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
     Reads in a WCS defined with wcskey and saves it as the primary WCS.
     Goes sequentially through the list of extensions in ext.
     Alternatively uses 'fromext' and 'toext'.
-    
+
 
     Parameters
     ----------
@@ -255,16 +255,16 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
 
     # the case of an HDUList object in memory without an associated file
-    
-    #if fobj.filename() is not None: 
+
+    #if fobj.filename() is not None:
     #        name = fobj.filename()
-            
+
     simplefits = fu.isFits(fobj)[1] is 'simple'
     if simplefits:
         wcskeyext = 0
     else:
         wcskeyext = 1
-        
+
     if wcskey == " ":
         if wcsname.strip():
             wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
@@ -277,11 +277,11 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
             closefobj(f, fobj)
             return
         wkey = wcskey
-        
-    
+
+
     for e in ext:
         _restore(fobj, wkey, fromextnum=e)
-    
+
     if fobj.filename() is not None:
         #fobj.writeto(name)
         closefobj(f, fobj)
@@ -325,10 +325,10 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         wcskeyext = 0
     else:
         wcskeyext = 1
-        
+
     if not wcskeys and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
-    
+
     if wcskey == " ":
         # try getting the key from WCSNAME
         wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
@@ -336,11 +336,11 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
             closefobj(fname, fobj)
             raise KeyError("Could not get a key: wcsname '%s' not found in header." % wcsname)
     else:
-        if wcskey not in wcskeys(fobj[wcskeyext].header):            
+        if wcskey not in wcskeys(fobj[wcskeyext].header):
             closefobj(fname, fobj)
             raise KeyError("Could not find alternate WCS with key %s in this file" % wcskey)
         wkey = wcskey
-        
+
     prexts = []
     for i in ext:
         hdr = fobj[i].header
@@ -359,10 +359,10 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
 
 def _buildExtlist(fobj, ext):
     """
-    Utility function to interpret the provided value of 'ext' and return a list 
-    of 'valid' values which can then be used by the rest of the functions in 
+    Utility function to interpret the provided value of 'ext' and return a list
+    of 'valid' values which can then be used by the rest of the functions in
     this module.
-    
+
     Parameters
     ----------
     fobj: HDUList
@@ -373,7 +373,7 @@ def _buildExtlist(fobj, ext):
             with WCSs to be archived
     """
     if not isinstance(ext,list):
-        if isinstance(ext,str):    
+        if isinstance(ext,str):
             extstr = ext
             ext = []
             for extn in range(1, len(fobj)):
@@ -434,7 +434,7 @@ def _check_headerpars(fobj, ext):
     if not isinstance(fobj, pyfits.Header) and not isinstance(fobj, pyfits.HDUList) \
                    and not isinstance(fobj, str):
         raise ValueError("Expected a file name, a file object or a header\n")
-    
+
     if not isinstance(fobj, pyfits.Header):
         #raise ValueError("Expected a valid ext parameter when input is a file")
         if not isinstance(ext, int) and not isinstance(ext, tuple):
@@ -448,7 +448,7 @@ def _getheader(fobj, ext):
     else:
         hdr = fobj[ext].header
     return hdr
-        
+
 def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
     """ Reads in alternate WCS from specified extension
 
@@ -461,12 +461,12 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
         alternate/primary WCS key that will be replaced by the new key
     ext: int
         extension number
-    
+
     Returns
     -------
     hdr: pyfits.Header
         header object with ONLY the keywords for specified alternate WCS
-    """    
+    """
     if isinstance(fobj, str):
         fobj = pyfits.open(fobj)
 
@@ -475,33 +475,33 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
-            print 'readAltWCS: Could not read WCS with key %s' %wcskey 
+            print 'readAltWCS: Could not read WCS with key %s' %wcskey
             print '            Skipping %s[%s]' % (fobj.filename(), str(ext))
         return None
     hwcs = nwcs.to_header()
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
-    
+
     return hwcs
-    
+
 def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
-    """ 
-    Translates the alternate/primary WCS with one key to an alternate/primary WCS with 
+    """
+    Translates the alternate/primary WCS with one key to an alternate/primary WCS with
     another key.
-    
+
     Parameters
     ----------
     fobj: string, pyfits.HDUList, or pyfits.Header
-        fits filename, pyfits file object or pyfits header 
+        fits filename, pyfits file object or pyfits header
         containing alternate/primary WCS(s) to be converted
     ext: int
         extension number
     oldkey: string [" ",A-Z]
         alternate/primary WCS key that will be replaced by the new key
     newkey: string [" ",A-Z]
-        new alternate/primary WCS key 
-    
+        new alternate/primary WCS key
+
     Returns
     -------
     hdr: pyfits.Header
@@ -530,14 +530,14 @@ def wcskeys(fobj, ext=None):
     fobj: string, pyfits.HDUList or pyfits.Header
           fits file name, pyfits file object or pyfits header
     ext: int or None
-         extension number 
+         extension number
          if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     names = hdr["WCSNAME*"]
     d = []
-    for key in names.keys():
+    for key in names:
         wkey = key.replace('WCSNAME','')
         if wkey == '': wkey = ' '
         d.append(wkey)
@@ -552,18 +552,18 @@ def wcsnames(fobj, ext=None):
     fobj: string, pyfits.HDUList or pyfits.Header
           fits file name, pyfits file object or pyfits header
     ext: int or None
-         extension number 
+         extension number
          if None, fobj must be a header
-    
+
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     names = hdr["WCSNAME*"]
     d = {}
-    for c in names:
-        wkey = c.key.replace('WCSNAME','')
+    for keyword, value in names.items():
+        wkey = keyword.replace('WCSNAME','')
         if wkey == '': wkey = ' '
-        d[wkey] = c.value
+        d[wkey] = value
     return d
 
 def available_wcskeys(fobj, ext=None):
@@ -577,7 +577,7 @@ def available_wcskeys(fobj, ext=None):
     fobj: string, pyfits.HDUList or pyfits.Header
           fits file name, pyfits file object or pyfits header
     ext: int or None
-         extension number 
+         extension number
          if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
@@ -600,7 +600,7 @@ def next_wcskey(fobj, ext=None):
     fobj: string, pyfits.HDUList or pyfits.Header
           fits file name, pyfits file object or pyfits header
     ext: int or None
-         extension number 
+         extension number
          if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
@@ -661,7 +661,7 @@ def pc2cd(hdr, key=' '):
 def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     """
     Check input parameters to altwcs functions
-    
+
     fobj:    string or pyfits.HDUList object
              a file name or a file object
     ext:     an int, a tuple, a python list of integers or a python list
@@ -677,10 +677,10 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     if not isinstance(fobj,pyfits.HDUList):
         print "First parameter must be a fits file object or a file name."
         return False
-    
-    # first one covers the case of an object created in memory 
+
+    # first one covers the case of an object created in memory
     # (e.g. headerlet) for which fileinfo returns None
-    if fobj.fileinfo(0) is None: 
+    if fobj.fileinfo(0) is None:
         pass
     else:
         # an HDUList object with associated file
@@ -694,7 +694,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         print "Ext must be integer, tuple, string,a list of int extension numbers, \n\
         or a list of tuples representing a fits extension, for example ('sci', 1)."
         return False
-    
+
     if not isinstance(fromext, str) and fromext is not None:
         print "fromext must be a string representing a valid extname"
         return False
@@ -703,11 +703,11 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
                      toext is not None :
         print "toext must be a string or a list of strings representing extname"
         return False
-    
+
     if len(wcskey) != 1:
         print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
         return False
-    
+
     return True
 
 def closefobj(fname, f):

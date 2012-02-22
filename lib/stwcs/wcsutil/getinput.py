@@ -21,12 +21,11 @@ def parseSingleInput(f=None, ext=None):
             else:
                 extnum = ext
         phdu = pyfits.open(filename)
-        hdr0 = pyfits.getheader(filename)
+        hdr0 = phdu[0].header
         try:
-            ehdr = pyfits.getheader(filename, ext=extnum)
-        except (IndexError,KeyError):
-            print 'Unable to get extension.', extnum
-            raise
+            ehdr = phdu[extnum].header
+        except (IndexError, KeyError), e:
+            raise e.__class__('Unable to get extension %s.' % extnum)
 
     elif isinstance(f, pyfits.HDUList):
         phdu = f
@@ -37,9 +36,10 @@ def parseSingleInput(f=None, ext=None):
         ehdr = f[extnum].header
         hdr0 = f[0].header
         filename = hdr0.get('FILENAME', "")
-        
+
     else:
-        raise ValueError('Input must be a file name string or a pyfits file object')
+        raise ValueError('Input must be a file name string or a pyfits file '
+                         'object')
 
     return filename, hdr0, ehdr, phdu
 

@@ -126,8 +126,11 @@ class DET2IMCorr(object):
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
         axiscorr = cls.getAxisCorr(d2imfile)
         sci_hdr = fobj[1].header
-        data_shape = pyfits.getdata(d2imfile, ext=1).shape
-        naxis = pyfits.getval(d2imfile, 'NAXIS', ext=1 )
+        d2im = pyfits.open(d2imfile)
+        data_shape = d2im[1].shape
+        naxis = d2im[1].header['NAXIS']
+        d2im_phdr = d2im[0].header
+        d2im.close()
 
         kw = { 'NAXIS': 'Size of the axis',
                 'CRPIX': 'Coordinate system reference pixel',
@@ -170,24 +173,23 @@ class DET2IMCorr(object):
                 }
 
 
-        cdl = pyfits.CardList()
+        cdl = []
         for key in kw_comm0.keys():
-            cdl.append(pyfits.Card(key=key, value=kw_val0[key], comment=kw_comm0[key]))
+            cdl.append((key, kw_val0[key], kw_comm0[key]))
         for key in kw_comm1.keys():
-            cdl.append(pyfits.Card(key=key, value=kw_val1[key], comment=kw_comm1[key]))
+            cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header
-        d2im_phdr = pyfits.getheader(d2imfile)
         start_indx = -1
         end_indx = 0
-        for c,i in zip(d2im_phdr,range(len(d2im_phdr))):
+        for i, c in enumerate(d2im_phdr):
             if c == 'FILENAME':
                 start_indx = i
             if c == '': # remove blanks from end of header
                 end_indx = i+1
                 break
         if start_indx >= 0:
-            for card in d2im_phdr[start_indx:end_indx]:
+            for card in d2im_phdr.cards[start_indx:end_indx]:
                 cdl.append(card)
 
         hdr = pyfits.Header(cards=cdl)
