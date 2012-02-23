@@ -1108,7 +1108,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             wkeys = altwcs.wcskeys(fobj, ext=fext)
             if wcskey != ' ':
                 if wcskey not in wkeys:
-                    logger.debug('No WCS with wcskey=%s found in extension %s.  Skipping...' % (wcskey, str(e)))
+                    logger.debug(
+                        'No WCS with wcskey=%s found in extension %s.  '
+                        'Skipping...' % (wcskey, str(e)))
                     continue # skip any extension which does not have this wcskey
 
             # This reads in full model: alternate WCS keywords plus SIP
@@ -1151,7 +1153,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             if npolfile is not 'NOMODEL':
                 cpdis = fhdr['CPDIS*...']
                 for c in range(1, len(cpdis) + 1):
-                    h.append(cpdis[c - 1])
+                    h.append(cpdis.cards[c - 1])
                     dp = fhdr['DP%s*...' % c]
                     for kw, dpval in dp.items():
                         if 'EXTVER' in kw:
@@ -1160,32 +1162,32 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
                     h.extend(dp)
                     try:
-                        h.append(fhdr['CPERROR%s' % c])
+                        h.append(fhdr.cards['CPERROR%s' % c])
                     except KeyError:
                         pass
 
                 try:
-                    h.append(fhdr['NPOLEXT'])
+                    h.append(fhdr.cards['NPOLEXT'])
                 except KeyError:
                     pass
 
             if d2imfile is not 'NOMODEL':
                 try:
-                    h.append(fhdr['D2IMEXT'])
+                    h.append(fhdr.cards['D2IMEXT'])
                 except KeyError:
                     pass
 
                 try:
-                    h.append(fhdr['AXISCORR'])
+                    h.append(fhdr.cards['AXISCORR'])
                 except KeyError:
-                    logger.critical("'D2IMFILE' kw exists but keyword 'AXISCORR' was not found in "
-                                     "%s['SCI',%d]" % (fname, val))
+                    logger.critical(
+                        "'D2IMFILE' kw exists but keyword 'AXISCORR' was not "
+                        "found in %s['SCI',%d]" % (fname, val))
                     raise
                 try:
-                    h.append(fhdr['D2IMERR'])
+                    h.append(fhdr.cards['D2IMERR'])
                 except KeyError:
-                    h.append(pyfits.Card(key='DPERROR', value=0,
-                                         comment='Maximum error of D2IMARR'))
+                    h.append(('DPERROR', 0, 'Maximum error of D2IMARR'))
 
             hdu = pyfits.ImageHDU(header=pyfits.Header(h))
             hdul.append(hdu)
