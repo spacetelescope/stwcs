@@ -1835,8 +1835,9 @@ class Headerlet(pyfits.HDUList):
         self.fit_kws = ['HDRNAME', 'NMATCH', 'CATALOG']
         self.history = ''
         # header['HISTORY'] returns an iterable of all HISTORY values
-        for hist in self[0].header['HISTORY']:
-            self.history += hist + '\n'
+        if 'HISTORY' in self[0].header:
+            for hist in self[0].header['HISTORY']:
+                self.history += hist + '\n'
 
         self.d2imerr = 0
         self.axiscorr = 1
