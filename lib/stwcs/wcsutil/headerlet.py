@@ -2017,7 +2017,7 @@ class Headerlet(pyfits.HDUList):
                     if ((dist_models_equal and (c.keyword in hwcshdr)) or
                         (not dist_models_equal and
                          c.keyword not in FITS_STD_KW)):
-                        if 'DP' not in k.key:
+                        if 'DP' not in c.keyword:
                             fhdr.set(c.keyword, c.value, c.comment,
                                      after=akeywd, before=bkeywd)
                         else:
@@ -2637,9 +2637,9 @@ class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
         hlet.header['DATE'] = (phdu.header['DATE'],
                                phdu.header.comments['DATE'])
         hlet.header['SIPNAME'] = (sipname, 'SIP distortion model name')
-        hlet.header['WCSNAME'] = (phdu.header['WCSNAME'], 'WCS name'),
+        hlet.header['WCSNAME'] = (phdu.header['WCSNAME'], 'WCS name')
         hlet.header['DISTNAME'] = (phdu.header['DISTNAME'],
-                                   'Distortion model name'),
+                                   'Distortion model name')
         hlet.header['NPOLFILE'] = (phdu.header['NPOLFILE'],
                                    phdu.header.comments['NPOLFILE'])
         hlet.header['D2IMFILE'] = (phdu.header['D2IMFILE'],
