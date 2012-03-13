@@ -40,7 +40,8 @@ def init_wcscorr(input, force=False):
         need_to_close = False
 
     # Do not try to generate a WCSCORR table for a simple FITS file
-    if len(fimg) == 1:
+    numsci = fileutil.countExtn(fimg)
+    if len(fimg) == 1 or numsci == 0:
         return 
     
     enames = []
