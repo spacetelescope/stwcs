@@ -313,18 +313,13 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
 
     # Interpret input 'ext' value to get list of extensions to process
     ext = _buildExtlist(fobj, ext)
-
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
         print "Wcskey 'O' is reserved for the original WCS and should not be deleted."
         closefobj(fname, fobj)
         return
-
-    simplefits = fu.isFits(fobj)[1] is 'simple'
-    if simplefits:
-        wcskeyext = 0
-    else:
-        wcskeyext = 1
+    
+    wcskeyext = ext[0]
 
     if not wcskeys and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
