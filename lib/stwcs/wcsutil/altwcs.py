@@ -82,7 +82,9 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
                 wname = wcsname
-                if not wkey:
+                if wkey == ' ':
+                    wkey = next_wcskey(f[wcsext].header)
+                elif wkey is None:
                     closefobj(fname, f)
                     raise KeyError("Could not get a valid wcskey from wcsname %s" %wcsname)
             else:
