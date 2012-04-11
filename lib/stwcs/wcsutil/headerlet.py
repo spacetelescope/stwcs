@@ -1286,7 +1286,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
     """
 
     hlet = Headerlet(hdrlet, logging=logging, logmode='a')
-    hlet.attach_to_file(filename)
+    hlet.attach_to_file(filename,archive=True)
 
 
 @with_logging
@@ -2186,7 +2186,7 @@ class Headerlet(pyfits.HDUList):
         if close_dest:
             fobj.close()
 
-    def attach_to_file(self, fobj):
+    def attach_to_file(self, fobj, archive=False):
         """
         Attach Headerlet as an HeaderletHDU to a science file
 
@@ -2194,6 +2194,8 @@ class Headerlet(pyfits.HDUList):
         ----------
         fobj: string, HDUList
               science file/HDUList to which the headerlet should be applied
+        archive: string
+              Specifies whether or not to update WCSCORR table when attaching
 
         Notes
         -----
@@ -2213,8 +2215,8 @@ class Headerlet(pyfits.HDUList):
             new_hlt = HeaderletHDU.fromheaderlet(self)
             new_hlt.header.update('extver', numhlt + 1)
             fobj.append(new_hlt)
-
-            wcscorr.update_wcscorr(fobj, self, 'SIPWCS', active=False)
+            if archive:
+                wcscorr.update_wcscorr(fobj, self, 'SIPWCS', active=False)
 
         else:
             message = "Observation %s cannot be updated with headerlet" % (fname)
