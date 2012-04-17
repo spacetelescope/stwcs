@@ -66,7 +66,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     if not wcskey and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
-    
+
     if wcsname.strip() == "":
         wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
     wcsext = ext[0]
@@ -277,14 +277,13 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
                 raise KeyError("Could not get a key from wcsname %s ." % wcsname)
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            print "Could not find alternate WCS with key %s in this file" % wcskey
+            #print "Could not find alternate WCS with key %s in this file" % wcskey
             closefobj(f, fobj)
             return
         wkey = wcskey
 
-
     for e in ext:
-        _restore(fobj, wkey, fromextnum=e)
+        _restore(fobj, wkey, fromextnum=e, verbose=False)
 
     if fobj.filename() is not None:
         #fobj.writeto(name)
@@ -322,7 +321,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         print "Wcskey 'O' is reserved for the original WCS and should not be deleted."
         closefobj(fname, fobj)
         return
-    
+
     wcskeyext = ext[0]
 
     if not wcskeys and not wcsname:
@@ -384,7 +383,8 @@ def _buildExtlist(fobj, ext):
             raise KeyError("Valid extensions in 'ext' parameter need to be specified.")
     return ext
 
-def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None, toextnam=None):
+def _restore(fobj, ukey, fromextnum,
+             toextnum=None, fromextnam=None, toextnam=None, verbose=True):
     """
     fobj: string of HDUList
     ukey: string 'A'-'Z'
@@ -411,7 +411,7 @@ def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None, toextnam=No
     else:
         toextension = fromextension
 
-    hwcs = readAltWCS(fobj,fromextension,wcskey=ukey,verbose=True)
+    hwcs = readAltWCS(fobj,fromextension,wcskey=ukey,verbose=verbose)
     if hwcs is None:
         return
 
