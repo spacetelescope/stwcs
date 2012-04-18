@@ -68,7 +68,10 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         raise KeyError("Either wcskey or wcsname should be specified")
 
     if wcsname.strip() == "":
-        wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
+        try:
+            wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
+        except KeyError:
+            pass
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
