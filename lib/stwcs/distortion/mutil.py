@@ -5,7 +5,7 @@ import numpy as np
 import string
 import calendar
 
-# Set up IRAF-compatible Boolean values    
+# Set up IRAF-compatible Boolean values
 yes = True
 no = False
 
@@ -30,7 +30,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         If offtab is specified, dateobs also needs to be given.
 
     """
-  
+
  # Return a default geometry model if no IDCTAB filename
     # is given.  This model will not distort the data in any way.
     if tabname == None:
@@ -39,9 +39,9 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 
     # Implement default values for filters here to avoid the default
     # being overwritten by values of None passed by user.
-    if filter1 == None or filter1.find('CLEAR') == 0:
+    if filter1 == None or filter1.find('CLEAR') == 0 or filter1.strip() == '':
         filter1 = 'CLEAR'
-    if filter2 == None or filter2.find('CLEAR') == 0:
+    if filter2 == None or filter2.find('CLEAR') == 0 or filter2.strip() == '':
         filter2 = 'CLEAR'
 
     # Insure that tabname is full filename with fully expanded
@@ -81,7 +81,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         skew_coeffs = read_tdd_coeffs(phdr)
     else:
         skew_coeffs = None
-    
+
     # Set default filters for SBC
     if detector == 'SBC':
         if filter1 == 'CLEAR':
@@ -161,7 +161,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
                     break
 
     joinstr = ','
-    if 'CLEAR' in filter1: 
+    if 'CLEAR' in filter1:
         f1str = ''
         joinstr = ''
     else:
@@ -175,7 +175,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     if row < 0:
         err_str = '\nProblem finding row in IDCTAB! Could not find row matching:\n'
         err_str += '        CHIP: '+str(detchip)+'\n'
-        err_str += '     FILTERS: '+filstr+'\n'
+        err_str += '     FILTERS: '+filtstr+'\n'
         ftab.close()
         del ftab
         raise LookupError,err_str
@@ -241,7 +241,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 
     # If CX11 is 1.0 and not equal to the PSCALE, then the
     # coeffs need to be scaled
-    
+
     if fx[1,1] == 1.0 and abs(fx[1,1]) != refpix['PSCALE']:
         fx *= refpix['PSCALE']
         fy *= refpix['PSCALE']
@@ -268,7 +268,7 @@ def read_tdd_coeffs(phdr):
     else:
         print 'TDDORDER kw not present, using default TDD correction'
         return None
-    
+
     a = np.zeros((n+1,), np.float64)
     b = np.zeros((n+1,), np.float64)
     for i in range(n+1):
@@ -282,13 +282,13 @@ def read_tdd_coeffs(phdr):
     skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
     skew_coeffs['TDD_A'] = a
     skew_coeffs['TDD_B'] = b
-    
+
     return skew_coeffs
 
 def readOfftab(offtab, date, chip=None):
 
- 
-#Read V2REF,V3REF from a specified offset table (OFFTAB). 
+
+#Read V2REF,V3REF from a specified offset table (OFFTAB).
 # Return a default geometry model if no IDCTAB filenam  e
 # is given.  This model will not distort the data in any way.
 
@@ -389,10 +389,10 @@ def readOfftab(offtab, date, chip=None):
     return v2ref,v3ref,theta
 
 def readWCSCoeffs(header):
-   
+
     #Read distortion coeffs from WCS header keywords and
     #populate distortion coeffs arrays.
-    
+
     # Read in order for polynomials
     _xorder = header['a_order']
     _yorder = header['b_order']
