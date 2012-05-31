@@ -797,14 +797,31 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             umode = 'readonly'
 
         fobj, fname, close_fobj = parse_filename(f, mode=umode)
-        wnames = altwcs.wcsnames(fobj,ext=('sci',1))
+        # Interpret sciext input for this file
+        if isinstance(sciext, int):
+            sciextlist = [sciext] # allow for specification of simple FITS header
+        elif isinstance(sciext, str):
+            numsciext = countExtn(fobj, sciext)
+            if numsciext > 0:
+                sciextlist = [tuple((sciext,i)) for i in range(1, numsciext+1)]
+            else:
+                sciextlist = [0]
+        elif isinstance(sciext, list):
+            sciextlist = sciext
+        else:
+            errstr = "Expected sciext to be a list of FITS extensions with science data\n"+\
+                  "    a valid EXTNAME string, or an integer."
+            logger.critical(errstr)
+            raise ValueError
+
+        wnames = altwcs.wcsnames(fobj,ext=sciextlist[0])
 
         # Insure that WCSCORR table has been created with all original
         # WCS's recorded prior to adding the headerlet WCS
         wcscorr.init_wcscorr(fobj)
 
         if wcsname is None:
-            scihdr = fobj[sciext, 1].header
+            scihdr = fobj[sciextlist[0]].header
             wname = scihdr['wcsname'+wcskey]
         else:
             wname = wcsname
@@ -812,7 +829,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             hdrname = wcsname
 
         logger.critical('Creating the headerlet from image %s' % fname)
-        hdrletobj = create_headerlet(fobj, sciext=sciext,
+        hdrletobj = create_headerlet(fobj, sciext=sciextlist,
                                     wcsname=wname, wcskey=wcskey,
                                     hdrname=hdrname,
                                     sipname=sipname, npolfile=npolfile,
@@ -829,7 +846,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 hdrlet_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
 
                 if destim is not None:
-                    hdrlet_hdu[0].header['destim'] = destim
+                    hdrlet_hdu.header['destim'] = destim
 
                 fobj.append(hdrlet_hdu)
 
@@ -846,6 +863,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 logger.critical(message)
 
         if close_fobj:
+            logger.info('Closing image in write_headerlet()...')
             fobj.close()
 
         frootname = fu.buildNewRootname(fname)
@@ -862,6 +880,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
         hdrletobj.tofile(outname, clobber=clobber)
         logger.critical( 'Created Headerlet file %s ' % outname)
 
+        del hdrletobj
 
 @with_logging
 def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
@@ -947,9 +966,18 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     """
 
     fobj, fname, close_file = parse_filename(filename)
+
+    # initial interpretation of sciext value for determination of input file type
+    sciextn = sciext
+    if not isinstance(sciext,str):
+        sciextn = 'SCI'
+    elif isinstance(sciext,list) and not isinstance(sciext[0],int):
+        sciextn = sciext[0][0]
+    numsci = countExtn(fobj,extname=sciextn)
+
     # Define extension to evaluate for verification of input parameters
     wcsext = 1
-    if fu.isFits(fname)[1] == 'simple':
+    if fu.isFits(fname)[1] == 'simple' or numsci == 0:
         wcsext = 0
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY':
@@ -960,7 +988,6 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
 
     wnames = altwcs.wcsnames(fobj,ext=wcsext)
-
     if not wcsname:
         # User did not specify a value for 'wcsname'
         if wcsnamekw in fobj[wcsext].header:
@@ -1068,7 +1095,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         sciext = [sciext] # allow for specification of simple FITS header
     elif isinstance(sciext, str):
         numsciext = countExtn(fobj, sciext)
-        sciext = [(sciext + ", " + str(i)) for i in range(1, numsciext+1)]
+        sciext = [tuple((sciext,i)) for i in range(1, numsciext+1)]
     elif isinstance(sciext, list):
         pass
     else:
@@ -1101,10 +1128,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     wcsdvarr_extns = []
     if fu.isFits(fobj)[1] is not 'simple':
         for e in sciext:
-            try:
-                fext = int(e)
-            except ValueError:
-                fext = fu.parseExtn(e)
+            fext = e
+            if not isinstance(e,int):
+                if isinstance(e,str):
+                    fext = fu.parseExtn(e)
+                fext = fu.findExtname(fobj,fext[0],extver=fext[1])
             wkeys = altwcs.wcskeys(fobj, ext=fext)
             if wcskey != ' ':
                 if wcskey not in wkeys:
@@ -1148,7 +1176,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                     val = fext
             else: val = fext[1]
             h.insert(1, ('EXTVER', val, 'Extension version'))
-            h.append(('SCIEXT', e, 'Target science data extension'))
+            h.append(('SCIEXT', fext, 'Target science data extension'))
             fhdr = fobj[fext].header
             if npolfile is not 'NOMODEL':
                 cpdis = fhdr['CPDIS*...']
@@ -2018,7 +2046,10 @@ class Headerlet(pyfits.HDUList):
                         (not dist_models_equal and
                          c.keyword not in FITS_STD_KW)):
                         if 'DP' not in c.keyword:
-                            fhdr.set(c.keyword, c.value, c.comment,
+                            if c.keyword in fhdr:
+                                fhdr[c.keyword] = c.value
+                            else:
+                                fhdr.set(c.keyword, c.value, c.comment,
                                      after=akeywd, before=bkeywd)
                         else:
                             update_cpdis = True
@@ -2215,8 +2246,8 @@ class Headerlet(pyfits.HDUList):
             new_hlt = HeaderletHDU.fromheaderlet(self)
             new_hlt.header.update('extver', numhlt + 1)
             fobj.append(new_hlt)
-            if archive:
-                wcscorr.update_wcscorr(fobj, self, 'SIPWCS', active=False)
+            #if archive:
+                #wcscorr.update_wcscorr(fobj, self, 'SIPWCS', active=False)
 
         else:
             message = "Observation %s cannot be updated with headerlet" % (fname)
