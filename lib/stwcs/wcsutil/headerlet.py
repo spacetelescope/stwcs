@@ -1950,7 +1950,7 @@ class Headerlet(pyfits.HDUList):
                     # Create a headerlet for the original Primary WCS data in the file,
                     # create an HDU from the original headerlet, and append it to
                     # the file
-                    orig_hlt = create_headerlet(fobj, sciext=wcsextn[0],
+                    orig_hlt = create_headerlet(fobj, sciext=wcsextn,
                                     wcsname=wcsname, wcskey=wcskey,
                                     hdrname=hdrname, sipname=None,
                                     npolfile=None, d2imfile=None,
