@@ -198,6 +198,9 @@ class CompSIP(object):
     def updateWCS(cls, ext_wcs, ref_wcs):
         logger.info("\n\tStarting CompSIP: %s" %time.asctime())
         kw2update = {}
+        if not ext_wcs.idcmodel:
+            logger.info("IDC model not found, SIP coefficient will not be computed")
+            return kw2update
         order = ext_wcs.idcmodel.norder
         kw2update['A_ORDER'] = order
         kw2update['B_ORDER'] = order
