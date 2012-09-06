@@ -87,7 +87,6 @@ class NPOLCorr(object):
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion
-
                 for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
                     cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0])
                     hdu = cls.createNpolHDU(header, npolfile=nplfile, \
@@ -131,7 +130,7 @@ class NPOLCorr(object):
         else:
             j=2
 
-        cperror = 'CPERROR%s' %j
+        cperror = 'CPERR%s' %j
         cpdis = 'CPDIS%s' %j
         dpext = 'DP%s.' %j + 'EXTVER'
         dpnaxes = 'DP%s.' %j +'NAXES'
@@ -220,6 +219,7 @@ class NPOLCorr(object):
         """
         hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip, binned=binned)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
+        sciheader.update('CPERR'+str(wdvarr_ver), data.max())
         return hdu
 
     createNpolHDU = classmethod(createNpolHDU)
@@ -289,7 +289,6 @@ class NPOLCorr(object):
                     'GCOUNT': 1,
                     'CCDCHIP': ccdchip,
                 }
-
         cdl = []
         for key in kw_comm0.keys():
             cdl.append((key, kw_val0[key], kw_comm0[key]))
