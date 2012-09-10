@@ -41,7 +41,7 @@ class NPOLCorr(object):
                 Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("\n\tStarting CompSIP: %s" %time.asctime())
+        logger.info("\n\tStarting NPOL: %s" %time.asctime())
         try:
             assert isinstance(fobj, pyfits.HDUList)
         except AssertionError:
@@ -88,7 +88,8 @@ class NPOLCorr(object):
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion
                 for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
-                    cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0])
+                    error_val = ename[2].max()
+                    cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0], error_val=error_val)
                     hdu = cls.createNpolHDU(header, npolfile=nplfile, \
                         wdvarr_ver=ename[1], npl_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
                     if wcsdvarr_ind:
@@ -120,7 +121,7 @@ class NPOLCorr(object):
 
     getWCSIndex = classmethod(getWCSIndex)
 
-    def addSciExtKw(cls, hdr, wdvarr_ver=None, npol_extname=None):
+    def addSciExtKw(cls, hdr, wdvarr_ver=None, npol_extname=None, error_val=0.0):
         """
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
@@ -137,11 +138,15 @@ class NPOLCorr(object):
         dpaxis1 = 'DP%s.' %j+'AXIS.1'
         dpaxis2 = 'DP%s.' %j+'AXIS.2'
         keys = [cperror, cpdis, dpext, dpnaxes, dpaxis1, dpaxis2]
-        values = {cperror: 0.0, cpdis: 'Lookup',  dpext: wdvarr_ver, dpnaxes: 2,
-                dpaxis1: 1, dpaxis2: 2}
+        values = {cperror: error_val, 
+                  cpdis: 'Lookup',  
+                  dpext: wdvarr_ver, 
+                  dpnaxes: 2,
+                  dpaxis1: 1, 
+                  dpaxis2: 2}
 
         comments = {cperror: 'Maximum error of NPOL correction for axis %s' % j,
-                    cpdis: 'Prior distortion funcion type',
+                    cpdis: 'Prior distortion function type',
                     dpext: 'Version number of WCSDVARR extension containing lookup distortion table',
                     dpnaxes: 'Number of independent variables in distortion function',
                     dpaxis1: 'Axis number of the jth independent variable in a distortion function',
@@ -219,7 +224,6 @@ class NPOLCorr(object):
         """
         hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip, binned=binned)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
-        sciheader.update('CPERR'+str(wdvarr_ver), data.max())
         return hdu
 
     createNpolHDU = classmethod(createNpolHDU)
