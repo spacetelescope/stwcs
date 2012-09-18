@@ -330,9 +330,9 @@ the CTYPE keyword.
 
 .. _Appendix1:
 
-***************************************
-Appendix 1 - Sample ACS/WFC SCI Header 
-***************************************
+**********************************
+Appendix 1 - Sample ACS/WFC Image 
+**********************************
 The WCS of a single chip from an ACS/WFC exposure illustrates how the SIP keywords are
 populated based on the coefficients from the external IDCTAB reference file.  In addition,
 this header includes the keywords referring to additional distortion corrections
@@ -344,8 +344,64 @@ standards to maintain a record of the WCS information prior to being updated/rec
 use the new reference information. The old WCS gets stored using WCS key 'O' and 'WCSNAMEO' = 'OPUS'
 to indicate it was originally computed by OPUS, the HST pipeline system. 
 
-The following 
-keywords only represent the WCS keywords from a sample ACS/WFC SCI header with 4-th order
+FITS File extensions
+--------------------
+The FITS file for this ACS/WFC image now contains extra extensions for the NPOLFILE and D2IMFILE
+corrections.
+
+::
+
+ Filename: jbf401p8q_flc.fits
+ No.    Name         Type      Cards   Dimensions   Format
+ 0    PRIMARY     PrimaryHDU     261   ()           int16   
+ 1    SCI         ImageHDU       184   (4096, 2048)   float32   
+ 2    ERR         ImageHDU        55   (4096, 2048)   float32   
+ 3    DQ          ImageHDU        47   (4096, 2048)   int16   
+ 4    SCI         ImageHDU       183   (4096, 2048)   float32   
+ 5    ERR         ImageHDU        55   (4096, 2048)   float32   
+ 6    DQ          ImageHDU        47   (4096, 2048)   int16   
+ 7    D2IMARR     ImageHDU        12   (4096,)      float32   
+ 8    WCSDVARR    ImageHDU        37   (65, 33)     float32   
+ 9    WCSDVARR    ImageHDU        37   (65, 33)     float32   
+ 10   WCSDVARR    ImageHDU        37   (65, 33)     float32   
+ 11   WCSDVARR    ImageHDU        37   (65, 33)     float32   
+ 12   WCSCORR     BinTableHDU     59   14R x 24C    [40A, I, 1A, 24A, 24A, 24A, 24A, D, D, D, D, D, D, D, D, 
+                                                     24A, 24A, D, D, D, D, J, 40A, 128A] 
+
+The last extension, named WCSCORR, contains a binary table providing a summary of all the WCS 
+solutions that have been applied to this file and does not act as an active part of the WCS 
+or its interpretation.
+
+Primary Header
+--------------
+The PRIMARY header of HST data contains keywords specifying information general to 
+the entire file, such as what calibration steps were applied and what reference files
+should be used.  No active WCS keywords (keywords interpreted for coordinate transformations)
+are present in the PRIMARY header, but keywords specifying the applicable distortion 
+reference files can be found in the PRIMARY header. Some keywords describing the 
+distortion model and when the WCS was updated with the distortion information from the
+reference files can also be found in the PRIMARY header. These distortion and WCS
+related keywords from the PRIMARY header are::
+
+
+              / CALIBRATION REFERENCE FILES                                     
+                                                                                
+ IDCTAB  = 'jref$v8q1444sj_idc.fits' / image distortion correction table         
+ DGEOFILE= 'jref$qbu16420j_dxy.fits' / Distortion correction image               
+ D2IMFILE= 'jref$v971826mj_d2i.fits' / Column Correction Reference File          
+ NPOLFILE= 'jref$v971826aj_npl.fits' / Non-polynomial Offsets Reference File     
+
+ UPWCSVER= '1.0.0   '           / Version of STWCS used to updated the WCS       
+ PYWCSVER= '1.11-4.10'          / Version of PYWCS used to updated the WCS       
+ DISTNAME= 'jbf401p8q_v8q1444sj-v971826aj-v971826mj'                             
+ SIPNAME = 'jbf401p8q_v8q1444sj'                                                 
+
+The remainder of the PRIMARY header specifies the general characteristics of the image.
+
+
+SCI Header Keywords
+-------------------
+The following keywords only represent the WCS keywords from a sample ACS/WFC SCI header with 4-th order
 polynomial distortion correction from the IDCTAB reference file, along with NPOLFILE and 
 D2IMFILE corrections from the specific reference files used as examples in :ref:`Appendix2`
 :ref:`Appendix3`.
@@ -484,7 +540,11 @@ Appendix 2 - NPOLFILE Example
 *************************************
 The NPOLFILE reference file format includes a PRIMARY header describing what kind of 
 image should be corrected by this file, along with extensions containing the corrections
-for each chip.  A sample NPOLFILE applicable to ACS/WFC F475W images has the FITS extensions::
+for each chip.  
+
+FITS File Extensions
+--------------------
+A sample NPOLFILE applicable to ACS/WFC F475W images has the FITS extensions::
 
  Filename: /grp/hst/cdbs/jref/v971826aj_npl.fits
  No.    Name         Type      Cards   Dimensions   Format
@@ -497,6 +557,8 @@ for each chip.  A sample NPOLFILE applicable to ACS/WFC F475W images has the FIT
 The extensions with the name 'DX' provide the corrections in X for each of the 
 ACS/WFC's 2 chips, while the 'DY' extensions provide the corrections in Y for each chip.
 
+Primary Header
+--------------
 The PRIMARY header of this file only includes the minimum information necessary to describe
 what exposures should be corrected by this reference file and how it was generated. A full
 listing of the PRIMARY header includes::
@@ -533,6 +595,8 @@ listing of the PRIMARY header includes::
  HISTORY v9615069j_npl.fits renamed to v971826aj_npl.fits on Sep 7 2011          
 
 
+Data Extension Header
+---------------------
 Each ACS/WFC chip has a shape of 4096 x 2048 pixels,
 yet the data arrays in this specific reference file only have 65x33 values.
 Each data extension ('DX' and 'DY') contains only those keywords necessary to 
@@ -574,8 +638,11 @@ Appendix 3 - D2IMFILE Example
 *************************************
 
 The D2IMFILE reference file only contains a single 1-D array that should correct the
-column (row) values based on the value of the 'AXISCORR' keyword in the SCI header. This 
-simple reference file, therefore, contains only 2 extensions; namely,
+column (row) values based on the value of the 'AXISCORR' keyword in the SCI header. 
+
+FITS File Extensions
+---------------------
+This simple reference file, therefore, contains only 2 extensions; namely,
 
 ::
 
@@ -584,6 +651,8 @@ simple reference file, therefore, contains only 2 extensions; namely,
  0    PRIMARY     PrimaryHDU      35   ()           int16   
  1    DX          ImageHDU        18   (4096,)      float32   
 
+PRIMARY Header
+--------------
 The PRIMARY header only needs to contain information on what detector this file corrects,
 along with any available information on how this file was generated.  The ACS/WFC D2IMFILE
 PRIMARY header only includes::
@@ -627,6 +696,8 @@ PRIMARY header only includes::
 In this case, most of the keywords not required by FITS describe how this file
 was computed while also describing how it should be applied. 
 
+Data Extension Header
+---------------------
 The header keywords for the actual DX array simply needs to provide the information
 necessary to apply the values to the data; namely, 
 
