@@ -4,7 +4,7 @@ Distortion Correction in HST FITS Files - DRAFT
 
 .. abstract::
    :author: Warren Hack, Andy Fruchter, Perry Greenfield, Nadezhda Dencheva
-   :date: 12 Oct 2010
+   :date: 18 Sept 2012
    
    A convention for storing distortion information in HST images was developed 
    and implemented in two software packages - PyWCS and STWCS. These changes 
@@ -57,13 +57,20 @@ the image's FITS headers.
 The calibrations also represent separate aspects of the detector and the distortion, 
 aspects which logically should remain as separate descriptions in the header. The pixels 
 for each CCD do not have the same size across the entire chip. The ACS/WFC CCDs manufacturing 
-process resulted in the pixels having different sizes every 68.3 columns, and can be represented most efficiently and accurately by a 1-D correction that gets applied to every row in the chip. This detector level characterization affects all images readout from the CCD regardless of any additional distortion applied to the field of view. Logically, this effect should be kept as a separate component of the distortion model that gets applied prior to correcting for any other distortion. This represents an example of an effect that is best applied sequentially to the image data.
+process resulted in the pixels having different sizes every 68.3 columns, and can be represented 
+most efficiently and accurately by a 1-D correction that gets applied to every row in the chip. 
+This detector level characterization affects all images readout from the CCD regardless of any 
+additional distortion applied to the field of view. Logically, this effect should be kept as a 
+separate component of the distortion model that gets applied prior to correcting for any other 
+distortion. This represents an example of an effect that is best applied sequentially to the image data.
 
 Additional distortions come as a result of the effect of the optics on the field of view. 
 These are generally described by low-order polynomials for most instruments, although for 
 ACS, an additional non-polynomial correction needed to be taken into account as well. 
 Fortunately, the non-polynomial correction can sub-sampled enough to make it practical 
-to include in the image headers directly, a correction of up to a quarter of a pixel in some areas of the detector. Both components need to be applied to the data in order to align images well enough for subsequent data analysis or cosmic-ray rejection.
+to include in the image headers directly, a correction of up to a quarter of a pixel in some 
+areas of the detector. Both components need to be applied to the data in order to align images 
+well enough for subsequent data analysis or cosmic-ray rejection.
 
 These corrections could be combined into a single look-up table, yet it would come at the 
 cost of additional errors which may not allow the remaining data analysis or cosmic-ray 
@@ -82,7 +89,7 @@ SIP Convention
 
 Current implementations of distortion models in FITS headers have been limited to simply 
 describing polynomial models. The prime example of this would be the implementation of SIP 
-in WCSTOOLS and DS9 as used for Spitzer data. The keywords used for the SIP standard are:
+in WCSTOOLS and DS9 as used for Spitzer data [SIPConvention]_. The keywords used for the SIP standard are:
 
 :: 
 
@@ -108,10 +115,15 @@ position to get the final world coordinates.
 This convention was created from the original form of the FITS Paper IV standards, but the 
 Paper IV proposal since changed to use a different set of keywords and conventions. 
 
+A sample ACS/WFC SCI header can be found in :ref:`Appendix1` to illustrate how these 
+keywords actually get populated for an image.  The current implementation does not 
+take advantage of the A_DMAX, B_DMAX, SIPREFi or SIPSCLi keywords, so these keywords
+are not written out to the SCI header.
+
 Paper IV Proposal
 =================
 
-The current Paper IV conventions provide a mechanism for specifying either a lookup table 
+The current Paper IV conventions [PaperIV]_ provide a mechanism for specifying either a lookup table 
 or polynomial model for the distortion of each axis. The standard states in Section 2.1: 
 
 ``Note that the prior distortion functions,, operate on pixel coordinates (i.e. p  
@@ -129,7 +141,8 @@ For our purposes, the keywords of interest are those related to lookup tables; n
 ::
 
  CPDISja        string    2.4.1 distortion code new Prior distortion function type.
- DPja           record   2.4.2 distortion parameter new Parameter for a prior distortion function, for use in an image heade
+ DPja           record    2.4.2 distortion parameter new Parameter for a prior distortion 
+                                  function, for use in an image header
                           
 This syntax only provides the option to specify one correction at a time for each 
 axis of the image. This precludes being able to use this convention to specify both 
@@ -139,6 +152,10 @@ convention, for example, the SIP convention. Thus, SIP and Paper IV should not b
 seen as mutually exclusive. In fact, they may work together rather naturally since the 
 SIP and Paper IV conventions both assume the corrections will work on the input pixel 
 and add to the output frame. 
+
+The sample header in :ref:`Appendix1` shows how these keywords get populated for
+an actual reference file; specifically, an NPOLFILE as described in the next section.
+
 
 NPOLFILE reference File Format
 ==============================
@@ -158,12 +175,12 @@ chip.
    This figure illustrates the corrections included in the ACS/WFC F475W NPOLFILE.
 
 
-This new reference file will be called an NPOLFILE in the FITS image header, 
+This new reference file will be called an **NPOLFILE** in the FITS image header, 
 so that any original DGEOFILE reference filename can be retained in parallel for 
 backwards compatibility with the current software. This reference file will also 
-have a unique suffix, _npl.fits, as another means of identifying it as a new r
+have a unique suffix, **_npl.fits**, as another means of identifying it as a new r
 eference file separate from the current DGEOFILE files. The header for this new 
-reference file also remains very simple, as illustrated in :ref:`Appendix1`.
+reference file also remains very simple, as illustrated in :ref:`Appendix2`.
 
 The two 65 x 33 arrays get read into memory with each input ACS/WFC chip (one for 
 X offsets and one for Y offsets). Bi-linear interpolation based on the input pixel 
@@ -222,8 +239,8 @@ for each affected instrument. This reference file only contains a single array o
 corresponding to the 1-D correction to be applied. Header keywords in the reference file 
 then specify what axis gets this correction. As a result, this new reference file remains 
 small enough to easily be added to an input image without significant change in size. An 
-initial D2IMFILE for ACS has been generated for testing with a sample header provided in 
-:ref:`Appendix2`. 
+initial **D2IMFILE** for ACS has been generated for testing with a sample header provided in 
+:ref:`Appendix3`. 
 
 .. figure:: /images/d2im_bar.png
    :width: 95 %
@@ -303,10 +320,167 @@ the CTYPE keyword.
 
    Coordinate Transformation Pipeline
 
+.. [PaperIV] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+    "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
+    Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
+
+.. [SIPConvention] Shupe D.L., Hook R.N., 2008, "The SIP Convention for Representing Distortion in FITS Image
+    Headers", [cited 2012 Sept 18], Available from: http://fits.gsfc.nasa.gov/registry/sip.html
+
+
 .. _Appendix1:
 
+***************************************
+Appendix 1 - Sample ACS/WFC SCI Header 
+***************************************
+The WCS of a single chip from an ACS/WFC exposure illustrates how the SIP keywords are
+populated based on the coefficients from the external IDCTAB reference file.  In addition,
+this header includes the keywords referring to additional distortion corrections
+related to non-polynomial corrections from the NPOLFILE and to column-width corrections from
+the D2IMFILE.  This sample illustrates how all three corrections can be specified at the
+same time in a FITS header using our rules for combining the SIP WCS convention and
+FITS WCS Paper IV proposed syntax, while also using FITS WCS Paper I alternate WCS 
+standards to maintain a record of the WCS information prior to being updated/recomputed to
+use the new reference information. The old WCS gets stored using WCS key 'O' and 'WCSNAMEO' = 'OPUS'
+to indicate it was originally computed by OPUS, the HST pipeline system. 
+
+The following 
+keywords only represent the WCS keywords from a sample ACS/WFC SCI header with 4-th order
+polynomial distortion correction from the IDCTAB reference file, along with NPOLFILE and 
+D2IMFILE corrections from the specific reference files used as examples in :ref:`Appendix2`
+:ref:`Appendix3`.
+
+::
+
+ XTENSION= 'IMAGE   '           / IMAGE extension                                
+ BITPIX  =                  -32                                                  
+ NAXIS   =                    2                                                  
+ NAXIS1  =                 4096                                                  
+ NAXIS2  =                 2048                                                  
+ PCOUNT  =                    0 / required keyword; must = 0                     
+ GCOUNT  =                    1 / required keyword; must = 1                     
+ ORIGIN  = 'HSTIO/CFITSIO March 2010'                                            
+ DATE    = '2012-06-13' / date this file was written (yyyy-mm-dd)                
+ INHERIT =                    T / inherit the primary header                     
+ EXTNAME = 'SCI     '           / extension name                                 
+ EXTVER  =                    1 / extension version number                       
+ ROOTNAME= 'jbf401p8q                         ' / rootname of the observation set
+ EXPNAME = 'jbf401p8q                ' / exposure identifier                     
+ BUNIT   = 'ELECTRONS'          / brightness units                               
+                                                                                
+              / WFC CCD CHIP IDENTIFICATION                                     
+                                                                                
+ CCDCHIP =                    2 / CCD chip (1 or 2)                              
+                                                                                
+              / World Coordinate System and Related Parameters                  
+                                                                                
+ WCSAXES =                    2 / number of World Coordinate System axes         
+ CRPIX1  =                 2048 / x-coordinate of reference pixel                
+ CRPIX2  =                 1024 / y-coordinate of reference pixel                
+ CRVAL1  =        11.3139376926 / first axis value at reference pixel            
+ CRVAL2  =        42.0159325283 / second axis value at reference pixel           
+ CTYPE1  = 'RA---TAN-SIP'       / the coordinate type for the first axis         
+ CTYPE2  = 'DEC--TAN-SIP'       / the coordinate type for the second axis        
+ CD1_1   = -7.8194868997837E-06 / partial of first axis coordinate w.r.t. x      
+ CD1_2   = 1.09620231564470E-05 / partial of first axis coordinate w.r.t. y      
+ CD2_1   = 1.14279318521882E-05 / partial of second axis coordinate w.r.t. x     
+ CD2_2   = 8.66885775536641E-06 / partial of second axis coordinate w.r.t. y     
+ LTV1    =        0.0000000E+00 / offset in X to subsection start                
+ LTV2    =        0.0000000E+00 / offset in Y to subsection start                
+ LTM1_1  =                  1.0 / reciprocal of sampling rate in X               
+ LTM2_2  =                  1.0 / reciprocal of sampling rate in Y               
+ ORIENTAT=    51.66276166150634 / position angle of image y axis (deg. e of n)   
+ RA_APER =   1.133205840898E+01 / RA of aperture reference position              
+ DEC_APER=   4.202747924810E+01 / Declination of aperture reference position     
+ PA_APER =              51.4653 / Position Angle of reference aperture center (de
+ VAFACTOR=   9.999374411935E-01 / velocity aberration plate scale factor         
+                                                                                 
+ WCSCDATE= '18:41:12 (13/06/2012)' / Time WCS keywords were copied.              
+ A_0_2   = 2.18045745103211E-06                                                  
+ B_0_2   = -7.2266555836441E-06                                                  
+ A_1_1   = -5.2225148886672E-06                                                  
+ B_1_1   = 6.20296011911662E-06                                                  
+ A_2_0   = 8.54842918202735E-06                                                  
+ B_2_0   = -1.7551668097547E-06                                                  
+ A_0_3   = 8.09354090167772E-12                                                  
+ B_0_3   = -4.2488740853874E-10                                                  
+ A_1_2   = -5.2903025382457E-10                                                  
+ B_1_2   = -7.6098727022982E-11                                                  
+ A_2_1   = -4.4821374838034E-11                                                  
+ B_2_1   = -5.1244088812978E-10                                                  
+ A_3_0   = -4.6755353102513E-10                                                  
+ B_3_0   = 8.48145748580355E-11                                                  
+ A_0_4   = -8.3665541956904E-17                                                  
+ B_0_4   = -2.1662072760964E-14                                                  
+ A_1_3   = -1.5108585176304E-14                                                  
+ B_1_3   = -1.5686763638364E-14                                                  
+ A_2_2   = 3.61252682019403E-14                                                  
+ B_2_2   = -2.6194214315839E-14                                                  
+ A_3_1   = 1.03502537140899E-14                                                  
+ B_3_1   = -2.6915637616404E-15                                                  
+ A_4_0   = 2.32643027828425E-14                                                  
+ B_4_0   = -1.5701287138447E-14                                                  
+ A_ORDER =                    4                                                  
+ B_ORDER =                    4                                                  
+ IDCSCALE=                 0.05                                                  
+ IDCV2REF=    256.6019897460938                                                  
+ IDCV3REF=    302.2520141601562                                                  
+ IDCTHETA=                  0.0                                                  
+ OCX10   = 0.001965125839177266                                                  
+ OCX11   =  0.04983026381230307                                                  
+ OCY10   =   0.0502766128737329                                                  
+ OCY11   = 0.001493971240339153                                                  
+ TDDALPHA=    0.246034678162242                                                  
+ TDDBETA = -0.07934489272074734                                                  
+ IDCXREF =               2048.0                                                  
+ IDCYREF =               1024.0                                                  
+ AXISCORR=                    1                                                  
+ D2IMEXT = '/grp/hst/cdbs/jref/v971826mj_d2i.fits'                               
+ D2IMERR = 0.002770500956103206                                                  
+ WCSNAMEO= 'OPUS    '                                                            
+ WCSAXESO=                    2                                                  
+ CRPIX1O =                 2048                                                  
+ CRPIX2O =                 1024                                                  
+ CDELT1O =                    1                                                  
+ CDELT2O =                    1                                                  
+ CUNIT1O = 'deg     '                                                            
+ CUNIT2O = 'deg     '                                                            
+ CTYPE1O = 'RA---TAN-SIP'                                                        
+ CTYPE2O = 'DEC--TAN-SIP'                                                        
+ CRVAL1O =        11.3139376926                                                  
+ CRVAL2O =        42.0159325283                                                  
+ LONPOLEO=                  180                                                  
+ LATPOLEO=        42.0159325283                                                  
+ RESTFRQO=                    0                                                  
+ RESTWAVO=                    0                                                  
+ CD1_1O  =   -7.81948731152E-06                                                  
+ CD1_2O  =    1.09620228331E-05                                                  
+ CD2_1O  =    1.14279315609E-05                                                  
+ CD2_2O  =    8.66885813904E-06                                                  
+ WCSNAME = 'IDC_v8q1444sj'                                                       
+ CPERROR1=                  0.0 / Maximum error of NPOL correction for axis 1    
+ CPDIS1  = 'Lookup  '           / Prior distortion funcion type                  
+ DP1     = 'EXTVER: 1' / Version number of WCSDVARR extension containing lookup d
+ DP1     = 'NAXES: 2' / Number of independent variables in distortion function   
+ DP1     = 'AXIS.1: 1' / Axis number of the jth independent variable in a distort
+ DP1     = 'AXIS.2: 2' / Axis number of the jth independent variable in a distort
+ CPERROR2=                  0.0 / Maximum error of NPOL correction for axis 2    
+ CPDIS2  = 'Lookup  '           / Prior distortion funcion type                  
+ DP2     = 'EXTVER: 2' / Version number of WCSDVARR extension containing lookup d
+ DP2     = 'NAXES: 2' / Number of independent variables in distortion function   
+ DP2     = 'AXIS.1: 1' / Axis number of the jth independent variable in a distort
+ DP2     = 'AXIS.2: 2' / Axis number of the jth independent variable in a distort
+ NPOLEXT = 'jref$v971826aj_npl.fits'                                             
+
+
+All keywords related to the exposure itself, such as readout pattern, have been deleted 
+from this SCI header listing for the sake of brevity. 
+
+
+.. _Appendix2:
+
 *************************************
-Appendix 1 - NPOLFILE Example 
+Appendix 2 - NPOLFILE Example 
 *************************************
 The NPOLFILE reference file format includes a PRIMARY header describing what kind of 
 image should be corrected by this file, along with extensions containing the corrections
@@ -393,10 +567,10 @@ pixel in the full ACS/WFC exposure. The full header for the ['DX',1] extension c
  CDELT2  =                   64 / Coordinate increment along axis                
 
 
-.. _Appendix2:
+.. _Appendix3:
 
 *************************************
-Appendix 2 - D2IMFILE Example 
+Appendix 3 - D2IMFILE Example 
 *************************************
 
 The D2IMFILE reference file only contains a single 1-D array that should correct the
