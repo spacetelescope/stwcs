@@ -30,7 +30,7 @@ Non-Polynomial Distortion Correction
 
 .. py:module:: stwcs.updatewcs.corrections
 
-.. autoclass:: stwcs.updatewcs.dgeo.DGEOCorr
+.. autoclass:: stwcs.updatewcs.npol.NPOLCorr
 
 -----------------------------------------
 Detector to Image Correction

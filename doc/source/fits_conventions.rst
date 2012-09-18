@@ -148,7 +148,17 @@ as the original DGEOFILE as used by ACS and WFPC2 as that large of a reference
 file would more than double the size of each input image since the reference 
 file gets folded into each file. Instead, a sub-sampled array of corrections will 
 be stored in the new reference file, with ACS using a 65 x 33 array for each ACS/WFC 
-chip. This new reference file will be called an NPOLFILE in the FITS image header, 
+chip. 
+
+.. figure:: /images/npol_vector_text.png
+   :width: 95 %
+   :alt: ACS/WFC F475W NPOLFILE corrections
+   :align: center
+   
+   This figure illustrates the corrections included in the ACS/WFC F475W NPOLFILE.
+
+
+This new reference file will be called an NPOLFILE in the FITS image header, 
 so that any original DGEOFILE reference filename can be retained in parallel for 
 backwards compatibility with the current software. This reference file will also 
 have a unique suffix, _npl.fits, as another means of identifying it as a new r
@@ -178,8 +188,8 @@ For ACS the correction is stored as an image extension with one row. Each elemen
 the row specifies the correction in pixels for every pixel in the column (or row) in 
 the science extension as predetermined by the calibration teams who would be responsible 
 for creating the reference files. For ACS the correction is in the X direction and for 
-WFPC2 - in the Y direction. The following new keywords are added to the primary header 
-of a science file: 
+WFPC2 - in the Y direction. The following new keywords are added to the header of each 
+science extension of a science file: 
 
 ::
 
@@ -214,6 +224,14 @@ then specify what axis gets this correction. As a result, this new reference fil
 small enough to easily be added to an input image without significant change in size. An 
 initial D2IMFILE for ACS has been generated for testing with a sample header provided in 
 the Appendix. 
+
+.. figure:: /images/d2im_bar.png
+   :width: 95 %
+   :alt: ACS/WFC F475W D2IMFILE corrections
+   :align: center
+   
+   This figure illustrates the corrections included in the first 246 columns of 
+   the ACS/WFC F475W D21IMFILE.
 
 The WCS for this correction describes the extension as a 1-D image, even though it will 
 be applied to a 2-D image. This keeps it clear that the same correction gets applied to 

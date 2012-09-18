@@ -29,13 +29,13 @@ Source Image
 ============
 All users get their copy of an image from the HST Archive (OTFR) after being processed with the latest image calibrations, including applying the latest available distortion models. The calibrated image gets passed to the user with the ``_flt.fits`` suffix and is referred to as the ``FLT`` image.  These FLT images serve as the inputs to MultiDrizzle in order to apply the distortion models and combine the images into a single ``DRZ`` product.  
 
-The WCS information in the FLT images has been updated to include the full distortion model, including the full polynomial solution from the IDCTAB and all the corrections formerly combined into the DGEOFILE. The FITSConventions_ report by Dencheva (currently available online) contains the full description of the conventions used to describe all these components in a FITS file. The header now contains the following set of keywords and extensions to fully describe the WCS with distortion:
+The WCS information in the FLT images has been updated to include the full distortion model, including the full polynomial solution from the IDCTAB and all the corrections formerly combined into the DGEOFILE. The :ref:`FITS Conventions Report <fits_conventions_tsr>` report by Dencheva contains the full description of the conventions used to describe all these components in a FITS file. The header now contains the following set of keywords and extensions to fully describe the WCS with distortion:
 
   * **Linear WCS keywords**: specifically, CRPIX, CRVAL, CTYPE, CD matrix keywords
   * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
     OCX10, OCX11, OCY10, and OCY11 keywords
   * **NPOL file**: if an NPOLFILE has been specified for the image, 
-    CPDIS and DP keywords to point to WCSDVARR extensions (Paper IV convention)
+    CPDIS and DP record-value keywords to point to WCSDVARR extensions (Paper IV convention)
   * **Column correction file**: if a D2IMFILE has been specified for use with the image, 
     the D2IMEXT and D2IMERR keywords signify the use of a D2IM file extension
   * **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
@@ -45,9 +45,9 @@ The WCS information in the FLT images has been updated to include the full disto
     column-correction for that chip from the D2IMFILE.
  
 
-Each science header will have its own set of these keywords and extensions that will be kept together as part of the headerlet definition.  This avoids any ambiguity as to what solution was used for any given WCS. A summary of all the WCS solutions for all the chips can be written out to the WCSCORR table, a `binary FITS table extension <http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:WCSTableDefinition>`__ described online.
+Each science header will have its own set of these keywords and extensions that will be kept together as part of the headerlet definition.  This avoids any ambiguity as to what solution was used for any given WCS. 
 
-An ACS/WFC exposure would end up with the following set of extensions::
+An HST ACS/WFC exposure would end up with the following set of extensions::
 
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
 
@@ -63,13 +63,14 @@ An ACS/WFC exposure would end up with the following set of extensions::
     9       IMAGE       WCSDVARR              2     64x32        -32                
     10      IMAGE       WCSDVARR              3     64x32        -32                
     11      IMAGE       WCSDVARR              4     64x32        -32                
-    12      BINTABLE    WCSCORR                     18Fx10R
 
 There may be a lot of extensions appended to this FITS file, but the sum total of all these new extensions comes to approximately 100kB for ACS/WFC images (our sample only requires 86400 bytes), making them a space efficient means of managing all the distortion and WCS information. 
 
 Headerlet Definition
 ====================
-The `headerlet` needs to be a self-consistent, fully described definition of a WCS and its distortion.  The WCS and SIP coefficients get derived from the SCI header directly, along with the keywords which refer to the extensions with the NPOLFILE and D2IMFILE corrections.  The science observation will be stripped from the original WCS which will be saved to a headerlet so that the user can always revert back to the original WCS solution at any time. 
+The `headerlet` needs to be a self-consistent, fully described definition of a WCS and its distortion for all chips/detectors of a single exposure.  The WCS and SIP coefficients get derived from the SCI header directly, along with the all keywords which refer to the extensions with the optional NPOLFILE and D2IMFILE corrections.  The full 'headerlet' will be stored as a multi-extension FITS object that includes a primary header, an extension for each chip which only contains the WCS and distortion keywords, and any additional extensions for optional distortion correction information.  This object can be written out to a file and/or attached to an existing image's FITS file as a new extension.
+
+The science observation's original WCS will be saved to a headerlet so that the user can always revert back to the original WCS solution at any time. 
 There will be an option to permanently delete the original WCS and not save it to a headerlet.  
 
 New WCS Extension
