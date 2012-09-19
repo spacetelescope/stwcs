@@ -85,25 +85,62 @@ This new extension along with the NPOLFILE and the D2IMFILE extensions fully des
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
 
     0     j8hw27c4q     j8hw27c4q_hdr.fits                       16
-    1       IMAGE       D2IMARR               1     4096         -32                
-    2       IMAGE       WCSDVARR              1     64x32        -32                
-    3       IMAGE       WCSDVARR              2     64x32        -32                
-    4       IMAGE       WCSDVARR              3     64x32        -32                
-    5       IMAGE       WCSDVARR              4     64x32        -32                
-    6       IMAGE       SIPWCS                1                  8
-    7       IMAGE       SIPWCS                2                  8
+    1       IMAGE       SIPWCS                1                  8
+    2       IMAGE       SIPWCS                2                  8
+    3       IMAGE       WCSDVARR              1     64x32        -32                
+    4       IMAGE       WCSDVARR              2     64x32        -32                
+    5       IMAGE       WCSDVARR              3     64x32        -32                
+    6       IMAGE       WCSDVARR              4     64x32        -32                
+    7       IMAGE       D2IMARR               1     4096         -32                
 
 This file now fully describes the WCS solution for this image, complete with all the distortion information used to originally define the solution. No further reference files or computations would be needed when this `headerlet` gets used to update an image.
 
+.. note::
+
+   A headerlet derived from a full-frame WFC3/UVIS image would only
+   contain a PRIMARY header and two SIPWCS  extensions (one for each SCI extension)
+   as WFC3/UVIS does not currently use NPOLFILE or D2IMFILE reference files as
+   part of their distortion model.
+
+The keywords used to populate the headerlet come from all the extensions of the updated
+FITS file, as illustrated in the following figure.
+
+.. figure:: images/Headerlet_figure_final.png
+   :width: 95 %
+   :alt: Relationship Between an ACS/WFC Image’s FITS File and a Headerlet
+   :align: center
+
+   This figure shows the keywords that are included in a headerlet, the extensions included 
+   in a headerlet, and how a headerlet appears as a new extension when it gets appended to the
+   original ACS/WFC file.
+
+
+Headerlet Primary Header
+-------------------------
 The primary header must have 4 required keywords:
 
-`HDRNAME`  - a unique name for the headerlet
+ * `HDRNAME`  - a unique name for the headerlet
+ * `DESTIM`   - target image filename (the ROOTNAME keyword of the original archive filename)
+ * `STWCSVER` - version of STWCS used to create the WCS of the original image
+ * `PYWCSVER` - version of PyWCS used to create the WCS of the original image
 
-`DESTIM`   - target image filename (the ROOTNAME keyword of the original archive filename)
+These keywords are used for determining whether a headerlet can be applied to a
+given exposure and how it needs to be applied. Additional keywords provide more
+information about the solution itself, how it was derived, and by whom, through use of
+the following keywords:
 
-`STWCSVER` - version of STWCS used to create the WCS of the original image
+ * `AUTHOR` - name of person who created the headerlet
+ * `DESCRIP` - short description of the headerlet solution
+ * `RMS_RA` - RMS in R.A. at the reference pixel of the WCS stored in the headerlet solution, if updated from the Archive’s default WCS
+ * `RMS_DEC` - RMS in Dec. at the reference pixel of the WCS stored in the headerlet solution, if updated from the Archive’s default WCS
+ * `NMATCH` - number of sources used in the new solution fit, if updated from the Archive’s default WCS
+ * `CATALOG` - astrometric catalog used for headerlet solution
+ * `COMMENT` - long description of how the headerlet solution was derived, if updated from Archive’s default WCS
 
-`PYWCSVER` - version of PyWCS used to create the WCS of the original image
+These keywords allow the headerlet to retain enough information about how the
+new solution was generated so that a user could determine if it can be applied to his or
+her copy of the image.
+
 
 User-Defined Headerlet
 ======================
