@@ -57,7 +57,7 @@ where
 
 * x', y' are the initial coordinates x,y with the 68th column correction applied through the DET2IM convention
 * u',v' are the DET2IM-corrected coordinates relative to CRPIX1,CRPIX2
-* LT<sub>x</sub>, LT<sub>y</sub> is the residual distortion in the lookup tables written to the header using the Paper IV lookup table convention
+* LT<sub>x</sub>, LT<sub>y</sub> is the residual distortion in the lookup tables written to the header using the FITS Distortion Paper lookup table convention
 * A, B are the SIP coefficients specified using the SIP convention
 
 .. toctree::

@@ -112,18 +112,18 @@ available. The SIP convention gets applied to the input pixel positions by apply
 higher-order coefficients A_i_j, B_i_j, then by applying the CD matrix and adding the CRVAL 
 position to get the final world coordinates.
 
-This convention was created from the original form of the FITS Paper IV standards, but the 
-Paper IV proposal since changed to use a different set of keywords and conventions. 
+This convention was created from the original form of the FITS Distortion Paper standards, but the 
+FITS Distortion Paper proposal since changed to use a different set of keywords and conventions. 
 
 A sample ACS/WFC SCI header can be found in :ref:`Appendix1` to illustrate how these 
 keywords actually get populated for an image.  The current implementation does not 
 take advantage of the A_DMAX, B_DMAX, SIPREFi or SIPSCLi keywords, so these keywords
 are not written out to the SCI header.
 
-Paper IV Proposal
-=================
+FITS Distortion Proposal
+=========================
 
-The current Paper IV conventions [PaperIV]_ provide a mechanism for specifying either a lookup table 
+The current FITS Distortion Paper conventions [DistortionPaper]_ provide a mechanism for specifying either a lookup table 
 or polynomial model for the distortion of each axis. The standard states in Section 2.1: 
 
 ``Note that the prior distortion functions,, operate on pixel coordinates (i.e. p  
@@ -135,7 +135,7 @@ we do not allow the possibility of``
 
    q'_{3} = q_{3} + \delta_{q_{3}}(q'_{1},q'_{2})
 
-The keywords used for describing these corrections use the syntax given in Table 2 of Paper IV. 
+The keywords used for describing these corrections use the syntax given in Table 2 of the FITS Distortion Paper. 
 For our purposes, the keywords of interest are those related to lookup tables; namely, 
 
 ::
@@ -148,9 +148,9 @@ This syntax only provides the option to specify one correction at a time for eac
 axis of the image. This precludes being able to use this convention to specify both 
 a lookup table and a polynomial model at the same time for the same axis. It does not 
 state what should be done if the polynomial has been specified using a different 
-convention, for example, the SIP convention. Thus, SIP and Paper IV should not be 
+convention, for example, the SIP convention. Thus, SIP and FITS Distortion Paper should not be 
 seen as mutually exclusive. In fact, they may work together rather naturally since the 
-SIP and Paper IV conventions both assume the corrections will work on the input pixel 
+SIP and FITS Distortion Paper conventions both assume the corrections will work on the input pixel 
 and add to the output frame. 
 
 The sample header in :ref:`Appendix1` shows how these keywords get populated for
@@ -204,7 +204,7 @@ The last element of the distortion which remains to be described is the fixed co
 position and the output of this correction is to be used as input to the polynomial and 
 non-polynomial distortion corrections.
 
-The adopted implementation is based on Paper IV Lookup Table convention. It is assumed 
+The adopted implementation is based on the FITS Distortion Paper lookup table convention. It is assumed 
 that the detector to image correction is the same for all chips but it can be extended 
 to arbitrary number of chips and extensions if necessary.
 
@@ -269,8 +269,8 @@ the original input pixel position.
 Merging Of The Conventions
 ==========================
 
-The full implementation of all these elements ends up merging the SIP, DET2IM and Paper IV 
-conventions to create a new version of the figure from Paper IV which illustrates the conversion
+The full implementation of all these elements ends up merging the SIP, DET2IM and FITS Distortion Paper 
+conventions to create a new version of the figure from the FITS Distortion Paper which illustrates the conversion
 of detector coordinates to world coordinates. This implementation works in the following way: 
 
  #. Apply detector to image correction (DET2IM) to input pixel values
@@ -316,7 +316,7 @@ where
   through the DET2IM convention
 * u',v' are the DET2IM-corrected coordinates relative to CRPIX1,CRPIX2
 * :math:`LT_{x}, LT_{y}` is the residual distortion in the lookup tables 
-  written to the header using the Paper IV lookup table convention
+  written to the header using the FITS Distortion Paper lookup table convention
 * A, B are the SIP coefficients specified using the SIP convention
 
 These equations do not take into account the deprojection from the tangent plane to 
@@ -327,7 +327,7 @@ the CTYPE keyword.
 
    Coordinate Transformation Pipeline
 
-.. [PaperIV] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+.. [DistortionPaper] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
     "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
     Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
 
@@ -346,7 +346,7 @@ this header includes the keywords referring to additional distortion corrections
 related to non-polynomial corrections from the NPOLFILE and to column-width corrections from
 the D2IMFILE.  This sample illustrates how all three corrections can be specified at the
 same time in a FITS header using our rules for combining the SIP WCS convention and
-FITS WCS Paper IV proposed syntax, while also using FITS WCS Paper I alternate WCS 
+FITS Distortion Paper proposed syntax, while also using FITS WCS Paper I alternate WCS 
 standards to maintain a record of the WCS information prior to being updated/recomputed to
 use the new reference information. The old WCS gets stored using WCS key 'O' and 'WCSNAMEO' = 'OPUS'
 to indicate it was originally computed by OPUS, the HST pipeline system. 

@@ -35,7 +35,7 @@ The WCS information in the FLT images has been updated to include the full disto
   * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
     OCX10, OCX11, OCY10, and OCY11 keywords
   * **NPOL file**: if an NPOLFILE has been specified for the image, 
-    CPDIS and DP record-value keywords to point to WCSDVARR extensions (Paper IV convention)
+    CPDIS and DP record-value keywords to point to WCSDVARR extensions (FITS Distortion Paper convention)
   * **Column correction file**: if a D2IMFILE has been specified for use with the image, 
     the D2IMEXT and D2IMERR keywords signify the use of a D2IM file extension
   * **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
@@ -111,7 +111,7 @@ The `headerlet` defined above serves as the default headerlet for any image prov
 
     * **Required**: A primary header with specific keywords which specify a unique headerlet name and a targeted image. 
     * **Required**: An SIPWCS extension for each chip which contains the linear WCS as well as any distortion model supported by FITS (for example, updated SIP coefficients)
-    * **Optional**: Any additional look up tables with refinements to the polynomial solutions in the SIPWCS extension. Any such extensions should be linked to the SIPWCS extension using the same Paper IV conventions used for the NPOLFILE tables. 
+    * **Optional**: Any additional look up tables with refinements to the polynomial solutions in the SIPWCS extension. Any such extensions should be linked to the SIPWCS extension using the same FITS Distortion Paper conventions used for the NPOLFILE tables. 
     * **Optional**: Detector to image correction array as a separate extension if needed.
     
 This custom `headerlet` should be capable of being used to overwrite the existing SCI header WCS keywords to provide a FITS-supported WCS. 

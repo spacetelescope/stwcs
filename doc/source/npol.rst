@@ -37,7 +37,7 @@ New representation - look-up tables
 
 The fine scale distortions represented in the ``DGEO`` images can be stored in smaller look-up 
 tables without significant loss of information. These look-up tables follow the conventions 
-in WCS Paper IV  [2]_. Record-valued keywords are used to map an image in the science extension 
+in the WCS FITS Distortion Paper [2]_. Record-valued keywords are used to map an image in the science extension 
 to a distortion array in the ``WCSDVAR extension``. This new type of FITS keywords has been 
 implemented in PyFITS and is fully described in [2]_. Specifically, ``DPj.EXTVER`` in the science 
 extension header  maps the science image to the correct ``WCSDVAR`` extension. The dimensionality 
