@@ -182,12 +182,19 @@ have a unique suffix, **_npl.fits**, as another means of identifying it as a new
 eference file separate from the current DGEOFILE files. The header for this new 
 reference file also remains very simple, as illustrated in :ref:`Appendix2`.
 
-The two 65 x 33 arrays get read into memory with each input ACS/WFC chip (one for 
+Distortion residuals have been calibrated for ACS by looking at the average correction that
+still needs to be applied over each 64x64 pixel section of each chip after applying 
+the polynomial coefficients. This
+would normally result in a 64 x 32 array of residuals for each 4096 x 2048 chip. 
+These arrays, though, need to be expanded by one value in each dimension to support 
+interpolation all the way to the edge of each chip resulting in 65 x 33 arrays of 
+distortion correction data. Applying these corrections starts by reading the two 65 x 33 
+arrays into memory with each input ACS/WFC chip WCS (one for 
 X offsets and one for Y offsets). Bi-linear interpolation based on the input pixel 
 position then gets used on-the-fly to extract the final offset from this reference 
 file. Initial versions of these sub-sampled NPOLFILE reference files for ACS have 
-been derived from the current full-size DGEOFILEs, but testing indicates residuals 
-on the order of 0.02 pixels remain when compared to Jay's results. 
+been derived from the current full-size DGEOFILEs, and testing indicates residuals 
+only on the order of 0.02 pixels or less remain when compared to Jay's results. 
 
 Detector To Image Correction
 ============================
