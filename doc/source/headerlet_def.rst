@@ -31,17 +31,17 @@ All users get their copy of an image from the HST Archive (OTFR) after being pro
 
 The WCS information in the FLT images has been updated to include the full distortion model, including the full polynomial solution from the IDCTAB and all the corrections formerly combined into the DGEOFILE. The :ref:`FITS Conventions Report <fits_conventions_tsr>` report by Dencheva contains the full description of the conventions used to describe all these components in a FITS file. The header now contains the following set of keywords and extensions to fully describe the WCS with distortion:
 
-  * **Linear WCS keywords**: specifically, CRPIX, CRVAL, CTYPE, CD matrix keywords
-  * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
+* **Linear WCS keywords**: specifically, CRPIX, CRVAL, CTYPE, CD matrix keywords
+* **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
     OCX10, OCX11, OCY10, and OCY11 keywords
-  * **NPOL file**: if an NPOLFILE has been specified for the image, 
+* **NPOL file**: if an NPOLFILE has been specified for the image, 
     CPDIS and DP record-value keywords to point to WCSDVARR extensions (FITS Distortion Paper convention)
-  * **Column correction file**: if a D2IMFILE has been specified for use with the image, 
+* **Column correction file**: if a D2IMFILE has been specified for use with the image, 
     the D2IMEXT and D2IMERR keywords signify the use of a D2IM file extension
-  * **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
+* **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
     the NPOLFILE corrections, with each extension corresponding to an axis of 
     the image (X correction or Y correction) (if an NPOLFILE has been applied to the image)
-  * **D2IMVARR extension**: an extension with a lookup table containing the 
+* **D2IMVARR extension**: an extension with a lookup table containing the 
     column-correction for that chip from the D2IMFILE.
  
 
