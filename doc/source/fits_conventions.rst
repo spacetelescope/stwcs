@@ -3,7 +3,7 @@ Distortion Correction in HST FITS Files - DRAFT
 ===============================================
 
 .. abstract::
-   :author: Warren Hack, Andy Fruchter, Perry Greenfield, Nadezhda Dencheva
+   :author: Warren Hack, Nadezhda Dencheva, Andy Fruchter, Perry Greenfield
    :date: 18 Sept 2012
    
    A convention for storing distortion information in HST images was developed 
