@@ -72,15 +72,15 @@ def construct_distname(fobj,wcsobj):
     if (idcname is None or idcname=='NONE') and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
 
-    npolname = build_npolname(fobj)
+    npolname, npolfile = build_npolname(fobj)
     if npolname is None and wcsobj.cpdis1 is not None:
         npolname = 'UNKNOWN'
 
-    d2imname = build_d2imname(fobj)
+    d2imname, d2imfile = build_d2imname(fobj)
     if d2imname is None and wcsobj.det2im is not None:
         d2imname = 'UNKNOWN'
 
-    sipname = build_sipname(fobj)
+    sipname, idctab = build_sipname(fobj)
 
     distname = build_distname(sipname,npolname,d2imname)
     return {'DISTNAME':distname,'SIPNAME':sipname}
@@ -105,40 +105,113 @@ def build_default_wcsname(idctab):
     wcsname = 'IDC_' + idcname
     return wcsname
 
-def build_sipname(fobj):
+def build_sipname(fobj, fname=None, sipname=None):
+    """
+    Build a SIPNAME from IDCTAB
+    
+    Parameters
+    ----------
+    fobj: HDUList
+          pyfits file object
+    fname: string
+          science file name (to be used if ROOTNAMe is not present
+    sipname: string
+          user supplied SIPNAME keyword
+          
+    Returns
+    -------
+    sipname, idctab
+    """
     try:
-        sipname = fobj[0].header["SIPNAME"]
+        idctab = fobj[0].header['IDCTAB']
     except KeyError:
+        idctab = 'N/A'
+    if not fname:
         try:
-            idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')
-            sipname = fobj[0].header['rootname']+'_'+ idcname
+            fname = fobj.filename()
+        except:
+            fname = " "
+    if not sipname:
+        try:
+            sipname = fobj[0].header["SIPNAME"]
         except KeyError:
-            if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
-                sipname = 'UNKNOWN'
+            try:
+                idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')              
+                try:
+                    rootname = fobj[0].header['rootname']
+                except KeyError:
+                    rootname = fname
+                sipname = rootname +'_'+ idcname
+            except KeyError:
+                if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
+                    sipname = 'UNKNOWN'
+                else:
+                    idcname = 'NOMODEL'
+
+    return sipname, idctab
+
+def build_npolname(fobj, npolfile=None):
+    """
+    Build a NPOLNAME from NPOLFILE
+    
+    Parameters
+    ----------
+    fobj: HDUList
+          pyfits file object
+    npolfile: string
+          user supplied NPOLFILE keyword
+          
+    Returns
+    -------
+    npolname, npolfile
+    """
+    if not npolfile:
+        try:
+            npolfile = fobj[0].header["NPOLFILE"]
+        except KeyError:
+            npolfile = ' '
+            if fileutil.countExtn(fobj, 'WCSDVARR'):
+                npolname = 'UNKNOWN'
             else:
-                sipname = 'NOMODEL'
-    return sipname
+                npolname = 'NOMODEL'
+        npolname = extract_rootname(npolfile, suffix='_npl')
+        if npolname == 'NONE':
+            npolname = 'NOMODEL'
+    else:
+        npolname = extract_rootname(npolfile, suffix='_npl')
+        if npolname == 'NONE':
+            npolname = 'NOMODEL'
+    return npolname, npolfile
 
-def build_npolname(fobj):
-    try:
-        npolfile = extract_rootname(fobj[0].header["NPOLFILE"],suffix='_npl')
-        if npolfile == 'NONE':
-            npolfile = 'NOMODEL'
-    except KeyError:
-        if fileutil.countExtn(fobj, 'WCSDVARR'):
-            npolfile = 'UNKNOWN'
-        else:
-            npolfile = 'NOMODEL'
-    return npolfile
-
-def build_d2imname(fobj):
-    try:
-        d2imfile = extract_rootname(fobj[0].header["D2IMFILE"],suffix='_d2i')
-        if d2imfile == 'NONE':
-            d2imfile = 'NOMODEL'
-    except KeyError:
-        if fileutil.countExtn(fobj, 'D2IMARR'):
-            d2imfile = 'UNKNOWN'
-        else:
-            d2imfile = 'NOMODEL'
-    return d2imfile
+def build_d2imname(fobj, d2imfile=None):
+    """
+    Build a D2IMNAME from D2IMFILE
+    
+    Parameters
+    ----------
+    fobj: HDUList
+          pyfits file object
+    d2imfile: string
+          user supplied NPOLFILE keyword
+          
+    Returns
+    -------
+    d2imname, d2imfile
+    """
+    if not d2imfile:
+        try:
+            d2imfile = fobj[0].header["D2IMFILE"]
+        except KeyError:
+            d2imfile = 'N/A'
+            if fileutil.countExtn(fobj, 'D2IMARR'):
+                d2imname = 'UNKNOWN'
+            else:
+                d2imname = 'NOMODEL'
+        d2imname = extract_rootname(d2imfile,suffix='_d2i')
+        if d2imname == 'NONE':
+            d2imname = 'NOMODEL'
+    else:
+        d2imname = extract_rootname(d2imfile,suffix='_d2i')
+        if d2imname == 'NONE':
+            d2imname = 'NOMODEL'
+    return d2imname, d2imfile

@@ -169,9 +169,10 @@ class HSTWCS(WCS):
             cd21 = self.wcs.cd[1][0]
             self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
         except AttributeError:
-            print "This file has a PC matrix. You may want to convert it \n \
-            to a CD matrix, if reasonable, by running pc2.cd() method.\n \
-            The plate scale can be set then by calling setPscale() method.\n"
+            if self.wcs.has_cd():
+                print "This file has a PC matrix. You may want to convert it \n \
+                to a CD matrix, if reasonable, by running pc2.cd() method.\n \
+                The plate scale can be set then by calling setPscale() method.\n"
             self.pscale = None
 
     def setOrient(self):
@@ -183,9 +184,10 @@ class HSTWCS(WCS):
             cd22 = self.wcs.cd[1][1]
             self.orientat = np.rad2deg(np.arctan2(cd12,cd22))
         except AttributeError:
-            print "This file has a PC matrix. You may want to convert it \n \
-            to a CD matrix, if reasonable, by running pc2.cd() method.\n \
-            The orientation can be set then by calling setOrient() method.\n"
+            if self.wcs.has_cd():
+                print "This file has a PC matrix. You may want to convert it \n \
+                to a CD matrix, if reasonable, by running pc2.cd() method.\n \
+                The orientation can be set then by calling setOrient() method.\n"
             self.pscale = None
 
     def updatePscale(self, scale):
@@ -307,7 +309,7 @@ class HSTWCS(WCS):
             self.ltv1 = 0.
             self.ltv2 = 0.
 
-    def wcs2header(self, sip2hdr=False, idc2hdr=True):
+    def wcs2header(self, sip2hdr=False, idc2hdr=True, wcskey=None, relax=False):
         """
         Create a pyfits.Header object from WCS keywords.
 
@@ -319,25 +321,28 @@ class HSTWCS(WCS):
         sip2hdr: boolean
                  If True - include SIP coefficients
         """
-        h = self.to_header()
+        
+        h = self.to_header(wkey=wcskey, relax=relax)
+        if not wcskey:
+            wcskey = self.wcs.alt
         if self.wcs.has_cd():
-            h = altwcs.pc2cd(h, key=self.wcskey)
+            h = altwcs.pc2cd(h, alt=self.wcs.alt, key=wcskey)
 
         if 'wcsname' not in h:
             if self.idctab is not None:
                 wname = build_default_wcsname(self.idctab)
             else:
                 wname = 'DEFAULT'
-            h.update('wcsname',value=wname)
+            h.update('wcsname'+wcskey, value=wname)
 
         if idc2hdr:
             for card in self._idc2hdr():
-                h.update(card.key,value=card.value,comment=card.comment)
+                h.update(card.key+wcskey, value=card.value, comment=card.comment)
         try:
             del h['RESTFRQ']
             del h['RESTWAV']
         except KeyError: pass
-
+            
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
                 h.update(card.key,value=card.value,comment=card.comment)
@@ -360,7 +365,6 @@ class HSTWCS(WCS):
                 for card in self._sip2hdr('bp'):
                     h.update(card.key,value=card.value,comment=card.comment)
         return h
-
 
     def _sip2hdr(self, k):
         """

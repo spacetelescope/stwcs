@@ -162,7 +162,7 @@ def init_wcscorr(input, force=False):
             # Now get any keywords from PRIMARY header needed for WCS updates
             for key in prihdr_keys:
                 if key in pri_funcs:
-                    val = pri_funcs[key](fimg)
+                    val = pri_funcs[key](fimg)[0]
                 else:
                     if key in prihdr:
                         val = prihdr[key]
@@ -318,7 +318,6 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         if len(wkeys) > 1 and ' ' in wkeys:
             wkeys.remove(' ')
         wcs_keys = wkeys
-
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = wcshdr.keys()
 
@@ -330,9 +329,9 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     prihdr = source[0].header
 
     # Get headerlet related keywords here
-    sipname = utils.build_sipname(source)
-    npolname = utils.build_npolname(source)
-    d2imname = utils.build_d2imname(source)
+    sipname, idctab = utils.build_sipname(source, fname, None)
+    npolname, npolfile = utils.build_npolname(source, None)
+    d2imname, d2imfile = utils.build_d2imname(source, None)
     if 'hdrname' in prihdr:
         hdrname = prihdr['hdrname']
     else:
