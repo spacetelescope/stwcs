@@ -582,8 +582,8 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
     else:
         history = ''
 
-    rms_ra = fobj[wcsext].header.get("CRDER1"+wcskey, 0)
-    rms_dec = fobj[wcsext].header.get("CRDER2"+wcskey, 0)
+    #rms_ra = fobj[wcsext].header.get("CRDER1"+wcskey, 0)
+    #rms_dec = fobj[wcsext].header.get("CRDER2"+wcskey, 0)
     if not nmatch:
         nmatch = fobj[wcsext].header.get("NMATCH"+wcskey, 0)
     if not catalog:
@@ -609,10 +609,12 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
     phdu.header['AUTHOR'] = (author, 'headerlet created by this user')
     phdu.header['DESCRIP'] = (descrip,
                               'Short description of headerlet solution')
+    """
     phdu.header['RMS_RA'] = (rms_ra,
                              'RMS in RA at ref pix of headerlet solution')
     phdu.header['RMS_DEC'] = (rms_dec,
                               'RMS in Dec at ref pix of headerlet solution')
+    """
     phdu.header['NMATCH'] = (nmatch,
                              'Number of sources used for headerlet solution')
     phdu.header['CATALOG'] = (catalog,
@@ -1132,9 +1134,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         #hwcs = HSTWCS(fobj, ext=ext, wcskey=wcskey)
         hwcs = pywcs.WCS(fobj[ext].header, fobj, key=wcskey)
         whdul = hwcs.to_fits(relax=True, wkey=" ")
-        if hasattr(hwcs, 'orientat'):
+        #if hasattr(hwcs, 'orientat'):
+        if 'ORIENTAT' in fobj[ext].header:
+            orientat = fobj[ext].header['ORIENTAT']
             orient_comment = "positions angle of image y axis (deg. e of n)"
-            whdul[0].header.update('ORIENTAT', hwcs.orientat, comment=orient_comment)
+            whdul[0].header.update('ORIENTAT', orientat, comment=orient_comment)
         
         whdul[0].header.append(('TG_ENAME', ext[0], 'Target science data extname'))
         whdul[0].header.append(('TG_EVER', ext[1], 'Target science data extver'))
