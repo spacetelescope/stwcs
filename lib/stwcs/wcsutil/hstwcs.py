@@ -326,7 +326,7 @@ class HSTWCS(WCS):
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():
-            h = altwcs.pc2cd(h, alt=self.wcs.alt, key=wcskey)
+            h = altwcs.pc2cd(h, key=wcskey)
 
         if 'wcsname' not in h:
             if self.idctab is not None:
