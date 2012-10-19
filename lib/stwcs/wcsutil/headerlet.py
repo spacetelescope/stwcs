@@ -1,13 +1,12 @@
 """
 This module implements headerlets.
 
-A headerlet serves as a mechanism for encapsulating WCS information
-which can be used to update the WCS solution of an image. The idea
-came up first from the desire for passing improved astrometric
-solutions for HST data and provide those solutions in a manner
-that would not require getting entirely new images from the archive
-when only the WCS information has been updated.
-
+A headerlet is a representation of a single WCS solution for a single exposure 
+complete with all distortion information. FITS is the data storage format 
+currently supported. It has no observational data which makes it relatively 
+small and light to distribute. This is different from alternate WCS defined in 
+Paper I in that by definition all alternate WCSs share the same distortion model 
+while headerlets may be based on different distortion models.
 """
 
 from __future__ import division
@@ -181,7 +180,7 @@ def get_headerlet_kw_names(fobj, kw='HDRNAME'):
         fobj.close()
 
     return hdrnames
-
+"""
 def get_header_kw_vals(hdr, kwname, kwval, default=0):
     if kwval is None:
         if kwname in hdr:
@@ -189,7 +188,7 @@ def get_header_kw_vals(hdr, kwname, kwval, default=0):
         else:
             kwval = default
     return kwval
-
+"""
 
 @with_logging
 def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
@@ -458,7 +457,9 @@ def update_ref_files(source, dest):
     Parameters
     ----------
     source: pyfits.Header
+                source file
     dest:   pyfits.Header
+              destination file
     """
     logger.info("Updating reference files")
     phdukw = {'NPOLFILE': True,
@@ -2320,6 +2321,12 @@ class Headerlet(pyfits.HDUList):
         return dname
     
     def equal_distmodel(self, dmodel):
+        """
+        Verify if headerlet distortion model is the same as dmodel
+        
+        dmodel: string
+                      value of keyword DISTNAME
+        """
         if dmodel != self[0].header['DISTNAME']:
             if self.logging:
                     message = """
@@ -2578,6 +2585,13 @@ def _idc2hdr(fromhdr, tohdr, towkey=' '):
     """
     Copy the IDC (HST specific) keywords from one header to another
     
+    fromhdr: pyfits.Header 
+                   source header
+    toheader: pyfits.Header
+                   destination header
+    towkey: string, 'A', ..., 'Z'
+                 key for alternate WCS
+                
     """
     # save some of the idc coefficients
     coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
@@ -2594,8 +2608,9 @@ def get_extname_extver_list(fobj, sciext):
     Create a list of (EXTNAME, EXTVER) tuples 
     
     Based on sciext keyword (see docstring for create_headerlet)
-    walk throughh the file and convert extensions in `sciext` to 
+    walk through the file and convert extensions in `sciext` to 
     valid (EXTNAME, EXTVER) tuples.
+    
     """
     extlist = []
     if isinstance(sciext, int):
