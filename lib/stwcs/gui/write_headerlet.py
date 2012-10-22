@@ -41,7 +41,7 @@ def run(configObj=None):
         print '    Please check the working directory and restart this task.'
         print '='*60
         return
-        
+
     if configObj['hdrname'] in ['',' ','INDEF']:
         print '='*60
         print 'ERROR:'
@@ -57,10 +57,10 @@ def run(configObj=None):
         print '    Please restart this task and provide a value for this parameter.'
         print '='*60
         return
-        
+
     
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',
-            'descrip','history','author','output']
+            'descrip','history','author','output','catalog']
 
     # create dictionary of remaining parameters, deleting extraneous ones
     # such as those above
@@ -70,17 +70,17 @@ def run(configObj=None):
     del cdict['_task_name_']
     del cdict['filename']
     del cdict['hdrname']
-    
+
     # Convert blank string input as None
     for kw in str_kw:
         if cdict[kw] == '': cdict[kw] = None
     if cdict['wcskey'].lower() == 'primary': cdict['wcskey'] = ' '
 
     # Call function with properly interpreted input parameters
-    # Syntax: write_headerlet(filename, hdrname, output, sciext='SCI', 
+    # Syntax: write_headerlet(filename, hdrname, output, sciext='SCI',
     #                    wcsname=None, wcskey=None, destim=None,
-    #                    sipname=None, npolfile=None, d2imfile=None, 
+    #                    sipname=None, npolfile=None, d2imfile=None,
     #                    author=None, descrip=None, history=None,
     #                    attach=True, clobber=False)
-    headerlet.write_headerlet(flist, configObj['hdrname'], 
+    headerlet.write_headerlet(flist, configObj['hdrname'],
                               **cdict)
