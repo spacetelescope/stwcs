@@ -16,8 +16,8 @@ Introduction
 ============
 
 Calibration of the HST Advanced Camera for Surveys (HST/ACS) distortion requires the use 
-of several components to the distortion correction; namely, polynomial coefficients, a 
-lookup table for non-polynomial terms, a time-dependent skew, and a detector defect 
+of several components to the distortion correction; namely, polynomial coefficients, a correction 
+for velocity aberration, a time-dependent skew, a lookup table for non-polynomial terms, and a detector defect 
 correction. Each of these terms has been derived as part of the calibration effort to address 
 separate aspects of the distortion that affects ACS observations. Ideally, each would be applied
 independently in the same manner used for deriving the original calibration reference information, 
@@ -89,21 +89,20 @@ SIP Convention
 
 Current implementations of distortion models in FITS headers have been limited to simply 
 describing polynomial models. The prime example of this would be the implementation of SIP 
-in WCSTOOLS and DS9 as used for Spitzer data [SIPConvention]_. The keywords used for the SIP standard are:
+in WCSTOOLS and DS9 as used for Spitzer data [SIPConvention]_. The new keywords defined by 
+the SIP standard and used by PyWCS are::
 
-:: 
+ A_ORDER =   n  / polynomial order, axis 1, detector to sky
+ A_i_j          / High order coefficients for X axis
+ B_ORDER =   m  /  polynomial order, axis 2, detector to sky
+ B_i_j          / High order coefficients for axis 2
+
+These SIP keywords get used in conjunction with the linear WCS keywords defined
+with these values::
 
  CTYPE1  = 'RA---TAN-SIP'
  CTYPE2  = 'DEC--TAN-SIP'
  CDi_j          / Linear terms of distortion plus scale and orientation
- A_ORDER =   n  / polynomial order, axis 1, detector to sky
- A_i_j          / High order coefficients for X axis
- A_DMAX = 0.0   / [pixel] maximum correction along axis 1
- B_ORDER =   m  /  polynomial order, axis 2, detector to sky
- B_i_j          / High order coefficients for axis 2
- B_DMAX = 0.0   / [pixel] maximum correction along axis 2
- SIPREFi = 0.0  / Origin of distortion model along axis i
- SIPSCLi = 1.0  / Scale term for axis i
 
 The SIP convention retains the use of the current definition of the CD matrix where the 
 linear terms of the distortion model are folded in with the orientation and scale at the 
@@ -120,6 +119,26 @@ keywords actually get populated for an image.  The current implementation does n
 take advantage of the A_DMAX, B_DMAX, SIPREFi or SIPSCLi keywords, so these keywords
 are not written out to the SCI header.
 
+Velocity Aberration Correction
+------------------------------
+
+This correction simply serves as a correction to the overall linear scale of the field of view
+due to velocity aberration observed due to the motion of HST in orbit.  The typical plate scale
+for HST cameras results in a measurable velocity aberration with variations from the center of
+the field of view to the edge on the order of 0.1 pixels. More details about this correction can
+be found in `Appendix A.3 of the DrizzlePac Handbook
+<http://documents.stsci.edu/hst/HST_overview/documents/DrizzlePac/DrizzlePac.cover.html>`_.
+
+This scale factor gets computed by
+the HST ground systems for start of each exposure and recorded as the VAFACTOR keyword in each
+image's science extension header. This term, though, does not get included in the default 
+CD matrix computed by the ground systems. As a result, it needs to be accounted for when reading in the 
+distortion model polynomial coefficients from the IDCTAB reference table. Folding in the 
+VAFACTOR into the polynomial enables the computation of new values for the CD matrix and SIP keywords
+applicable to this specific exposure without requiring any further use of the VAFACTOR keyword when
+applying this distortion model to the image. 
+
+
 Time-Dependent Distortion
 -------------------------
 
@@ -127,7 +146,7 @@ Calibration of HST/ACS imaging data required the addition of a time dependent sk
 to the other distortion terms.  This skew represented a linear correction to the polynomial model
 and its residuals.  This correction gets applied to the polynomial coefficients and
 the residuals from the polynomial model when they are evaluated for each image.  As a result, the 
-SIP keywords and the corresponding non-polynomial residuals as written out to each HST/ACS image header
+SIP keywords as written out to each HST/ACS image header
 reflects this time-dependent correction without the need for any further evaluation of this skew.
 
 
@@ -168,44 +187,53 @@ The sample header in :ref:`Appendix1` shows how these keywords get populated for
 an actual reference file; specifically, an NPOLFILE as described in the next section.
 
 
-NPOLFILE reference File Format
-==============================
+Non-polynomial Residual Correction
+==================================
 
-The reference file to be used for this correction will not have the same format 
-as the original DGEOFILE as used by ACS and WFPC2 as that large of a reference 
-file would more than double the size of each input image since the reference 
-file gets folded into each file. Instead, a sub-sampled array of corrections will 
-be stored in the new reference file, with ACS using a 65 x 33 array for each ACS/WFC 
-chip. 
+ACS and WFPC2 images used the DGEOFILE reference file to specify the residual
+correction in X and Y for each and every pixel in each chip of the observation. These
+DGEOFILE reference fiels required up to 168Mb each to cover all chips of each camera 
+for ACS/WFC images.  
+Distortion residuals have been always been calibrated for ACS by looking at the average 
+correction that needs to be applied over each 64x64 pixel section of each chip after applying 
+the polynomial coefficients correction. This would normally result in a 64 x 32 array of 
+residuals for each 4096 x 2048 chip. These arrays get expanded by one value in each 
+dimension to support interpolation all the way to the edge of each chip resulting in 65 x 33 arrays of 
+distortion correction data. 
+
+.. _figure1:
 
 .. figure:: /images/npol_vector_text.png
    :width: 95 %
    :alt: ACS/WFC F475W NPOLFILE corrections
    :align: center
    
-   This figure illustrates the corrections included in the ACS/WFC F475W NPOLFILE.
+   This figure illustrates the corrections included in the ACS/WFC F475W non-polynomial
+   distortion correction included in the new NPOLFILE reference file. Each vector represents
+   the correction for a 64x64 pixel section of each chip.
 
+NPOLFILE reference File Format
+------------------------------
 
-This new reference file will be called an **NPOLFILE** in the FITS image header, 
+With the goal of including all distortion reference information directly in the 
+science image's FITS file, including the full 168Mb DGEOFILE for ACS/WFC images 
+would more than double the size of each input image. A new reference
+file based on the sub-sampled calibrations, though, would be small enough to serve as the
+basis for a new reference file while also being a more direct use of the calibration
+data. This new reference file has been called **NPOLFILE** in the FITS image header, 
 so that any original DGEOFILE reference filename can be retained in parallel for 
-backwards compatibility with the current software. This reference file will also 
-have a unique suffix, **_npl.fits**, as another means of identifying it as a new r
+backwards compatibility with the current software. This reference file also 
+has a unique suffix, **_npl.fits**, as another means of identifying it as a new r
 eference file separate from the current DGEOFILE files. The header for this new 
 reference file also remains very simple, as illustrated in :ref:`Appendix2`.
 
-Distortion residuals have been calibrated for ACS by looking at the average correction that
-still needs to be applied over each 64x64 pixel section of each chip after applying 
-the polynomial coefficients. This
-would normally result in a 64 x 32 array of residuals for each 4096 x 2048 chip. 
-These arrays, though, need to be expanded by one value in each dimension to support 
-interpolation all the way to the edge of each chip resulting in 65 x 33 arrays of 
-distortion correction data. Applying these corrections starts by reading the two 65 x 33 
+Applying these corrections starts by reading the two 65 x 33 
 arrays into memory with each input ACS/WFC chip WCS (one for 
 X offsets and one for Y offsets). Bi-linear interpolation based on the input pixel 
 position then gets used on-the-fly to extract the final offset from this reference 
 file. Initial versions of these sub-sampled NPOLFILE reference files for ACS have 
 been derived from the current full-size DGEOFILEs, and testing indicates residuals 
-only on the order of 0.02 pixels or less remain when compared to Jay's results. 
+only on the order of 0.02 pixels or less remain when compared to the original calibration. 
 
 Detector To Image Correction
 ============================
@@ -250,15 +278,17 @@ value a distortion correction must have in order to be applied. If 'minerr' is l
 'D2IMERR' the correction is not applied. 
 
 Detector To Image Reference File
-================================
+--------------------------------
 
-An entirely new reference file needs to be generated in order to specify this correction 
+An entirely new reference file, the D2IMFILE reference table, serves as the source of this 1-D correction 
 for each affected instrument. This reference file only contains a single array of offsets 
 corresponding to the 1-D correction to be applied. Header keywords in the reference file 
-then specify what axis gets this correction. As a result, this new reference file remains 
+specify which axis needs this correction. As a result, this new reference file remains 
 small enough to easily be added to an input image without significant change in size. An 
 initial **D2IMFILE** for ACS has been generated for testing with a sample header provided in 
 :ref:`Appendix3`. 
+
+.. _figure2:
 
 .. figure:: /images/d2im_bar.png
    :width: 95 %
@@ -266,10 +296,10 @@ initial **D2IMFILE** for ACS has been generated for testing with a sample header
    :align: center
    
    This figure illustrates the corrections included in the first 246 columns of 
-   the ACS/WFC F475W D21IMFILE.
+   the ACS/WFC F475W D2IMFILE.
 
-The WCS for this correction describes the extension as a 1-D image, even though it will 
-be applied to a 2-D image. This keeps it clear that the same correction gets applied to 
+The WCS for this correction describes the extension as a 1-D image, even though it gets 
+applied to a 2-D image. This keeps it clear that the same correction gets applied to 
 all rows(columns) without interpolation. The header specifies which axis this correction 
 applies to through the use of the AXISCORR keyword. The WCS keywords in the header of the 
 D2IMARR extension specifies the transformation between pixel coordinates and lookup table 
@@ -290,7 +320,7 @@ of detector coordinates to world coordinates. This implementation works in the f
  #. Add the results of the SIP and lookup table corrections
  #. Apply the WCS transformation in the CD matrix to the summed results to get the intermediate world coordinates
  #. Add the CRVAL keyword values to the transformed positions to get the final world coordinates 
-
+   
 The computations to perform these steps can be described approximately using: 
 
 .. math:: (x',y') &= DET2IM(x,y) 
@@ -334,10 +364,41 @@ These equations do not take into account the deprojection from the tangent plane
 sky coordinates. The complete Detector To Sky Coordinate Transformation is based on 
 the CTYPE keyword. 
 
+.. _figure3:
+
 .. figure:: /images/pipeline.png
 
    Coordinate Transformation Pipeline
 
+Updating the FITS File
+======================
+Updating each science image with the distortion model using this merged
+convention requires integrating these new reference files directly into the FITS file. 
+This update gets performed using the following steps:
+
+* determining what reference files should be applied to the science image
+* read in distortion coefficients from IDCTAB reference file 
+* [for ACS data only] compute time-dependent (TDD) skew terms from model described in IDCTAB file
+* read in velocity aberration correction factor (VAFACTOR) keyword
+* apply velocity aberration, and the TDD terms for ACS data as well, to the distortion coefficients
+
+  * write time-corrected distortion coefficients as the SIP keywords
+
+* [if d2imfile is to be applied] read in D2IMFILE reference table
+
+  * update D2IMEXT with name of reference table and AXISCORR keyword with axis to be corrected
+  * append D2IMFILE array as a new D2IMARR extension  
+
+* [if NPOLFILE is to be applied] divide the NPOLFILE arrays by the linear distortion coefficients
+
+  * write out normalized NPOLFILE arrays as new WCSDVARR extensions
+  * update each SCI extension in the science image with the record-value keywords to point to the 2 WCSDVARR extensions (one for X corrections, one for Y corrections) associated with the SCI extension's chip
+
+The STWCS task **updatewcs** applies these steps to update a science image's FITS file to 
+incorporate the distortion model components using this convention. 
+
+References
+==========
 .. [DistortionPaper] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
     "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
     Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
@@ -536,13 +597,13 @@ D2IMFILE corrections from the specific reference files used as examples in :ref:
  CD2_1O  =    1.14279315609E-05                                                  
  CD2_2O  =    8.66885813904E-06                                                  
  WCSNAME = 'IDC_v8q1444sj'                                                       
- CPERROR1=                  0.0 / Maximum error of NPOL correction for axis 1    
+ CPERR1  =                  0.0 / Maximum error of NPOL correction for axis 1    
  CPDIS1  = 'Lookup  '           / Prior distortion funcion type                  
  DP1     = 'EXTVER: 1' / Version number of WCSDVARR extension containing lookup d
  DP1     = 'NAXES: 2' / Number of independent variables in distortion function   
  DP1     = 'AXIS.1: 1' / Axis number of the jth independent variable in a distort
  DP1     = 'AXIS.2: 2' / Axis number of the jth independent variable in a distort
- CPERROR2=                  0.0 / Maximum error of NPOL correction for axis 2    
+ CPERR2  =                  0.0 / Maximum error of NPOL correction for axis 2    
  CPDIS2  = 'Lookup  '           / Prior distortion funcion type                  
  DP2     = 'EXTVER: 2' / Version number of WCSDVARR extension containing lookup d
  DP2     = 'NAXES: 2' / Number of independent variables in distortion function   
