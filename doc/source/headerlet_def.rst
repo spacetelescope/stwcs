@@ -1,5 +1,5 @@
 ===========================================================================
-Definition of a Headerlet and It's Role in Updating WCS Information - DRAFT
+Definition of a Headerlet and Its Role in Updating WCS Information - DRAFT
 ===========================================================================
 
 .. abstract::
@@ -27,7 +27,7 @@ The concept of a 'headerlet' seeks to provide a solution where only the WCS solu
 
 Source Image
 ============
-All users get their copy of an image from the HST Archive (OTFR) after being processed with the latest image calibrations, including applying the latest available distortion models. The calibrated image gets passed to the user with the ``_flt.fits`` suffix and is referred to as the ``FLT`` image.  These FLT images serve as the inputs to MultiDrizzle in order to apply the distortion models and combine the images into a single ``DRZ`` product.  
+All users get their copy of an image from the HST Archive (OTFR) after being processed with the latest image calibrations, including applying the latest available distortion models. The calibrated image gets passed to the user with the ``_flt.fits`` suffix and is referred to as the ``FLT`` image.  These FLT images serve as the inputs to AstroDrizzle in order to apply the distortion models and combine the images into a single ``DRZ`` product.  
 
 The WCS information in the FLT images has been updated to include the full distortion model, including the full polynomial solution from the IDCTAB and all the corrections formerly combined into the DGEOFILE. The :ref:`FITS Conventions Report <fits_conventions_tsr>` report by Dencheva contains the full description of the conventions used to describe all these components in a FITS file. The header now contains the following set of keywords and extensions to fully describe the WCS with distortion:
 
@@ -59,10 +59,10 @@ An HST ACS/WFC exposure would end up with the following set of extensions::
     5       IMAGE       ERR                   2     4096x2048    -32                
     6       IMAGE       DQ                    2     4096x2048    16                 
     7       IMAGE       D2IMARR               1     4096         -32                
-    8       IMAGE       WCSDVARR              1     64x32        -32                
-    9       IMAGE       WCSDVARR              2     64x32        -32                
-    10      IMAGE       WCSDVARR              3     64x32        -32                
-    11      IMAGE       WCSDVARR              4     64x32        -32                
+    8       IMAGE       WCSDVARR              1     65x33        -32                
+    9       IMAGE       WCSDVARR              2     65x33        -32                
+    10      IMAGE       WCSDVARR              3     65x33        -32                
+    11      IMAGE       WCSDVARR              4     65x33        -32                
 
 There may be a lot of extensions appended to this FITS file, but the sum total of all these new extensions comes to approximately 100kB for ACS/WFC images (our sample only requires 86400 bytes), making them a space efficient means of managing all the distortion and WCS information. 
 
@@ -87,10 +87,10 @@ This new extension along with the NPOLFILE and the D2IMFILE extensions fully des
     0     j8hw27c4q     j8hw27c4q_hdr.fits                       16
     1       IMAGE       SIPWCS                1                  8
     2       IMAGE       SIPWCS                2                  8
-    3       IMAGE       WCSDVARR              1     64x32        -32                
-    4       IMAGE       WCSDVARR              2     64x32        -32                
-    5       IMAGE       WCSDVARR              3     64x32        -32                
-    6       IMAGE       WCSDVARR              4     64x32        -32                
+    3       IMAGE       WCSDVARR              1     65x33        -32                
+    4       IMAGE       WCSDVARR              2     65x33        -32                
+    5       IMAGE       WCSDVARR              3     65x33        -32                
+    6       IMAGE       WCSDVARR              4     65x33        -32                
     7       IMAGE       D2IMARR               1     4096         -32                
 
 This file now fully describes the WCS solution for this image, complete with all the distortion information used to originally define the solution. No further reference files or computations would be needed when this `headerlet` gets used to update an image.
@@ -117,26 +117,66 @@ FITS file, as illustrated in the following figure.
 
 Headerlet Primary Header
 -------------------------
-The primary header must have 4 required keywords:
 
- * `HDRNAME`  - a unique name for the headerlet
- * `DESTIM`   - target image filename (the ROOTNAME keyword of the original archive filename)
- * `STWCSVER` - version of STWCS used to create the WCS of the original image
- * `PYWCSVER` - version of PyWCS used to create the WCS of the original image
+The list below contains all keywords specific to the primary header of a headerlet with the logic to determine their value.
+
+ * `HDRNAME`  - (required) a unique name for the headerlet
+                 - the value is given by the user as a parameter to `~stwcs.wcsutil.headerlet.create_headerlet` or `~stwcs.wcsutil.headerlet.write_headerlet`
+                 - HDRNAME<wcskey> from the science file is used
+                 - WCSNAME<wcskey> from the science file is used
+                 - KeyError is raised
+ * `DESTIM`   - (required) target image filename 
+                - the ROOTNAME keyword of the original science file
+                - the name of the science file
+ * `WCSNAME`  - (required) name for the WCS
+                - the value is given by the user as a parameter to `~stwcs.wcsutil.headerlet.create_headerlet` or `~stwcs.wcsutil.headerlet.write_headerlet`
+                - WCSNAME<wcskey> from the science file is used
+                - the value of hdrname parameter is used
+                - HDRNAME<wcskey> from the science file
+                - KeyError is raised
+ * `DISTNAME` - (optional) name of distortion model
+                - The value of DISTNAME has the form <idctab rootname>-<npolfile rootname>-<d2imfile rootname>
+                    and have a value of 'NONE' if no reference files are specified.
+ * `SIPNAME`  - (optional) name of SIP model
+                SIPNAME is constructed as <ROOTNAME>_<IDCTAB_rootname>, where
+            
+                ROOTNAME is the keyword from the science file header (or the file name)
+                
+                IDCTAB_rootname is the rootname of the idctab file
+                
+                so for example, SIPNAME for a science file j94f05bgq_flt.fits and an idctab file
+                postsm4_idc.fits is j94f05bgq_postsm4
+
+                If the SIP coefficients are present in the header but IDCTAB is m issing or invalid,
+                then SIPNAME is set to UNKNOWN. If there's no polynomial model, SIPNAME is set to 
+                NOMODEL.
+ * `NPOLFILE` - (optional) name of npol reference file
+                
+                NPOLFILE keyword from science file primary header
+                
+                UNKNOWN if NPOLFILE keyword is missing or invalid but data extensions exist
+                
+                or NOMODEL 
+                
+ * `IDCTAB`   - (optional)
+                
+                IDCTAB keyword from science file primary header or N/A
+                
+ * `D2IMFILE` - (optional)
+ 
+                D2IMFILE keyword from science file primary header or N/A
+                
+ * `AUTHOR`   - (optional) name of person who created the headerlet
+ * `DESCRIP`  - (optional) short description of the headerlet solution
+ * `NMATCH`   - (optional) number of sources used in the new solution fit, if updated from the Archive’s default WCS
+ * `CATALOG`  - (optional) areference frame used to define the astrometric solution
+ * `UPWCSVER` - (optional) version of STWCS used to create the WCS of the original image
+ * `PYWCSVER` - (optional) version of PyWCS used to create the WCS of the original image
+
 
 These keywords are used for determining whether a headerlet can be applied to a
-given exposure and how it needs to be applied. Additional keywords provide more
-information about the solution itself, how it was derived, and by whom, through use of
-the following keywords:
-
- * `AUTHOR` - name of person who created the headerlet
- * `DESCRIP` - short description of the headerlet solution
- * `RMS_RA` - RMS in R.A. at the reference pixel of the WCS stored in the headerlet solution, if updated from the Archive’s default WCS
- * `RMS_DEC` - RMS in Dec. at the reference pixel of the WCS stored in the headerlet solution, if updated from the Archive’s default WCS
- * `NMATCH` - number of sources used in the new solution fit, if updated from the Archive’s default WCS
- * `CATALOG` - astrometric catalog used for headerlet solution
- * `COMMENT` - long description of how the headerlet solution was derived, if updated from Archive’s default WCS
-
+given exposure and how it needs to be applied. Some of the keywords provide more
+information about the solution itself, how it was derived, and by whom.
 These keywords allow the headerlet to retain enough information about how the
 new solution was generated so that a user could determine if it can be applied to his or
 her copy of the image.
@@ -285,7 +325,7 @@ their data can be read you'd have to know what to do with it (the data is actual
     HDRNAME = 'j94f05bgq_orig'     / Headerlet name                                 
     DATE    = '2011-04-13T12:14:42' / Date FITS file was generated                  
     SIPNAME = 'IDC_qbu1641sj'      / SIP distortion model name                      
-    NPOLFILE= '/grp/hst/acs/lucas/new-npl/qbu16424j_npl.fits' / Non-polynomial corre
+    NPOLFILE= '/grp/hst/acs/lucas/new-npl/qbu16424j_npl.fits' / Non-polynomial correction
     D2IMFILE= '/grp/hst/acs/lucas/new-npl/wfc_ref68col_d2i.fits' / Column correction
     COMPRESS=                    F / Uses gzip compression 
 

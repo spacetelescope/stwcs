@@ -3,7 +3,7 @@
 **************************************
 UPDATEWCS
 **************************************
-UPDATEWCS applies corrections to the WCS of a science file
+UPDATEWCS applies corrections to the WCS of an HST science file
 and adds reference information as header keywords and fits 
 file extensions so that a science file contains all necessary 
 information to represent astrometrically precise positions.
@@ -65,3 +65,5 @@ where
    
    updatewcs_ui
    wcs_corrections
+   utils
+
