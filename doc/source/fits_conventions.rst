@@ -8,8 +8,9 @@ Distortion Correction in HST FITS Files - DRAFT
    
    A convention for storing distortion information in HST images was developed 
    and implemented in two software packages - PyWCS and STWCS. These changes 
-   allow the development of a WCS based version of Multidrizzle and image 
-   alignment software. The distribution of WCS solutions is discussed.
+   allow the development of a WCS based version of Multidrizzle, released
+   now as AstroDrizzle, and image alignment software, released as tweakreg. 
+   The distribution of WCS solutions is discussed.
  
    
 Introduction
@@ -48,8 +49,8 @@ an accuracy of better than 0.1 pixels. However, this method requires the user to
 obtain the reference files themselves anytime they want to reprocess the data. The 
 size of these reference files (up to 200Mb) makes this an expensive requirement for 
 the end user. The alternative would be to include the necessary specification of the 
-distortion model in the header of the image itself, as long as it can be done in a 
-manner that does not dramatically increase the size of the image itself. For reference, 
+distortion model in the header of the science image itself, as long as it can be done in a 
+manner that does not dramatically increase the size of the FITS file. For reference, 
 a typical calibrated ACS/WFC image requires a 168Mb file. Thus, we needed an alternative 
 to separate reference files which can be implemented in a very efficient manner within 
 the image's FITS headers.
@@ -89,8 +90,8 @@ SIP Convention
 
 Current implementations of distortion models in FITS headers have been limited to simply 
 describing polynomial models. The prime example of this would be the implementation of SIP 
-in WCSTOOLS and DS9 as used for Spitzer data [SIPConvention]_. The new keywords defined by 
-the SIP standard and used by PyWCS are::
+in WCSTOOLS and recognition of SIP keywords by DS9 as used for Spitzer data [SIPConvention]_. 
+The new keywords defined by the SIP standard and used by PyWCS are::
 
  A_ORDER =   n  / polynomial order, axis 1, detector to sky
  A_i_j          / High order coefficients for X axis
@@ -112,7 +113,7 @@ higher-order coefficients A_i_j, B_i_j, then by applying the CD matrix and addin
 position to get the final world coordinates.
 
 This convention was created from the original form of the FITS Distortion Paper standards, but the 
-FITS Distortion Paper proposal since changed to use a different set of keywords and conventions. 
+FITS Distortion Paper proposal has since changed to use a different set of keywords and conventions. 
 
 A sample ACS/WFC SCI header can be found in :ref:`Appendix1` to illustrate how these 
 keywords actually get populated for an image.  The current implementation does not 
@@ -133,10 +134,11 @@ This scale factor gets computed by
 the HST ground systems for start of each exposure and recorded as the VAFACTOR keyword in each
 image's science extension header. This term, though, does not get included in the default 
 CD matrix computed by the ground systems. As a result, it needs to be accounted for when reading in the 
-distortion model polynomial coefficients from the IDCTAB reference table. Folding in the 
-VAFACTOR into the polynomial enables the computation of new values for the CD matrix and SIP keywords
-applicable to this specific exposure without requiring any further use of the VAFACTOR keyword when
-applying this distortion model to the image. 
+distortion model polynomial coefficients from the IDCTAB reference table. The VAFACTOR scaling factor
+gets folded into the computation of new values for the CD matrix for this specific exposure 
+without requiring any further use of the VAFACTOR keyword when applying this distortion 
+model to the science image. It also gets used to correct the reference position of each chip
+on the sky, each chip's CRVAL value, to account for this aberration. 
 
 
 Time-Dependent Distortion
@@ -162,6 +164,7 @@ are the uncorrected pixel or intermediate pixel coordinates. That is, for exampl
 we do not allow the possibility of``
 
 .. math::
+   :label: Equation 1
 
    q'_{3} = q_{3} + \delta_{q_{3}}(q'_{1},q'_{2})
 
@@ -212,6 +215,10 @@ distortion correction data.
    distortion correction included in the new NPOLFILE reference file. Each vector represents
    the correction for a 64x64 pixel section of each chip.
 
+A complete description of the conversion of the DGEOFILE reference data into NPOLFILE reference
+files can be found in the report on the :ref:`npolfile-tsr`.
+
+
 NPOLFILE reference File Format
 ------------------------------
 
@@ -223,8 +230,8 @@ basis for a new reference file while also being a more direct use of the calibra
 data. This new reference file has been called **NPOLFILE** in the FITS image header, 
 so that any original DGEOFILE reference filename can be retained in parallel for 
 backwards compatibility with the current software. This reference file also 
-has a unique suffix, **_npl.fits**, as another means of identifying it as a new r
-eference file separate from the current DGEOFILE files. The header for this new 
+has a unique suffix, **_npl.fits**, as another means of identifying it as a new 
+reference file separate from the current DGEOFILE files. The header for this new 
 reference file also remains very simple, as illustrated in :ref:`Appendix2`.
 
 Applying these corrections starts by reading the two 65 x 33 
@@ -323,11 +330,18 @@ of detector coordinates to world coordinates. This implementation works in the f
    
 The computations to perform these steps can be described approximately using: 
 
-.. math:: (x',y') &= DET2IM(x,y) 
+.. math:: (x',y') &= DET2IM(x,y)
+   :label: Equation 2
 
 .. math:: \binom{u'}{v'} &= \binom{x' - CRPIX1}{y' - CRPIX2}
+   :label: Equation 3
 
-.. math:: \left( \begin{array}{ll}
+.. _equation4:
+
+.. math:: 
+   :label: Equation 4
+   
+      \left( \begin{array}{ll}
          \alpha \\
          \delta \\
          \end{array} \right) &=
@@ -346,9 +360,12 @@ The computations to perform these steps can be described approximately using:
     
 where f(u',v') and g(u',v') represent the polynomial distortion correction specified as
 
-.. math:: f(u',v') = \sum_{p+q=2}^{AORDER} A_{pq} {u'}^{p} {v'}^{q}
-          \\
-          g(u',v')  = \sum_{p+q=2}^{BORDER} B_{pq} {u'}^{p} {v'}^{q}
+.. math:: 
+   :label: Equation 5
+
+    f(u',v') = \sum_{p+q=2}^{AORDER} A_{pq} {u'}^{p} {v'}^{q} 
+    \\
+    g(u',v')  = \sum_{p+q=2}^{BORDER} B_{pq} {u'}^{p} {v'}^{q}
 
 
 where
@@ -387,7 +404,7 @@ This update gets performed using the following steps:
 * [if d2imfile is to be applied] read in D2IMFILE reference table
 
   * update D2IMEXT with name of reference table and AXISCORR keyword with axis to be corrected
-  * append D2IMFILE array as a new D2IMARR extension  
+  * append D2IMFILE array as a new D2IMARR extension 
 
 * [if NPOLFILE is to be applied] divide the NPOLFILE arrays by the linear distortion coefficients
 
@@ -395,7 +412,57 @@ This update gets performed using the following steps:
   * update each SCI extension in the science image with the record-value keywords to point to the 2 WCSDVARR extensions (one for X corrections, one for Y corrections) associated with the SCI extension's chip
 
 The STWCS task **updatewcs** applies these steps to update a science image's FITS file to 
-incorporate the distortion model components using this convention. 
+incorporate the distortion model components using this convention. It not only modifies
+the input reference file data to apply to each image to account for time-dependent and
+velocity-aberration corrections as needed, but also creates the new extensions which get
+appended to the science image's FITS file. 
+
+Creating the D2IMARR extension
+------------------------------
+Converting the D2IMFILE reference table into a new D2IMARR FITS image extension involves only a few simple revisions 
+to the header from D2IMFILE.  The header of the D2IMARR consists of the following keywords required in order to 
+properly interpret and apply the data in the extension to the science array:
+
+* AXISCORR : Direction in which the det2im correction is applied
+* EXTNAME  : Set to 'D2IMARR'
+* EXTVER   : Set to 1
+* NAXIS    : Number of axes
+* :math:`NAXIS_i` : Size of each axis
+* :math:`CRPIX_i` : Reference point for each axis, set at axis center
+* :math:`CRVAL_i` : computed from input science image array center on chip 
+* :math:`CDELT_i` : Binning of axis, computed as :math:`1/BINAXIS_i` keyword from science image
+
+These keywords supplement the standard FITS required keywords for an image extension, including such keywords as PCOUNT, GCOUNT, BITPIX, and XTENSION.
+  
+The corrections specified in this extension refer to pixel positions on the detector.  Since science images can be taken both as subarrays and in binned modes for some instruments, the subarray offset and binning factor get used to  compute the translation from science image pixel position into unbinned full-detector pixel positions.  This conversion factor of :math:`(NAXIS_i/2 + LTV_i)*BINAXIS_i` gets recorded as the :math:`CRVAL_i` keyword value and gets used to correctly apply this correction to the science image.
+
+In addition to the pixel position transformations encoded as the D2IMARRY WCS, keywords reporting how the D2IM correction was created get copied into the new D2IMARR image extension header from the primary header of the D2IMFILE.  This maintains as much provenance as possible for this correction. 
+
+A full listing of the D2IMARR extension for a sample ACS image can be found in :ref:`d2imarr-header` in :ref:`Appendix1`. 
+
+
+Creating the WCSDVARR Extension
+-------------------------------
+The NPOLFILE reference file contains at least 2 image extensions, one for the X correction and one for the Y correction for each chip. All these extensions get converted into their own WCSDVARR extension based on the FITS Distortion Paper convention when the NPOLFILE gets incorporated into the science image as another component of the distortion model. Both the array data for each NPOLFILE extension and the corresponding header needs to be modified before it can be written into the science image FITS file as a new WCSDVARR image extension. 
+
+The data from the NPOLFILE arrays represent the residuals after accounting for the distortion model, yet this correction gets applied as part of the distortion correction described in :ref:`Equation 4 <equation4>`.  The linear terms of the distortion model need to be removed from the data in each NPOLFILE array in order to avoid applying the linear terms twice when applying the correction to the science data. This gets performed by reading in the linear distortion coefficients directly from the OCX and OCY keywords written out along with the SIP keywords, the multiplying them into the NPOLFILE data values using matrix dot operator to get the final, image specific NPOL correction to be written out as the WCSDVARR extension.
+
+The header of this new WCSDVARR extension provides the translation from science image pixels to NPOLFILE array pixel positions as well as reporting on the provenance of the calibrations as recorded in the original NPOLFILE.  The following keywords get computed based on the values directly from the NPOLFILE header:
+
+* :math:`NAXIS_i`  : Length of each axis
+* :math:`CDELT_i`  : Step size in detector pixels along each axis for the NPOL array
+* :math:`CRPIX_i`  : Reference pixel position of NPOL array
+* :math:`CRVAL_i`  : Reference pixel position of NPOL array relative to science array
+* EXTNAME          : always set to WCSDVARR
+* EXTVER           : identifier reported in the DP.EXTVER record-value keywords in the science array header
+
+These keywords supplement the standard FITS required keywords for an image extension, including such keywords as PCOUNT, GCOUNT, BITPIX, and XTENSION.  In addition, all keywords from the NPOLFILE primary header after and including 'FILENAME' get copied into the header of each WCSDARR extension to preserve the provenance of the calibration.  
+
+A full listing of the WCSDVARR extension for a sample ACS image can be found in :ref:`wcsdvarr-header` in :ref:`Appendix1`. 
+
+Summary
+=======
+This paper describes a merging of previously proposed FITS WCS conventions to fully support the multi-component distortion models derived from calibrations for HST detectors.  The application of this merged convention allows each science image to contain the full distortion model applicable to that specific image in an efficient and FITS compatible manner.  The use of this calibration in the DrizzlePac package has been demonstrated to correct science data to much better than 0.1 pixels across each image's field of view, with a typical RMS for aligning two ACS images on the order of 0.03 pixels in a suitably dense field of sources. This convention, despite making a few basic assumptions, retains each separate FITS convention's full functionality so that any software which understood, for example, the SIP standard will still work as before with the SIP keywords written out by the convention.  All HST ACS and WFC3 images retrieved from the archive have been updated using this convention so that users will no longer need to retrieve the distortion calibration data separately. Anyone using HST images will now be able to use the STWCS and/or DrizzlePac package to perform coordinate transformations or image alignment based on this convention, while still being able to use external tools like DS9 to take advantage of the SIP conventions as well. This solution now provides the best possible solution for supporting these highly accurate, yet complex multi-component distortion models in the most efficient manner available to data written out in the FITS format. 
 
 References
 ==========
@@ -614,6 +681,79 @@ D2IMFILE corrections from the specific reference files used as examples in :ref:
 
 All keywords related to the exposure itself, such as readout pattern, have been deleted 
 from this SCI header listing for the sake of brevity. 
+
+.. _d2imarr-header:
+
+D2IMARR Header
+==============
+The full, complete header of the D2IMARR extension as derived from the D2IMFILE 
+discussed in :ref:`Appendix3`.
+
+::
+
+ XTENSION= 'IMAGE   '           / Image extension                                
+ BITPIX  =                  -32 / array data type                                
+ NAXIS   =                    1 / number of array dimensions                     
+ NAXIS1  =                 4096                                                  
+ PCOUNT  =                    0 / number of parameters                           
+ GCOUNT  =                    1 / number of groups                               
+ AXISCORR=                    1 / Direction in which the det2im correction is app
+ EXTVER  =                    1 / Distortion array version number                
+ EXTNAME = 'D2IMARR '           / WCS distortion array                           
+ CDELT1  =                  1.0 / Coordinate increment along axis                
+ CRPIX1  =               2048.0 / Coordinate system reference pixel              
+ CRVAL1  =               2048.0 / Coordinate system value at reference pixel     
+
+.. _wcsdvarr-header:
+
+WCSDVARR Header
+===============
+Each of the WCSDVARR extensions has been derived based on the values for the 
+NPOL correction found in the reference file described in :ref:`Appendix2`. The 
+full header for the WCSDVARR extension with EXTVER=1 is::
+
+ XTENSION= 'IMAGE   '           / Image extension                                
+ BITPIX  =                  -32 / array data type                                
+ NAXIS   =                    2 / number of array dimensions                     
+ NAXIS1  =                   65                                                  
+ NAXIS2  =                   33                                                  
+ PCOUNT  =                    0 / number of parameters                           
+ GCOUNT  =                    1 / number of groups                               
+ EXTVER  =                    1 / Distortion array version number                
+ EXTNAME = 'WCSDVARR'           / WCS distortion array                           
+ CRVAL2  =                  0.0 / Coordinate system value at reference pixel     
+ CRPIX1  =                  0.0 / Coordinate system reference pixel              
+ CRPIX2  =                  0.0 / Coordinate system reference pixel              
+ CRVAL1  =                  0.0 / Coordinate system value at reference pixel     
+ CDELT1  =                   64 / Coordinate increment along axis                
+ CDELT2  =                   64 / Coordinate increment along axis                
+ FILENAME= 'v971826aj_npl.fits' / name of file                                   
+ FILETYPE= 'DXY GRID'           / type of data found in data file                
+ OBSTYPE = 'IMAGING '           / type of observation                            
+ TELESCOP= 'HST'                / telescope used to acquire data                 
+ INSTRUME= 'ACS   '             / identifier for instrument used to acquire data 
+ DETECTOR= 'WFC'                / detector in use: WFC, HRC, or SBC              
+ FILTER1 = 'F475W   '           / element selected from filter wheel 1           
+ FILTER2 = 'CLEAR2L '           / element selected from filter wheel 2           
+ USEAFTER= 'Mar 01 2002 00:00:00'                                                
+ COMMENT = 'NPOL calibration file created by Ray A. Lucas 29 APR 2010'           
+ DESCRIP = 'Residual geometric distortion file for use with astrodrizzle-------' 
+ PEDIGREE= 'INFLIGHT 11/11/2002 11/11/2002'                                      
+ HISTORY   Non-polynomial offset file generated from qbu16420j_dxy.fits          
+ HISTORY   Only added to the flt.fits file and used in coordinate                
+ HISTORY   transformations if the npol reference filename is specified in        
+ HISTORY   the header.  The offsets are copied from the reference file into      
+ HISTORY   two arrays for each chip.  Each array is stored as a 65x33 pixel      
+ HISTORY   image that gets interpolated up to the full chip size. Two new        
+ HISTORY   extensions for each chip are also appended to the flt file            
+ HISTORY   (WCSDVARR).                                                           
+ HISTORY qbu16420j_npl.fits renamed to v9615069j_npl.fits on Sep 6 2011          
+ HISTORY v9615069j_npl.fits renamed to v971826aj_npl.fits on Sep 7 2011 
+ 
+Each of the WCSDVARR extension headers contains the same set of keywords, with
+only the values varying to reflect the axis and chip corrected by this extension.
+
+
 
 
 .. _Appendix2:

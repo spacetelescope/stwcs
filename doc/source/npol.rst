@@ -1,3 +1,5 @@
+.. _npolfile-tsr:
+
 ===================
 NPOL Reference File
 ===================
