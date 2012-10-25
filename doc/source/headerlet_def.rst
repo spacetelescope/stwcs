@@ -4,50 +4,83 @@ Definition of a Headerlet and Its Role in Updating WCS Information - DRAFT
 
 .. abstract::
    :author: Warren Hack, Nadezhda Dencheva
-   :date: 12 Oct 2010
+   :date: 22 Oct 2012
 
-   The 'headerlet' serves as a mechanism for encapsulating WCS information
-   which can be used to update the WCS solution of an image. This object
-   needs to be as compact as possible while providing an unambigious and
-   self-consistent WCS solution for an image while requiring a minimum
-   level of software necessary to apply the headerlet to an image.
-   These basic requirements come from the desire to create a mechanism
-   for passing improved astrometric solutions for HST data and provide
-   those solutions in a manner that would not require getting entirely
-   new images from an archive when only the WCS information has been
-   updated. This report describes the format and contents of a headerlet
-   along with the procedures which would be used to update images with
-   the updated WCS information from the headerlet.
+   
+   A headerlet is a self-consistent representation of a single WCS solution for a single
+   exposure complete with all distortion information. FITS is the data
+   storage format currently supported. It has no observational data
+   which makes it relatively small and light to distribute.
+   It is, essentially, a mechanism for encapsulating WCS information
+   which can later be used to update the WCS of a science file and allows
+   improved astrometric solutions to be stored and passed around easily.
+   The HST archive is expected to start accepting headerlets for HST data soon.
+   However the implementaiton is not HST specific and FITS WCS standard, as well as
+   all WCS conventions implemented in pywcs are supported.
+   This report describes the format and contents of a headerlet
+   along with the software implementation and methods for creating headerlets and using them
+   to update the WCS of a science observation.
 
 Introduction
 ============
-The HST Archive provides access to all HST data, most of which can not be readily combined together due to errors in guide star astrometry imposing offsets between images taken using different pairs of guide stars.  A lot of effort has gone into computing those offsets so that all the images taken at a particular pointing can be combined successfully with astrometry matched to external astrometric catalogs. Unfortunately, there is no current mechanism for passing those updated solutions along to the community without providing entirely new copies of all the data.  
 
-The concept of a 'headerlet' seeks to provide a solution where only the WCS solution for an image that has been aligned to an astrometric catalog can be archived and retrieved for use in updating copies of that image's WCS information without getting the image data again.  Multiple 'headerlets' could even be provided with each representing the alignment of an image to a different astrometric solution, giving the end user the option to get the solution that would allow them to best align their images with external data of interest to them.  These benefits can only be realized with the proper definition of a 'headerlet' and the procedures used to define them and apply them to data. 
+The original motivation for this work was a WCS based replacement
+of Multidrizzle, now released as Astrodrizzle, and specifically a
+requirement for the availability and management of multiple WCS
+sets, complete with distortion, representing different pointings,
+within one science file. However, the concept of encapsulating
+astrometric solutions is more general than that since each solution
+may represent a different astrometric alignment, either with a catalog
+or another image. Furthermore, computing accurate astrometric
+solutions requires considerable effort and time so having a way to
+distribute them, apply them to a science observation and switch
+between different WCSs efficiently would facilitate many aspects of
+data analysis.
+Some of the immediate areas for the use of headerlets with HST data include
+the HST archive, the HLA and other legacy projects which provide improved astrometry
+of HST observations. The HST Archive, for example, provides access to all HST data, 
+most of which can not be readily combined together due to errors in guide star astrometry 
+imposing offsets between images taken using different pairs of guide stars.  
+A lot of effort has gone into computing those offsets so that all the images taken 
+at a particular pointing canbe combined successfully with astrometry matched to 
+external astrometric catalogs.Unfortunately, there is no current mechanism for 
+passing those updated solutions along to the community without providing entirely 
+new copies of all the data.  
 
 Source Image
 ============
-All users get their copy of an image from the HST Archive (OTFR) after being processed with the latest image calibrations, including applying the latest available distortion models. The calibrated image gets passed to the user with the ``_flt.fits`` suffix and is referred to as the ``FLT`` image.  These FLT images serve as the inputs to AstroDrizzle in order to apply the distortion models and combine the images into a single ``DRZ`` product.  
 
-The WCS information in the FLT images has been updated to include the full distortion model, including the full polynomial solution from the IDCTAB and all the corrections formerly combined into the DGEOFILE. The :ref:`FITS Conventions Report <fits_conventions_tsr>` report by Dencheva contains the full description of the conventions used to describe all these components in a FITS file. The header now contains the following set of keywords and extensions to fully describe the WCS with distortion:
+Any science observation with a valid WCS described by the FITS standard or any of the
+WCS conventions implemented in pywcs may serve as a source for creating a headerlet.
+
+We describe as an example the type of WCS information of a typical HST ACS/WFC image as it
+is distributed by the HST archive (OTFR) after being processed with the latest image 
+calibrations, including applying the latest available distortion
+models. The full description of the WCS is available in the 
+:ref:`FITS Conventions Report <fits_conventions_tsr>` report by Hack et al.
+The science header now contains the following set of keywords and extensions to fully 
+describe the WCS with distortion:
 
 * **Linear WCS keywords**: specifically, CRPIX, CRVAL, CTYPE, CD matrix keywords
 * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
-    OCX10, OCX11, OCY10, and OCY11 keywords
-* **NPOL file**: if an NPOLFILE has been specified for the image, 
-    CPDIS and DP record-value keywords to point to WCSDVARR extensions (FITS Distortion Paper convention)
-* **Column correction file**: if a D2IMFILE has been specified for use with the image, 
-    the D2IMEXT and D2IMERR keywords signify the use of a D2IM file extension
+* ** The first order coefficients from the IDC table (needed by astrodrizle): OCX10, OCX11, OCY10, and OCY11 keywords
+* **NPOL distortion**: if an NPOLFILE has been specified for the image, 
+    CPDIS and DP record-value keywords to point to WCSDVARR extensions (FITS Distortion
+    Paper convention)
+* **Column correction**: if a D2IMFILE has been specified for use with the image, 
+    the D2IMEXT, D2IMERR and AXISCORR keywords point to the D2IMARR extension
 * **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
-    the NPOLFILE corrections, with each extension corresponding to an axis of 
-    the image (X correction or Y correction) (if an NPOLFILE has been applied to the image)
-* **D2IMVARR extension**: an extension with a lookup table containing the 
-    column-correction for that chip from the D2IMFILE.
+    the non-polynomial corrections, with each extension corresponding to an axis of 
+    the image (X correction or Y correction)
+* **D2IMARR extension**: an extension with a lookup table containing the 
+    column-correction from the D2IMFILE.
  
 
-Each science header will have its own set of these keywords and extensions that will be kept together as part of the headerlet definition.  This avoids any ambiguity as to what solution was used for any given WCS. 
+Each science header will have its own set of these keywords and extensions that will
+be kept together as part of the headerlet definition.  This avoids any ambiguity as
+to what solution was used for any given WCS. 
 
-An HST ACS/WFC exposure would end up with the following set of extensions::
+An HST ACS/WFC exposure would end up with the following set of extensions:
 
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
 
@@ -64,23 +97,49 @@ An HST ACS/WFC exposure would end up with the following set of extensions::
     10      IMAGE       WCSDVARR              3     65x33        -32                
     11      IMAGE       WCSDVARR              4     65x33        -32                
 
-There may be a lot of extensions appended to this FITS file, but the sum total of all these new extensions comes to approximately 100kB for ACS/WFC images (our sample only requires 86400 bytes), making them a space efficient means of managing all the distortion and WCS information. 
+These additional extensions add approximately 100kB to a typical ACS/WFC image 
+making them a space efficient means of managing all the distortion and WCS information. 
 
 Headerlet Definition
 ====================
-The `headerlet` needs to be a self-consistent, fully described definition of a WCS and its distortion for all chips/detectors of a single exposure.  The WCS and SIP coefficients get derived from the SCI header directly, along with the all keywords which refer to the extensions with the optional NPOLFILE and D2IMFILE corrections.  The full 'headerlet' will be stored as a multi-extension FITS object that includes a primary header, an extension for each chip which only contains the WCS and distortion keywords, and any additional extensions for optional distortion correction information.  This object can be written out to a file and/or attached to an existing image's FITS file as a new extension.
+A `headerlet` is a self-consistent, definition of a single WCS
+including all distortion for all chips/detectors of a single exposure. 
+This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) 
+in that by definition all alternate WCSs share the same distortion model while headerlets
+may be based on different distortion models. A headerlet does not include alternate WCSs. 
+It is stored as a multi-extension FITS file following the structure of the science file. 
+The WCS information in the science header is saved in the header of an HDU with EXTNAME 'SIPWCS'. 
+All other HDUs in the headerlet (containing distorion information) 
+have the same EXTNAME as the science file.
 
-The science observation's original WCS will be saved to a headerlet so that the user can always revert back to the original WCS solution at any time. 
-There will be an option to permanently delete the original WCS and not save it to a headerlet.  
+SIPWCS - A New FITS Extension
+-----------------------------
 
-New WCS Extension
------------------
-A new extension, named SIPWCS, containing all the WCS-related keywords from the SCI header, including all keywords referring to NPOL and D2IM extensions as well as all sets of alternate WCS keywords, will be created to serve as the record of the original WCS. Keywords (TBD) recording the alignment information are recorded in this header as well. All the sets of linear WCS keywords stored using FITS Paper I Multiple WCS Standard would be defined using the same set of distortion coefficients written to the SIP keywords and NPOL files.  This insures that all the information in the header remains consistent. The keywords in this extension can be used to overwrite the keywords in the corresponding SCI header to update the WCS solution for each chip without any further modification or computation. The new extension then serves not only as a record of all the WCS solutions derived for the image, but also the source of values for restoring the SCI header WCS when desired.  
+We introduce a new HDU with EXTNAME `SIPWCS`. It has no data and the header 
+contains all the WCS-related keywords from the SCI 
+header. As a minimum it contains the basic WCS keywords described in Paper 1.
+If the science observation has a SIP distortion model, the SIP keywords are included 
+in this extension. If the distortion of the science observation includes a non-polynomial
+part, the keywords describing the extensions with the lookup tables
+(EXTNAME=WCSDVARR) are also in this header. If there's a detector defect correction 
+(row or column correction), the keywords describing the D2IMARR HDU are also in this 
+header. In addition each SIPWCS header contains two keywords which point back to the HDU
+of the original science file which was the source for it. These keywords are TG_ENAME and
+TG_EVER and have the meaning of (extname, extver) for the science file.
 
+The keywords in this extension are used by the software to overwrite the keywords
+in the corresponding SCI header to update the WCS solution for each chip without any
+computation. The new extension then serves not only as a record
+of a single WCS solution derived for the image, but also the source of values for restoring
+the SCI header WCS when desired.  
 
 Headerlet File Structure
------------------------------
-This new extension along with the NPOLFILE and the D2IMFILE extensions fully describe the WCS of each chip and can serve without further modification as the definition of the `headerlet`. The listing of the FITS extensions for a `headerlet` for the sample ACS/WFC exposure after writing it out to a file would then be::
+------------------------
+
+This SIPWCS extension along with all WCSDVARR extensions and the D2IMARR extension if available 
+fully describe the WCS of each chip.
+The listing of the FITS extensions for a `headerlet` for a sample ACS/WFC exposure after writing
+it out to a file is::
 
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
 
@@ -93,14 +152,12 @@ This new extension along with the NPOLFILE and the D2IMFILE extensions fully des
     6       IMAGE       WCSDVARR              4     65x33        -32                
     7       IMAGE       D2IMARR               1     4096         -32                
 
-This file now fully describes the WCS solution for this image, complete with all the distortion information used to originally define the solution. No further reference files or computations would be needed when this `headerlet` gets used to update an image.
 
 .. note::
 
    A headerlet derived from a full-frame WFC3/UVIS image would only
    contain a PRIMARY header and two SIPWCS  extensions (one for each SCI extension)
-   as WFC3/UVIS does not currently use NPOLFILE or D2IMFILE reference files as
-   part of their distortion model.
+   as WFC3/UVIS does not currently have non-polynomial distortion or any detector defect corrections.
 
 The keywords used to populate the headerlet come from all the extensions of the updated
 FITS file, as illustrated in the following figure.
@@ -118,14 +175,17 @@ FITS file, as illustrated in the following figure.
 Headerlet Primary Header
 -------------------------
 
-The list below contains all keywords specific to the primary header of a headerlet with the logic to determine their value.
+The list below contains all keywords specific to the primary header of a headerlet with
+the logic to determine their value. Note that all keywords will be present in the header
+and 'required' and 'optional' below refers to their value.
 
  * `HDRNAME`  - (required) a unique name for the headerlet
                  - the value is given by the user as a parameter to `~stwcs.wcsutil.headerlet.create_headerlet` or `~stwcs.wcsutil.headerlet.write_headerlet`
                  - HDRNAME<wcskey> from the science file is used
                  - WCSNAME<wcskey> from the science file is used
                  - KeyError is raised
- * `DESTIM`   - (required) target image filename 
+ * `DESTIM`   - (required) target image filename
+                Used to determine if a headerlet can be applied to a science file.
                 - the ROOTNAME keyword of the original science file
                 - the name of the science file
  * `WCSNAME`  - (required) name for the WCS
@@ -174,62 +234,52 @@ The list below contains all keywords specific to the primary header of a headerl
  * `PYWCSVER` - (optional) version of PyWCS used to create the WCS of the original image
 
 
-These keywords are used for determining whether a headerlet can be applied to a
-given exposure and how it needs to be applied. Some of the keywords provide more
+These keywords are used to determine whether a headerlet can be applied to a
+given exposure or not. Some of the keywords provide more
 information about the solution itself, how it was derived, and by whom.
-These keywords allow the headerlet to retain enough information about how the
-new solution was generated so that a user could determine if it can be applied to his or
-her copy of the image.
+
+Working With Headerlets
+=======================
+
+Headerlets are implemented in a python module `~stwcs.wcsutil.headerlet` which uses PyWCS for 
+WCS management and PyFITS for FITS file handling.
+
+Headerlet Software Functionality
+--------------------------------
 
 
-User-Defined Headerlet
-======================
-The `headerlet` defined above serves as the default headerlet for any image provided by the HST Archive.  However, should the user perform their own calibrations which they feel improve on the standard calibrations provided by the pipeline, a custom `headerlet` can be provided.  Any `headerlet` should simply include:
-
-    * **Required**: A primary header with specific keywords which specify a unique headerlet name and a targeted image. 
-    * **Required**: An SIPWCS extension for each chip which contains the linear WCS as well as any distortion model supported by FITS (for example, updated SIP coefficients)
-    * **Optional**: Any additional look up tables with refinements to the polynomial solutions in the SIPWCS extension. Any such extensions should be linked to the SIPWCS extension using the same FITS Distortion Paper conventions used for the NPOLFILE tables. 
-    * **Optional**: Detector to image correction array as a separate extension if needed.
+    #. Create a headerlet (on disk or in memory) from a specific WCS of a science observation. 
+       This can be the Primary or an alternate WCS.
+    #. Apply a WCS from a headerlet to the Primary WCS of a science observation (and 
+       optionally save the original WCS as an alternate WCs or a different headerlet).
+    #. Copy a WCS from a headerlet as an alternate WCS.
+    #. Attach a headerlet to a science file.
+    #. Archive a WCS of a science file as a headerlet attached to the file.
+    #. Delte a headerlet attached to a science file.
+    #. Print a summary of all headerlets attached to a science file.
     
-This custom `headerlet` should be capable of being used to overwrite the existing SCI header WCS keywords to provide a FITS-supported WCS. 
+An optional GUI interface is available through teal and includes functions for writing a headerlet,
+applying a headerlet, etc. A full listing of all functions with GUI interface is available 
+after `stwcs.wcsutil` is imported.
 
+Headerlet API And Examples
+--------------------------
 
-Application of a Headerlet
-==========================
-Updating an image retrieved from the HST Archive with a `headerlet` only requires a few very simple steps:
+`Note: For an up-to-date API always consult the current the SSB documentation pages.`
 
-    #. Create a headerlet from the original WCS solution in the science image (this step can be turned off).
-    #. Delete all WCS information from the science image
-    #. Copy the WCS solution from the headerlet to the science observation 
-    #. Update the WCSCORR table with the linear WCS keyword values and name of the SIP solution (based on the name of the reference files) from each SIPWCS extension from the `headerlet`, along with the keyword values from the PRIMARY header of the `headerlet`
+The headerlet API as of the time of writing this report is documented in :ref:`Appendix1`.
 
-This process assumes that when an image gets updated with a `headerlet`, the new solution from the `headerlet` should become the prime WCS.  Further implementations of the software to work with `headerlets` can expand on this functionality if necessary.  Initially, the `headerlet` simply needs to be used to update the image's FITS file so that the WCS information can be used at all.
-
-Software Requirements
-=====================
-Implementing support for the `headerlet` and its use in updating HST FITS files will require a few new software tasks; namely,
-
-- A task which given a science file creates a `headerlet` and writes it to a file.
-
-- A task which given a science file and a `headerlet` applies the `headerlet` to the science file
-  
-  #. Default behaviour will be to copy the WCS recorded in the `headerlet` as a primary WCS, creating a headerlet with the old solution.
-
-The operation of updating a science file with a `headerlet` only requires the use of basic FITS operations:
-
-- Updating keywords in the science extensions of the file with values from the SIPWCS extensions from the `headerlet`
-
-These operations do not require any computations and can be done using any FITS library. This allows a `headerlet` to be usable by the community even if they do not use the software we develop based on PyFITS and STWCS, both for creating and applying these files.
-
-Headerlet API
-=============
-This section describes the current draft API for working with `headerlets` as implemented in the `stwcs.wcsutil.headerlet` module.
-First, there's a potentially confusing point that should be cleared up:  A `headerlet`, as implemented, is simply a FITS file containing
-multiple extensions that contain all the parameters necessary to reproduce the WCS solution in the science image it was created from.
-When a `headerlet` is applied to an image, a copy of the original `headerlet` file is appended to the image's HDU list as a special
-extension HDU called a `Headerlet HDU`.  A `Headerlet HDU` consists of a simple header describing the `headerlet`, and has as its data
-the `headerlet` file itself, (which may be compressed).  A `Headerlet HDU` has an 'XTENSION' value of 'HDRLET'.  Though PyFits can
-handle such a non-standard extension type sensibly, this hasn't been tested with other common FITS readers yet.  If it becomes
+This section describes the current draft API for working with `headerlets` as 
+implemented in the `stwcs.wcsutil.headerlet` module. First, there's a potentially 
+confusing point that should be cleared up:  A `headerlet`, as implemented, is simply 
+a FITS file containing multiple extensions that contain all the parameters necessary 
+to reproduce the WCS solution in the science image it was created from.
+When a `headerlet` is applied to an image, a copy of the original `headerlet` file is 
+appended to the image's HDU list as a special extension HDU called a `Headerlet HDU`.  
+A `Headerlet HDU` consists of a simple header describing the `headerlet`, and has as its data
+the `headerlet` file itself, (which may be compressed).  A `Headerlet HDU` has an 'XTENSION' 
+value of 'HDRLET'.  Though PyFits can handle such a non-standard extension type sensibly, 
+this hasn't been tested with other common FITS readers yet.  If it becomes
 necessary, `Headerlet HDUs` could be implemented using a standard extension type like 'IMAGE'.
 
 To create a `headerlet` from an image, a `createHeaderlet()` function is provided::
@@ -347,4 +397,551 @@ the actual `headerlet` contained in the HDU data as a `Headerlet` object::
 
 This is useful if you want to view the contents of the `headerlets` attached to a file.
 
+.. _Appendix1:
+
+Appendix 1: Headerlet API
+=========================
+
+* :ref:`apply_headerlet_as_alternate`
+* :ref:`apply_headerlet_as_primary`
+* :ref:`archive_as_headerlet`
+* :ref:`attach_headerlet`
+* :ref:`create_headerlet`
+* :ref:`delete_headerlet`
+* :ref:`extract_headerlet`
+* :ref:`print_summary`
+* :ref:`restore_all_with_distname`
+* :ref:`restore_from_headerlet`
+* :ref:`write_headerlet`
+
+.. _apply_headerlet_as_alternate:
+
+apply_headerlet_as_alternate
+----------------------------
+
+::
+
+    def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
+                                    wcsname=None, logging=False, logmode='w'):
+        """
+        Apply headerlet to a science observation as an alternate WCS
+    
+        Parameters
+        ----------
+        filename: string
+                 File name of science observation whose WCS solution will be updated
+        hdrlet: string
+                 Headerlet file
+        attach: boolean
+              flag indicating if the headerlet should be attached as a
+              HeaderletHDU to fobj. If True checks that HDRNAME is unique
+              in the fobj and stops if not.
+        wcskey: string
+              Key value (A-Z, except O) for this alternate WCS
+              If None, the next available key will be used
+        wcsname: string
+              Name to be assigned to this alternate WCS
+              WCSNAME is a required keyword in a Headerlet but this allows the
+              user to change it as desired.
+        logging: boolean
+              enable file logging
+        logmode: 'a' or 'w'
+        """
+
+.. _apply_headerlet_as_primary:
+
+apply_headerlet_as_primary
+--------------------------
+
+::
+
+    def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
+                                    force=False, logging=False, logmode='a'):
+        """
+        Apply headerlet 'hdrfile' to a science observation 'destfile' as the primary WCS
+    
+        Parameters
+        ----------
+        filename: string
+                 File name of science observation whose WCS solution will be updated
+        hdrlet: string
+                 Headerlet file
+        attach: boolean
+                True (default): append headerlet to FITS file as a new extension.
+        archive: boolean
+                True (default): before updating, create a headerlet with the
+                WCS old solution.
+        force: boolean
+                If True, this will cause the headerlet to replace the current PRIMARY
+                WCS even if it has a different distortion model. [Default: False]
+        logging: boolean
+                enable file logging
+        logmode: 'w' or 'a'
+                 log file open mode
+        """
+
+.. _archive_as_headerlet:
+
+archive_as_headerlet
+--------------------
+
+::
+
+    def archive_as_headerlet(filename, hdrname, sciext='SCI',
+                            wcsname=None, wcskey=None, destim=None,
+                            sipname=None, npolfile=None, d2imfile=None,
+                            author=None, descrip=None, history=None,
+                            nmatch=None, catalog=None,
+                            logging=False, logmode='w'):
+        """
+        Save a WCS as a headerlet extension and write it out to a file.
+    
+        This function will create a headerlet, attach it as an extension to the
+        science image (if it has not already been archived) then, optionally,
+        write out the headerlet to a separate headerlet file.
+    
+        Either wcsname or wcskey must be provided, if both are given, they must match a valid WCS
+        Updates wcscorr if necessary.
+    
+        Parameters
+        ----------
+        filename: string or HDUList
+               Either a filename or PyFITS HDUList object for the input science file
+                An input filename (str) will be expanded as necessary to interpret
+                any environmental variables included in the filename.
+        hdrname: string
+            Unique name for this headerlet, stored as HDRNAME keyword
+        sciext: string
+            name (EXTNAME) of extension that contains WCS to be saved
+        wcsname: string
+            name of WCS to be archived, if " ": stop
+        wcskey: one of A...Z or " " or "PRIMARY"
+            if " " or "PRIMARY" - archive the primary WCS
+        destim: string
+            DESTIM keyword
+            if  NOne, use ROOTNAME or science file name
+        sipname: string or None (default)
+                 Name of unique file where the polynomial distortion coefficients were
+                 read from. If None, the behavior is:
+                 The code looks for a keyword 'SIPNAME' in the science header
+                 If not found, for HST it defaults to 'IDCTAB'
+                 If there is no SIP model the value is 'NOMODEL'
+                 If there is a SIP model but no SIPNAME, it is set to 'UNKNOWN'
+        npolfile: string or None (default)
+                 Name of a unique file where the non-polynomial distortion was stored.
+                 If None:
+                 The code looks for 'NPOLFILE' in science header.
+                 If 'NPOLFILE' was not found and there is no npol model, it is set to 'NOMODEL'
+                 If npol model exists, it is set to 'UNKNOWN'
+        d2imfile: string
+                 Name of a unique file where the detector to image correction was
+                 stored. If None:
+                 The code looks for 'D2IMFILE' in the science header.
+                 If 'D2IMFILE' is not found and there is no d2im correction,
+                 it is set to 'NOMODEL'
+                 If d2im correction exists, but 'D2IMFILE' is missing from science
+                 header, it is set to 'UNKNOWN'
+        author: string
+                Name of user who created the headerlet, added as 'AUTHOR' keyword
+                to headerlet PRIMARY header
+        descrip: string
+                Short description of the solution provided by the headerlet
+                This description will be added as the single 'DESCRIP' keyword
+                to the headerlet PRIMARY header
+        history: filename, string or list of strings
+                Long (possibly multi-line) description of the solution provided
+                by the headerlet. These comments will be added as 'HISTORY' cards
+                to the headerlet PRIMARY header
+                If filename is specified, it will format and attach all text from
+                that file as the history.
+        logging: boolean
+                enable file folling
+        logmode: 'w' or 'a'
+                 log file open mode
+        """
+
+.. _attach_headerlet:
+
+attach_headerlet
+----------------
+
+::
+
+        def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
+            """
+            Attach Headerlet as an HeaderletHDU to a science file
+        
+            Parameters
+            ----------
+            filename: string, HDUList
+                    science file to which the headerlet should be applied
+            hdrlet: string or Headerlet object
+                    string representing a headerlet file
+            logging: boolean
+                    enable file logging
+            logmode: 'a' or 'w'
+            """
+
+.. _create_headerlet:
+
+create_headerlet
+----------------
+
+::
+
+    def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
+                        wcskey=" ", wcsname=None,
+                        sipname=None, npolfile=None, d2imfile=None,
+                        author=None, descrip=None, history=None,
+                        nmatch=None, catalog=None,
+                        logging=False, logmode='w'):
+        """
+        Create a headerlet from a WCS in a science file
+        If both wcskey and wcsname are given they should match, if not
+        raise an Exception
+        
+        Parameters
+        ----------
+        filename: string or HDUList
+               Either a filename or PyFITS HDUList object for the input science file
+                An input filename (str) will be expanded as necessary to interpret
+                any environmental variables included in the filename.
+        sciext: string or python list (default: 'SCI')
+               Extension in which the science data with the linear WCS is. 
+               The headerlet will be created from these extensions.
+               If string - a valid EXTNAME is expected
+               If int - specifies an extension with a valid WCS, such as 0 for a
+               simple FITS file
+               If list - a list of FITS extension numbers or strings representing
+               extension tuples, e.g. ('SCI, 1') is expected.
+        hdrname: string
+               value of HDRNAME keyword
+               Takes the value from the HDRNAME<wcskey> keyword, if not available from WCSNAME<wcskey>
+               It stops if neither is found in the science file and a value is not provided
+        destim: string or None
+                name of file this headerlet can be applied to
+                if None, use ROOTNAME keyword
+        wcskey: char (A...Z) or " " or "PRIMARY" or None
+                a char representing an alternate WCS to be used for the headerlet
+                if " ", use the primary (default)
+                if None use wcsname
+        wcsname: string or None
+                if wcskey is None use wcsname specified here to choose an alternate WCS for the headerlet
+        sipname: string or None (default)
+                 Name of unique file where the polynomial distortion coefficients were
+                 read from. If None, the behavior is:
+                 The code looks for a keyword 'SIPNAME' in the science header
+                 If not found, for HST it defaults to 'IDCTAB'
+                 If there is no SIP model the value is 'NOMODEL'
+                 If there is a SIP model but no SIPNAME, it is set to 'UNKNOWN'
+        npolfile: string or None (default)
+                 Name of a unique file where the non-polynomial distortion was stored.
+                 If None:
+                 The code looks for 'NPOLFILE' in science header.
+                 If 'NPOLFILE' was not found and there is no npol model, it is set to 'NOMODEL'
+                 If npol model exists, it is set to 'UNKNOWN'
+        d2imfile: string
+                 Name of a unique file where the detector to image correction was
+                 stored. If None:
+                 The code looks for 'D2IMFILE' in the science header.
+                 If 'D2IMFILE' is not found and there is no d2im correction,
+                 it is set to 'NOMODEL'
+                 If d2im correction exists, but 'D2IMFILE' is missing from science
+                 header, it is set to 'UNKNOWN'
+        author: string
+                Name of user who created the headerlet, added as 'AUTHOR' keyword
+                to headerlet PRIMARY header
+        descrip: string
+                Short description of the solution provided by the headerlet
+                This description will be added as the single 'DESCRIP' keyword
+                to the headerlet PRIMARY header
+        history: filename, string or list of strings
+                Long (possibly multi-line) description of the solution provided
+                by the headerlet. These comments will be added as 'HISTORY' cards
+                to the headerlet PRIMARY header
+                If filename is specified, it will format and attach all text from
+                that file as the history.
+        nmatch: int (optional)
+                Number of sources used in the new solution fit
+        catalog: string (optional)
+                Astrometric catalog used for headerlet solution
+        logging: boolean
+                 enable file logging
+        logmode: 'w' or 'a'
+                 log file open mode
+    
+        Returns
+        -------
+        Headerlet object
+        """
+
+.. _delete_headerlet:
+
+delete_headerlet
+----------------
+
+::
+
+        def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
+                             logging=False, logmode='w'):
+            """
+            Deletes HeaderletHDU(s) from a science file
+        
+            Notes
+            -----
+            One of hdrname, hdrext or distname should be given.
+            If hdrname is given - delete a HeaderletHDU with a name HDRNAME from fobj.
+            If hdrext is given - delete HeaderletHDU in extension.
+            If distname is given - deletes all HeaderletHDUs with a specific distortion model from fobj.
+            Updates wcscorr
+        
+            Parameters
+            ----------
+            filename: string or HDUList
+                   Either a filename or PyFITS HDUList object for the input science file
+                    An input filename (str) will be expanded as necessary to interpret
+                    any environmental variables included in the filename.
+            hdrname: string or None
+                HeaderletHDU primary header keyword HDRNAME
+            hdrext: int, tuple or None
+                HeaderletHDU FITS extension number
+                tuple has the form ('HDRLET', 1)
+            distname: string or None
+                distortion model as specified in the DISTNAME keyword
+            logging: boolean
+                     enable file logging
+            logmode: 'a' or 'w'
+            """
+        
+.. _extract_headerlet:
+
+extract_headerlet
+-----------------
+
+::
+
+        def extract_headerlet(filename, output, extnum=None, hdrname=None,
+                              clobber=False, logging=True):
+            """
+            Finds a headerlet extension in a science file and writes it out as
+            a headerlet FITS file.
+        
+            If both hdrname and extnum are given they should match, if not
+            raise an Exception
+        
+            Parameters
+            ----------
+            filename: string or HDUList or Python list
+                This specifies the name(s) of science file(s) from which headerlets
+                will be extracted.
+        
+                String input formats supported include use of wild-cards, IRAF-style
+                '@'-files (given as '@<filename>') and comma-separated list of names.
+                An input filename (str) will be expanded as necessary to interpret
+                any environmental variables included in the filename.
+                If a list of filenames has been specified, it will extract a
+                headerlet from the same extnum from all filenames.
+            output: string
+                   Filename or just rootname of output headerlet FITS file
+                   If string does not contain '.fits', it will create a filename with
+                   '_hlet.fits' suffix
+            extnum: int
+                   Extension number which contains the headerlet to be written out
+            hdrname: string
+                   Unique name for headerlet, stored as the HDRNAME keyword
+                   It stops if a value is not provided and no extnum has been specified
+            clobber: bool
+                If output file already exists, this parameter specifies whether or not
+                to overwrite that file [Default: False]
+            logging: boolean
+                     enable logging to a file
+        
+            """
+
+.. _print_summary:
+ 
+print_summary
+-------------
+ 
+ ::
+ 
+        def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
+                           output=None, clobber=True, quiet=False ):
+           """
+           Print out summary dictionary to STDOUT, and possibly an output file
+       
+           """
+    
+.. _restore_all_with_distname:
+
+restore_all_with_distname
+-------------------------
+
+::
+
+    def restore_all_with_distname(filename, distname, primary, archive=True,
+                                  sciext='SCI', logging=False, logmode='w'):
+        """
+        Restores all HeaderletHDUs with a given distortion model as alternate WCSs and a primary
+    
+        Parameters
+        --------------
+        filename: string or HDUList
+               Either a filename or PyFITS HDUList object for the input science file
+                An input filename (str) will be expanded as necessary to interpret
+                any environmental variables included in the filename.
+        distname: string
+            distortion model as represented by a DISTNAME keyword
+        primary: int or string or None
+            HeaderletHDU to be restored as primary
+            if int - a fits extension
+            if string - HDRNAME
+            if None - use first HeaderletHDU
+        archive: boolean (default True)
+            flag indicating if HeaderletHDUs should be created from the
+            primary and alternate WCSs in fname before restoring all matching
+            headerlet extensions
+        logging: boolean
+             enable file logging
+        logmode: 'a' or 'w'
+        """
+        
+.. _restore_from_headerlet:
+
+restore_from_headerlet
+----------------------
+
+::
+
+    def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
+                               force=False, logging=False, logmode='w'):
+        """
+        Restores a headerlet as a primary WCS
+    
+        Parameters
+        ----------
+        filename: string or HDUList
+               Either a filename or PyFITS HDUList object for the input science file
+                An input filename (str) will be expanded as necessary to interpret
+                any environmental variables included in the filename.
+        hdrname: string
+            HDRNAME keyword of HeaderletHDU
+        hdrext: int or tuple
+            Headerlet extension number of tuple ('HDRLET',2)
+        archive: boolean (default: True)
+            When the distortion model in the headerlet is the same as the distortion model of
+            the science file, this flag indicates if the primary WCS should be saved as an alternate
+            nd a headerlet extension.
+            When the distortion models do not match this flag indicates if the current primary and
+            alternate WCSs should be archived as headerlet extensions and alternate WCS.
+        force: boolean (default:False)
+            When the distortion models of the headerlet and the primary do not match, and archive
+            is False, this flag forces an update of the primary.
+        logging: boolean
+               enable file logging
+        logmode: 'a' or 'w'
+        """
+
+.. _write_headerlet:
+
+write_headerlet
+---------------
+
+::
+
+    def write_headerlet(filename, hdrname, output=None, sciext='SCI',
+                            wcsname=None, wcskey=None, destim=None,
+                            sipname=None, npolfile=None, d2imfile=None,
+                            author=None, descrip=None, history=None,
+                            nmatch=None, catalog=None,
+                            attach=True, clobber=False, logging=False):
+    
+        """
+        Save a WCS as a headerlet FITS file.
+    
+        This function will create a headerlet, write out the headerlet to a
+        separate headerlet file, then, optionally, attach it as an extension
+        to the science image (if it has not already been archived)
+    
+        Either wcsname or wcskey must be provided; if both are given, they must
+        match a valid WCS.
+    
+        Updates wcscorr if necessary.
+    
+        Parameters
+        ----------
+        filename: string or HDUList or Python list
+            This specifies the name(s) of science file(s) from which headerlets
+            will be created and written out.
+            String input formats supported include use of wild-cards, IRAF-style
+            '@'-files (given as '@<filename>') and comma-separated list of names.
+            An input filename (str) will be expanded as necessary to interpret
+            any environmental variables included in the filename.
+        hdrname: string
+            Unique name for this headerlet, stored as HDRNAME keyword
+        output: string or None
+            Filename or just rootname of output headerlet FITS file
+            If string does not contain '.fits', it will create a filename
+            starting with the science filename and ending with '_hlet.fits'.
+            If None, a default filename based on the input filename will be
+            generated for the headerlet FITS filename
+        sciext: string
+            name (EXTNAME) of extension that contains WCS to be saved
+        wcsname: string
+            name of WCS to be archived, if " ": stop
+        wcskey: one of A...Z or " " or "PRIMARY"
+            if " " or "PRIMARY" - archive the primary WCS
+        destim: string
+            DESTIM keyword
+            if  NOne, use ROOTNAME or science file name
+        sipname: string or None (default)
+             Name of unique file where the polynomial distortion coefficients were
+             read from. If None, the behavior is:
+             The code looks for a keyword 'SIPNAME' in the science header
+             If not found, for HST it defaults to 'IDCTAB'
+             If there is no SIP model the value is 'NOMODEL'
+             If there is a SIP model but no SIPNAME, it is set to 'UNKNOWN'
+        npolfile: string or None (default)
+             Name of a unique file where the non-polynomial distortion was stored.
+             If None:
+             The code looks for 'NPOLFILE' in science header.
+             If 'NPOLFILE' was not found and there is no npol model, it is set to 'NOMODEL'
+             If npol model exists, it is set to 'UNKNOWN'
+        d2imfile: string
+             Name of a unique file where the detector to image correction was
+             stored. If None:
+             The code looks for 'D2IMFILE' in the science header.
+             If 'D2IMFILE' is not found and there is no d2im correction,
+             it is set to 'NOMODEL'
+             If d2im correction exists, but 'D2IMFILE' is missing from science
+             header, it is set to 'UNKNOWN'
+        author: string
+            Name of user who created the headerlet, added as 'AUTHOR' keyword
+            to headerlet PRIMARY header
+        descrip: string
+            Short description of the solution provided by the headerlet
+            This description will be added as the single 'DESCRIP' keyword
+            to the headerlet PRIMARY header
+        history: filename, string or list of strings
+            Long (possibly multi-line) description of the solution provided
+            by the headerlet. These comments will be added as 'HISTORY' cards
+            to the headerlet PRIMARY header
+            If filename is specified, it will format and attach all text from
+            that file as the history.
+        attach: bool
+            Specify whether or not to attach this headerlet as a new extension
+            It will verify that no other headerlet extension has been created with
+            the same 'hdrname' value.
+        clobber: bool
+            If output file already exists, this parameter specifies whether or not
+            to overwrite that file [Default: False]
+        logging: boolean
+             enable file logging
+        """
+    
+References
+----------
+
 .. _FITSConventions: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:FITSDistortionConventions
+
+
