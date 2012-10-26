@@ -8,7 +8,7 @@ NPOL Reference File
    :author: Nadezhda Dencheva, Warren Hack
    :date: 12 Oct 2010
    
-   The HST pipeline uses two types of reference files to correct for distortion: 
+   The HST pipeline originally used two types of reference files to correct for distortion: 
    ``IDCTAB`` files which contain the coefficients for a polynomial correction and 
    ``DGEO`` files which are images with the residual distortion. A new format for the residual 
    distortion, called ``NPOL`` files (extension ``_npl.fits``),  is presented in this document. 
@@ -26,10 +26,11 @@ ACS/WFC where  it can reach 50 pixels. Anderson [1]_ describes the total distort
 solution for ACS/WFC as consisting of a polynomial  part which provides position 
 accuracy of 0.1-0.2 pixels, a filter dependent fine scale solution which brings the 
 accuracy of the positions to 0.01 pixels and a detector defect correction with a 
-maximum amplitude of 0.008 pixels. Currently these distortion solutions are implemented 
+maximum amplitude of 0.008 pixels. These distortion solutions are implemented 
 in the ACS pipeline as reference files. The ``IDCTAB`` files contain the polynomial distortion 
-and the ``DGEO`` files contain the combined solution for the detector defect and the filter dependent fine scale 
-residuals. This document describes how the ``DGEO`` files are converted 
+and the ``DGEO`` files originally contained the combined solution for the detector 
+defect and the filter dependent fine scale residuals. 
+This document describes how the ``DGEO`` files are converted 
 to the new format, called ``NPOL`` files, and how they will be distributed and used. It also 
 describes the testing procedure of the ``NPOL`` files and provides an example of converting 
 and testing an ACS/WFC F606W ``DGEO`` file.
@@ -103,15 +104,15 @@ before sampling. This padding ensures that after bilinear interpolation there
 all edge effects due to extrapolation will be minimized. 
 
 A Python script, `makesmall.py`, samples the large ``DGEO`` files and writes out the 
-small NPOL files. This code has been included in the `REFTOOLS` package in IRAFDEV.  
-The script also writes the sampling step size 
+small NPOL files. This code has been included in the `REFTOOLS` package in the 
+stsci_python distribution.  The script also writes the sampling step size 
 in each direction to the headers of the NPOL file extensions. The step size is later
 stored in the header of each ``WCSDVAR`` extension as the value of ``CDELT`` keywords to be 
 used by the software which does the coordinate transformation and interpolation. 
 Since the original ``DGEO`` files include the combined fine scale distortion and the 
 detector defect, it is imperative that the detector defect is removed from the ``DGEO``
 files before they are sampled. (The detector defect correction is stored also as a 
-``WCSDVARR`` extension and applied separately.)
+``D2IMARR`` extension and applied separately.)
 
 Using NPOL files
 ================
@@ -263,4 +264,6 @@ References
 .. [1] Anderson, J. 2002, in the Proceedings of the 2002 HST Calibration Workshop, S. Arribas,
        A. Koekemoer, and B. Whitmore, eds
        
-.. [2] Calabretta, M. et al. 2004, draft WCS paper IV
+.. [2] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+    "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
+    Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
