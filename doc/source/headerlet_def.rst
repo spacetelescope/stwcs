@@ -27,22 +27,22 @@ Introduction
 The original motivation for this work was a WCS based replacement
 of Multidrizzle, now released as Astrodrizzle, and specifically a
 requirement for the availability and management of multiple WCS
-sets, complete with distortion, representing different pointings,
-within one science file. However, the concept of encapsulating
-astrometric solutions is more general than that since each solution
-may represent a different astrometric alignment, either with a catalog
-or another image. Furthermore, computing accurate astrometric
-solutions requires considerable effort and time so having a way to
-distribute them, apply them to a science observation and switch
-between different WCSs efficiently would facilitate many aspects of
+sets, complete with distortion, within one science file. However,
+the concept of encapsulating astrometric solutions is more general 
+than that since each solution may represent a different astrometric 
+alignment, either with a catalog or another image. Furthermore, computing 
+accurate astrometric solutions requires considerable effort and time so 
+having a way to distribute them, apply them to a science observation and 
+switch between different WCSs efficiently would facilitate many aspects of
 data analysis.
+
 Some of the immediate areas for the use of headerlets with HST data include
 the HST archive, the HLA and other legacy projects which provide improved astrometry
 of HST observations. The HST Archive, for example, provides access to all HST data, 
 most of which can not be readily combined together due to errors in guide star astrometry 
 imposing offsets between images taken using different pairs of guide stars.  
 A lot of effort has gone into computing those offsets so that all the images taken 
-at a particular pointing canbe combined successfully with astrometry matched to 
+at a particular pointing can be combined successfully with astrometry matched to 
 external astrometric catalogs.Unfortunately, there is no current mechanism for 
 passing those updated solutions along to the community without providing entirely 
 new copies of all the data.  
@@ -57,18 +57,21 @@ We describe as an example the type of WCS information of a typical HST ACS/WFC i
 is distributed by the HST archive (OTFR) after being processed with the latest image 
 calibrations, including applying the latest available distortion
 models. The full description of the WCS is available in the 
-:ref:`FITS Conventions Report <fits_conventions_tsr>` report by Hack et al.
+:ref:`Distortion Correction In HST Files <fits_conventions_tsr>` report by Hack et al.
 The science header now contains the following set of keywords and extensions to fully 
 describe the WCS with distortion:
 
-* **Linear WCS keywords**: specifically, CRPIX, CRVAL, CTYPE, CD matrix keywords
+* **Linear WCS keywords**: CRPIX, CRVAL, CTYPE, CD matrix keywords
 * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
 * ** The first order coefficients from the IDC table (needed by astrodrizle): OCX10, OCX11, OCY10, and OCY11 keywords
 * **NPOL distortion**: if an NPOLFILE has been specified for the image, 
-    CPDIS and DP record-value keywords to point to WCSDVARR extensions (FITS Distortion
-    Paper convention)
+    CPDIS and DP record-value keywords to point to WCSDVARR extensions (Distortion
+    Paper [2]_ )
 * **Column correction**: if a D2IMFILE has been specified for use with the image, 
     the D2IMEXT, D2IMERR and AXISCORR keywords point to the D2IMARR extension
+
+Some of the distortion information may be stored in additional extensions in the science file:
+
 * **WCSDVARR extensions**: 2 extensions for each chip with lookup tables containing 
     the non-polynomial corrections, with each extension corresponding to an axis of 
     the image (X correction or Y correction)
@@ -80,7 +83,8 @@ Each science header will have its own set of these keywords and extensions that 
 be kept together as part of the headerlet definition.  This avoids any ambiguity as
 to what solution was used for any given WCS. 
 
-An HST ACS/WFC exposure would end up with the following set of extensions:
+An HST ACS/WFC exposure would end up with the following set of extensions::
+
 
     EXT#  FITSNAME      FILENAME              EXTVE DIMENS       BITPI OBJECT       
 
@@ -104,7 +108,7 @@ Headerlet Definition
 ====================
 A `headerlet` is a self-consistent, definition of a single WCS
 including all distortion for all chips/detectors of a single exposure. 
-This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) 
+This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) [3]_
 in that by definition all alternate WCSs share the same distortion model while headerlets
 may be based on different distortion models. A headerlet does not include alternate WCSs. 
 It is stored as a multi-extension FITS file following the structure of the science file. 
@@ -117,15 +121,15 @@ SIPWCS - A New FITS Extension
 
 We introduce a new HDU with EXTNAME `SIPWCS`. It has no data and the header 
 contains all the WCS-related keywords from the SCI 
-header. As a minimum it contains the basic WCS keywords described in Paper 1.
+header. As a minimum it contains the basic WCS keywords described in Paper I [3]_
 If the science observation has a SIP distortion model, the SIP keywords are included 
-in this extension. If the distortion of the science observation includes a non-polynomial
+in this extension. If the distortion includes a non-polynomial
 part, the keywords describing the extensions with the lookup tables
 (EXTNAME=WCSDVARR) are also in this header. If there's a detector defect correction 
 (row or column correction), the keywords describing the D2IMARR HDU are also in this 
 header. In addition each SIPWCS header contains two keywords which point back to the HDU
 of the original science file which was the source for it. These keywords are TG_ENAME and
-TG_EVER and have the meaning of (extname, extver) for the science file.
+TG_EVER and have the meaning of (extname, extver) for the data extension in the science file.
 
 The keywords in this extension are used by the software to overwrite the keywords
 in the corresponding SCI header to update the WCS solution for each chip without any
@@ -176,7 +180,7 @@ Headerlet Primary Header
 -------------------------
 
 The list below contains all keywords specific to the primary header of a headerlet with
-the logic to determine their value. Note that all keywords will be present in the header
+a brief description how to determine their value. Note that all keywords will be present in the header
 and 'required' and 'optional' below refers to their value.
 
  * `HDRNAME`  - (required) a unique name for the headerlet
@@ -242,79 +246,43 @@ Working With Headerlets
 =======================
 
 Headerlets are implemented in a python module `~stwcs.wcsutil.headerlet` which uses PyWCS for 
-WCS management and PyFITS for FITS file handling.
-
-Headerlet Software Functionality
---------------------------------
+WCS management and PyFITS for FITS file handling. The functionality includes methods to:
 
 
-    #. Create a headerlet (on disk or in memory) from a specific WCS of a science observation. 
+    - Create a headerlet (on disk or in memory) from a specific WCS of a science observation. 
        This can be the Primary or an alternate WCS.
-    #. Apply a WCS from a headerlet to the Primary WCS of a science observation (and 
+    - Apply a WCS from a headerlet to the Primary WCS of a science observation (and 
        optionally save the original WCS as an alternate WCs or a different headerlet).
-    #. Copy a WCS from a headerlet as an alternate WCS.
-    #. Attach a headerlet to a science file.
-    #. Archive a WCS of a science file as a headerlet attached to the file.
-    #. Delte a headerlet attached to a science file.
-    #. Print a summary of all headerlets attached to a science file.
+    - Copy a WCS from a headerlet as an alternate WCS.
+    - Attach a headerlet to a science file.
+    - Archive a WCS of a science file as a headerlet attached to the file.
+    - Delete a headerlet attached to a science file.
+    - Print a summary of all headerlets attached to a science file.
     
 An optional GUI interface is available through teal and includes functions for writing a headerlet,
 applying a headerlet, etc. A full listing of all functions with GUI interface is available 
 after `stwcs.wcsutil` is imported.
 
-Headerlet API And Examples
---------------------------
+The headerlet API as of the time of writing this report is documented in :ref:`Appendix1`.
 
 `Note: For an up-to-date API always consult the current the SSB documentation pages.`
 
-The headerlet API as of the time of writing this report is documented in :ref:`Appendix1`.
+Headerlet HDU - A New Type of FITS Extension
+--------------------------------------------
 
-This section describes the current draft API for working with `headerlets` as 
-implemented in the `stwcs.wcsutil.headerlet` module. First, there's a potentially 
-confusing point that should be cleared up:  A `headerlet`, as implemented, is simply 
-a FITS file containing multiple extensions that contain all the parameters necessary 
-to reproduce the WCS solution in the science image it was created from.
+The word `headerlet` has been used sofar in three different ways:
+
+- A single WCS representation
+- The multiextension FITS file storing a WCS
+- The extension of a science file containing a headerlet (as a WCS representation)
+
+The last usage of the term `headerlet` is discussed in this section.
 When a `headerlet` is applied to an image, a copy of the original `headerlet` file is 
 appended to the image's HDU list as a special extension HDU called a `Headerlet HDU`.  
 A `Headerlet HDU` consists of a simple header describing the `headerlet`, and has as its data
 the `headerlet` file itself, (which may be compressed).  A `Headerlet HDU` has an 'XTENSION' 
-value of 'HDRLET'.  Though PyFits can handle such a non-standard extension type sensibly, 
-this hasn't been tested with other common FITS readers yet.  If it becomes
-necessary, `Headerlet HDUs` could be implemented using a standard extension type like 'IMAGE'.
-
-To create a `headerlet` from an image, a `createHeaderlet()` function is provided::
-
-    >>> from stwcs.wcsutil import headerlet
-    >>> hdrlet = headerlet.createHeaderlet('j94f05bgq_flt.fits', 'VERSION1')
-    >>> type(hdrlet)
-    <class 'stwcs.wcsutil.headerlet.Headerlet'>
-    >>> hdrlet.info()
-    Filename: (No file associated with this HDUList)
-    No.    Name         Type      Cards   Dimensions   Format
-    0    PRIMARY     PrimaryHDU      12  ()            
-    1    SIPWCS      ImageHDU       111  ()            
-    2    SIPWCS      ImageHDU       110  ()            
-    3    WCSDVARR    ImageHDU        15  (65, 33)      float32
-    4    WCSDVARR    ImageHDU        15  (65, 33)      float32
-    5    WCSDVARR    ImageHDU        15  (65, 33)      float32
-    6    WCSDVARR    ImageHDU        15  (65, 33)      float32
-    7    D2IMARR     ImageHDU        12  (4096,)       float32
-
-As you can see, the `Headerlet` object is similar to a normal pyfits `HDUList` object.  `createHeaderlet()` can be given either the path
-to a file, or an already open `HDUList` as its first argument.
-
-What do you do with a `Headerlet` object?  Its main purpose is to apply its WCS solution to another file.  This can be done using the
-`Headerlet.apply()` method::
-
-    >>> hdrlet.apply('some_other_image.fits')
-
-Or you can use the `applyHeaderlet()` convenience function.  It takes an existing `headerlet` file path or object as its first argument;
-the rest of its arguments are the same as `Headerlet.apply()`.  As with `createHeaderlet()` both of these can take a file path or opened
-`HDUList` objects as arguments.
-
-When a `headerlet` is applied to an image, an additional `headerlet` containing that image's original WCS solution is automatically created,
-and is appended to the file's HDU list as a `Headerlet HDU`.  However, this behavior can be disabled by setting the `createheaderlet` keyword
-argument to `False` in either `Headerlet.apply()` or `applyHeaderlet()`.
+value of 'HDRLET'. Support for this is provided through the implementation of a 
+NonstandardExtHDU in PyFITS.
 
 When opening a file that contains `Headerlet HDU` extensions, it will normally look like this in PyFits::
 
@@ -339,9 +307,13 @@ When opening a file that contains `Headerlet HDU` extensions, it will normally l
     13   HDRLET  NonstandardExtHDU   13
     14   HDRLET  NonstandardExtHDU   13
 
-The names of the `headerlet` extensions are both HDRLET, but its type shows up as `NonstandardExtHDU`.  Their headers can be read, and while
-their data can be read you'd have to know what to do with it (the data is actually either a tar file or a gzipped tar file containing the
-`headerlet` file).  However, if you have `stwcs.wcsutil.headerlet` imported, PyFits will recognize these extensions as `Headerlet HDUs`::
+
+The names of the `headerlet` extensions are both HDRLET, but its type shows up
+ as `NonstandardExtHDU`.  Their headers can be read, and while
+their data can be read you'd have to know what to do with it (the data is actually
+ either a tar file or a gzipped tar file containing the
+`headerlet` file).  However, if you have `stwcs.wcsutil.headerlet` imported, PyFITS will
+ recognize these extensions as `Headerlet HDUs`::
 
     >>> import stwcs.wcsutil.headerlet
     >>> # Note that it's necessary to reopen the file
@@ -396,6 +368,45 @@ the actual `headerlet` contained in the HDU data as a `Headerlet` object::
     7    D2IMARR     ImageHDU        12  (4096,)       float32
 
 This is useful if you want to view the contents of the `headerlets` attached to a file.
+
+Examples
+--------
+
+To create a `headerlet` from an image, a `createHeaderlet()` function is provided::
+
+    >>> from stwcs.wcsutil import headerlet
+    >>> hdrlet = headerlet.createHeaderlet('j94f05bgq_flt.fits', 'VERSION1')
+    >>> type(hdrlet)
+    <class 'stwcs.wcsutil.headerlet.Headerlet'>
+    >>> hdrlet.info()
+    Filename: (No file associated with this HDUList)
+    No.    Name         Type      Cards   Dimensions   Format
+    0    PRIMARY     PrimaryHDU      12  ()            
+    1    SIPWCS      ImageHDU       111  ()            
+    2    SIPWCS      ImageHDU       110  ()            
+    3    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    4    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    5    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    6    WCSDVARR    ImageHDU        15  (65, 33)      float32
+    7    D2IMARR     ImageHDU        12  (4096,)       float32
+
+As you can see, the `Headerlet` object is similar to a normal pyfits `HDUList` object.  `createHeaderlet()` can be given either the path
+to a file, or an already open `HDUList` as its first argument.
+
+What do you do with a `Headerlet` object?  Its main purpose is to apply its WCS solution to another file.  This can be done using the
+`Headerlet.apply()` method::
+
+    >>> hdrlet.apply('some_other_image.fits')
+
+Or you can use the `applyHeaderlet()` convenience function.  It takes an existing `headerlet` file path or object as its first argument;
+the rest of its arguments are the same as `Headerlet.apply()`.  As with `createHeaderlet()` both of these can take a file path or opened
+`HDUList` objects as arguments.
+
+When a `headerlet` is applied to an image, an additional `headerlet` containing that image's original WCS solution is automatically created,
+and is appended to the file's HDU list as a `Headerlet HDU`.  However, this behavior can be disabled by setting the `createheaderlet` keyword
+argument to `False` in either `Headerlet.apply()` or `applyHeaderlet()`.
+
+
 
 .. _Appendix1:
 
@@ -940,8 +951,12 @@ write_headerlet
         """
     
 References
-----------
+==========
 
-.. _FITSConventions: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:FITSDistortionConventions
+.. [1] Hack, et al, TSR, http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:FITSDistortionConventions
 
+.. [2] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+    "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
+    Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
 
+.. [3] Greisen, E. W., and Calabretta M.R. 2002, A&A, 395 (Paper I)
