@@ -43,7 +43,7 @@ most of which can not be readily combined together due to errors in guide star a
 imposing offsets between images taken using different pairs of guide stars.  
 A lot of effort has gone into computing those offsets so that all the images taken 
 at a particular pointing can be combined successfully with astrometry matched to 
-external astrometric catalogs.Unfortunately, there is no current mechanism for 
+external astrometric catalogs. Unfortunately, there is no current mechanism for 
 passing those updated solutions along to the community without providing entirely 
 new copies of all the data.  
 
@@ -63,11 +63,11 @@ describe the WCS with distortion:
 
 * **Linear WCS keywords**: CRPIX, CRVAL, CTYPE, CD matrix keywords
 * **SIP coefficients**: A_*_* and B_*_*, A_ORDER, B_ORDER, 
-* ** The first order coefficients from the IDC table (needed by astrodrizle): OCX10, OCX11, OCY10, and OCY11 keywords
+* ** The first order coefficients from the IDC table (needed by astrodrizzle): OCX10, OCX11, OCY10, and OCY11 keywords
 * **NPOL distortion**: if an NPOLFILE has been specified for the image, 
     CPDIS and DP record-value keywords to point to WCSDVARR extensions (Distortion
     Paper [2]_ )
-* **Column correction**: if a D2IMFILE has been specified for use with the image, 
+* **Detector defect correction**: (for ACS/WFC this is a column defect)if a D2IMFILE has been specified for use with the image, 
     the D2IMEXT, D2IMERR and AXISCORR keywords point to the D2IMARR extension
 
 Some of the distortion information may be stored in additional extensions in the science file:
@@ -106,7 +106,7 @@ making them a space efficient means of managing all the distortion and WCS infor
 
 Headerlet Definition
 ====================
-A `headerlet` is a self-consistent, definition of a single WCS
+A `headerlet` is a self-consistent definition of a single WCS
 including all distortion for all chips/detectors of a single exposure. 
 This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) [3]_
 in that by definition all alternate WCSs share the same distortion model while headerlets
@@ -127,15 +127,13 @@ in this extension. If the distortion includes a non-polynomial
 part, the keywords describing the extensions with the lookup tables
 (EXTNAME=WCSDVARR) are also in this header. If there's a detector defect correction 
 (row or column correction), the keywords describing the D2IMARR HDU are also in this 
-header. In addition each SIPWCS header contains two keywords which point back to the HDU
+header. In addition, each SIPWCS header contains two keywords which point back to the HDU
 of the original science file which was the source for it. These keywords are TG_ENAME and
 TG_EVER and have the meaning of (extname, extver) for the data extension in the science file.
 
 The keywords in this extension are used by the software to overwrite the keywords
 in the corresponding SCI header to update the WCS solution for each chip without any
-computation. The new extension then serves not only as a record
-of a single WCS solution derived for the image, but also the source of values for restoring
-the SCI header WCS when desired.  
+computation.
 
 Headerlet File Structure
 ------------------------
@@ -188,8 +186,7 @@ and 'required' and 'optional' below refers to their value.
                  - HDRNAME<wcskey> from the science file is used
                  - WCSNAME<wcskey> from the science file is used
                  - KeyError is raised
- * `DESTIM`   - (required) target image filename
-                Used to determine if a headerlet can be applied to a science file.
+ * `DESTIM`   - (required) target image filename - used to determine if a headerlet can be applied to a science file.
                 - the ROOTNAME keyword of the original science file
                 - the name of the science file
  * `WCSNAME`  - (required) name for the WCS
@@ -199,28 +196,30 @@ and 'required' and 'optional' below refers to their value.
                 - HDRNAME<wcskey> from the science file
                 - KeyError is raised
  * `DISTNAME` - (optional) name of distortion model
-                - The value of DISTNAME has the form <idctab rootname>-<npolfile rootname>-<d2imfile rootname>
+                - The value of DISTNAME has the form 
+                    <idctab rootname>-<npolfile rootname>-<d2imfile rootname>
                     and have a value of 'NONE' if no reference files are specified.
  * `SIPNAME`  - (optional) name of SIP model
-                SIPNAME is constructed as <ROOTNAME>_<IDCTAB_rootname>, where
+                - SIPNAME is constructed as <ROOTNAME>_<IDCTAB_rootname>, where
             
-                ROOTNAME is the keyword from the science file header (or the file name)
+                  ROOTNAME is the keyword from the science file header (or the file name)
                 
-                IDCTAB_rootname is the rootname of the idctab file
+                  IDCTAB_rootname is the rootname of the idctab file
                 
                 so for example, SIPNAME for a science file j94f05bgq_flt.fits and an idctab file
                 postsm4_idc.fits is j94f05bgq_postsm4
 
-                If the SIP coefficients are present in the header but IDCTAB is m issing or invalid,
-                then SIPNAME is set to UNKNOWN. If there's no polynomial model, SIPNAME is set to 
+                - If the SIP coefficients are present in the header but IDCTAB is m issing or invalid,
+                then SIPNAME is set to UNKNOWN. 
+                - If there's no polynomial model, SIPNAME is set to 
                 NOMODEL.
  * `NPOLFILE` - (optional) name of npol reference file
                 
-                NPOLFILE keyword from science file primary header
+                - NPOLFILE keyword from science file primary header
                 
-                UNKNOWN if NPOLFILE keyword is missing or invalid but data extensions exist
+                - UNKNOWN if NPOLFILE keyword is missing or invalid but data extensions exist
                 
-                or NOMODEL 
+                - or  NOMODEL 
                 
  * `IDCTAB`   - (optional)
                 
@@ -233,7 +232,7 @@ and 'required' and 'optional' below refers to their value.
  * `AUTHOR`   - (optional) name of person who created the headerlet
  * `DESCRIP`  - (optional) short description of the headerlet solution
  * `NMATCH`   - (optional) number of sources used in the new solution fit, if updated from the Archive’s default WCS
- * `CATALOG`  - (optional) areference frame used to define the astrometric solution
+ * `CATALOG`  - (optional) a reference frame used to define the astrometric solution
  * `UPWCSVER` - (optional) version of STWCS used to create the WCS of the original image
  * `PYWCSVER` - (optional) version of PyWCS used to create the WCS of the original image
 
@@ -259,7 +258,7 @@ WCS management and PyFITS for FITS file handling. The functionality includes met
     - Delete a headerlet attached to a science file.
     - Print a summary of all headerlets attached to a science file.
     
-An optional GUI interface is available through teal and includes functions for writing a headerlet,
+An optional GUI interface is available through TEAL and includes functions for writing a headerlet,
 applying a headerlet, etc. A full listing of all functions with GUI interface is available 
 after `stwcs.wcsutil` is imported.
 
@@ -284,7 +283,7 @@ the `headerlet` file itself, (which may be compressed).  A `Headerlet HDU` has a
 value of 'HDRLET'. Support for this is provided through the implementation of a 
 NonstandardExtHDU in PyFITS.
 
-When opening a file that contains `Headerlet HDU` extensions, it will normally look like this in PyFits::
+When opening a file that contains `Headerlet HDU` extensions, it will normally look like this in PyFITS::
 
     >>> import pyfits
     >>> hdul = pyfits.open('94f05bgq_flt_with_hlet.fits')
@@ -308,9 +307,10 @@ When opening a file that contains `Headerlet HDU` extensions, it will normally l
     14   HDRLET  NonstandardExtHDU   13
 
 
-The names of the `headerlet` extensions are both HDRLET, but its type shows up
- as `NonstandardExtHDU`.  Their headers can be read, and while
-their data can be read you'd have to know what to do with it (the data is actually
+
+The names of the `headerlet` extensions are both HDRLET, but its type shows up 
+as `NonstandardExtHDU`. Their headers can be read, and while their data can be
+ read you'd have to know what to do with it (the data is actually
  either a tar file or a gzipped tar file containing the
 `headerlet` file).  However, if you have `stwcs.wcsutil.headerlet` imported, PyFITS will
  recognize these extensions as `Headerlet HDUs`::
@@ -351,7 +351,7 @@ their data can be read you'd have to know what to do with it (the data is actual
     D2IMFILE= '/grp/hst/acs/lucas/new-npl/wfc_ref68col_d2i.fits' / Column correction
     COMPRESS=                    F / Uses gzip compression 
 
-`HeaderletHDU` objects are similar to other HDU objects in PyFits.  However, they have a special `.headerlet` attribute that returns
+`HeaderletHDU` objects are similar to other HDU objects in PyFITS.  However, they have a special `.headerlet` attribute that returns
 the actual `headerlet` contained in the HDU data as a `Headerlet` object::
 
     >>> hdrlet = hdul['HDERLET', 1].headerlet
@@ -390,7 +390,7 @@ To create a `headerlet` from an image, a `createHeaderlet()` function is provide
     6    WCSDVARR    ImageHDU        15  (65, 33)      float32
     7    D2IMARR     ImageHDU        12  (4096,)       float32
 
-As you can see, the `Headerlet` object is similar to a normal pyfits `HDUList` object.  `createHeaderlet()` can be given either the path
+As you can see, the `Headerlet` object is similar to a normal PyFITS `HDUList` object.  `createHeaderlet()` can be given either the path
 to a file, or an already open `HDUList` as its first argument.
 
 What do you do with a `Headerlet` object?  Its main purpose is to apply its WCS solution to another file.  This can be done using the
