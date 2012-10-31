@@ -1,18 +1,4 @@
-===============================================
-Distortion Correction in HST FITS Files - DRAFT
-===============================================
 
-.. abstract::
-   :author: Warren Hack, Nadezhda Dencheva, Andy Fruchter, Perry Greenfield
-   :date: 18 Sept 2012
-   
-   A convention for storing distortion information in HST images was developed 
-   and implemented in two software packages - PyWCS and STWCS. These changes 
-   allow the development of a WCS based version of Multidrizzle, released
-   now as AstroDrizzle, and image alignment software, released as tweakreg. 
-   The distribution of WCS solutions is discussed.
- 
-   
 Introduction
 ============
 
@@ -115,7 +101,7 @@ position to get the final world coordinates.
 This convention was created from the original form of the FITS Distortion Paper standards, but the 
 FITS Distortion Paper proposal has since changed to use a different set of keywords and conventions. 
 
-A sample ACS/WFC SCI header can be found in :ref:`Appendix1` to illustrate how these 
+A sample ACS/WFC SCI header can be found in :ref:`appendix1` to illustrate how these 
 keywords actually get populated for an image.  The current implementation does not 
 take advantage of the A_DMAX, B_DMAX, SIPREFi or SIPSCLi keywords, so these keywords
 are not written out to the SCI header.
@@ -156,12 +142,12 @@ FITS Distortion Proposal
 =========================
 
 The current FITS Distortion Paper conventions [DistortionPaper]_ provide a mechanism for specifying either a lookup table 
-or polynomial model for the distortion of each axis. The standard states in Section 2.1: 
+or polynomial model for the distortion of each axis. The standard states in Section 2.1:
 
-``Note that the prior distortion functions,, operate on pixel coordinates (i.e. p  
-rather than p− r ), and that the independent variables of the distortion functions 
-are the uncorrected pixel or intermediate pixel coordinates. That is, for example, 
-we do not allow the possibility of``
+ Note that the prior distortion functions, :math:`\delta_p(p)`, operate on pixel coordinates (i.e. 
+ :math:`p` rather than :math:`p-r`), and that the independent variables of the distortion functions 
+ are the *uncorrected* pixel or intermediate pixel coordinates. That is, for example, 
+ we do not allow the possibility of
 
 .. math::
    :label: Equation 1
@@ -186,7 +172,7 @@ seen as mutually exclusive. In fact, they may work together rather naturally sin
 SIP and FITS Distortion Paper conventions both assume the corrections will work on the input pixel 
 and add to the output frame. 
 
-The sample header in :ref:`Appendix1` shows how these keywords get populated for
+The sample header in :ref:`appendix1` shows how these keywords get populated for
 an actual reference file; specifically, an NPOLFILE as described in the next section.
 
 
@@ -226,10 +212,10 @@ of the distortion array is defined by ``DPj.NAXES``. Keywords ``DPj.AXIS.j`` in 
 header are used for mapping image array axis to distortion array axis. In the keywords above j 
 is an integer and denotes the axis number. For example, if distortion array axis 1 corresponds 
 to image array axis 1 of  a ``SCI`` extension, then ``DP.1.AXIS.1`` = 1.                           
-A full example of the keywords added to a ``SCI`` extension header is presented in :ref:`Appendix1`.
+A full example of the keywords added to a ``SCI`` extension header is presented in :ref:`appendix1`.
 
 A complete description of the conversion of the DGEOFILE reference data into NPOLFILE reference
-files can be found in the report on the :ref:`npolfile-tsr`.
+files can be found in the report on the ``npolfile-tsr``.
 
 
 NPOLFILE reference File Format
@@ -245,7 +231,7 @@ so that any original DGEOFILE reference filename can be retained in parallel for
 backwards compatibility with the current software. This reference file also 
 has a unique suffix, **_npl.fits**, as another means of identifying it as a new 
 reference file separate from the current DGEOFILE files. The header for this new 
-reference file also remains very simple, as illustrated in :ref:`Appendix2`.
+reference file also remains very simple, as illustrated in :ref:`appendix2`.
 
 Applying these corrections starts by reading the two 65 x 33 
 arrays into memory with each input ACS/WFC chip WCS (one for 
@@ -306,7 +292,7 @@ corresponding to the 1-D correction to be applied. Header keywords in the refere
 specify which axis needs this correction. As a result, this new reference file remains 
 small enough to easily be added to an input image without significant change in size. An 
 initial **D2IMFILE** for ACS has been generated for testing with a sample header provided in 
-:ref:`Appendix3`. 
+:ref:`appendix3`. 
 
 .. _figure2:
 
@@ -451,7 +437,7 @@ The corrections specified in this extension refer to pixel positions on the dete
 
 In addition to the pixel position transformations encoded as the ``D2IMARR`` WCS, keywords reporting how the D2IM correction was created get copied into the new ``D2IMARR`` image extension header from the primary header of the D2IMFILE.  This maintains as much provenance as possible for this correction. 
 
-A full listing of the ``D2IMARR`` extension for a sample ACS image can be found in :ref:`d2imarr-header` in :ref:`Appendix1`. 
+A full listing of the ``D2IMARR`` extension for a sample ACS image can be found in :ref:`d2imarr-header` in :ref:`appendix1`. 
 
 
 Creating the WCSDVARR Extension
@@ -491,7 +477,7 @@ value in the distortion array header.  In general :math:`s_j` can have
 a non-integer value but cannot be zero. However, if the distortion array
 was obtained as a subimage of a larger array having a non-integer step size
 can produce undesirable results during interpolation. A full listing of the 
-``WCSDVARR`` extension for a sample ACS image can be found in :ref:`wcsdvarr-header` in :ref:`Appendix1`. 
+``WCSDVARR`` extension for a sample ACS image can be found in :ref:`wcsdvarr-header` in :ref:`appendix1`. 
 
 Summary
 =======
@@ -499,19 +485,8 @@ This paper describes a merging of previously proposed FITS WCS conventions to fu
 
 All HST ACS and WFC3 images retrieved from the archive have been updated using this convention so that users will no longer need to retrieve the distortion calibration data separately. Anyone using HST images will now be able to use the STWCS and/or DrizzlePac package to perform coordinate transformations or image alignment based on this convention, while still being able to use external tools like DS9 to take advantage of the SIP conventions as well. This solution now provides the best possible solution for supporting these highly accurate, yet complex multi-component distortion models in the most efficient manner available to data written out in the FITS format. 
 
-References
-==========
-.. [DistortionPaper] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
-    "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
-    Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
+.. _appendix1:
 
-.. [SIPConvention] Shupe D.L., Hook R.N., 2008, "The SIP Convention for Representing Distortion in FITS Image
-    Headers", [cited 2012 Sept 18], Available from: http://fits.gsfc.nasa.gov/registry/sip.html
-
-
-.. _Appendix1:
-
-==================================
 Appendix 1 - Sample ACS/WFC Image 
 ==================================
 
@@ -527,7 +502,7 @@ use the new reference information. The old WCS gets stored using WCS key 'O' and
 to indicate it was originally computed by OPUS, the HST pipeline system. 
 
 FITS File extensions
-==================================
+--------------------
 
 The FITS file for this ACS/WFC image now contains extra extensions for the NPOLFILE and D2IMFILE
 corrections.
@@ -556,7 +531,7 @@ solutions that have been applied to this file and does not act as an active part
 or its interpretation.
 
 Primary Header
-==================================
+---------------
 
 The PRIMARY header of HST data contains keywords specifying information general to 
 the entire file, such as what calibration steps were applied and what reference files
@@ -584,12 +559,12 @@ The remainder of the PRIMARY header specifies the general characteristics of the
 
 
 SCI Header Keywords
-==================================
+--------------------
 
 The following keywords only represent the WCS keywords from a sample ACS/WFC SCI header with 4-th order
 polynomial distortion correction from the IDCTAB reference file, along with NPOLFILE and 
-D2IMFILE corrections from the specific reference files used as examples in :ref:`Appendix2`
-:ref:`Appendix3`.
+D2IMFILE corrections from the specific reference files used as examples in :ref:`appendix2`
+:ref:`appendix3`.
 
 ::
 
@@ -720,9 +695,10 @@ from this SCI header listing for the sake of brevity.
 .. _d2imarr-header:
 
 D2IMARR Header
-==============
+--------------------
+
 The full, complete header of the ``D2IMARR`` extension as derived from the D2IMFILE 
-discussed in :ref:`Appendix3`.
+discussed in :ref:`appendix3`.
 
 ::
 
@@ -742,9 +718,10 @@ discussed in :ref:`Appendix3`.
 .. _wcsdvarr-header:
 
 WCSDVARR Header
-===============
+--------------------
+
 Each of the WCSDVARR extensions has been derived based on the values for the 
-NPOL correction found in the reference file described in :ref:`Appendix2`. The 
+NPOL correction found in the reference file described in :ref:`appendix2`. The 
 full header for the WCSDVARR extension with EXTVER=1 is::
 
  XTENSION= 'IMAGE   '           / Image extension                                
@@ -789,11 +766,8 @@ Each of the ``WCSDVARR`` extension headers contains the same set of keywords, wi
 only the values varying to reflect the axis and chip corrected by this extension.
 
 
+.. _appendix2:
 
-
-.. _Appendix2:
-
-==================================
 Appendix 2 - NPOLFILE Example 
 ==================================
 The NPOLFILE reference file format includes a PRIMARY header describing what kind of 
@@ -801,8 +775,7 @@ image should be corrected by this file, along with extensions containing the cor
 for each chip.  
 
 FITS File Extensions
-==================================
-
+--------------------
 A sample NPOLFILE applicable to ACS/WFC F475W images has the FITS extensions::
 
  Filename: /grp/hst/cdbs/jref/v971826aj_npl.fits
@@ -817,7 +790,7 @@ The extensions with the name 'DX' provide the corrections in X for each of the
 ACS/WFC's 2 chips, while the 'DY' extensions provide the corrections in Y for each chip.
 
 Primary Header
-==================================
+--------------------
 
 The PRIMARY header of this file only includes the minimum information necessary to describe
 what exposures should be corrected by this reference file and how it was generated. A full
@@ -856,7 +829,7 @@ listing of the PRIMARY header includes::
 
 
 Data Extension Header
-==================================
+----------------------
 
 Each ACS/WFC chip has a shape of 4096 x 2048 pixels,
 yet the data arrays in this specific reference file only have 65x33 values.
@@ -892,9 +865,9 @@ pixel in the full ACS/WFC exposure. The full header for the ['DX',1] extension c
  CDELT2  =                   64 / Coordinate increment along axis                
 
 
-.. _Appendix3:
+.. _appendix3:
 
-==================================
+
 Appendix 3 - D2IMFILE Example 
 ==================================
 
@@ -902,7 +875,7 @@ The D2IMFILE reference file only contains a single 1-D array that should correct
 column (row) values based on the value of the 'AXISCORR' keyword in the SCI header. 
 
 FITS File Extensions
-==================================
+--------------------
 
 This simple reference file, therefore, contains only 2 extensions; namely,
 
@@ -914,7 +887,7 @@ This simple reference file, therefore, contains only 2 extensions; namely,
  1    DX          ImageHDU        18   (4096,)      float32   
 
 PRIMARY Header
-==================================
+--------------------
 
 The PRIMARY header only needs to contain information on what detector this file corrects,
 along with any available information on how this file was generated.  The ACS/WFC D2IMFILE
@@ -960,7 +933,7 @@ In this case, most of the keywords not required by FITS describe how this file
 was computed while also describing how it should be applied. 
 
 Data Extension Header
-==================================
+----------------------
 
 The header keywords for the actual DX array simply needs to provide the information
 necessary to apply the values to the data; namely, 
@@ -989,3 +962,12 @@ necessary to apply the values to the data; namely,
 The fact that these values get applied without interpolation to each pixel in a row,
 in this case, means that no translation terms are needed in the header, making for 
 a very simple header and very simple application to the data.
+
+.. [DistortionPaper] Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+    "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
+    Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
+
+.. [SIPConvention] Shupe D.L., Hook R.N., 2008, "The SIP Convention for Representing Distortion in FITS Image
+    Headers", [cited 2012 Sept 18], Available from: http://fits.gsfc.nasa.gov/registry/sip.html
+
+
