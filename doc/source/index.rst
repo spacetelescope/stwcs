@@ -22,14 +22,6 @@ Contents:
    wcsutil
    updatewcs
    headerlet
-
-NPOL Reference File TSR
-=======================
-
-.. toctree::
-   :maxdepth: 2
-   
-   npol_tsr 
       
 Indices and tables
 ==================
