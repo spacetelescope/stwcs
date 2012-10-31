@@ -5,7 +5,7 @@ TSR 2012-01: Distortion Correction in HST FITS Files
 
 .. abstract::
    :author: Warren Hack, Nadezhda Dencheva, Andy Fruchter, Perry Greenfield
-   :date: 18 Sept 2012
+   :date: 31 Oct 2012
    
    A convention for storing distortion information in HST images was developed 
    and implemented in two software packages - PyWCS and STWCS. These changes 
@@ -20,10 +20,15 @@ Contents:
    :maxdepth: 3
    
    fits_conventions
-   
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
+   problems
+   sip
+   convention
+   npolcorr
+   d2imcorr
+   merging
+   updating
+   summary
+   appendix1
+   appendix2
+   appendix3
 

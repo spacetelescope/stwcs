@@ -173,7 +173,7 @@ htmlhelp_basename = 'FITSConventionsTSR'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('fits_conventions', 'fits_conventions_tsr.tex', 
+    ('index', 'fits_conventions_tsr.tex', 
     u'TSR 2012-01: Distortion Correction in HST FITS Files ',
    u'Warren Hack, Nadezhda Dencheva, Andy Fruchter, Perry Greenfield', 'tsr'),
 ]
