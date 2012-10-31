@@ -9,7 +9,7 @@ Introduction
 ============
 
 HST images can exhibit significant distortion, one of the severe cases being 
-ACS/WFC where  it can reach 50 pixels. Anderson [1]_ describes the total distortion 
+ACS/WFC where  it can reach 50 pixels. Anderson [Anderson2002]_ describes the total distortion 
 solution for ACS/WFC as consisting of a polynomial  part which provides position 
 accuracy of 0.1-0.2 pixels, a filter dependent fine scale solution which brings the 
 accuracy of the positions to 0.01 pixels and a detector defect correction with a 
@@ -27,9 +27,9 @@ New representation - look-up tables
 
 The fine scale distortions represented in the ``DGEO`` images can be stored in smaller look-up 
 tables without significant loss of information. These look-up tables follow the conventions 
-in the WCS FITS Distortion Paper [2]_. Record-valued keywords are used to map an image in the science extension 
+in the WCS FITS Distortion Paper [Calabretta2004]_. Record-valued keywords are used to map an image in the science extension 
 to a distortion array in the ``WCSDVAR extension``. This new type of FITS keywords has been 
-implemented in PyFITS and is fully described in [2]_. Specifically, ``DPj.EXTVER`` in the science 
+implemented in PyFITS and is fully described in [Calabretta2004]_. Specifically, ``DPj.EXTVER`` in the science 
 extension header  maps the science image to the correct ``WCSDVAR`` extension. The dimensionality 
 of the distortion array is defined by ``DPj.NAXES``. Keywords ``DPj.AXIS.j`` in the ``SCI`` extension 
 header are used for mapping image array axis to distortion array axis. In the keywords above j 
@@ -78,7 +78,7 @@ Creating an ``NPOL`` file from a ``DGEO`` file
 
 The ``DGEO`` files are FITS files with four image extensions with full chip size 4096x2048 
 pixels representing the residuals of the distortion in X and Y for the two ACS/WFC 
-chips.  As described by Anderson [1]_, the original tables from which the full size 
+chips.  As described by Anderson [Anderson2002]_, the original tables from which the full size 
 ``DGEO`` images were created were sampled every 64 pixels to a size of 65x33 pixels. 
 Because of the coordinate transformations and many steps involved in creating the ``DGEO`` 
 files it was not possible to start with the original tables. Our purpose was to sample the full
@@ -245,12 +245,10 @@ the new reference files accurately correct ACS images before these new
 reference files will be made available for general use or even for use in the pipeline.
    
    
-References
-==========
 
-.. [1] Anderson, J. 2002, in the Proceedings of the 2002 HST Calibration Workshop, S. Arribas,
+.. [Anderson2002] Anderson, J. 2002, in the Proceedings of the 2002 HST Calibration Workshop, S. Arribas,
        A. Koekemoer, and B. Whitmore, eds
        
-.. [2] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+.. [Calabretta2004] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
     "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
     Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
