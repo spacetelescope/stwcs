@@ -22,14 +22,6 @@ Contents:
    wcsutil
    updatewcs
    headerlet
-   
-Headerlet Definition TSR
-========================
-
-.. toctree::
-   :maxdepth: 2
-   
-   hdrlet_tsr 
 
 NPOL Reference File TSR
 =======================
