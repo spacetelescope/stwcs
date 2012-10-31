@@ -28,10 +28,9 @@ Contents:
    
    hdrlet_tsr 
    
-   
+
 Indices and tables
 ==================
 
-* :ref:`genindex`
 * :ref:`search`
 

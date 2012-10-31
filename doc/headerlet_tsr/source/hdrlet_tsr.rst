@@ -34,7 +34,7 @@ We describe as an example the type of WCS information of a typical HST ACS/WFC i
 is distributed by the HST archive (OTFR) after being processed with the latest image 
 calibrations, including applying the latest available distortion
 models. The full description of the WCS is available in the 
-"Distortion Correction In HST Files" report [1]_ by Hack et al.
+"Distortion Correction In HST Files" report [Hack]_ by Hack et al.
 The science header now contains the following set of keywords and extensions to fully 
 describe the WCS with distortion:
 
@@ -43,7 +43,7 @@ describe the WCS with distortion:
 * **The first order coefficients from the IDC table**: (needed by astrodrizzle) OCX10, OCX11, OCY10, and OCY11 keywords
 * **NPOL distortion**: if an NPOLFILE has been specified for the image, 
     CPDIS and DP record-value keywords to point to WCSDVARR extensions (Distortion
-    Paper [2]_ )
+    Paper [Calabretta]_ )
 * **Detector defect correction**: (for ACS/WFC this is a column defect)if a D2IMFILE has been
     specified for use with the image, the D2IMEXT, D2IMERR and AXISCORR keywords point to the D2IMARR extension
 
@@ -82,7 +82,7 @@ Headerlet Definition
 ====================
 A `headerlet` is a self-consistent definition of a single WCS
 including all distortion for all chips/detectors of a single exposure. 
-This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) [3]_
+This is different from alternate WCS defined in Greisen, E. W., and Calabretta (Paper I) [Greisen]_
 in that by definition all alternate WCSs share the same distortion model while headerlets
 may be based on different distortion models. A headerlet does not include alternate WCSs. 
 It is stored as a multi-extension FITS file following the structure of the science file. 
@@ -95,7 +95,7 @@ SIPWCS - A New FITS Extension
 
 We introduce a new HDU with EXTNAME `SIPWCS`. It has no data and the header 
 contains all the WCS-related keywords from the SCI 
-header. As a minimum it contains the basic WCS keywords described in Paper I [3]_
+header. As a minimum it contains the basic WCS keywords described in Paper I [Greisen]_
 If the science observation has a SIP distortion model, the SIP keywords are included 
 in this extension. If the distortion includes a non-polynomial
 part, the keywords describing the extensions with the lookup tables
@@ -923,14 +923,14 @@ write_headerlet
         logging: boolean
              enable file logging
         """
-    
-References
-==========
 
-.. [1] Hack, et al, STScI 2012-01 TSR, http://stsdas.stsci.edu/tsr
 
-.. [2] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
+.. [Hack] Hack, et al, STScI 2012-01 TSR, http://stsdas.stsci.edu/tsr
+
+.. [Calabretta] (draft FITS WCS Distortion paper) Calabretta M. R., Valdes F. G., Greisen E. W., and Allen S. L., 2004, 
     "Representations of distortions in FITS world coordinate systems",[cited 2012 Sept 18], 
     Available from: http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
 
-.. [3] Greisen, E. W., and Calabretta M.R. 2002, A&A, 395 (Paper I)
+.. [Greisen] Greisen, E. W., and Calabretta M.R. 2002, A&A, 395 (Paper I)
+
+
