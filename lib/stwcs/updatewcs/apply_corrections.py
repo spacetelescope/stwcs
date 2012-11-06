@@ -21,7 +21,7 @@ allowed_corrections={'WFPC2': ['DET2IMCorr', 'MakeWCS','CompSIP', 'VACorr'],
                     'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'NPOLCorr'],
                     'STIS': ['MakeWCS', 'CompSIP','VACorr'],
                     'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
-                    'WFC3': ['MakeWCS', 'CompSIP','VACorr'],
+                    'WFC3': ['MakeWCS', 'CompSIP','VACorr', 'NPOLCorr'],
                     }
 
 cnames = {'DET2IMCorr': 'Detector to Image Correction',
