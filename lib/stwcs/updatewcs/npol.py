@@ -138,11 +138,11 @@ class NPOLCorr(object):
         dpaxis1 = 'DP%s.' %j+'AXIS.1'
         dpaxis2 = 'DP%s.' %j+'AXIS.2'
         keys = [cperror, cpdis, dpext, dpnaxes, dpaxis1, dpaxis2]
-        values = {cperror: error_val, 
-                  cpdis: 'Lookup',  
-                  dpext: wdvarr_ver, 
+        values = {cperror: error_val,
+                  cpdis: 'Lookup',
+                  dpext: wdvarr_ver,
                   dpnaxes: 2,
-                  dpaxis1: 1, 
+                  dpaxis1: 1,
                   dpaxis2: 2}
 
         comments = {cperror: 'Maximum error of NPOL correction for axis %s' % j,
@@ -187,7 +187,7 @@ class NPOLCorr(object):
         """
         Transform the NPOL data arrays for use with SIP
         """
-        ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()])
+        ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()]).astype(np.float32)
         ndx.shape = dx.shape
         ndy.shape=dy.shape
         return ndx, ndy
@@ -336,4 +336,3 @@ class NPOLCorr(object):
         return ccdchip
 
     get_ccdchip = classmethod(get_ccdchip)
-
