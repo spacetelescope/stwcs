@@ -51,13 +51,7 @@ def run(configObj=None):
         return
 
     if configObj['output'] in ['',' ','INDEF']:
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "output" parameter value provided!'
-        print '    Please restart this task and provide a value for this parameter.'
-        print '='*60
-        return
-
+        configObj['output'] = None
     
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',
             'descrip','history','author','output','catalog']
