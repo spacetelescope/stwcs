@@ -319,129 +319,6 @@ def verify_hdrname_is_unique(fobj, hdrname):
 
     return unique
 
-
-@with_logging
-def is_wcs_identical(scifile, file2, scikey=" ", file2key=" ", logging=False):
-    """
-    Compares the WCS solution of 2 files.
-
-    Parameters
-    ----------
-    scifile: string
-             name of file1 (usually science file)
-             IRAF style extension syntax is accepted as well
-             for example scifile[1] or scifile[sci,1]
-    file2:   string
-             name of second file (for example headerlet)
-    scikey:  string
-             alternate WCS key in scifile
-    file2key: string
-             alternate WCS key in file2
-    logging: boolean
-             True: enable file logging
-
-    Notes
-    -----
-    These can be 2 science observations or 2 headerlets
-    or a science observation and a headerlet. The two files
-    have the same WCS solution if the following are the same:
-
-    - rootname/destim
-    - primary WCS
-    - SIP coefficients
-    - NPOL distortion
-    - D2IM correction
-    - Velocity aberation
-
-    """
-
-    fname, extname = fu.parseFilename(scifile)
-    scifile = fname
-    if extname is not None:
-        sciext = fu.parseExtn(extname)
-    else:
-        sciext = None
-    fname, extname = fu.parseFilename(file2)
-    file2 = fname
-    if extname is not None:
-        fext = fu.parseExtn(extname)
-    else:
-        fext = None
-    result = True
-    if sciext is None and fext is None:
-        numsci1 = max(countExtn(scifile), countExtn(scifile, 'SIPWCS'))
-        numsci2 = max(countExtn(file2), countExtn(file2, 'SIPWCS'))
-
-        if numsci1 == 0 or numsci2 == 0 or numsci1 != numsci2:
-            logger.info("Number of SCI and SIPWCS extensions do not match.")
-            result = False
-    else:
-        numsci1 = None
-        numsci2 = None
-    
-    if get_rootname(scifile) != get_rootname(file2):
-        print get_rootname(scifile), get_rootname(file2)
-        logger.info('Rootnames do not match.')
-        result = False
-        
-    try:
-        extname1 = pyfits.getval(scifile, 'EXTNAME', ext=('SCI', 1))
-    except KeyError:
-        extname1 = 'SIPWCS'
-    try:
-        extname2 = pyfits.getval(file2, 'EXTNAME', ext=('SCI', 1))
-    except KeyError:
-        extname2 = 'SIPWCS'
-
-    if numsci1 and numsci2:
-        sciextlist = [(extname1, i) for i in range(1, numsci1+1)]
-        fextlist = [(extname2, i) for i in range(1, numsci2+1)]
-    else:
-        sciextlist = [sciext]
-        fextlist = [fext]
-
-    for i, j in zip(sciextlist, fextlist):
-        w1 = HSTWCS(scifile, ext=i, wcskey=scikey)
-        w2 = HSTWCS(file2, ext=j, wcskey=file2key)
-        if not np.allclose(w1.wcs.crval, w2.wcs.crval, rtol=1e-7) or \
-        not np.allclose(w1.wcs.crpix, w2.wcs.crpix, rtol=1e-7)  or \
-        not np.allclose(w1.wcs.cd, w2.wcs.cd, rtol=1e-7) or \
-        not (np.array(w1.wcs.ctype) == np.array(w2.wcs.ctype)).all():
-            logger.info('Primary WCSs do not match')
-            result = False
-        if w1.sip or w2.sip:
-            if (w2.sip and not w1.sip) or (w1.sip and not w2.sip) or \
-               not np.allclose(w1.sip.a, w2.sip.a, rtol=1e-7) or \
-               not np.allclose(w1.sip.b, w2.sip.b, rtol=1e-7):
-                logger.info('SIP coefficients do not match')
-                result = False
-        if w1.cpdis1 or w2.cpdis1:
-            if w1.cpdis1 and not w2.cpdis1 or \
-                w2.cpdis1 and not w1.cpdis1 or \
-                not np.allclose(w1.cpdis1.data, w2.cpdis1.data):
-                logger.info('NPOL distortions do not match')
-                result = False
-        if w1.cpdis2 or w2.cpdis2:
-            if w1.cpdis2 and not w2.cpdis2 or \
-                w2.cpdis2 and not w1.cpdis2 or \
-                not np.allclose(w1.cpdis2.data, w2.cpdis2.data):
-                logger.info('NPOL distortions do not match')
-                result = False
-        if w1.det2im1 or w2.det2im1:
-            if w1.det2im1 and not w2.det2im1 or \
-                w2.det2im1 and not w1.det2im1 or\
-                not np.allclose(w1.det2im1.data, w2.det2im1.data):
-                logger.info('Det2Im corrections do not match')
-                result =  False
-        if w1.det2im2 or w2.det2im2:
-            if w1.det2im2 and not w2.det2im2 or \
-                w2.det2im2 and not w1.det2im2 or\
-                not np.allclose(w1.det2im2.data, w2.det2im2.data):
-                logger.info('Det2Im corrections do not match')
-                result = False
-
-    return result
-
 def update_versions(sourcehdr, desthdr):
     """
     Update keywords which store version numbers
@@ -482,18 +359,6 @@ def update_ref_files(source, dest):
         except KeyError:
             phdukw[key] = False
     return phdukw
-
-def get_rootname(fname):
-    """
-    returns the value of ROOTNAME or DESTIM
-    """
-
-    hdr = pyfits.getheader(fname)
-    try:
-        rootname = hdr['ROOTNAME']
-    except KeyError:
-        rootname = hdr['DESTIM']
-    return rootname
 
 def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
                     output=None, clobber=True, quiet=False ):
@@ -2199,7 +2064,6 @@ class Headerlet(pyfits.HDUList):
                 message += " * Image %s already has headerlet " % (fname)
                 message += "with HDRNAME='%s'\n" % (self.hdrname)
             logger.critical(message)
-
         if close_dest:
             fobj.close()
 
