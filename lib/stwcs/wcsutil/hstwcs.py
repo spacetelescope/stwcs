@@ -73,9 +73,10 @@ class HSTWCS(WCS):
                 a fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
                 a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the
                 user is responsible for closing the file object.
-        ext:  int or None
+        ext:  int, tuple or None
                 extension number
-                if ext==None, it is assumed the data is in the primary hdu
+                if ext is tuple, it must be ("EXTNAME", EXTNUM), e.g. ("SCI", 2)
+                if ext is None, it is assumed the data is in the primary hdu
         minerr: float
                 minimum value a distortion correction must have in order to be applied.
                 If CPERRja, CQERRja are smaller than minerr, the corersponding
