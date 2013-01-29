@@ -5,12 +5,8 @@ import pyfits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
-from stwcs import __version__ as stwcsversion
+import stwcs
 import pywcs
-try:
-    from pywcs import __version__ as pywcsversion
-except:
-    pywcsversion = 'UNKNOWN'
 
 import utils, corrections, makewcs
 import npol, det2im
@@ -170,24 +166,24 @@ def makecorr(fname, allowed_corr):
             f[1].header.update(kw, kw2update[kw])
     # Finally record the version of the software which updated the WCS
     if f[0].header.has_key('HISTORY'):
-        f[0].header.update(key='UPWCSVER', value=stwcsversion,
+        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
                            comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=pywcsversion,
+        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
             comment="Version of PYWCS used to updated the WCS", before='HISTORY')
     elif f[0].header.has_key('ASN_MTYP'):
-        f[0].header.update(key='UPWCSVER', value=stwcsversion,
+        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
             comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
-        f[0].header.update(key='PYWCSVER', value=pywcsversion,
+        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
             comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
         for i in range(len(f[0].header) - 1, 0, -1):
             if f[0].header[i].strip() != '':
                 break
-            f[0].header.set('UPWCSVER', stwcsversion,
+            f[0].header.set('UPWCSVER', stwcs.__version__,
                             "Version of STWCS used to updated the WCS",
                             after=i)
-            f[0].header.set('PYWCSVER', pywcsversion,
+            f[0].header.set('PYWCSVER', pywcs.__version__,
                             "Version of PYWCS used to updated the WCS",
                             after=i)
     # add additional keywords to be used by headerlets
