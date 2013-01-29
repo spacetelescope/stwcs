@@ -1,0 +1,4 @@
+_task_name_ = string_kw(default="attach_headerlet")
+filename = string_kw(default="", comment="FITS image file name")
+hdrlet = string_kw(default="", comment="Headerlet FITS filename")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")
