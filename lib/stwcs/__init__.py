@@ -25,6 +25,7 @@ from stsci.tools import teal
 __docformat__ = 'restructuredtext'
 
 from .version import *
+__version__ = "1.1.0.dev"
 
 try:
     import gui
