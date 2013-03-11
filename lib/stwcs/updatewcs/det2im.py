@@ -8,7 +8,7 @@ import numpy as np
 import logging, time
 logger = logging.getLogger('stwcs.updatewcs.d2im')
 
-class Det2IMCorr(object):
+class DET2IMCorr(object):
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
     It uses a reference file defined by the D2IMFILE (suffix 'd2im') keyword
@@ -37,7 +37,7 @@ class Det2IMCorr(object):
                 Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("\n\tStarting NPOL: %s" %time.asctime())
+        logger.info("\n\tStarting DET2IM: %s" %time.asctime())
         try:
             assert isinstance(fobj, pyfits.HDUList)
         except AssertionError:
@@ -57,11 +57,12 @@ class Det2IMCorr(object):
         For each science extension in a pyfits file object:
             - create a WCSDVARR extension
             - update science header
-            - add/update NPOLEXT keyword
+            - add/update D2IMEXT keyword
         """
         d2imfile = fileutil.osfn(fobj[0].header['D2IMFILE'])
-        # Map WCSDVARR EXTVER numbers to extension numbers
+        # Map D2IMARR EXTVER numbers to FITS extension numbers
         wcsdvarr_ind = cls.getWCSIndex(fobj)
+        d2im_num_ext = 1
         for ext in fobj:
             try:
                 extname = ext.header['EXTNAME'].lower()
@@ -69,32 +70,24 @@ class Det2IMCorr(object):
                 continue
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
-                ## does wfc3 have CCDCHIP?
                 ccdchip = cls.get_ccdchip(fobj, extname='SCI', extver=extversion)
                 binned = utils.getBinning(fobj, extversion)
                 header = ext.header
-                # get the data arrays from the reference file and transform them for use with SIP
+                # get the data arrays from the reference file
                 dx, dy = cls.getData(d2imfile, ccdchip)
-                #idccoeffs = cls.getIDCCoeffs(header)
-
-                ##if idccoeffs != None:
-                ##    dx, dy = cls.transformData(dx,dy, idccoeffs)
-
-                # Determine EXTVER for the WCSDVARR extension from the NPL file (EXTNAME, EXTVER) kw.
+                # Determine EXTVER for the D2IMARR extension from the D2I file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
-                wcsdvarr_x_version = 2 * extversion -1
-                wcsdvarr_y_version = 2 * extversion
-                for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
-                    error_val = ename[2].max()
-                    cls.addSciExtKw(header, wdvarr_ver=ename[1], d2im_extname=ename[0], error_val=error_val)
-                    hdu = cls.createD2ImHDU(header, d2imfile=d2imfile, \
-                        wdvarr_ver=ename[1], d2im_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
-                    if wcsdvarr_ind:
-                        fobj[wcsdvarr_ind[ename[1]]] = hdu
-                    else:
-                        fobj.append(hdu)
-
-
+                for ename in zip(['DX', 'DY'], [dx, dy]):
+                    if ename[1] is not None:
+                        error_val = ename[1].max()
+                        cls.addSciExtKw(header, wdvarr_ver=d2im_num_ext, d2im_extname=ename[0], error_val=error_val)
+                        hdu = cls.createD2ImHDU(header, d2imfile=d2imfile, \
+                            wdvarr_ver=d2im_num_ext, d2im_extname=ename[0], data=ename[1],ccdchip=ccdchip, binned=binned)
+                        if wcsdvarr_ind and d2im_num_ext in wcsdvarr_ind:
+                            fobj[wcsdvarr_ind[d2im_num_ext]] = hdu
+                        else:
+                            fobj.append(hdu)
+                        d2im_num_ext = d2im_num_ext + 1
     applyDet2ImCorr = classmethod(applyDet2ImCorr)
 
     def getWCSIndex(cls, fobj):
@@ -111,9 +104,9 @@ class Det2IMCorr(object):
                 ename = fobj[e].header['EXTNAME']
             except KeyError:
                 continue
-            if ename == 'WCSDVARR':
+            if ename == 'D2IMARR':
                 wcsd[fobj[e].header['EXTVER']] = e
-        logger.debug("A map of WSCDVARR externsions %s" % wcsd)
+        logger.debug("A map of D2IMARR extensions %s" % wcsd)
         return wcsd
 
     getWCSIndex = classmethod(getWCSIndex)
@@ -143,11 +136,11 @@ class Det2IMCorr(object):
                   d2imaxis2: 2}
 
         comments = {d2imerror: 'Maximum error of NPOL correction for axis %s' % j,
-                    d2imdis: 'Prior distortion function type',
-                    d2imext: 'Version number of WCSDVARR extension containing lookup distortion table',
-                    d2imnaxes: 'Number of independent variables in distortion function',
-                    d2imaxis1: 'Axis number of the jth independent variable in a distortion function',
-                    d2imaxis2: 'Axis number of the jth independent variable in a distortion function'
+                    d2imdis: 'Detector to image correction type',
+                    d2imext: 'Version number of WCSDVARR extension containing d2im lookup table',
+                    d2imnaxes: 'Number of independent variables in d2im function',
+                    d2imaxis1: 'Axis number of the jth independent variable in a d2im function',
+                    d2imaxis2: 'Axis number of the jth independent variable in a d2im function'
                     }
         # Look for HISTORY keywords. If present, insert new keywords before them
         before_key = 'HISTORY'
@@ -161,9 +154,10 @@ class Det2IMCorr(object):
 
     def getData(cls,d2imfile, ccdchip):
         """
-        Get the data arrays from the reference NPOL files
+        Get the data arrays from the reference D2I files
         Make sure 'CCDCHIP' in the npolfile matches "CCDCHIP' in the science file.
         """
+        xdata, ydata = (None, None)
         d2im = pyfits.open(d2imfile)
         for ext in d2im:
             d2imextname  = ext.header.get('EXTNAME',"")
@@ -180,43 +174,6 @@ class Det2IMCorr(object):
         return xdata, ydata
     getData = classmethod(getData)
 
-    '''
-    def transformData(cls, dx, dy, coeffs):
-        """
-        Transform the NPOL data arrays for use with SIP
-        """
-        ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()]).astype(np.float32)
-        ndx.shape = dx.shape
-        ndy.shape=dy.shape
-        return ndx, ndy
-
-    transformData = classmethod(transformData)
-
-    
-    def getIDCCoeffs(cls, header):
-        """
-        Return a matrix of the scaled first order IDC coefficients.
-        """
-        try:
-            ocx10 = header['OCX10']
-            ocx11 = header['OCX11']
-            ocy10 = header['OCY10']
-            ocy11 = header['OCY11']
-            coeffs = np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
-        except KeyError:
-            logger.exception('\n\tFirst order IDCTAB coefficients are not available. \n\
-            Cannot convert SIP to IDC coefficients.')
-            return None
-        try:
-            idcscale = header['IDCSCALE']
-        except KeyError:
-            logger.exception("IDCSCALE not found in header - setting it to 1.")
-            idcscale = 1
-
-        return np.linalg.inv(coeffs/idcscale)
-
-    getIDCCoeffs = classmethod(getIDCCoeffs)
-    '''
     def createD2ImHDU(cls, sciheader, d2imfile=None, wdvarr_ver=1, d2im_extname=None,data = None, ccdchip=1, binned=1):
         """
         Creates an HDU to be added to the file object.
@@ -270,9 +227,9 @@ class Det2IMCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = d2im_header.get('NAXIS'+si)
-            kw_val1['CDELT'+si] = d2im_header.get('CDELT'+si, 1.0)
+            kw_val1['CDELT'+si] = d2im_header.get('CDELT'+si, 1.0) / binned
             kw_val1['CRPIX'+si] = d2im_header.get('CRPIX'+si, 0.0)
-            kw_val1['CRVAL'+si] = d2im_header.get('CRVAL'+si, 0.0)
+            kw_val1['CRVAL'+si] = (d2im_header.get('CRVAL'+si, 0.0) + sciheader.get('LTV'+str(i), 0)) / binned
 
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
@@ -286,7 +243,7 @@ class Det2IMCorr(object):
         kw_val0 = { 'XTENSION': 'IMAGE',
                     'BITPIX': -32,
                     'NAXIS': naxis,
-                    'EXTNAME': 'WCSDVARR',
+                    'EXTNAME': 'D2IMARR',
                     'EXTVER':  wdvarr_ver,
                     'PCOUNT': 0,
                     'GCOUNT': 1,
@@ -317,7 +274,6 @@ class Det2IMCorr(object):
 
     createD2ImHdr = classmethod(createD2ImHdr)
 
-    ##CCDCHIP?
     def get_ccdchip(cls, fobj, extname, extver):
         """
         Given a science file or npol file determine CCDCHIP
