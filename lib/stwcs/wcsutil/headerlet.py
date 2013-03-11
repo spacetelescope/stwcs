@@ -1029,12 +1029,12 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 whdul[0].header.append(fobj[ext].header.cards['D2IMEXT'])
             except KeyError:
                 pass
-            try:
-                whdul[0].header.append(fobj[ext].header.cards['D2IMERR'])
-            except KeyError:
-                derr = fobj[('D2IMARR')].data.max()
-                whdul[0].header.append(('DPERROR', 0, 'Maximum error of D2IMARR'))
-
+            whdul[0].header.extend(fobj[ext].header.cards['D2IMERR*'])
+            if 'D2IM1.EXTVER' in whdul[0].header:
+                whdul[0].header['D2IM1.EXTVER'] = fobj[ext].header['D2IM1.EXTVER']
+            if 'D2IM2.EXTVER' in whdul[0].header:
+                whdul[0].header['D2IM2.EXTVER'] = fobj[ext].header['D2IM2.EXTVER']
+                
         if hwcs.cpdis1 or hwcs.cpdis2:
             whdul[0].header.extend(fobj[ext].header.cards['CPERR*'])
             try:
@@ -1060,13 +1060,24 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             whdu = whdul[('WCSDVARR', 2)].copy()
             whdu.update_ext_version(fobj[ext].header['DP2.EXTVER'])
             hdul.append(whdu)
-        if hwcs.det2im1 or hwcs.det2im2:
-            try:
-                darr = hdul[('D2IMARR', 1)]
-            except KeyError:
-                whdu = whdul[('D2IMARR')]
-                whdu.update_ext_version(1)
-                hdul.append(whdu)
+            
+        if hwcs.det2im1:
+            whdu = whdul[('D2IMARR', 1)].copy()
+            whdu.update_ext_version(fobj[ext].header['D2IM1.EXTVER'])
+            hdul.append(whdu)
+        if hwcs.det2im2:
+            whdu = whdul[('D2IMARR', 2)].copy()
+            whdu.update_ext_version(fobj[ext].header['D2IM2.EXTVER'])
+            hdul.append(whdu)
+            
+            
+        #if hwcs.det2im1 or hwcs.det2im2:
+            #try:
+                #darr = hdul[('D2IMARR', 1)]
+            #except KeyError:
+                #whdu = whdul[('D2IMARR')]
+                #whdu.update_ext_version(1)
+                #hdul.append(whdu)
     if close_file:
         fobj.close()
     return Headerlet(hdul, logging=logging, logmode='a')
@@ -1788,13 +1799,11 @@ class Headerlet(pyfits.HDUList):
                 # Create a headerlet for the original Primary WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
                 # the file
-                print 'sciext_list', sciext_list, wcsname, hdrname
                 orig_hlt = create_headerlet(fobj, sciext=sciext_list, #[target_ext],
                                 wcsname=wcsname,
                                 hdrname=hdrname, 
                                 logging=self.logging)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
-                print 'orig_hlt', orig_hlt
                 numhlt += 1
                 orig_hlt_hdu.header.update('EXTVER', numhlt)
                 logger.info("Created headerlet %s to be attached to file" % hdrname)
@@ -1866,15 +1875,21 @@ class Headerlet(pyfits.HDUList):
             priwcs[0].header.set('HDRNAME', self[0].header['HDRNAME'], "")
             if sipwcs.det2im1 or sipwcs.det2im2:
                 try:
-                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMEXT'])
+                    d2imerr = self[('SIPWCS', i)].header['D2IMERR*']
+                    priwcs[0].header.extend(d2imerr)
                 except KeyError:
                     pass
                 try:
-                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMERR'])
+                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMEXT'])
                 except KeyError:
-                    derr = self[('D2IMARR')].data.max()
-                    priwcs[0].header.append(('DPERROR', derr, 'Maximum error of D2IMARR'))
-                    
+                    pass
+                if 'D2IM1.EXTVER' in priwcs[0].header:
+                    priwcs[0].header['D2IM1.EXTVER'] = self[('SIPWCS', i)].header['D2IM1.EXTVER']
+                    priwcs[('D2IMARR', 1)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM1.EXTVER']
+                if 'D2IM2.EXTVER' in priwcs[0].header:
+                    priwcs[0].header['D2IM2.EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+                    priwcs[('D2IMARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+
             if sipwcs.cpdis1 or sipwcs.cpdis2:
                 try:
                     cperr = self[('SIPWCS', i)].header['CPERR*']
