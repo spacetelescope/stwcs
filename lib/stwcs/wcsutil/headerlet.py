@@ -1909,7 +1909,6 @@ class Headerlet(pyfits.HDUList):
                 
            
             fobj[target_ext].header.extend(priwcs[0].header)
-            print 'updating extensions'
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', 1)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP1.EXTVER'])
@@ -1918,17 +1917,15 @@ class Headerlet(pyfits.HDUList):
                 whdu = priwcs[('WCSDVARR', 2)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP2.EXTVER'])
                 fobj.append(whdu)
-            if sipwcs.det2im1 or sipwcs.det2im2:
-                print 'attach d2imarr'
-                try:
-                    #check if d2imarr was already attached
-                    darr = fobj[('D2IMARR', 1)]
-                    logger.debug("D2IMARR exists")
-                except KeyError:
-                    logger.debug("Attaching D2IMARR")
-                    fobj.append(self[('D2IMARR', 1)].copy())
-            else:
-                print 'no d2imarr exts'
+            if sipwcs.det2im1: #or sipwcs.det2im2:
+                whdu = priwcs[('D2IMARR', 1)].copy()
+                whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM1.EXTVER'])
+                fobj.append(whdu)
+            if sipwcs.det2im2:
+                whdu = priwcs[('D2IMARR', 2)].copy()
+                whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
+                fobj.append(whdu)
+                
         update_versions(self[0].header, fobj[0].header)
         refs = update_ref_files(self[0].header, fobj[0].header)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
@@ -2190,24 +2187,10 @@ class Headerlet(pyfits.HDUList):
             destim_opened = True
         else:
             destim = dest
-        """
-        if 'distname' in destim[0].header:
-            dname = destim[0].header['DISTNAME']
-        else:
-            dname = self.build_distname(dest)
-        """
         dname = destim[0].header['DISTNAME'] if 'distname' in destim[0].header \
               else self.build_distname(dest)
         if destim_opened:
             destim.close()
-        
-        """
-        if dname == self[0].header['DISTNAME']:
-            return True
-        else:
-            return False
-        """
-        #return dname == self[0].header['DISTNAME']
         return dname
     
     def equal_distmodel(self, dmodel):
@@ -2410,12 +2393,19 @@ class Headerlet(pyfits.HDUList):
 
         logger.debug("Removing D2IM correction from (%s, %s)"
                      % (ext.name, ext._extver))
-        d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
-        for k in d2imkeys:
-            try:
-                del ext.header[k]
-            except KeyError:
-                pass
+        try:
+            d2imdis = ext.header['D2IMDIS*']
+        except KeyError:
+            return
+        try:
+            for c in range(1, len(d2imdis) + 1):
+                del ext.header['D2IM%s*...' % c]
+                del ext.header[d2imdis.cards[c - 1].keyword]
+            del ext.header['D2IMERR*']
+            del ext.header['D2IMFILE']
+            del ext.header['D2IMEXT']
+        except KeyError:
+            pass
 
     def _remove_alt_WCS(self, dest, ext):
         """
