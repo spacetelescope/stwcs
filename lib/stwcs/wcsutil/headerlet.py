@@ -999,6 +999,13 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                              author, descrip, history)
     hdul.append(phdu)
     wcsdvarr_extns = []
+    """
+    nd2i is a counter for d2i extensions to be used when the science file
+    has an old d2i correction format. The old format did not write EXTVER
+    kw for the d2i correction in the science header bu tthe new format expects 
+    them.
+    """
+    nd2i_extver = 1
     for ext in sciext:
         wkeys = altwcs.wcskeys(fobj, ext=ext)
         if wcskey != ' ':
@@ -1031,10 +1038,18 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 pass
             whdul[0].header.extend(fobj[ext].header.cards['D2IMERR*'])
             if 'D2IM1.EXTVER' in whdul[0].header:
-                whdul[0].header['D2IM1.EXTVER'] = fobj[ext].header['D2IM1.EXTVER']
+                try:
+                    whdul[0].header['D2IM1.EXTVER'] = fobj[ext].header['D2IM1.EXTVER']
+                except KeyError:
+                    whdul[0].header['D2IM1.EXTVER'] = nd2i_extver
+                    nd2i_extver += 1
             if 'D2IM2.EXTVER' in whdul[0].header:
-                whdul[0].header['D2IM2.EXTVER'] = fobj[ext].header['D2IM2.EXTVER']
-                
+                try:
+                    whdul[0].header['D2IM2.EXTVER'] = fobj[ext].header['D2IM2.EXTVER']
+                except KeyError:
+                    whdul[0].header['D2IM2.EXTVER'] = nd2i_extver
+                    nd2i_extver += 1
+                    
         if hwcs.cpdis1 or hwcs.cpdis2:
             whdul[0].header.extend(fobj[ext].header.cards['CPERR*'])
             try:
@@ -1063,11 +1078,11 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             
         if hwcs.det2im1:
             whdu = whdul[('D2IMARR', 1)].copy()
-            whdu.update_ext_version(fobj[ext].header['D2IM1.EXTVER'])
+            whdu.update_ext_version(ihdu.header['D2IM1.EXTVER'])
             hdul.append(whdu)
         if hwcs.det2im2:
             whdu = whdul[('D2IMARR', 2)].copy()
-            whdu.update_ext_version(fobj[ext].header['D2IM2.EXTVER'])
+            whdu.update_ext_version(ihdu.header['D2IM2.EXTVER'])
             hdul.append(whdu)
             
             
