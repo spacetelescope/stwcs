@@ -71,7 +71,6 @@ class DET2IMCorr(object):
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
                 ccdchip = cls.get_ccdchip(fobj, extname='SCI', extver=extversion)
-                binned = utils.getBinning(fobj, extversion)
                 header = ext.header
                 # get the data arrays from the reference file
                 dx, dy = cls.getData(d2imfile, ccdchip)
@@ -81,8 +80,10 @@ class DET2IMCorr(object):
                     if ename[1] is not None:
                         error_val = ename[1].max()
                         cls.addSciExtKw(header, wdvarr_ver=d2im_num_ext, d2im_extname=ename[0], error_val=error_val)
-                        hdu = cls.createD2ImHDU(header, d2imfile=d2imfile, \
-                            wdvarr_ver=d2im_num_ext, d2im_extname=ename[0], data=ename[1],ccdchip=ccdchip, binned=binned)
+                        hdu = cls.createD2ImHDU(header, d2imfile=d2imfile,
+                                                wdvarr_ver=d2im_num_ext,
+                                                d2im_extname=ename[0],
+                                                data=ename[1],ccdchip=ccdchip)
                         if wcsdvarr_ind and d2im_num_ext in wcsdvarr_ind:
                             fobj[wcsdvarr_ind[d2im_num_ext]] = hdu
                         else:
@@ -174,22 +175,25 @@ class DET2IMCorr(object):
         return xdata, ydata
     getData = classmethod(getData)
 
-    def createD2ImHDU(cls, sciheader, d2imfile=None, wdvarr_ver=1, d2im_extname=None,data = None, ccdchip=1, binned=1):
+    def createD2ImHDU(cls, sciheader, d2imfile=None, wdvarr_ver=1,
+                      d2im_extname=None,data = None, ccdchip=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createD2ImHdr(sciheader, d2imfile=d2imfile, wdvarr_ver=wdvarr_ver, d2im_extname=d2im_extname, ccdchip=ccdchip, binned=binned)
+        hdr = cls.createD2ImHdr(sciheader, d2imfile=d2imfile,
+                                wdvarr_ver=wdvarr_ver, d2im_extname=d2im_extname,
+                                ccdchip=ccdchip)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
 
     createD2ImHDU = classmethod(createD2ImHDU)
 
-    def createD2ImHdr(cls, sciheader, d2imfile, wdvarr_ver, d2im_extname, ccdchip, binned):
+    def createD2ImHdr(cls, sciheader, d2imfile, wdvarr_ver, d2im_extname, ccdchip):
         """
-        Creates a header for the WCSDVARR extension based on the NPOL reference file
+        Creates a header for the D2IMARR extension based on the D2I reference file
         and sci extension header. The goal is to always work in image coordinates
-        (also for subarrays and binned images. The WCS for the WCSDVARR extension
-        i ssuch that a full size npol table is created and then shifted or scaled
+        (also for subarrays and binned images). The WCS for the D2IMARR extension
+        is such that a full size d2im table is created and then shifted or scaled
         if the science image is a subarray or binned image.
         """
         d2im = pyfits.open(d2imfile)
@@ -209,7 +213,7 @@ class DET2IMCorr(object):
         d2im.close()
 
         naxis = d2im[1].header['NAXIS']
-        ccdchip = d2imextname #npol_header['CCDCHIP']
+        ccdchip = d2imextname
 
         kw = { 'NAXIS': 'Size of the axis',
                'CDELT': 'Coordinate increment along axis',
@@ -227,10 +231,10 @@ class DET2IMCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = d2im_header.get('NAXIS'+si)
-            kw_val1['CDELT'+si] = d2im_header.get('CDELT'+si, 1.0) / binned
+            kw_val1['CDELT'+si] = d2im_header.get('CDELT'+si, 1.0) * sciheader.get('LTM'+si+'_'+si, 1)
             kw_val1['CRPIX'+si] = d2im_header.get('CRPIX'+si, 0.0)
-            kw_val1['CRVAL'+si] = (d2im_header.get('CRVAL'+si, 0.0) + sciheader.get('LTV'+str(i), 0)) / binned
-
+            kw_val1['CRVAL'+si] = (d2im_header.get('CRVAL'+si, 0.0) - \
+                                   sciheader.get('LTV'+str(i), 0))
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',

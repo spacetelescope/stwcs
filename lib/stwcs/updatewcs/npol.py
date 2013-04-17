@@ -74,16 +74,17 @@ class NPOLCorr(object):
             if extname == 'sci':
                 extversion = ext.header['EXTVER']
                 ccdchip = cls.get_ccdchip(fobj, extname='SCI', extver=extversion)
-                binned = utils.getBinning(fobj, extversion)
                 header = ext.header
-                # get the data arrays from the reference file and transform them for use with SIP
+                # get the data arrays from the reference file and transform
+                # them for use with SIP
                 dx,dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
 
                 if idccoeffs != None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
 
-                # Determine EXTVER for the WCSDVARR extension from the NPL file (EXTNAME, EXTVER) kw.
+                # Determine EXTVER for the WCSDVARR extension from the 
+                # NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
                 wcsdvarr_y_version = 2 * extversion
@@ -91,7 +92,7 @@ class NPOLCorr(object):
                     error_val = ename[2].max()
                     cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0], error_val=error_val)
                     hdu = cls.createNpolHDU(header, npolfile=nplfile, \
-                        wdvarr_ver=ename[1], npl_extname=ename[0], data=ename[2],ccdchip=ccdchip, binned=binned)
+                        wdvarr_ver=ename[1], npl_extname=ename[0], data=ename[2],ccdchip=ccdchip)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
@@ -218,17 +219,17 @@ class NPOLCorr(object):
 
     getIDCCoeffs = classmethod(getIDCCoeffs)
 
-    def createNpolHDU(cls, sciheader, npolfile=None, wdvarr_ver=1, npl_extname=None,data = None, ccdchip=1, binned=1):
+    def createNpolHDU(cls, sciheader, npolfile=None, wdvarr_ver=1, npl_extname=None,data = None, ccdchip=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip, binned=binned)
+        hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip)
         hdu=pyfits.ImageHDU(header=hdr, data=data)
         return hdu
 
     createNpolHDU = classmethod(createNpolHDU)
 
-    def createNpolHdr(cls, sciheader, npolfile, wdvarr_ver, npl_extname, ccdchip, binned):
+    def createNpolHdr(cls, sciheader, npolfile, wdvarr_ver, npl_extname, ccdchip):
         """
         Creates a header for the WCSDVARR extension based on the NPOL reference file
         and sci extension header. The goal is to always work in image coordinates
@@ -271,10 +272,12 @@ class NPOLCorr(object):
         for i in range(1, naxis+1):
             si = str(i)
             kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
-            kw_val1['CDELT'+si] = npol_header.get('CDELT'+si, 1.0)
+            kw_val1['CDELT'+si] = npol_header.get('CDELT'+si, 1.0) * \
+                                  sciheader.get('LTM'+si+'_'+si, 1)
             kw_val1['CRPIX'+si] = npol_header.get('CRPIX'+si, 0.0)
-            kw_val1['CRVAL'+si] = npol_header.get('CRVAL'+si, 0.0)
-
+            kw_val1['CRVAL'+si] = (npol_header.get('CRVAL'+si, 0.0) - \
+                                  sciheader.get('LTV'+str(i), 0)) 
+            
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',
