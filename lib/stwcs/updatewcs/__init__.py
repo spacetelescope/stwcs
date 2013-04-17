@@ -119,8 +119,10 @@ def makecorr(fname, allowed_corr):
     rwcs.readModel(update=True,header=f[nrefext].header)
 
     if 'DET2IMCorr' in allowed_corr:
-        det2im.DET2IMCorr.updateWCS(f)
-
+        kw2update = det2im.DET2IMCorr.updateWCS(f)
+        for kw in kw2update:
+            f[1].header.update(kw, kw2update[kw])
+            
     for i in range(len(f))[1:]:
         extn = f[i]
 
@@ -319,8 +321,6 @@ def checkFiles(input):
                 newfiles.append(newfilename)
     if removed_files:
         logger.warning('\n\tThe following files will be removed from the list of files to be processed %s' % removed_files)
-        #for f in removed_files:
-        #    print f
 
     newfiles = checkFiles(newfiles)[0]
     logger.info("\n\tThese files passed the input check and will be processed: %s" % newfiles)
@@ -345,6 +345,11 @@ def cleanWCS(fname):
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
     f = pyfits.open(fname, mode='update')
     keys = wcsutil.wcskeys(f[1].header)
+    # Remove the primary WCS from the list
+    try:
+        keys.remove(' ')
+    except ValueError:
+        pass
     fext = range(len(f))
     for key in keys:
         wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
