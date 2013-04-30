@@ -46,7 +46,7 @@ def run(configObj=None):
     # such as those above
     cdict = configObj.dict()
     # remove any rules defined for the TEAL interface
-    if cdict.has_key("_RULES_"): del cdict['_RULES_']
+    if "_RULES_" in cdict: del cdict['_RULES_']
     del cdict['_task_name_']
     del cdict['input']
     del cdict['extname']

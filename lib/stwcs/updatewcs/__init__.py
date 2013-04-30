@@ -126,7 +126,7 @@ def makecorr(fname, allowed_corr):
     for i in range(len(f))[1:]:
         extn = f[i]
 
-        if extn.header.has_key('extname'):
+        if 'extname' in extn.header:
             extname = extn.header['extname'].lower()
             if  extname == 'sci':
                 wcsutil.restoreWCS(f, ext=i, wcskey='O')
@@ -167,12 +167,12 @@ def makecorr(fname, allowed_corr):
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])
     # Finally record the version of the software which updated the WCS
-    if f[0].header.has_key('HISTORY'):
+    if 'HISTORY' in f[0].header:
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
                            comment="Version of STWCS used to updated the WCS", before='HISTORY')
         f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
             comment="Version of PYWCS used to updated the WCS", before='HISTORY')
-    elif f[0].header.has_key('ASN_MTYP'):
+    elif 'ASN_MTYP' in f[0].header:
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
             comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
         f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
