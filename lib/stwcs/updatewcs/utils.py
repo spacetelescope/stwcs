@@ -112,7 +112,7 @@ def build_sipname(fobj, fname=None, sipname=None):
     Parameters
     ----------
     fobj: HDUList
-          pyfits file object
+          fits file object
     fname: string
           science file name (to be used if ROOTNAMe is not present
     sipname: string
@@ -156,8 +156,8 @@ def build_npolname(fobj, npolfile=None):
     
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
+    fobj: astropy.io.fits.HDUList
+          fits file object
     npolfile: string
           user supplied NPOLFILE keyword
           
@@ -189,8 +189,8 @@ def build_d2imname(fobj, d2imfile=None):
     
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
+    fobj: astropy.io.fits.HDUList
+          fits file object
     d2imfile: string
           user supplied NPOLFILE keyword
           

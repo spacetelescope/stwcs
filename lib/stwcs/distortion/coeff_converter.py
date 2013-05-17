@@ -1,51 +1,51 @@
 from __future__ import division # confidence high
 
 import numpy as np
-import pyfits
-import pywcs
+from astropy.io import fits
+from astropy import wcs
 
-def sip2idc(wcs):
+def sip2idc(hwcs):
     """
     Converts SIP style coefficients to IDCTAB coefficients.
 
     :Parameters:
-    `wcs`: pyfits.Header or pywcs.WCS object
+    `wcs`: fits.Header or pywcs.WCS object
     """
-    if isinstance(wcs,pyfits.Header):
-        ocx10 = wcs.get('OCX10', None)
-        ocx11 = wcs.get('OCX11', None)
-        ocy10 = wcs.get('OCY10', None)
-        ocy11 = wcs.get('OCY11', None)
-        order = wcs.get('A_ORDER', None)
-        sipa, sipb = _read_sip_kw(wcs)
+    if isinstance(hwcs,fits.Header):
+        ocx10 = hwcs.get('OCX10', None)
+        ocx11 = hwcs.get('OCX11', None)
+        ocy10 = hwcs.get('OCY10', None)
+        ocy11 = hwcs.get('OCY11', None)
+        order = hwcs.get('A_ORDER', None)
+        sipa, sipb = _read_sip_kw(hwcs)
         if None in [ocx10, ocx11, ocy10, ocy11, sipa, sipb]:
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None, None
-    elif isinstance(wcs,pywcs.WCS):
+    elif isinstance(hwcs,wcs.WCS):
         try:
-            ocx10 = wcs.ocx10
-            ocx11 = wcs.ocx11
-            ocy10 = wcs.ocy10
-            ocy11 = wcs.ocy11
+            ocx10 = hwcs.ocx10
+            ocx11 = hwcs.ocx11
+            ocy10 = hwcs.ocy10
+            ocy11 = hwcs.ocy11
         except AttributeError:
             print 'First order IDCTAB coefficients are not available.\n'
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None, None
         try:
-            sipa = wcs.sip.a
-            sipb = wcs.sip.b
+            sipa = hwcs.sip.a
+            sipb = hwcs.sip.b
         except AttributeError:
             print 'SIP coefficients are not available.'
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None, None
         try:
-            order = wcs.sip.a_order
+            order = hwcs.sip.a_order
         except AttributeError:
             print 'SIP model order unknown, exiting ...\n'
             return None, None
 
     else:
-        print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
+        print 'Input to sip2idc must be a FITS header or a wcsutil.HSTWCS object\n'
         return
 
 
@@ -104,38 +104,3 @@ def _read_sip_kw(header):
     return a , b
 
 
-"""
-def idc2sip(wcsobj, idctab = None):
-    if isinstance(wcs,pywcs.WCS):
-        try:
-            cx10 = wcsobj.ocx10
-            cx11 = wcsobj.cx11
-            cy10 = wcsobj.cy10
-            cy11 = wcsobj.cy11
-        except AttributeError:
-            print
-        try:
-            order = wcs.sip.a_order
-        except AttributeError:
-            print 'SIP model order unknown, exiting ...\n'
-            return
-    else:
-        print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
-        return
-
-    if None in [ocx10, ocx11, ocy10, ocy11]:
-        print 'First order IDC coefficients not found, exiting ...\n'
-        return
-    idc_coeff = np.array([[wcsobj.cx11, wcsobj.cx10], [wcsobj.cy11, wcsobj.cy10]])
-    cx = numpy.zeros((order+1,order+1), dtype=numpy.double)
-    cy = numpy.zeros((order+1,order+1), dtype=numpy.double)
-    for n in range(order+1):
-        for m in range(order+1):
-            if n >= m and n>=2:
-                sipval = numpy.array([[wcsobj.sip.a[n,m]],[wcsobj.sip.b[n,m]]])
-                idcval = numpy.dot(idc_coeff, sipval)
-                cx[m,n-m] = idcval[0]
-                cy[m,n-m] = idcval[1]
-
-    return cx, cy
-"""

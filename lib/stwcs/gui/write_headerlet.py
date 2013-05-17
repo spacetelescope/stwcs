@@ -1,6 +1,5 @@
 import os
 
-import pyfits
 from stsci.tools import teal
 from stsci.tools import parseinput
 

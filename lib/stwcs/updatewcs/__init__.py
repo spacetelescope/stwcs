@@ -1,13 +1,13 @@
 from __future__ import division # confidence high
 
 import os
-import pyfits
+from astropy.io import fits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import stwcs
-import pywcs
-
+from astropy import wcs
+from astropy import __version__ as pywcs_version
 import utils, corrections, makewcs
 import npol, det2im
 from stsci.tools import parseinput, fileutil
@@ -44,8 +44,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     Dependencies
     ------------
     `stsci.tools`
-    `pyfits`
-    `pywcs`
+    `astropy.io.fits`
+    `astropy.wcs`
 
     Parameters
     ----------
@@ -94,7 +94,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if 'MakeWCS' in acorr and newIDCTAB(f):
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
-
+        
         makecorr(f, acorr)
 
     return files
@@ -111,7 +111,7 @@ def makecorr(fname, allowed_corr):
     `acorr`: list
              list of corrections to be applied
     """
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
@@ -154,7 +154,7 @@ def makecorr(fname, allowed_corr):
                 cextver = extn.header['extver']
                 if cextver == sciextver:
                     hdr = f[('SCI',sciextver)].header
-                    w = pywcs.WCS(hdr, f)
+                    w = wcs.WCS(hdr, f)
                     copyWCS(w, extn.header)
 
             else:
@@ -168,12 +168,12 @@ def makecorr(fname, allowed_corr):
     if f[0].header.has_key('HISTORY'):
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
                            comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
+        f[0].header.update(key='PYWCSVER', value=pywcs_version,
             comment="Version of PYWCS used to updated the WCS", before='HISTORY')
     elif f[0].header.has_key('ASN_MTYP'):
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
             comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
+        f[0].header.update(key='PYWCSVER', value=pywcs_version,
             comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
@@ -183,7 +183,7 @@ def makecorr(fname, allowed_corr):
             f[0].header.set('UPWCSVER', stwcs.__version__,
                             "Version of STWCS used to updated the WCS",
                             after=i)
-            f[0].header.set('PYWCSVER', pywcs.__version__,
+            f[0].header.set('PYWCSVER', pywcs_version,
                             "Version of PYWCS used to updated the WCS",
                             after=i)
     # add additional keywords to be used by headerlets
@@ -220,7 +220,7 @@ def getNrefchip(fobj):
 
     Parameters
     ----------
-    fobj: pyfits HDUList object
+    fobj: astropy.io.fits.HDUList object
     """
     nrefext = 1
     nrefchip = 1
@@ -328,7 +328,7 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     #When this is called we know there's a kw IDCTAB in the header
-    hdul = pyfits.open(fname)
+    hdul = fits.open(fname)
     idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
     try:
         #check for the presence of IDCTAB in the first extension
@@ -343,7 +343,7 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(f[1].header)
     fext = range(len(f))
     for key in keys:

@@ -8,7 +8,7 @@ updatewcs performs corrections to the
 basic WCS and includes other distortion infomation in the science files as
 header keywords or file extensions.
 
-Wcsutil provides an HSTWCS object which extends pywcs.WCS object and provides
+Wcsutil provides an HSTWCS object which extends astropy.wcs.WCS object and provides
 HST instrument specific information as well as methods for coordinate
 transformation. wcsutil also provides functions for manipulating alternate WCS
 descriptions in the headers.
@@ -18,7 +18,7 @@ from __future__ import division # confidence high
 import os
 
 import distortion
-import pywcs
+from astropy import wcs
 from stsci.tools import fileutil
 from stsci.tools import teal
 

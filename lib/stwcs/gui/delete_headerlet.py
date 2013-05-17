@@ -1,6 +1,5 @@
 import os
 
-import pyfits
 from stsci.tools import teal
 
 import stwcs

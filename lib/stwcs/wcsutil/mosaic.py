@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 from matplotlib import pyplot as plt
-import pyfits
+from astropy.io import fits
 import string
 
 from stsci.tools import parseinput, irafglob
@@ -83,7 +83,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
     return outwcs
 
 def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
-    hdr = pyfits.getheader(fname, ext=ext)
+    hdr = fits.getheader(fname, ext=ext)
     all_keys = list(string.ascii_uppercase)
     if wkey.upper() not in all_keys:
         raise KeyError, "wkey must be one character: A-Z"
@@ -92,7 +92,7 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
             raise ValueError, "wkey %s is already in use. Use clobber=True to overwrite it or specify a different key." %wkey
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
 
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
@@ -152,7 +152,7 @@ def readWCS(input, exts=None, extname=None):
                 continue
     elif extname != None:
         for f in filelist:
-            fobj = pyfits.open(f)
+            fobj = fits.open(f)
             for i in range(len(fobj)):
                 try:
                     ename = fobj[i].header['EXTNAME']

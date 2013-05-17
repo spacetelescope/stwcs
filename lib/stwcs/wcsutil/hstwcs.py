@@ -1,8 +1,8 @@
 from __future__ import division # confidence high
 
 import os.path
-from pywcs import WCS
-import pyfits
+from astropy.wcs import WCS
+from astropy.io import fits
 import instruments
 from stwcs.distortion import models, coeff_converter
 import altwcs
@@ -68,10 +68,10 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        fobj: string or PyFITS HDUList object or None
+        fobj: string or FITS HDUList object or None
                 a file name, e.g j9irw4b1q_flt.fits
                 a fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
-                a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the
+                a fits file object, e.g fits.open('j9irw4b1q_flt.fits'), in which case the
                 user is responsible for closing the file object.
         ext:  int, tuple or None
                 extension number
@@ -101,9 +101,9 @@ class HSTWCS(WCS):
                 self.instrument = instrument_name
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
                          key=self.wcskey)
-            # If input was a pyfits HDUList object, it's the user's
+            # If input was a fits HDUList object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
-            if not isinstance(fobj, pyfits.HDUList):
+            if not isinstance(fobj, fits.HDUList):
                 phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
@@ -136,9 +136,9 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        prim_hdr: pyfits.Header
+        prim_hdr: fits.Header
                   primary header
-        ext_hdr:  pyfits.Header
+        ext_hdr:  fits.Header
                   extension header
 
         """
@@ -209,7 +209,7 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        header: pyfits.Header
+        header: fits.Header
                 fits extension header
         update: boolean (False)
                 if True - record the following IDCTAB quantities as header keywords:
@@ -260,7 +260,7 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        header: pyfits.Header
+        header: fits.Header
                 fits extension header
         update: boolean (False)
                 if True - save teh following as header keywords:
@@ -312,7 +312,7 @@ class HSTWCS(WCS):
 
     def wcs2header(self, sip2hdr=False, idc2hdr=True, wcskey=None, relax=False):
         """
-        Create a pyfits.Header object from WCS keywords.
+        Create a fits.Header object from WCS keywords.
 
         If the original header had a CD matrix, return a CD matrix,
         otherwise return a PC matrix.
@@ -323,7 +323,7 @@ class HSTWCS(WCS):
                  If True - include SIP coefficients
         """
         
-        h = self.to_header(wkey=wcskey, relax=relax)
+        h = self.to_header(key=wcskey, relax=relax)
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():
@@ -370,17 +370,17 @@ class HSTWCS(WCS):
     def _sip2hdr(self, k):
         """
         Get a set of SIP coefficients in the form of an array
-        and turn them into a pyfits.Cardlist.
+        and turn them into a fits.Cardlist.
         k - one of 'a', 'b', 'ap', 'bp'
         """
 
-        cards = pyfits.CardList()
+        cards = fits.CardList()
         korder = self.sip.__getattribute__(k+'_order')
-        cards.append(pyfits.Card(key=k.upper()+'_ORDER', value=korder))
+        cards.append(fits.Card(key=k.upper()+'_ORDER', value=korder))
         coeffs = self.sip.__getattribute__(k)
         ind = coeffs.nonzero()
         for i in range(len(ind[0])):
-            card = pyfits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
+            card = fits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
                                value=coeffs[ind[0][i], ind[1][i]])
             cards.append(card)
         return cards
@@ -388,14 +388,14 @@ class HSTWCS(WCS):
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
-        cards = pyfits.CardList()
+        cards = fits.CardList()
         for c in coeffs:
             try:
                 val = self.__getattribute__(c)
             except AttributeError:
                 continue
             if val:
-                cards.append(pyfits.Card(key=c, value=val))
+                cards.append(fits.Card(key=c, value=val))
         return cards
 
     def pc2cd(self):

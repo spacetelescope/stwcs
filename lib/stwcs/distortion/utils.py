@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 import os
 import numpy as np
-import pywcs
+from astropy import wcs
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil
@@ -91,7 +91,7 @@ def  undistortWCS(wcsobj):
     to a 3-point square. The new ORIENTAT angle is calculated as well as the
     plate scale in the undistorted frame.
     """
-    assert isinstance(wcsobj, pywcs.WCS)
+    assert isinstance(wcsobj, wcs.WCS)
     import coeff_converter
 
     cx, cy = coeff_converter.sip2idc(wcsobj)
@@ -131,7 +131,7 @@ def  undistortWCS(wcsobj):
         print 'Singular matrix in updateWCS, aborting ...'
         return
 
-    lin_wcsobj = pywcs.WCS()
+    lin_wcsobj = wcs.WCS()
     cd_inv = np.linalg.inv(cd_mat)
     cd = np.dot(wcsobj.wcs.cd, cd_inv).astype(np.float64)
     lin_wcsobj.wcs.cd = cd
