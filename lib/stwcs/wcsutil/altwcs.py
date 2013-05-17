@@ -424,10 +424,10 @@ def _restore(fobj, ukey, fromextnum,
             fobj[toextension].header.update(key=key, value = hwcs[k])
         else:
             continue
-    if key == 'O' and fobj[toextension].header.has_key('TDDALPHA'):
+    if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toeztension].header['TDDBETA'] = 0.0
-    if fobj[toextension].header.has_key('ORIENTAT'):
+    if 'ORIENTAT' in fobj[toextension].header:
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2'+'%s' %ukey], hwcs['CD2_2'+'%s' %ukey]))
         fobj[toextension].header.update(key='ORIENTAT', value=norient)
 
