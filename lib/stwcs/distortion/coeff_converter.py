@@ -76,8 +76,8 @@ def _read_sip_kw(header):
 
     If no SIP header keywords are found, None is returned.
     """
-    if header.has_key("A_ORDER"):
-        if not header.has_key("B_ORDER"):
+    if "A_ORDER" in header:
+        if "B_ORDER" not in header:
             raise ValueError(
                 "A_ORDER provided without corresponding B_ORDER "
                 "keyword for SIP distortion")
@@ -93,7 +93,7 @@ def _read_sip_kw(header):
         for i in range(m+1):
             for j in range(m-i+1):
                 b[i, j] = header.get("B_%d_%d" % (i, j), 0.0)
-    elif header.has_key("B_ORDER"):
+    elif "B_ORDER" in header:
         raise ValueError(
             "B_ORDER provided without corresponding A_ORDER "
             "keyword for SIP distortion")

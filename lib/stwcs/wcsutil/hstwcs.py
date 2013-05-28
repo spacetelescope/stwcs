@@ -218,13 +218,13 @@ class HSTWCS(WCS):
         """
         if self.idctab in [None, '', ' ','N/A']:
             #Keyword idctab is not present in header - check for sip coefficients
-            if header is not None and header.has_key('IDCSCALE'):
+            if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
                 print "Distortion model is not available: IDCTAB=None\n"
                 self.idcmodel = None
         elif not os.path.exists(fileutil.osfn(self.idctab)):
-            if header is not None and header.has_key('IDCSCALE'):
+            if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
                 print 'Distortion model is not available: IDCTAB file %s not found\n' % self.idctab

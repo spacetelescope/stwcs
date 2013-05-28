@@ -67,10 +67,10 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     #First thing we need, is to read in the coefficients from the IDC
     # table and populate the Fx and Fy matrices.
 
-    if ftab['PRIMARY'].header.has_key('DETECTOR'):
+    if 'DETECTOR' in ftab['PRIMARY'].header:
         detector = ftab['PRIMARY'].header['DETECTOR']
     else:
-        if ftab['PRIMARY'].header.has_key('CAMERA'):
+        if 'CAMERA' in ftab['PRIMARY'].header:
             detector = str(ftab['PRIMARY'].header['CAMERA'])
         else:
             detector = 1
@@ -263,7 +263,7 @@ def read_tdd_coeffs(phdr):
     skew_coeffs['TDD_A'] = None
     skew_coeffs['TDD_B'] = None
 
-    if phdr.has_key("TDDORDER"):
+    if "TDDORDER" in phdr:
         n = int(phdr["TDDORDER"])
     else:
         print 'TDDORDER kw not present, using default TDD correction'
@@ -438,7 +438,7 @@ def readWCSCoeffs(header):
     for i in xrange(_xorder+1):
         for j in xrange(i+1):
             xcname = cxstr+str(j)+'_'+str(i-j)
-            if header.has_key(xcname):
+            if xcname in header:
                 fx[i,j] = header[xcname]
 
     # Extract Y coeffs separately as a different order may
@@ -446,7 +446,7 @@ def readWCSCoeffs(header):
     for i in xrange(_yorder+1):
         for j in xrange(i+1):
             ycname = cystr+str(j)+'_'+str(i-j)
-            if header.has_key(ycname):
+            if ycname in header:
                 fy[i,j] = header[ycname]
 
     # Now set the linear terms

@@ -999,6 +999,13 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                              author, descrip, history)
     hdul.append(phdu)
     wcsdvarr_extns = []
+    """
+    nd2i is a counter for d2i extensions to be used when the science file
+    has an old d2i correction format. The old format did not write EXTVER
+    kw for the d2i correction in the science header bu tthe new format expects 
+    them.
+    """
+    nd2i_extver = 1
     for ext in sciext:
         wkeys = altwcs.wcskeys(fobj, ext=ext)
         if wcskey != ' ':
@@ -1029,12 +1036,20 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 whdul[0].header.append(fobj[ext].header.cards['D2IMEXT'])
             except KeyError:
                 pass
-            try:
-                whdul[0].header.append(fobj[ext].header.cards['D2IMERR'])
-            except KeyError:
-                derr = fobj[('D2IMARR')].data.max()
-                whdul[0].header.append(('DPERROR', 0, 'Maximum error of D2IMARR'))
-
+            whdul[0].header.extend(fobj[ext].header.cards['D2IMERR*'])
+            if 'D2IM1.EXTVER' in whdul[0].header:
+                try:
+                    whdul[0].header['D2IM1.EXTVER'] = fobj[ext].header['D2IM1.EXTVER']
+                except KeyError:
+                    whdul[0].header['D2IM1.EXTVER'] = nd2i_extver
+                    nd2i_extver += 1
+            if 'D2IM2.EXTVER' in whdul[0].header:
+                try:
+                    whdul[0].header['D2IM2.EXTVER'] = fobj[ext].header['D2IM2.EXTVER']
+                except KeyError:
+                    whdul[0].header['D2IM2.EXTVER'] = nd2i_extver
+                    nd2i_extver += 1
+                    
         if hwcs.cpdis1 or hwcs.cpdis2:
             whdul[0].header.extend(fobj[ext].header.cards['CPERR*'])
             try:
@@ -1060,13 +1075,24 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             whdu = whdul[('WCSDVARR', 2)].copy()
             whdu.update_ext_version(fobj[ext].header['DP2.EXTVER'])
             hdul.append(whdu)
-        if hwcs.det2im1 or hwcs.det2im2:
-            try:
-                darr = hdul[('D2IMARR', 1)]
-            except KeyError:
-                whdu = whdul[('D2IMARR')]
-                whdu.update_ext_version(1)
-                hdul.append(whdu)
+            
+        if hwcs.det2im1:
+            whdu = whdul[('D2IMARR', 1)].copy()
+            whdu.update_ext_version(ihdu.header['D2IM1.EXTVER'])
+            hdul.append(whdu)
+        if hwcs.det2im2:
+            whdu = whdul[('D2IMARR', 2)].copy()
+            whdu.update_ext_version(ihdu.header['D2IM2.EXTVER'])
+            hdul.append(whdu)
+            
+            
+        #if hwcs.det2im1 or hwcs.det2im2:
+            #try:
+                #darr = hdul[('D2IMARR', 1)]
+            #except KeyError:
+                #whdu = whdul[('D2IMARR')]
+                #whdu.update_ext_version(1)
+                #hdul.append(whdu)
     if close_file:
         fobj.close()
     return Headerlet(hdul, logging=logging, logmode='a')
@@ -1788,13 +1814,11 @@ class Headerlet(pyfits.HDUList):
                 # Create a headerlet for the original Primary WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
                 # the file
-                print 'sciext_list', sciext_list, wcsname, hdrname
                 orig_hlt = create_headerlet(fobj, sciext=sciext_list, #[target_ext],
                                 wcsname=wcsname,
                                 hdrname=hdrname, 
                                 logging=self.logging)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
-                print 'orig_hlt', orig_hlt
                 numhlt += 1
                 orig_hlt_hdu.header.update('EXTVER', numhlt)
                 logger.info("Created headerlet %s to be attached to file" % hdrname)
@@ -1866,15 +1890,21 @@ class Headerlet(pyfits.HDUList):
             priwcs[0].header.set('HDRNAME', self[0].header['HDRNAME'], "")
             if sipwcs.det2im1 or sipwcs.det2im2:
                 try:
-                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMEXT'])
+                    d2imerr = self[('SIPWCS', i)].header['D2IMERR*']
+                    priwcs[0].header.extend(d2imerr)
                 except KeyError:
                     pass
                 try:
-                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMERR'])
+                    priwcs[0].header.append(self[('SIPWCS', i)].header.cards['D2IMEXT'])
                 except KeyError:
-                    derr = self[('D2IMARR')].data.max()
-                    priwcs[0].header.append(('DPERROR', derr, 'Maximum error of D2IMARR'))
-                    
+                    pass
+                if 'D2IM1.EXTVER' in priwcs[0].header:
+                    priwcs[0].header['D2IM1.EXTVER'] = self[('SIPWCS', i)].header['D2IM1.EXTVER']
+                    priwcs[('D2IMARR', 1)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM1.EXTVER']
+                if 'D2IM2.EXTVER' in priwcs[0].header:
+                    priwcs[0].header['D2IM2.EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+                    priwcs[('D2IMARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+
             if sipwcs.cpdis1 or sipwcs.cpdis2:
                 try:
                     cperr = self[('SIPWCS', i)].header['CPERR*']
@@ -1894,7 +1924,6 @@ class Headerlet(pyfits.HDUList):
                 
            
             fobj[target_ext].header.extend(priwcs[0].header)
-            print 'updating extensions'
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', 1)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP1.EXTVER'])
@@ -1903,17 +1932,15 @@ class Headerlet(pyfits.HDUList):
                 whdu = priwcs[('WCSDVARR', 2)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP2.EXTVER'])
                 fobj.append(whdu)
-            if sipwcs.det2im1 or sipwcs.det2im2:
-                print 'attach d2imarr'
-                try:
-                    #check if d2imarr was already attached
-                    darr = fobj[('D2IMARR', 1)]
-                    logger.debug("D2IMARR exists")
-                except KeyError:
-                    logger.debug("Attaching D2IMARR")
-                    fobj.append(self[('D2IMARR', 1)].copy())
-            else:
-                print 'no d2imarr exts'
+            if sipwcs.det2im1: #or sipwcs.det2im2:
+                whdu = priwcs[('D2IMARR', 1)].copy()
+                whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM1.EXTVER'])
+                fobj.append(whdu)
+            if sipwcs.det2im2:
+                whdu = priwcs[('D2IMARR', 2)].copy()
+                whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
+                fobj.append(whdu)
+                
         update_versions(self[0].header, fobj[0].header)
         refs = update_ref_files(self[0].header, fobj[0].header)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
@@ -2175,24 +2202,10 @@ class Headerlet(pyfits.HDUList):
             destim_opened = True
         else:
             destim = dest
-        """
-        if 'distname' in destim[0].header:
-            dname = destim[0].header['DISTNAME']
-        else:
-            dname = self.build_distname(dest)
-        """
         dname = destim[0].header['DISTNAME'] if 'distname' in destim[0].header \
               else self.build_distname(dest)
         if destim_opened:
             destim.close()
-        
-        """
-        if dname == self[0].header['DISTNAME']:
-            return True
-        else:
-            return False
-        """
-        #return dname == self[0].header['DISTNAME']
         return dname
     
     def equal_distmodel(self, dmodel):
@@ -2395,12 +2408,19 @@ class Headerlet(pyfits.HDUList):
 
         logger.debug("Removing D2IM correction from (%s, %s)"
                      % (ext.name, ext._extver))
-        d2imkeys = ['D2IMFILE', 'AXISCORR', 'D2IMEXT', 'D2IMERR']
-        for k in d2imkeys:
-            try:
-                del ext.header[k]
-            except KeyError:
-                pass
+        try:
+            d2imdis = ext.header['D2IMDIS*']
+        except KeyError:
+            return
+        try:
+            for c in range(1, len(d2imdis) + 1):
+                del ext.header['D2IM%s*...' % c]
+                del ext.header[d2imdis.cards[c - 1].keyword]
+            del ext.header['D2IMERR*']
+            del ext.header['D2IMFILE']
+            del ext.header['D2IMEXT']
+        except KeyError:
+            pass
 
     def _remove_alt_WCS(self, dest, ext):
         """

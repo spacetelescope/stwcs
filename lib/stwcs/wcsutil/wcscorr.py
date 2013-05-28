@@ -329,7 +329,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     prihdr = source[0].header
 
     # Get headerlet related keywords here
-    sipname, idctab = utils.build_sipname(source, fname, None)
+    sipname, idctab = utils.build_sipname(source, fname, "None")
     npolname, npolfile = utils.build_npolname(source, None)
     d2imname, d2imfile = utils.build_d2imname(source, None)
     if 'hdrname' in prihdr:
