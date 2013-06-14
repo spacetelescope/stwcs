@@ -51,7 +51,7 @@ def sip2idc(wcs):
 
     if None in [ocx10, ocx11, ocy10, ocy11]:
         print 'First order IDC coefficients not found, exiting ...\n'
-        return
+        return None, None
     idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
     cx = np.zeros((order+1,order+1), dtype=np.double)
     cy = np.zeros((order+1,order+1), dtype=np.double)
