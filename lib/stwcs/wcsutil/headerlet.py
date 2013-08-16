@@ -67,8 +67,8 @@ COLUMN_FMT = '{:<{width}}'
 
 
 def init_logging(funcname=None, level=100, mode='w', **kwargs):
-    """ 
-    
+    """
+
     Initialize logging for a function
 
     Parameters
@@ -82,7 +82,7 @@ def init_logging(funcname=None, level=100, mode='w', **kwargs):
             "WARNING", "ERROR", "CRITICAL")
     mode: 'w' or 'a'
             attach to logfile ('a' or start a new logfile ('w')
-        
+
     """
     for hndl in logger.handlers:
         if isinstance(hndl, logging.FileHandler):
@@ -145,7 +145,7 @@ def parse_filename(fname, mode='readonly'):
         opened by this function. This allows a program to know whether they
         need to worry about closing the PyFITS object as opposed to letting
         the higher level interface close the object.
-        
+
     """
     close_fobj = False
     if not isinstance(fname, list):
@@ -331,7 +331,7 @@ def update_versions(sourcehdr, desthdr):
             desthdr[key] = (sourcehdr[key], sourcehdr.comments[key])
         except KeyError:
             desthdr[key] = (" ", phdukw[key])
-        
+
 def update_ref_files(source, dest):
     """
     Update the reference files name in the primary header of 'dest'
@@ -428,19 +428,19 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
         author = ''
     if descrip is None:
         descrip = ''
-    
+
     sipname, idctab = utils.build_sipname(fobj, fname, sipname)
     logger.info("Setting sipname value to %s" % sipname)
 
     npolname, npolfile = utils.build_npolname(fobj, npolfile)
     logger.info("Setting npolfile value to %s" % npolname)
- 
+
     d2imname, d2imfile = utils.build_d2imname(fobj,d2imfile)
     logger.info("Setting d2imfile value to %s" % d2imname)
- 
+
     distname = utils.build_distname(sipname, npolname, d2imname)
     logger.info("Setting distname to %s" % distname)
-    
+
     # open file and parse comments
     if history not in ['', ' ', None, 'INDEF'] and os.path.isfile(history):
         f = open(fu.osfn(history))
@@ -822,7 +822,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             An input filename (str) will be expanded as necessary to interpret
             any environmental variables included in the filename.
     sciext: string or python list (default: 'SCI')
-            Extension in which the science data with the linear WCS is. 
+            Extension in which the science data with the linear WCS is.
             The headerlet will be created from these extensions.
             If string - a valid EXTNAME is expected
             If int - specifies an extension with a valid WCS, such as 0 for a
@@ -888,7 +888,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     Returns
     -------
     Headerlet object
-    
+
     """
     if wcskey == 'O':
         message = "Warning: 'O' is a reserved key for the original WCS. Quitting..."
@@ -896,7 +896,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         return None
 
     fobj, fname, close_file = parse_filename(filename)
-    # based on `sciext` create a list of (EXTNAME, EXTVER) tuples 
+    # based on `sciext` create a list of (EXTNAME, EXTVER) tuples
     # of extensions with WCS to be saved in a headerlet
     sciext = get_extname_extver_list(fobj, sciext)
     logger.debug("Data extensions from which to create headerlet:\n\t %s"
@@ -904,7 +904,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     if not sciext:
         logger.critical("No valid target extensions found in file %s" % fname)
         raise ValueError
-    
+
     # Define extension to evaluate for verification of input parameters
     wcsext = sciext[0]
     logger.debug("sciext in create_headerlet is %s" % str(sciext))
@@ -991,7 +991,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 raise KeyError
 
 
-    
+
     hdul = pyfits.HDUList()
     phdu = _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
                              sipname, npolfile, d2imfile,
@@ -1002,7 +1002,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     """
     nd2i is a counter for d2i extensions to be used when the science file
     has an old d2i correction format. The old format did not write EXTVER
-    kw for the d2i correction in the science header bu tthe new format expects 
+    kw for the d2i correction in the science header bu tthe new format expects
     them.
     """
     nd2i_extver = 1
@@ -1014,23 +1014,23 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                     'No WCS with wcskey=%s found in extension %s.  '
                     'Skipping...' % (wcskey, str(ext)))
                 raise ValueError("")
-       
+
         hwcs = HSTWCS(fobj, ext=ext, wcskey=wcskey)
 
         whdul = hwcs.to_fits(relax=True, wkey=" ")
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
             whdul[0].header.update('ORIENTAT', hwcs.orientat, comment=orient_comment)
-        
+
         whdul[0].header.append(('TG_ENAME', ext[0], 'Target science data extname'))
         whdul[0].header.append(('TG_EVER', ext[1], 'Target science data extver'))
-        
+
         if hwcs.wcs.has_cd():
             whdul[0].header = altwcs.pc2cd(whdul[0].header)
-            
+
         idckw = hwcs._idc2hdr()
         whdul[0].header.extend(idckw)
-        
+
         if hwcs.det2im1 or hwcs.det2im2:
             try:
                 whdul[0].header.append(fobj[ext].header.cards['D2IMEXT'])
@@ -1049,7 +1049,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 except KeyError:
                     whdul[0].header['D2IM2.EXTVER'] = nd2i_extver
                     nd2i_extver += 1
-                    
+
         if hwcs.cpdis1 or hwcs.cpdis2:
             whdul[0].header.extend(fobj[ext].header.cards['CPERR*'])
             try:
@@ -1064,9 +1064,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
         if ext[0] != "PRIMARY":
             ihdu.update_ext_version(fobj[ext].header['EXTVER'], comment='Extension version')
-        
+
         hdul.append(ihdu)
-        
+
         if hwcs.cpdis1:
             whdu = whdul[('WCSDVARR', 1)].copy()
             whdu.update_ext_version(fobj[ext].header['DP1.EXTVER'])
@@ -1075,7 +1075,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             whdu = whdul[('WCSDVARR', 2)].copy()
             whdu.update_ext_version(fobj[ext].header['DP2.EXTVER'])
             hdul.append(whdu)
-            
+
         if hwcs.det2im1:
             whdu = whdul[('D2IMARR', 1)].copy()
             whdu.update_ext_version(ihdu.header['D2IM1.EXTVER'])
@@ -1084,8 +1084,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             whdu = whdul[('D2IMARR', 2)].copy()
             whdu.update_ext_version(ihdu.header['D2IM2.EXTVER'])
             hdul.append(whdu)
-            
-            
+
+
         #if hwcs.det2im1 or hwcs.det2im2:
             #try:
                 #darr = hdul[('D2IMARR', 1)]
@@ -1255,7 +1255,7 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
 def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                       output=None, clobber=True, quiet=False):
     """
-    
+
     Print a summary of all HeaderletHDUs in a science file to STDOUT, and
     optionally to a text file
     The summary includes:
@@ -1285,7 +1285,7 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
             If True, will overwrite any previous output file of same name
     quiet: bool
             If True, will NOT report info to STDOUT
-            
+
     """
     if columns is None:
         summary_cols = DEFAULT_SUMMARY_COLS
@@ -1781,7 +1781,7 @@ class Headerlet(pyfits.HDUList):
         if not dist_models_equal and not force:
             raise ValueError("Distortion models do not match"
             " To overwrite the distortion model, set force=True")
-        
+
         orig_hlt_hdu = None
         numhlt = countExtn(fobj, 'HDRLET')
         hdrlet_extnames = get_headerlet_kw_names(fobj)
@@ -1790,11 +1790,11 @@ class Headerlet(pyfits.HDUList):
         # WCS's recorded prior to adding the headerlet WCS
         wcscorr.init_wcscorr(fobj)
 
-        
+
         ### start archive
         # If archive has been specified
         #   regardless of whether or not the distortion models are equal...
-        
+
         numsip = countExtn(self, 'SIPWCS')
         sciext_list = []
         alt_hlethdu = []
@@ -1816,7 +1816,7 @@ class Headerlet(pyfits.HDUList):
                 # the file
                 orig_hlt = create_headerlet(fobj, sciext=sciext_list, #[target_ext],
                                 wcsname=wcsname,
-                                hdrname=hdrname, 
+                                hdrname=hdrname,
                                 logging=self.logging)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                 numhlt += 1
@@ -1824,8 +1824,8 @@ class Headerlet(pyfits.HDUList):
                 logger.info("Created headerlet %s to be attached to file" % hdrname)
             else:
                 logger.info("Headerlet with name %s is already attached" % hdrname)
-                
-                
+
+
             if dist_models_equal:
                 # Use the WCSNAME to determine whether or not to archive
                 # Primary WCS as altwcs
@@ -1847,7 +1847,7 @@ class Headerlet(pyfits.HDUList):
                 altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
                                   wcsname=priwcs_name)
             else:
-                
+
                 for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
                     if hname != 'OPUS' and hname not in hdrlet_extnames:
                         # get HeaderletHDU for alternate WCS as well
@@ -1878,13 +1878,13 @@ class Headerlet(pyfits.HDUList):
                     priwcs[0].header.set(card.keyword, card.value, card.comment,
                                          after='WCSNAME')
             # Update WCS with HDRNAME as well
-              
+
             for kw in ['SIMPLE', 'BITPIX', 'NAXIS', 'EXTEND']:
                 try:
                     priwcs[0].header.remove(kw)
                 except ValueError:
                     pass
-            
+
             priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "")
             priwcs[0].header.set('WCSAXES', self[('SIPWCS', i)].header['WCSAXES'], "")
             priwcs[0].header.set('HDRNAME', self[0].header['HDRNAME'], "")
@@ -1921,8 +1921,8 @@ class Headerlet(pyfits.HDUList):
                 if 'DP2.EXTVER' in priwcs[0].header:
                     priwcs[0].header['DP2.EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
                     priwcs[('WCSDVARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
-                
-           
+
+
             fobj[target_ext].header.extend(priwcs[0].header)
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', 1)].copy()
@@ -1940,7 +1940,7 @@ class Headerlet(pyfits.HDUList):
                 whdu = priwcs[('D2IMARR', 2)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
                 fobj.append(whdu)
-                
+
         update_versions(self[0].header, fobj[0].header)
         refs = update_ref_files(self[0].header, fobj[0].header)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
@@ -1958,7 +1958,7 @@ class Headerlet(pyfits.HDUList):
             self.attach_to_file(fobj)
         if close_dest:
             fobj.close()
-        
+
 
     def apply_as_alternate(self, fobj, attach=True, wcskey=None, wcsname=None):
         """
@@ -1989,7 +1989,7 @@ class Headerlet(pyfits.HDUList):
             raise ValueError("Destination name does not match headerlet"
                 "Observation %s cannot  be updated with headerlet %s" % (fname, self.hdrname))
 
-        # Verify whether this headerlet has the same distortion 
+        # Verify whether this headerlet has the same distortion
         #found in the image being updated
         dname = self.get_destination_model(fobj)
         dist_models_equal = self.equal_distmodel(dname)
@@ -1998,7 +1998,7 @@ class Headerlet(pyfits.HDUList):
                              "Headerlet: %s \n"
                              "Destination file: %s\n"
             "attach_to_file() can be used to append this headerlet" %(self.distname, dname))
-        
+
         # Insure that WCSCORR table has been created with all original
         # WCS's recorded prior to adding the headerlet WCS
         wcscorr.init_wcscorr(fobj)
@@ -2028,14 +2028,14 @@ class Headerlet(pyfits.HDUList):
         for idx in range(1, numsip + 1):
             siphdr = self[('SIPWCS', idx)].header
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
-            
+
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
             hwcs_header = hwcs.to_header(wkey=wkey)
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():
                 hwcs_header = altwcs.pc2cd(hwcs_header, key=wkey)
-            
+
             fhdr.extend(hwcs_header)
             fhdr['WCSNAME' + wkey] = wname
             # also update with HDRNAME (a non-WCS-standard kw)
@@ -2048,7 +2048,7 @@ class Headerlet(pyfits.HDUList):
 
         if attach:
             self.attach_to_file(fobj)
-        
+
         if close_dest:
             fobj.close()
 
@@ -2069,7 +2069,7 @@ class Headerlet(pyfits.HDUList):
         - verify headerlet can be applied to this file (based on DESTIM)
         - verify that HDRNAME is unique for this file
         - attach as HeaderletHDU to fobj
-        
+
         """
         self.hverify()
         fobj, fname, close_dest = parse_filename(fobj, mode='update')
@@ -2207,7 +2207,7 @@ class Headerlet(pyfits.HDUList):
         if destim_opened:
             destim.close()
         return dname
-    
+
     def equal_distmodel(self, dmodel):
         if dmodel != self[0].header['DISTNAME']:
             if self.logging:
@@ -2220,7 +2220,7 @@ class Headerlet(pyfits.HDUList):
             return False
         else:
             return True
-    
+
     def verify_dest(self, dest, fname):
         """
         verifies that the headerlet can be applied to the observation
@@ -2250,7 +2250,7 @@ class Headerlet(pyfits.HDUList):
         """
         Builds the DISTNAME for dest based on reference file names.
         """
-        
+
         try:
             npolfile = dest[0].header['NPOLFILE']
         except KeyError:
@@ -2259,8 +2259,8 @@ class Headerlet(pyfits.HDUList):
             d2imfile = dest[0].header['D2IMFILE']
         except KeyError:
             d2imfile = None
-            
-        sipname, idctab = utils.build_sipname(dest, dest, None)        
+
+        sipname, idctab = utils.build_sipname(dest, dest, None)
         npolname, npolfile = utils.build_npolname(dest, npolfile)
         d2imname, d2imfile = utils.build_d2imname(dest, d2imfile)
         dname = utils.build_distname(sipname,npolname,d2imname)
@@ -2292,7 +2292,7 @@ class Headerlet(pyfits.HDUList):
 
         logger.info("Deleting all WCSs of file %s" % dest.filename())
         numext = len(dest)
-        
+
         if ext:
             fext = dest[ext]
             self._remove_d2im(fext)
@@ -2327,7 +2327,7 @@ class Headerlet(pyfits.HDUList):
                 del dest[('WCSDVARR', idx)]
         if numd2im > 0:
             for idx in range(1, numd2im + 1):
-                del dest[('D2IMARR', idx)]    
+                del dest[('D2IMARR', idx)]
 
     def _remove_ref_files(self, phdu):
         """
@@ -2346,7 +2346,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing astrometric fit values from (%s, %s)"%
-                     (ext.name, ext._extver))
+                     (ext.name, ext.ver))
         dkeys = altwcs.wcskeys(ext.header)
         if 'O' in dkeys: dkeys.remove('O') # Do not remove wcskey='O' values
         for fitkw in ['NMATCH', 'CATALOG']:
@@ -2361,7 +2361,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing SIP distortion from (%s, %s)"
-                     % (ext.name, ext._extver))
+                     % (ext.name, ext.ver))
         for prefix in ['A', 'B', 'AP', 'BP']:
             try:
                 order = ext.header[prefix + '_ORDER']
@@ -2386,7 +2386,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing LUT distortion from (%s, %s)"
-                     % (ext.name, ext._extver))
+                     % (ext.name, ext.ver))
         try:
             cpdis = ext.header['CPDIS*']
         except KeyError:
@@ -2407,7 +2407,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing D2IM correction from (%s, %s)"
-                     % (ext.name, ext._extver))
+                     % (ext.name, ext.ver))
         try:
             d2imdis = ext.header['D2IMDIS*']
         except KeyError:
@@ -2443,7 +2443,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing Primary WCS from (%s, %s)"
-                     % (ext.name, ext._extver))
+                     % (ext.name, ext.ver))
         naxis = ext.header['NAXIS']
         for key in basic_wcs:
             for i in range(1, naxis + 1):
@@ -2466,7 +2466,7 @@ class Headerlet(pyfits.HDUList):
         """
 
         logger.debug("Removing IDC coefficient from (%s, %s)"
-                     % (ext.name, ext._extver))
+                     % (ext.name, ext.ver))
         coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
         for k in coeffs:
             try:
@@ -2478,7 +2478,7 @@ class Headerlet(pyfits.HDUList):
 def _idc2hdr(fromhdr, tohdr, towkey=' '):
     """
     Copy the IDC (HST specific) keywords from one header to another
-    
+
     """
     # save some of the idc coefficients
     coeffs = ['OCX10', 'OCX11', 'OCY10', 'OCY11', 'IDCSCALE']
@@ -2488,14 +2488,14 @@ def _idc2hdr(fromhdr, tohdr, towkey=' '):
             logger.debug("Copied %s to header")
         except KeyError:
             continue
-        
-        
+
+
 def get_extname_extver_list(fobj, sciext):
     """
-    Create a list of (EXTNAME, EXTVER) tuples 
-    
+    Create a list of (EXTNAME, EXTVER) tuples
+
     Based on sciext keyword (see docstring for create_headerlet)
-    walk throughh the file and convert extensions in `sciext` to 
+    walk throughh the file and convert extensions in `sciext` to
     valid (EXTNAME, EXTVER) tuples.
     """
     extlist = []
@@ -2556,7 +2556,7 @@ def get_extname_extver_list(fobj, sciext):
     print 'extlist', extlist
     return extlist
 
-    
+
 class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
     """
     A non-standard extension HDU for encapsulating Headerlets in a file.  These
