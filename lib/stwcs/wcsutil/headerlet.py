@@ -1870,6 +1870,8 @@ class Headerlet(pyfits.HDUList):
             sipwcs = HSTWCS(self, ('SIPWCS', i))
             idckw = sipwcs._idc2hdr()
             priwcs = sipwcs.to_fits(relax=True)
+            numnpol = 1
+            numd2im = 1
             if sipwcs.wcs.has_cd():
                 priwcs[0].header = altwcs.pc2cd(priwcs[0].header)
             priwcs[0].header.extend(idckw)
@@ -1904,6 +1906,7 @@ class Headerlet(pyfits.HDUList):
                 if 'D2IM2.EXTVER' in priwcs[0].header:
                     priwcs[0].header['D2IM2.EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
                     priwcs[('D2IMARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+                    numd2im = 2
 
             if sipwcs.cpdis1 or sipwcs.cpdis2:
                 try:
@@ -1921,23 +1924,23 @@ class Headerlet(pyfits.HDUList):
                 if 'DP2.EXTVER' in priwcs[0].header:
                     priwcs[0].header['DP2.EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
                     priwcs[('WCSDVARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
-
+                    numnpol = 2
 
             fobj[target_ext].header.extend(priwcs[0].header)
             if sipwcs.cpdis1:
-                whdu = priwcs[('WCSDVARR', 1)].copy()
+                whdu = priwcs[('WCSDVARR', (i-1)*numnpol+1)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP1.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.cpdis2:
-                whdu = priwcs[('WCSDVARR', 2)].copy()
+                whdu = priwcs[('WCSDVARR', i*numnpol)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['DP2.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.det2im1: #or sipwcs.det2im2:
-                whdu = priwcs[('D2IMARR', 1)].copy()
+                whdu = priwcs[('D2IMARR', (i-1)*numd2im+1)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM1.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.det2im2:
-                whdu = priwcs[('D2IMARR', 2)].copy()
+                whdu = priwcs[('D2IMARR', i*num2dim)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
                 fobj.append(whdu)
 
