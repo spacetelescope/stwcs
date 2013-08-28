@@ -1906,7 +1906,10 @@ class Headerlet(pyfits.HDUList):
                 if 'D2IM2.EXTVER' in priwcs[0].header:
                     priwcs[0].header['D2IM2.EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
                     priwcs[('D2IMARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['D2IM2.EXTVER']
-                    numd2im = 2
+                    # D2IM1 will NOT exist for WFPC2 data...
+                    if 'D2IM1.EXTVER' in priwcs[0].header:
+                        # only set number of D2IM extensions to 2 if D2IM1 exists
+                        numd2im = 2
 
             if sipwcs.cpdis1 or sipwcs.cpdis2:
                 try:
@@ -1940,7 +1943,7 @@ class Headerlet(pyfits.HDUList):
                 whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM1.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.det2im2:
-                whdu = priwcs[('D2IMARR', i*num2dim)].copy()
+                whdu = priwcs[('D2IMARR', i*numd2im)].copy()
                 whdu.update_ext_version(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
                 fobj.append(whdu)
 
