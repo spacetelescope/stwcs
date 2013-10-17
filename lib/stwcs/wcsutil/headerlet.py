@@ -718,6 +718,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             umode = 'readonly'
 
         fobj, fname, close_fobj = parse_filename(f, mode=umode)
+
         # Interpret sciext input for this file
         if isinstance(sciext, int):
             sciextlist = [sciext] # allow for specification of simple FITS header
@@ -788,16 +789,17 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             fobj.close()
 
         frootname = fu.buildNewRootname(fname)
+
         if output is None:
             # Generate default filename for headerlet FITS file
-            outname = '%s_hlet.fits' % (frootname)
+            outname = '{0}_hlet.fits'.format(frootname)
         else:
             outname = output
-        if '.fits' not in outname:
-            outname = '%s_%s_hlet.fits' % (frootname, outname)
+
+        if not outname.endswith('.fits'):
+            outname = '{0}_{1}_hlet.fits'.format(frootname,outname)
 
         # If user specifies an output filename for headerlet, write it out
-
         hdrletobj.tofile(outname, clobber=clobber)
         logger.critical( 'Created Headerlet file %s ' % outname)
 
@@ -992,7 +994,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
 
 
-    hdul = pyfits.HDUList()
+    hdul = []
     phdu = _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
                              sipname, npolfile, d2imfile,
                              nmatch, catalog, wcskey,
@@ -1095,6 +1097,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 #hdul.append(whdu)
     if close_file:
         fobj.close()
+
     return Headerlet(hdul, logging=logging, logmode='a')
 
 
@@ -1124,7 +1127,7 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
              log file open mode
     """
 
-    hlet = Headerlet(hdrlet, logging=logging)
+    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
     hlet.apply_as_primary(filename, attach=attach, archive=archive,
                           force=force)
 
@@ -1157,7 +1160,7 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
     logmode: 'a' or 'w'
     """
 
-    hlet = Headerlet(hdrlet, logging=logging, logmode=logmode)
+    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
     hlet.apply_as_alternate(filename, attach=attach,
                             wcsname=wcsname, wcskey=wcskey)
 
@@ -1178,7 +1181,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
     logmode: 'a' or 'w'
     """
 
-    hlet = Headerlet(hdrlet, logging=logging, logmode='a')
+    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
     hlet.attach_to_file(filename,archive=True)
 
 
@@ -1692,15 +1695,14 @@ class Headerlet(pyfits.HDUList):
     Ref: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:Headerlets
     """
 
-    def __init__(self, fobj, mode='copyonwrite', logging=False, logmode='w'):
+    def __init__(self, hdus=[], file=None, logging=False, logmode='w'):
         """
         Parameters
         ----------
-        fobj:  string
-                Name of headerlet file, file-like object, a list of HDU
-                instances, or an HDUList instance
-        mode: string, optional
-                Mode with which to open the given file object
+        hdus : list
+                List of HDUs to be used to create the headerlet object itself
+        file:  string
+                File-like object from which HDUs should be read
         logging: boolean
                  enable file logging
         logmode: 'w' or 'a'
@@ -1710,8 +1712,11 @@ class Headerlet(pyfits.HDUList):
         self.logging = logging
         init_logging('class Headerlet', level=logging, mode=logmode)
 
-        fobj, fname, close_file = parse_filename(fobj)
-        super(Headerlet, self).__init__(fobj)
+        #fobj, fname, close_file = parse_filename(fobj)
+        super(Headerlet, self).__init__(hdus, file=file)
+        if hdus == []:
+            return
+
         self.fname = self.filename()
         self.hdrname = self[0].header["HDRNAME"]
         self.wcsname = self[0].header["WCSNAME"]
@@ -1739,6 +1744,23 @@ class Headerlet(pyfits.HDUList):
 
         self.d2imerr = 0
         self.axiscorr = 1
+
+    # Overridden to support the Headerlet logging features
+    @classmethod
+    def fromfile(cls, fileobj, mode='readonly', memmap=False,
+                 save_backup=False, logging=False, logmode='w', **kwargs):
+        hlet = super(cls, cls).fromfile(fileobj, mode, memmap, save_backup,
+                                        **kwargs)
+        hlet.logging = logging
+        init_logging('class Headerlet', level=logging, mode=logmode)
+        return hlet
+
+    @classmethod
+    def fromstring(cls, data, **kwargs):
+        hlet = super(cls, cls).fromstring(data, **kwargs)
+        hlet.logging = logging
+        init_logging('class Headerlet', level=logging, mode=logmode)
+        return hlet
 
     def  apply_as_primary(self, fobj, attach=True, archive=True, force=False):
         """
