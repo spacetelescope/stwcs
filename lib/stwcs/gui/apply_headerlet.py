@@ -1,8 +1,8 @@
 import os
-import string 
+import string
 
 import pyfits
-from stsci.tools import teal
+from stsci.tools import teal, parseinput
 
 import stwcs
 from stwcs.wcsutil import headerlet
@@ -31,12 +31,16 @@ def getHelpAsString(docstring=False):
 
 def run(configObj=None):
 
+    # start by interpreting filename and hdrlet inputs
+    filename = parseinput.parseinput(configObj['filename'])[0]
+    hdrlet = parseinput.parseinput(configObj['hdrlet'])[0]
+
     if configObj['primary']:
         # Call function with properly interpreted input parameters
         # Syntax: apply_headerlet_as_primary(filename, hdrlet, attach=True,
         #            archive=True, force=False, verbose=False)
-        headerlet.apply_headerlet_as_primary(configObj['filename'],
-                        configObj['hdrlet'],attach=configObj['attach'],
+        headerlet.apply_headerlet_as_primary(filename,
+                        hdrlet,attach=configObj['attach'],
                         archive=configObj['archive'],force=configObj['force'],
                         logging=configObj['logging'])
     else:
@@ -45,10 +49,9 @@ def run(configObj=None):
         wcskey = configObj['wcskey']
         if wcskey == '': wcskey = None
         # Call function with properly interpreted input parameters
-        #         apply_headerlet_as_alternate(filename, hdrlet, attach=True, 
+        #         apply_headerlet_as_alternate(filename, hdrlet, attach=True,
         #                        wcskey=None, wcsname=None, verbose=False)
-        headerlet.apply_headerlet_as_alternate(configObj['filename'],
-                        configObj['hdrlet'], attach=configObj['attach'],
+        headerlet.apply_headerlet_as_alternate(filename,
+                        hdrlet, attach=configObj['attach'],
                         wcsname=wcsname, wcskey=wcskey,
                         logging=configObj['logging'])
-
