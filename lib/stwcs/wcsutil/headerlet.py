@@ -1098,8 +1098,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     if close_file:
         fobj.close()
 
-    return Headerlet(hdul, logging=logging, logmode='a')
-
+    hlet = Headerlet(hdul, logging=logging, logmode='a')
+    hlet.init_attrs()
+    return hlet
 
 @with_logging
 def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
@@ -1228,10 +1229,9 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
 
     Parameters
     ----------
-    filename: string or HDUList
-            Filename can be specified as a single filename or HDUList, a comma-separated
-            list of filenames, a wild-card filename (e.g., 'j6q*flt.fits') or
-            '@-file'.
+    filename: string, HDUList or list of strings
+            Filename can be specified as a single filename or HDUList, or
+            a list of filenames
             Each input filename (str) will be expanded as necessary to interpret
             any environmental variables included in the filename.
     hdrname: string or None
@@ -1245,9 +1245,10 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
              enable file logging
     logmode: 'a' or 'w'
     """
-    fnames = parseinput.parseinput(filename)[0]
+    if not isinstance(filename, list):
+        filename = [filename]
 
-    for f in fnames:
+    for f in filename:
         print "Deleting Headerlet from ",f
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
                             distname=distname, logging=logging, logmode='a')
