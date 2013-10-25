@@ -1098,8 +1098,9 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     if close_file:
         fobj.close()
 
-    return Headerlet(hdul, logging=logging, logmode='a')
-
+    hlet = Headerlet(hdul, logging=logging, logmode='a')
+    hlet.init_attrs()
+    return hlet
 
 @with_logging
 def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
@@ -1109,10 +1110,10 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
 
     Parameters
     ----------
-    filename: string
-             File name of science observation whose WCS solution will be updated
-    hdrlet: string
-             Headerlet file
+    filename: string or list of strings
+             File name(s) of science observation whose WCS solution will be updated
+    hdrlet: string or list of strings
+             Headerlet file(s), must match 1-to-1 with input filename(s)
     attach: boolean
             True (default): append headerlet to FITS file as a new extension.
     archive: boolean
@@ -1126,9 +1127,18 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
     logmode: 'w' or 'a'
              log file open mode
     """
+    if not isinstance(filename, list):
+        filename = [filename]
+    if not isinstance(hdrlet, list):
+        hdrlet = [hdrlet]
+    if len(hdrlet) != len(filename):
+        logger.critical("Filenames must have matching headerlets. "
+                "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
-    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
-    hlet.apply_as_primary(filename, attach=attach, archive=archive,
+    for fname,h in zip(filename,hdrlet):
+        print "Applying {0} as Primary WCS to {1}".format(h,fname)
+        hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
+        hlet.apply_as_primary(fname, attach=attach, archive=archive,
                           force=force)
 
 
@@ -1140,10 +1150,10 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
 
     Parameters
     ----------
-    filename: string
-             File name of science observation whose WCS solution will be updated
-    hdrlet: string
-             Headerlet file
+    filename: string or list of strings
+             File name(s) of science observation whose WCS solution will be updated
+    hdrlet: string or list of strings
+             Headerlet file(s), must match 1-to-1 with input filename(s)
     attach: boolean
           flag indicating if the headerlet should be attached as a
           HeaderletHDU to fobj. If True checks that HDRNAME is unique
@@ -1159,9 +1169,18 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
           enable file logging
     logmode: 'a' or 'w'
     """
+    if not isinstance(filename, list):
+        filename = [filename]
+    if not isinstance(hdrlet, list):
+        hdrlet = [hdrlet]
+    if len(hdrlet) != len(filename):
+        logger.critical("Filenames must have matching headerlets. "
+                "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
-    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
-    hlet.apply_as_alternate(filename, attach=attach,
+    for fname,h in zip(filename,hdrlet):
+        print 'Applying {0} as an alternate WCS to {1}'.format(h,fname)
+        hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
+        hlet.apply_as_alternate(fname, attach=attach,
                             wcsname=wcsname, wcskey=wcskey)
 
 
@@ -1172,24 +1191,72 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
 
     Parameters
     ----------
-    filename: string, HDUList
-            science file to which the headerlet should be applied
-    hdrlet: string or Headerlet object
-            string representing a headerlet file
+    filename: HDUList or list of HDULists
+            science file(s) to which the headerlet should be applied
+    hdrlet: string, Headerlet object or list of strings or Headerlet objects
+            string representing a headerlet file(s), must match 1-to-1 input filename(s)
     logging: boolean
             enable file logging
     logmode: 'a' or 'w'
     """
+    if not isinstance(filename, list):
+        filename = [filename]
+    if not isinstance(hdrlet, list):
+        hdrlet = [hdrlet]
+    if len(hdrlet) != len(filename):
+        logger.critical("Filenames must have matching headerlets. "
+                "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
-    hlet = Headerlet.fromfile(hdrlet, logging=logging, logmode=logmode)
-    hlet.attach_to_file(filename,archive=True)
+    for fname,h in zip(filename,hdrlet):
+        print 'Attaching {0} as Headerlet extension to {1}'.format(h,fname)
+        hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
+        hlet.attach_to_file(fname,archive=True)
 
 
 @with_logging
 def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
                      logging=False, logmode='w'):
     """
-    Deletes HeaderletHDU(s) from a science file
+    Deletes HeaderletHDU(s) with same HDRNAME from science files
+
+    Notes
+    -----
+    One of hdrname, hdrext or distname should be given.
+    If hdrname is given - delete a HeaderletHDU with a name HDRNAME from fobj.
+    If hdrext is given - delete HeaderletHDU in extension.
+    If distname is given - deletes all HeaderletHDUs with a specific distortion model from fobj.
+    Updates wcscorr
+
+    Parameters
+    ----------
+    filename: string, HDUList or list of strings
+            Filename can be specified as a single filename or HDUList, or
+            a list of filenames
+            Each input filename (str) will be expanded as necessary to interpret
+            any environmental variables included in the filename.
+    hdrname: string or None
+        HeaderletHDU primary header keyword HDRNAME
+    hdrext: int, tuple or None
+        HeaderletHDU FITS extension number
+        tuple has the form ('HDRLET', 1)
+    distname: string or None
+        distortion model as specified in the DISTNAME keyword
+    logging: boolean
+             enable file logging
+    logmode: 'a' or 'w'
+    """
+    if not isinstance(filename, list):
+        filename = [filename]
+
+    for f in filename:
+        print "Deleting Headerlet from ",f
+        _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
+                            distname=distname, logging=logging, logmode='a')
+
+def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
+                     logging=False, logmode='w'):
+    """
+    Deletes HeaderletHDU(s) from a SINGLE science file
 
     Notes
     -----
@@ -1216,7 +1283,6 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
              enable file logging
     logmode: 'a' or 'w'
     """
-
     hdrlet_ind = find_headerlet_HDUs(filename, hdrname=hdrname, hdrext=hdrext,
                             distname=distname, logging=logging, logmode='a')
     if len(hdrlet_ind) == 0:
@@ -1712,11 +1778,9 @@ class Headerlet(pyfits.HDUList):
         self.logging = logging
         init_logging('class Headerlet', level=logging, mode=logmode)
 
-        #fobj, fname, close_file = parse_filename(fobj)
         super(Headerlet, self).__init__(hdus, file=file)
-        if hdus == []:
-            return
 
+    def init_attrs(self):
         self.fname = self.filename()
         self.hdrname = self[0].header["HDRNAME"]
         self.wcsname = self[0].header["WCSNAME"]
@@ -1728,6 +1792,7 @@ class Headerlet(pyfits.HDUList):
         self.npolfile = self[0].header["NPOLFILE"]
         self.d2imfile = self[0].header["D2IMFILE"]
         self.distname = self[0].header["DISTNAME"]
+
         try:
             self.vafactor = self[("SIPWCS", 1)].header.get("VAFACTOR", 1) #None instead of 1?
         except (IndexError, KeyError):
@@ -1751,6 +1816,8 @@ class Headerlet(pyfits.HDUList):
                  save_backup=False, logging=False, logmode='w', **kwargs):
         hlet = super(cls, cls).fromfile(fileobj, mode, memmap, save_backup,
                                         **kwargs)
+        if len(hlet) > 0:
+            hlet.init_attrs()
         hlet.logging = logging
         init_logging('class Headerlet', level=logging, mode=logmode)
         return hlet
@@ -2256,7 +2323,6 @@ class Headerlet(pyfits.HDUList):
         DESTIM in the primary header of the headerlet must match ROOTNAME
         of the science file (or the name of the destination file)
         """
-
         try:
             if not isinstance(dest, pyfits.HDUList):
                 droot = pyfits.getval(dest, 'ROOTNAME')

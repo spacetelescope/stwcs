@@ -2,6 +2,7 @@ import os
 
 import pyfits
 from stsci.tools import teal
+from stsci.tools import parseinput
 
 import stwcs
 from stwcs.wcsutil import headerlet
@@ -31,7 +32,7 @@ def getHelpAsString(docstring=False):
     return helpString
 
 def run(configObj=None):
-    
+
     if configObj['hdrname'] == '' and configObj['hdrext'] is None and \
         configObj['distname'] == '':
         print '='*60
@@ -40,12 +41,12 @@ def run(configObj=None):
         print '    Please restart this task and provide a value for one of these parameters.'
         print '='*60
         return
-
+    filename = parseinput.parseinput(configObj['filename'])[0]
     # Call function with properly interpreted input parameters
     # Syntax: delete_headerlet(filename, hdrname=None, hdrext=None, distname=None)
-    headerlet.delete_headerlet(configObj['filename'], 
-                                hdrname = configObj['hdrname'], 
-                                hdrext = configObj['hdrext'], 
+    headerlet.delete_headerlet(filename,
+                                hdrname = configObj['hdrname'],
+                                hdrext = configObj['hdrext'],
                                 distname = configObj['distname'],
                                 logging = configObj['logging'])
 
