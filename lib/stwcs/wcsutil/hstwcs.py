@@ -322,7 +322,7 @@ class HSTWCS(WCS):
         sip2hdr: boolean
                  If True - include SIP coefficients
         """
-        
+
         h = self.to_header(wkey=wcskey, relax=relax)
         if not wcskey:
             wcskey = self.wcs.alt
@@ -343,7 +343,7 @@ class HSTWCS(WCS):
             del h['RESTFRQ']
             del h['RESTWAV']
         except KeyError: pass
-            
+
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
                 h.update(card.key,value=card.value,comment=card.comment)
@@ -486,6 +486,8 @@ class HSTWCS(WCS):
                 # Check to see whether we have reached the limit or
                 # the new error is greater than error from previous iteration
                 if ev < err or (np.abs(ev) > np.abs(ev_old)):
+                    x[0] = xold
+                    y[0] = yold
                     break
                 # remember error measurement from previous iteration
                 ev_old = ev
@@ -521,5 +523,3 @@ class HSTWCS(WCS):
         print 'NAXIS    : %d %d' % (self.naxis1, self.naxis2)
         print 'Plate Scale : %r' % self.pscale
         print 'ORIENTAT : %r' % self.orientat
-
-
