@@ -401,13 +401,17 @@ class HSTWCS(WCS):
     def pc2cd(self):
         self.wcs.cd = self.wcs.pc.copy()
 
-    def all_sky2pix(self,ra,dec,origin):
+    def all_sky2pix(self,*args):
         """
         Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
 
         NOTES
         -----
+        Inputs can either be (RA, Dec, origin) or (RADec, origin) where RA and Dec
+        are 1-D arrays/lists of coordinates and RADec is an array/list of pairs
+        of coordinates.
+
         We now need to find the position we want by iterative
         improvement of an initial guess - the centre of the chip
 
@@ -420,6 +424,30 @@ class HSTWCS(WCS):
 
         """
         from stwcs.distortion import utils
+
+        if len(args) == 2:
+            xy, origin = args
+            try:
+                xy = np.asarray(xy)
+                ra = xy[:,0]
+                dec = xy[:,1]
+                origin = int(origin)
+            except:
+                raise TypeError(
+                    "When providing two arguments, they must be (RADec, origin)")
+        elif len(args) == 3:
+            ra, dec, origin = args
+            try:
+                ra = np.asarray(ra)
+                dec = np.asarray(dec)
+                origin = int(origin)
+            except:
+                raise TypeError(
+                    "When providing three arguments, they must be (RA, Dec, origin)")
+            if ra.size != dec.size:
+                raise ValueError("RA and Dec arrays are not the same size")
+        else:
+            raise TypeError("Expected 2 or 3 arguments, %d given" % len(args))
 
         # Define some output arrays
         xout = np.zeros(len(ra),dtype=np.float64)
