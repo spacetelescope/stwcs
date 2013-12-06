@@ -491,7 +491,7 @@ class HSTWCS(WCS):
                 dxymat = np.array([[xo[1]-xo[0],yo[1]-yo[0]],
                           [xo[2]-xo[0],yo[2]-yo[0]]],dtype=np.float64)
 
-                invmat = np.linalg.inv(dxymat)
+                #invmat = np.linalg.inv(dxymat)
                 # compute error in output position
                 dx = lx - xo[0]
                 dy = ly - yo[0]
