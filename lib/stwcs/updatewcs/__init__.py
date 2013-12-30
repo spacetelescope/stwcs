@@ -122,7 +122,7 @@ def makecorr(fname, allowed_corr):
         kw2update = det2im.DET2IMCorr.updateWCS(f)
         for kw in kw2update:
             f[1].header.update(kw, kw2update[kw])
-            
+
     for i in range(len(f))[1:]:
         extn = f[i]
 
@@ -192,6 +192,8 @@ def makecorr(fname, allowed_corr):
     distdict = utils.construct_distname(f,rwcs)
     f[0].header['DISTNAME'] = distdict['DISTNAME']
     f[0].header['SIPNAME'] = distdict['SIPNAME']
+    # Make sure NEXTEND keyword remains accurate
+    f[0].header['NEXTEND'] = len(f)-1
     f.close()
 
 def copyWCS(w, ehdr):
