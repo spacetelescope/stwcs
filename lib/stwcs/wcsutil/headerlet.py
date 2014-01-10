@@ -193,7 +193,6 @@ def get_header_kw_vals(hdr, kwname, kwval, default=0):
             kwval = default
     return kwval
 
-
 @with_logging
 def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
                         strict=True, logging=False, logmode='w'):
@@ -776,6 +775,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 wcscorr.update_wcscorr(fobj, source=hdrletobj,
                                        extname='SIPWCS', wcs_id=wname)
 
+                utils.updateNEXTENDKw(fobj)
                 fobj.flush()
             else:
                 message = """
@@ -1313,6 +1313,7 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     for hdrind in hdrlet_ind:
         del fobj[hdrind]
 
+    utils.updateNEXTENDKw(fobj)
     # Update file object with changes
     fobj.flush()
     # close file, if was opened by this function
@@ -1506,6 +1507,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     #
     hdrlet.apply_as_primary(fobj, attach=False, archive=archive, force=force)
 
+    utils.updateNEXTENDKw(fobj)
     fobj.flush()
     if close_fobj:
         fobj.close()
@@ -1618,6 +1620,7 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
                 hdrlet.apply_as_alternate(fobj, attach=False,
                                           wcsname=hdrlet[0].header['wcsname'])
 
+    utils.updateNEXTENDKw(fobj)
     fobj.flush()
     if close_fobj:
         fobj.close()
@@ -1743,6 +1746,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
 
         fobj.append(hlt_hdu)
 
+        utils.updateNEXTENDKw(fobj)
         fobj.flush()
     else:
         message = """
@@ -2051,6 +2055,7 @@ class Headerlet(pyfits.HDUList):
         if attach:
             # Finally, append an HDU for this headerlet
             self.attach_to_file(fobj)
+            utils.updateNEXTENDKw(fobj)
         if close_dest:
             fobj.close()
 
@@ -2143,6 +2148,7 @@ class Headerlet(pyfits.HDUList):
 
         if attach:
             self.attach_to_file(fobj)
+            utils.updateNEXTENDKw(fobj)
 
         if close_dest:
             fobj.close()
@@ -2176,6 +2182,7 @@ class Headerlet(pyfits.HDUList):
             new_hlt = HeaderletHDU.fromheaderlet(self)
             new_hlt.header.update('extver', numhlt + 1)
             fobj.append(new_hlt)
+            utils.updateNEXTENDKw(fobj)
         else:
             message = "Headerlet %s cannot be attached to" % (self.hdrname)
             message += "observation %s" % (fname)
@@ -2310,7 +2317,7 @@ class Headerlet(pyfits.HDUList):
                     Distortion model in headerlet not the same as destination model
                     Headerlet model  : %s
                     Destination model: %s
-                    """ % (self[0].header['DISTNAME'], dname)
+                    """ % (self[0].header['DISTNAME'], dmodel)
                     logger.critical(message)
             return False
         else:

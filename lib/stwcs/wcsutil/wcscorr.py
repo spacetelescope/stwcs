@@ -175,6 +175,8 @@ def init_wcscorr(input, force=False):
     # force an update now
     # set the verify flag to 'warn' so that it will always succeed, but still
     # tell the user if PyFITS detects any problems with the file as a whole
+    utils.updateNEXTENDKw(fimg)
+
     fimg.flush('warn')
 
     if need_to_close:
@@ -469,6 +471,8 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
                 else:
                     pkey = key[:7]+wcskey
                 fimg[0].header.update(pkey,wcs_table.data.field(key)[erow])
+
+    utils.updateNEXTENDKw(fimg)
 
     # close the image now that the update has been completed.
     if close_image:

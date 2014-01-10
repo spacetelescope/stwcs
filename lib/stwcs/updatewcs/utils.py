@@ -29,6 +29,19 @@ def getBinning(fobj, extver=1):
         binned = fobj['SCI', extver].header.get('BINAXIS',1)
     return binned
 
+def updateNEXTENDKw(fobj):
+    """
+    Updates PRIMARY header with correct value for NEXTEND, if present.
+
+    Parameters
+    -----------
+    fobj : pyfits.HDUList
+        PyFITS object for file opened in update mode
+
+    """
+    if 'nextend' in fobj[0].header:
+        fobj[0].header['nextend'] = len(fobj) -1
+
 def extract_rootname(kwvalue,suffix=""):
     """ Returns the rootname from a full reference filename
 
@@ -49,7 +62,7 @@ def extract_rootname(kwvalue,suffix=""):
         fullval = kwvalue
     # Extract filename without path from kwvalue
     fname = os.path.basename(fullval).strip()
-    
+
     # Now, rip out just the rootname from the full filename
     rootname = fileutil.buildNewRootname(fname)
 
@@ -108,7 +121,7 @@ def build_default_wcsname(idctab):
 def build_sipname(fobj, fname=None, sipname=None):
     """
     Build a SIPNAME from IDCTAB
-    
+
     Parameters
     ----------
     fobj: HDUList
@@ -117,7 +130,7 @@ def build_sipname(fobj, fname=None, sipname=None):
           science file name (to be used if ROOTNAMe is not present
     sipname: string
           user supplied SIPNAME keyword
-          
+
     Returns
     -------
     sipname, idctab
@@ -136,7 +149,7 @@ def build_sipname(fobj, fname=None, sipname=None):
             sipname = fobj[0].header["SIPNAME"]
         except KeyError:
             try:
-                idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')              
+                idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')
                 try:
                     rootname = fobj[0].header['rootname']
                 except KeyError:
@@ -153,14 +166,14 @@ def build_sipname(fobj, fname=None, sipname=None):
 def build_npolname(fobj, npolfile=None):
     """
     Build a NPOLNAME from NPOLFILE
-    
+
     Parameters
     ----------
     fobj: HDUList
           pyfits file object
     npolfile: string
           user supplied NPOLFILE keyword
-          
+
     Returns
     -------
     npolname, npolfile
@@ -186,14 +199,14 @@ def build_npolname(fobj, npolfile=None):
 def build_d2imname(fobj, d2imfile=None):
     """
     Build a D2IMNAME from D2IMFILE
-    
+
     Parameters
     ----------
     fobj: HDUList
           pyfits file object
     d2imfile: string
           user supplied NPOLFILE keyword
-          
+
     Returns
     -------
     d2imname, d2imfile
