@@ -110,7 +110,6 @@ def applyTDDCorr(fname, utddcorr):
             #print "***IDCTAB file not found - not applying TDD correction***\n"
     else:
         tddcorr = False
-
     return tddcorr
 
 def applyNpolCorr(fname, unpolcorr):
@@ -224,4 +223,3 @@ def applyD2ImCorr(fname, d2imcorr):
         print 'D2IMFILE keyword not found in primary header'
         applyD2IMCorr = False
         return applyD2IMCorr
-
