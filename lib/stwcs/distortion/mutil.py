@@ -78,7 +78,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     phdr = ftab['PRIMARY'].header
     instrument = phdr['INSTRUME']
     if instrument == 'ACS' and detector == 'WFC':
-        skew_coeffs = read_tdd_coeffs(phdr)
+        skew_coeffs = read_tdd_coeffs(phdr, chip=chip)
     else:
         skew_coeffs = None
 
@@ -216,7 +216,6 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     refpix['DEFAULT_SCALE'] = yes
     refpix['centered'] = no
     refpix['skew_coeffs'] = skew_coeffs
-
     # Now that we know which row to look at, read coefficients into the
     #   numeric arrays we have set up...
     # Setup which column name convention the IDCTAB follows
@@ -254,7 +253,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 # Time-dependent skew correction coefficients (only ACS/WFC)
 #
 #
-def read_tdd_coeffs(phdr):
+def read_tdd_coeffs(phdr, chip=1):
     ''' Read in the TDD related keywords from the PRIMARY header of the IDCTAB
     '''
     skew_coeffs = {}
@@ -262,26 +261,34 @@ def read_tdd_coeffs(phdr):
     skew_coeffs['TDD_DATE'] = ""
     skew_coeffs['TDD_A'] = None
     skew_coeffs['TDD_B'] = None
+    skew_coeffs['TDD_CY_BETA'] = None
 
-    if "TDDORDER" in phdr:
-        n = int(phdr["TDDORDER"])
+    if "TDD_CYB1" in phdr:
+        # We have 2014-calibrated TDD correction to apply, not J.A.-derived values
+        print "Using 2014-calibrated TDD correction..."
+        skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
+        cyb_kw = 'TDD_CYB{0}'.format(int(chip))
+        skew_coeffs['TDD_CY_BETA'] = phdr[cyb_kw]
     else:
-        print 'TDDORDER kw not present, using default TDD correction'
-        return None
+        if "TDDORDER" in phdr:
+            n = int(phdr["TDDORDER"])
+        else:
+            print 'TDDORDER kw not present, using default TDD correction'
+            return None
 
-    a = np.zeros((n+1,), np.float64)
-    b = np.zeros((n+1,), np.float64)
-    for i in range(n+1):
-        a[i] = phdr.get(("TDD_A%d" % i), 0.0)
-        b[i] = phdr.get(("TDD_B%d" % i), 0.0)
-    if (a==0).all() and (b==0).all():
-        print 'Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
-               but TDDORDER is %d.' % TDDORDER
+        a = np.zeros((n+1,), np.float64)
+        b = np.zeros((n+1,), np.float64)
+        for i in range(n+1):
+            a[i] = phdr.get(("TDD_A%d" % i), 0.0)
+            b[i] = phdr.get(("TDD_B%d" % i), 0.0)
+        if (a==0).all() and (b==0).all():
+            print 'Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
+                   but TDDORDER is %d.' % TDDORDER
 
-    skew_coeffs['TDDORDER'] = n
-    skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
-    skew_coeffs['TDD_A'] = a
-    skew_coeffs['TDD_B'] = b
+        skew_coeffs['TDDORDER'] = n
+        skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
+        skew_coeffs['TDD_A'] = a
+        skew_coeffs['TDD_B'] = b
 
     return skew_coeffs
 

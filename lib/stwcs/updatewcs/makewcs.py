@@ -1,5 +1,7 @@
 from __future__ import division # confidence high
 
+import datetime
+
 import numpy as np
 from math import sin, sqrt, pow, cos, asin, atan2,pi
 import utils
@@ -80,9 +82,9 @@ class MakeWCS(object):
             offsetx = ext_wcs.wcs.crpix[0] - ltv1 - ext_wcs.idcmodel.refpix['XREF']
             offsety = ext_wcs.wcs.crpix[1] - ltv2 - ext_wcs.idcmodel.refpix['YREF']
             ext_wcs.idcmodel.shift(offsetx,offsety)
-        
+
         fx, fy = ext_wcs.idcmodel.cx, ext_wcs.idcmodel.cy
-        
+
         ext_wcs.setPscale()
         tddscale = (ref_wcs.pscale/fx[1,1])
         v2 = ext_wcs.idcmodel.refpix['V2REF'] + v23_corr[0,0] * tddscale
@@ -149,7 +151,7 @@ class MakeWCS(object):
             offsetx = ref_wcs.wcs.crpix[0] - ltv1 - ref_wcs.idcmodel.refpix['XREF']
             offsety = ref_wcs.wcs.crpix[1] - ltv2 - ref_wcs.idcmodel.refpix['YREF']
             ref_wcs.idcmodel.shift(offsetx,offsety)
-        
+
         rfx, rfy = ref_wcs.idcmodel.cx, ref_wcs.idcmodel.cy
 
         offshift = offsh
@@ -189,16 +191,20 @@ class MakeWCS(object):
     uprefwcs = classmethod(uprefwcs)
 
     def zero_point_corr(cls,hwcs):
-        try:
-            alpha = hwcs.idcmodel.refpix['TDDALPHA']
-            beta = hwcs.idcmodel.refpix['TDDBETA']
-        except KeyError:
-            alpha = 0.0
-            beta = 0.0
+        if hwcs.idcmodel.refpix['skew_coeffs'] is not None and 'TDD_CY_BETA' in hwcs.idcmodel.refpix['skew_coeffs']:
             v23_corr = np.array([[0.],[0.]])
-            logger.debug("\n\tTDD Zero point correction for chip %s defaulted to: %s" % (hwcs.chip, v23_corr))
             return v23_corr
- 
+        else:
+            try:
+                alpha = hwcs.idcmodel.refpix['TDDALPHA']
+                beta = hwcs.idcmodel.refpix['TDDBETA']
+            except KeyError:
+                alpha = 0.0
+                beta = 0.0
+                v23_corr = np.array([[0.],[0.]])
+                logger.debug("\n\tTDD Zero point correction for chip %s defaulted to: %s" % (hwcs.chip, v23_corr))
+                return v23_corr
+
         tdd = np.array([[beta, alpha], [alpha, -beta]])
         mrotp = fileutil.buildRotMatrix(2.234529)/2048.
         xy0 = np.array([[cls.tdd_xyref[hwcs.chip][0]-2048.], [cls.tdd_xyref[hwcs.chip][1]-2048.]])
@@ -264,4 +270,3 @@ def troll(roll, dec, v2, v3):
     troll = np.rad2deg(pi - (gamma+B))
 
     return troll
-
