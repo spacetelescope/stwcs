@@ -262,13 +262,18 @@ def read_tdd_coeffs(phdr, chip=1):
     skew_coeffs['TDD_A'] = None
     skew_coeffs['TDD_B'] = None
     skew_coeffs['TDD_CY_BETA'] = None
+    skew_coeffs['TDD_CY_ALPHA'] = None
 
     if "TDD_CYB1" in phdr:
         # We have 2014-calibrated TDD correction to apply, not J.A.-derived values
         print "Using 2014-calibrated TDD correction..."
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         cyb_kw = 'TDD_CYB{0}'.format(int(chip))
-        skew_coeffs['TDD_CY_BETA'] = phdr[cyb_kw]
+        skew_coeffs['TDD_CY_BETA'] = phdr.get(cyb_kw,None)
+        cya_kw = 'TDD_CYA{0}'.format(int(chip))
+        tdd_cya = phdr.get(cya_kw,None)
+        if tdd_cya == 0 or tdd_cya == 'N/A': tdd_cya = None
+        skew_coeffs['TDD_CY_ALPHA'] = tdd_cya
     else:
         if "TDDORDER" in phdr:
             n = int(phdr["TDDORDER"])

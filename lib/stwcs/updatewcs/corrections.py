@@ -104,8 +104,11 @@ class TDDCorr(object):
 
         skew_coeffs = hwcs.idcmodel.refpix['skew_coeffs']
         cy_beta = skew_coeffs['TDD_CY_BETA']
-
-        hwcs.idcmodel.cy[1,1] += cy_beta*(rday - skew_coeffs['TDD_DATE'])
+        cy_alpha = skew_coeffs['TDD_CY_ALPHA']
+        if cy_alpha is None:
+            hwcs.idcmodel.cy[1,1] += cy_beta*(rday - skew_coeffs['TDD_DATE'])
+        else:
+            hwcs.idcmodel.cy[1,1] = cy_alpha + cy_beta*(rday - skew_coeffs['TDD_DATE'])
 
     apply_tdd2idc2 = classmethod(apply_tdd2idc2)
 
