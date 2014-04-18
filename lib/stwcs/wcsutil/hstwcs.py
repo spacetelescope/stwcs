@@ -54,6 +54,19 @@ def build_default_wcsname(idctab):
     wcsname = 'IDC_' + idcname
     return wcsname
 
+
+class NoConvergence(Exception):
+
+    def __init__(self, *args, **kwargs):
+        super(NoConvergence, self).__init__(*args)
+
+        self.best_solution  = kwargs.pop('best_solution', None)
+        self.error_estimate = kwargs.pop('error_estimate', None)
+        self.niter          = kwargs.pop('niter', None)
+        self.divergent      = kwargs.pop('divergent', False)
+        self.offenders      = kwargs.pop('offenders', None)
+
+
 #
 #### HSTWCS Class definition
 #
@@ -401,129 +414,238 @@ class HSTWCS(WCS):
     def pc2cd(self):
         self.wcs.cd = self.wcs.pc.copy()
 
-    def all_sky2pix(self,*args):
+    def all_sky2pix(self,*args, **kwargs):
         """
+        all_sky2pix(*arg, accuracy=1.0e-3, maxiter=20, adaptive=False, quiet=False)
+
         Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
 
-        NOTES
+        Parameters
+        ----------
+        accuracy : float, optional (Default = 1.0e-3)
+            Required accuracy of the solution.
+
+        maxiter : int, optional (Default = 20)
+            Maximum number of iterations allowed to reach the solution.
+
+        adaptive : bool, optional (Default = False)
+            Specifies whether to adaptively select only points that did not
+            converge to a solution whithin the required accuracy for the
+            next iteration. Default is recommended for HST instruments.
+
+            .. note::
+               The :py:meth:`all_sky2pix` uses a vectorized implementation of
+               the method of consecutive approximations (see `Notes` section
+               below) in which it iterates over *all* input poits *regardless*
+               untill the required accuracy has been reached for *all* input
+               points. In some cases it may be possible that *almost all* points
+               have reached the required accuracy but there are only a few
+               of input data points for which additional iterations may be
+               needed. In this situation it may be advantageous to set
+               `adaptive` = `True`\ in which case :py:meth:`all_sky2pix` will
+               continue iterating *only* over the points that have not yet
+               converged to the required accuracy. However, for the HST's
+               ACS/WFC detector, which has the strongest distortions of all
+               HST instruments, testing has shown that enabling this option
+               would lead to a 30-50\% penalty in computational time.
+               Therefore, for HST instruments, it is recommended to set
+               `adaptive` = `False`\ .
+
+        quiet : bool, optional (Default = False)
+            Do not throw exceptions when the method does not converge to a
+            solution with the required accuracy within a specified number
+            of maximum iterations set by `maxiter` parameter.
+
+        Raises
+        ------
+        NoConvergence
+            The method does not converge to a
+            solution with the required accuracy within a specified number
+            of maximum iterations set by the `maxiter` parameter.
+
+        Notes
         -----
         Inputs can either be (RA, Dec, origin) or (RADec, origin) where RA and Dec
         are 1-D arrays/lists of coordinates and RADec is an array/list of pairs
         of coordinates.
 
-        We now need to find the position we want by iterative
-        improvement of an initial guess - the centre of the chip
+        Using the method of consecutive approximations we iterate starting
+        with the initial approximation, which is computed using the
+        non-distorion-aware :py:meth:`wcs_sky2pix` (or equivalent).
 
-        The method is to derive an "effective CD matrix" and use that
-        to apply a correction until we are close enough (as defined by
-        the ERR variable)
+        The :py:meth:`all_sky2pix` function uses a vectorized implementation
+        of the method of consecutive approximations and therefore it is
+        highly efficient (>30x) when *all* data points that need to be
+        converted from sky coordinates to image coordinates are passed at
+        *once*\ . Therefore, it is advisable, whenever possible, to pass
+        as input a long array of all points that need to be converted to
+        :py:meth:`all_sky2pix` instead of calling :py:meth:`all_sky2pix`
+        for each data point. Also see the note to the `adaptive` parameter.
 
-        Code from the drizzle task TRANBACK (dither$drizzle/tranback.f)
-        defined the algorithm for this implementation
+        Examples
+        --------
+        >>> import stwcs, pyfits
+        >>> hdulist = pyfits.open('j94f05bgq_flt.fits')
+        >>> w = stwcs.wcsutil.HSTWCS(hdulist, ext=('sci',1))
+        >>> hdulist.close()
+        >>> ra, dec = w.all_pix2sky([1,2,3],[1,1,1],1); print(ra); print(dec)
+        [ 5.52645241  5.52649277  5.52653313]
+        [-72.05171776 -72.05171295 -72.05170814]
+        >>> radec = w.all_pix2sky([[1,1],[2,1],[3,1]],1); print(radec)
+        [[  5.52645241 -72.05171776]
+         [  5.52649277 -72.05171295]
+         [  5.52653313 -72.05170814]]
+        >>> x, y = w.all_sky2pix(ra,dec,1)
+        >>> print(x)
+        [ 1.00000233  2.00000232  3.00000233]
+        >>> print(y)
+        [ 0.99999997  0.99999997  0.99999998]
+        >>> xy = w.all_sky2pix(radec,1)
+        >>> print(xy)
+        [[ 1.00000233  0.99999997]
+         [ 2.00000232  0.99999997]
+         [ 3.00000233  0.99999998]]
+        >>> xy = w.all_sky2pix(radec,1, maxiter=3, accuracy=1.0e-10, quiet=False)
+        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to requested \
+accuracy after 3 iterations.
 
         """
-        from stwcs.distortion import utils
+        nargs = len(args)
 
-        if len(args) == 2:
-            xy, origin = args
+        if nargs == 3:
             try:
-                xy = np.asarray(xy)
-                ra = xy[:,0]
-                dec = xy[:,1]
-                origin = int(origin)
+                ra     = np.asarray(args[0], dtype=np.float64)
+                dec    = np.asarray(args[1], dtype=np.float64)
+                #assert( len(ra.shape) == 1 and len(dec.shape) == 1 )
+                origin = int(args[2])
+                vect1D = True
             except:
-                raise TypeError(
-                    "When providing two arguments, they must be (RADec, origin)")
-        elif len(args) == 3:
-            ra, dec, origin = args
+                raise TypeError("When providing three arguments, they must " \
+                            "be (Ra, Dec, origin) where Ra and Dec are " \
+                            "Nx1 vectors.")
+        elif nargs == 2:
             try:
-                ra = np.asarray(ra)
-                dec = np.asarray(dec)
-                origin = int(origin)
+                rd  = np.asarray(args[0], dtype=np.float64)
+                #assert( rd.shape[1] == 2 )
+                ra  = rd[:,0]
+                dec = rd[:,1]
+                origin = int(args[1])
+                vect1D = False
             except:
-                raise TypeError(
-                    "When providing three arguments, they must be (RA, Dec, origin)")
-            if ra.size != dec.size:
-                raise ValueError("RA and Dec arrays are not the same size")
+                raise TypeError("When providing two arguments, they must " \
+                            "be (RaDec, origin) where RaDec is a Nx2 array.")
         else:
-            raise TypeError("Expected 2 or 3 arguments, %d given" % len(args))
+            raise TypeError("Expected 2 or 3 arguments, {:d} given." \
+                            .format(nargs))
 
-        # Define some output arrays
-        xout = np.zeros(len(ra),dtype=np.float64)
-        yout = np.zeros(len(ra),dtype=np.float64)
-        # ... and internal arrays
-        x = np.zeros(3,dtype=np.float64)
-        y = np.zeros(3,dtype=np.float64)
+        # process optional arguments:
+        accuracy = kwargs.pop('accuracy', 1.0e-3)
+        maxiter  = kwargs.pop('maxiter', 20)
+        quiet    = kwargs.pop('quiet', False)
+        adaptive = kwargs.pop('adaptive', False)
 
-        # define delta for comparison
-        err = 0.0001
+        # initialize iterative process:
+        x0, y0 = self.wcs_sky2pix(ra, dec, origin) # initial approximation (WCS based only)
 
-        # Use linear WCS as frame in which to perform fit
-        # rather than on the sky
-        undistort = True
-        if self.sip is None:
-            # Only apply distortion if distortion coeffs are present.
-            undistort = False
-        wcslin = utils.output_wcs([self],undistort=undistort)
+        # see if iterative solution is required (when any of the
+        # non-CD-matrix corrections are present). If not required
+        # return initial approximation (xy0).
+        if self.sip is None and \
+           self.cpdis1 is None and self.cpdis2 is None and \
+           self.det2im1 is None and self.det2im2 is None:
+            # no non-WCS corrections are detected - return initial approximation
+            if vect1D:
+                return [x0, y0]
+            else:
+                return np.dstack([x0,y0])[0]
 
-        # We can only transform 1 position at a time
-        for r,d,n in zip(ra,dec,xrange(len(ra))):
-            # First guess for output
-            x[0],y[0] = self.wcs_sky2pix(r,d,origin)
-            # also convert RA,Dec into undistorted linear pixel positions
-            lx,ly = wcslin.wcs_sky2pix(r,d,origin)
+        x  = x0.copy() # 0-order solution
+        y  = y0.copy() # 0-order solution
 
-            # Loop around until we are close enough (max 20 iterations)
-            ev_old = None
-            for i in xrange(20):
-                x[1] = x[0] + 1.0
-                y[1] = y[0]
-                x[2] = x[0]
-                y[2] = y[0] + 1.0
-                # Perform full transformation on pixel position
-                rao,deco = self.all_pix2sky(x,y,origin)
-                # convert RA,Dec into linear pixel positions for fitting
-                xo,yo = wcslin.wcs_sky2pix(rao,deco,origin)
+        # initial correction:
+        dx, dy = self.pix2foc(x, y, origin)
+        # If pix2foc does not apply all distortion corrections
+        # then replace the above line with:
+        #r0, d0 = self.all_pix2sky(x, y, origin)
+        #dx, dy = self.wcs_sky2pix(r0, d0, origin )
+        dx -= x0
+        dy -= y0
 
-                # Compute deltas between output and initial guess as
-                # an affine transform then invert that transformation
-                dxymat = np.array([[xo[1]-xo[0],yo[1]-yo[0]],
-                          [xo[2]-xo[0],yo[2]-yo[0]]],dtype=np.float64)
+        # update initial solution:
+        x -= dx
+        y -= dy
 
-                #invmat = np.linalg.inv(dxymat)
-                # compute error in output position
-                dx = lx - xo[0]
-                dy = ly - yo[0]
+        # process all coordinates simultaneously:
+        iterlist  = range(1, maxiter+1)
+        accuracy2 = accuracy**2
+        ind       = None
 
-                # record the old position
-                xold = x[0]
-                yold = y[0]
-
-                # Update the initial guess position using the transform
-                x[0] = xold + dx*dxymat[0][0] + dy*dxymat[1][0]
-                y[0] = yold + dx*dxymat[0][1] + dy*dxymat[1][1]
-
-                # Work out the error vector length
-                ev = np.sqrt((x[0] - xold)**2 + (y[0] - yold)**2)
-
-                # initialize record of previous error measurement during 1st iteration
-                if ev_old is None:
-                    ev_old = ev
-
-                # Check to see whether we have reached the limit or
-                # the new error is greater than error from previous iteration
-                if ev < err or (np.abs(ev) > np.abs(ev_old)):
-                    x[0] = xold
-                    y[0] = yold
+        if not adaptive:
+            for k in iterlist:
+                # check convergence:
+                if np.max(dx**2+dy**2) < accuracy2:
                     break
-                # remember error measurement from previous iteration
-                ev_old = ev
 
-            xout[n] = x[0]
-            yout[n] = y[0]
+                # find correction to the previous solution:
+                dx, dy = self.pix2foc(x, y, origin)
+                # If pix2foc does not apply all distortion corrections
+                # then replace the above line with:
+                #r0, d0 = self.all_pix2sky(x, y, origin)
+                #dx, dy = self.wcs_sky2pix(r0, d0, origin )
+                dx -= x0
+                dy -= y0
 
-        return xout,yout
+                # apply correction:
+                x -= dx
+                y -= dy
+
+        else:
+            ind, = np.where(dx**2+dy**2 >= accuracy2)
+
+            for k in iterlist:
+                # check convergence:
+                if ind.shape[0] == 0:
+                    break
+
+                # find correction to the previous solution:
+                dx[ind], dy[ind] = self.pix2foc(x[ind], y[ind], origin)
+                # If pix2foc does not apply all distortion corrections
+                # then replace the above line with:
+                #r0[ind], d0[ind] = self.all_pix2sky(x[ind], y[ind], origin)
+                #dx[ind], dy[ind] = self.wcs_sky2pix(r0[ind], d0[ind], origin )
+                dx[ind] -= x0[ind]
+                dy[ind] -= y0[ind]
+
+                # apply correction:
+                x[ind] -= dx[ind]
+                y[ind] -= dy[ind]
+
+                # update indices of elements that still need correction:
+                ind, = np.where(dx**2+dy**2 >= accuracy2)
+                #ind = ind[np.where(dx[ind]**2+dy[ind]**2 >= accuracy2)]
+
+        if k >= maxiter and not quiet:
+            if vect1D:
+                sol  = [x, y]
+                err  = [np.abs(dx), np.abs(dy)]
+            else:
+                sol  = np.dstack( [x, y] )[0]
+                err  = np.dstack( [np.abs(dx), np.abs(dy)] )[0]
+
+            if ind is None:
+                ind, = np.where(dx**2+dy**2 >= accuracy2)
+
+            raise NoConvergence("'HSTWCS.all_sky2pix' failed to converge "  \
+                                "after {:d} iterations.".format(k),        \
+                                best_solution = sol, error_estimate = err, \
+                                niter = k, offenders = ind)
+
+        if vect1D:
+            return [x, y]
+        else:
+            return np.dstack([x,y])[0]
+
 
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
