@@ -69,9 +69,9 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
         else:
             outwcs = utils.output_wcs(wcsobjects, undistort=undistort)
     if plot:
-        outc=np.array([[0.,0], [outwcs.naxis1,0],
-                             [outwcs.naxis1, outwcs.naxis2],
-                             [0,outwcs.naxis2], [0,0]])
+        outc=np.array([[0.,0], [outwcs._naxis1, 0],
+                             [outwcs._naxis1, outwcs._naxis2],
+                             [0, outwcs._naxis2], [0, 0]])
         plt.plot(outc[:,0], outc[:,1])
     for wobj in wcsobjects:
         outcorners = outwcs.wcs_sky2pix(wobj.calcFootprint(),1)
