@@ -446,7 +446,8 @@ class HSTWCS(WCS):
 
     def all_sky2pix(self, *args, **kwargs):
         """
-        all_sky2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False, quiet=False)
+        all_sky2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False, \
+detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
@@ -456,7 +457,7 @@ class HSTWCS(WCS):
         accuracy : float, optional (Default = 1.0e-4)
             Required accuracy of the solution. Iteration terminates when the
             correction to the solution found during the previous iteration
-            is smaller (in the sence of the L2 norm) than `tolerance`\ .
+            is smaller (in the sence of the L2 norm) than `accuracy`\ .
 
         maxiter : int, optional (Default = 20)
             Maximum number of iterations allowed to reach the solution.
@@ -621,7 +622,7 @@ accuracy after 3 iterations.
         [[  5.52645241 -72.05171776]
          [  7.15979392 -70.81405561]
          [  5.52653313 -72.05170814]]
-         
+
         >>> try:
         >>>   xy = w.all_sky2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
 adaptive=False, detect_divergence=True, quiet=False)
@@ -647,7 +648,7 @@ adaptive=False, detect_divergence=True, quiet=False)
           File "<console>", line 8, in <module>
         NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the requested accuracy.
         After 5 iterations, the solution is diverging at least for one input point.
-        
+
         >>> try:
         >>>   xy = w.all_sky2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
 adaptive=False, detect_divergence=False, quiet=False)
@@ -675,6 +676,9 @@ adaptive=False, detect_divergence=False, quiet=False)
         After 20 iterations, the solution is diverging at least for one input point.
 
         """
+        #####################################################################
+        ##                     PROCESS ARGUMENTS:                          ##
+        #####################################################################
         nargs = len(args)
 
         if nargs == 3:
@@ -710,13 +714,15 @@ adaptive=False, detect_divergence=False, quiet=False)
         detect_divergence = kwargs.pop('detect_divergence', True)
         quiet             = kwargs.pop('quiet', False)
 
-        # initialize iterative process:
+        #####################################################################
+        ##                INITIALIZE ITERATIVE PROCESS:                    ##
+        #####################################################################
         x0, y0 = self.wcs_sky2pix(ra, dec, origin) # <-- initial approximation
                                                   #     (WCS based only)
 
-        # see if iterative solution is required (when any of the
+        # see if an iterative solution is required (when any of the
         # non-CD-matrix corrections are present). If not required
-        # return initial approximation (xy0).
+        # return initial approximation (x0, y0).
         if self.sip is None and \
            self.cpdis1 is None and self.cpdis2 is None and \
            self.det2im1 is None and self.det2im2 is None:
@@ -747,19 +753,22 @@ adaptive=False, detect_divergence=False, quiet=False)
         dn2prev   = dx**2+dy**2
         dn2       = dn2prev
 
-        # process all coordinates simultaneously:
+        # prepare for iterative process
         iterlist  = range(1, maxiter+1)
         accuracy2 = accuracy**2
         ind       = None
         inddiv    = None
 
         npts      = x.shape[0]
-        
-        # turn off numpy runtime warnings for 'invalid' and 'over':        
+
+        # turn off numpy runtime warnings for 'invalid' and 'over':
         old_invalid = np.geterr()['invalid']
         old_over    = np.geterr()['over']
         np.seterr(invalid = 'ignore', over = 'ignore')
 
+        #####################################################################
+        ##                     NON-ADAPTIVE ITERATIONS:                    ##
+        #####################################################################
         if not adaptive:
             for k in iterlist:
                 # check convergence:
@@ -803,8 +812,10 @@ adaptive=False, detect_divergence=False, quiet=False)
                 x -= dx
                 y -= dy
 
+        #####################################################################
+        ##                      ADAPTIVE ITERATIONS:                       ##
+        #####################################################################
         if adaptive:
-
             if ind is None:
                 ind = np.asarray(range(npts), dtype=np.int64)
 
@@ -828,50 +839,43 @@ adaptive=False, detect_divergence=False, quiet=False)
                 # update indices of elements that still need correction:
                 if detect_divergence:
                     ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev))
+                    #ind = ind[np.where((dn2[ind] >= accuracy2) & (dn2[ind] <= dn2prev))]
                     dn2prev[ind] = dn2[ind]
                 else:
                     ind, = np.where(dn2 >= accuracy2)
-                    #ind = ind[np.where(dx[ind]**2+dy[ind]**2 >= accuracy2)]
+                    #ind = ind[np.where(dn2[ind] >= accuracy2)]
 
                 # apply correction:
                 x[ind] -= dx[ind]
                 y[ind] -= dy[ind]
 
-        #FINAL DETECTION OF INVALID, DIVERGING, AND FAILED-TO-CONVERGE POINTS:
+        #####################################################################
+        ##         FINAL DETECTION OF INVALID, DIVERGING,                  ##
+        ##         AND FAILED-TO-CONVERGE POINTS                           ##
+        #####################################################################
+        # Identify diverging and/or invalid points:
         invalid = (((~np.isfinite(y)) | (~np.isfinite(x)) | \
                     (~np.isfinite(dn2))) & \
                    (np.isfinite(ra)) &  (np.isfinite(dec)))
-        if detect_divergence:
-            inddiv, = np.where(((dn2 >= accuracy2) & (dn2 > dn2prev)) |   \
-                               invalid)
-            # identify diverging and/or invalid points:
-            if inddiv.shape[0] == 0:
-                inddiv = None
-            # identify points that did not converge within
-            # 'maxiter' iterations:
-            if k >= maxiter:
-                ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev) & \
-                                (~invalid))
-                if ind.shape[0] == 0:
-                    ind = None
-            else:
+        # When detect_divergence==False, dn2prev is outdated (it is the
+        # norm^2 of the very first correction). Still better than nothing...
+        inddiv, = np.where(((dn2 >= accuracy2) & (dn2 > dn2prev)) | invalid)
+        if inddiv.shape[0] == 0:
+            inddiv = None
+        # identify points that did not converge within
+        # 'maxiter' iterations:
+        if k >= maxiter:
+            ind,= np.where((dn2 >= accuracy2) & (dn2 <= dn2prev) & (~invalid))
+            if ind.shape[0] == 0:
                 ind = None
-
         else:
-            # dn2prev is not available in this case.
-            inddiv, = np.where(invalid)
-            # identify diverging and/or invalid points:
-            if inddiv.shape[0] == 0:
-                inddiv = None
-            # identify points that did not converge within
-            # 'maxiter' iterations:
-            if k >= maxiter:
-                ind, = np.where((dn2 >= accuracy2) & (~invalid))
-                if ind.shape[0] == 0:
-                    ind = None
-            else:
-                ind = None
+            ind = None
 
+        #####################################################################
+        ##      RAISE EXCEPTION IF DIVERGING OR TOO SLOWLY CONVERGING      ##
+        ##      DATA POINTS HAVE BEEN DETECTED:                            ##
+        #####################################################################
+        # raise exception if diverging or too slowly converging
         if (ind is not None or inddiv is not None) and not quiet:
             if vect1D:
                 sol  = [x, y]
@@ -882,8 +886,8 @@ adaptive=False, detect_divergence=False, quiet=False)
 
             # restore previous numpy error settings:
             np.seterr(invalid = old_invalid, over = old_over)
-            
-            if inddiv is None:                
+
+            if inddiv is None:
                 raise NoConvergence("'HSTWCS.all_sky2pix' failed to "        \
                     "converge to the requested accuracy after {:d} "         \
                     "iterations.".format(k), best_solution = sol,            \
@@ -898,6 +902,9 @@ adaptive=False, detect_divergence=False, quiet=False)
                     accuracy = err, niter = k, failed2converge = ind,        \
                     divergent = inddiv)
 
+        #####################################################################
+        ##             FINALIZE AND FORMAT DATA FOR RETURN:                ##
+        #####################################################################
         # restore previous numpy error settings:
         np.seterr(invalid = old_invalid, over = old_over)
 
