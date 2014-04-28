@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 from matplotlib import pyplot as plt
-import pyfits
+from astropy.io import fits as pyfits
 import string
 
 from stsci.tools import parseinput, irafglob

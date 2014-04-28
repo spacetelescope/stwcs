@@ -19,8 +19,10 @@ import copy
 import time
 
 import numpy as np
-import pyfits
-import pywcs
+from astropy.io import fits as pyfits
+#import pywcs
+from astropy import wcs as pywcs
+from astropy.utils import lazyproperty
 
 import altwcs
 import wcscorr
@@ -2679,7 +2681,7 @@ class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
 
     _extension = 'HDRLET'
 
-    @pyfits.util.lazyproperty
+    @lazyproperty
     def headerlet(self):
         """Return the encapsulated headerlet as a Headerlet object.
 

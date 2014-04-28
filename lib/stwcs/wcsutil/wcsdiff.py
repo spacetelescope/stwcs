@@ -1,7 +1,8 @@
 from __future__ import print_function
-import pywcs
+#import pywcs
+from astropy import wcs as pywcs
 from collections import OrderedDict
-import pyfits
+from astropy.io import fits as pyfits
 from .headerlet import parse_filename
 import numpy as np
 

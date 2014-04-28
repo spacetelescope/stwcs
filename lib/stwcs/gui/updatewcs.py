@@ -1,6 +1,7 @@
 import os
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import parseinput
 from stsci.tools import fileutil
 from stsci.tools import teal
@@ -41,7 +42,7 @@ def run(configObj=None):
     # Interpret primary parameters from configObj instance
     extname = configObj['extname']
     input = configObj['input']
-        
+
     # create dictionary of remaining parameters, deleting extraneous ones
     # such as those above
     cdict = configObj.dict()

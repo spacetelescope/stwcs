@@ -3,8 +3,10 @@ import os
 import string
 
 import numpy as np
-import pywcs
-import pyfits
+#import pywcs
+from astropy import wcs as pywcs
+from astropy.io import fits as pyfits
+#import pyfits
 from stsci.tools import fileutil as fu
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',

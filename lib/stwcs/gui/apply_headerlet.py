@@ -1,7 +1,8 @@
 import os
 import string
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal, parseinput
 
 import stwcs

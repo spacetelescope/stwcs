@@ -1,4 +1,5 @@
-import pyfits
+from astropy.io import fits as pyfits
+
 try:
     import stwcs
     from stwcs import wcsutil

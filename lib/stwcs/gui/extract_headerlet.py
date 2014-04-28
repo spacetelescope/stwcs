@@ -1,6 +1,7 @@
 import os
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal
 
 import stwcs
@@ -51,7 +52,7 @@ def run(configObj=None):
     del cdict['output']
 
     # Call function with properly interpreted input parameters
-    # Syntax: extract_headerlet(filename, output, extnum=None, hdrname=None,  
+    # Syntax: extract_headerlet(filename, output, extnum=None, hdrname=None,
     #                clobber=False, verbose=100)
     headerlet.extract_headerlet(configObj['filename'], configObj['output'],
                                 **cdict)

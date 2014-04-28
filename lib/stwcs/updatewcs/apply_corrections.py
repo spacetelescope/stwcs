@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 
 import os
-import pyfits
+from astropy.io import fits as pyfits
 import time
 from stsci.tools import fileutil
 import os.path

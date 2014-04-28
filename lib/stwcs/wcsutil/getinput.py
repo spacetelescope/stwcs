@@ -1,4 +1,4 @@
-import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import irafglob, fileutil, parseinput
 
 def parseSingleInput(f=None, ext=None):

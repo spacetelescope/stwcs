@@ -1,8 +1,10 @@
 from __future__ import division # confidence high
 
 import os
-from pywcs import WCS
-import pyfits
+#from pywcs import WCS
+from astropy.wcs import WCS
+from astropy.io import fits as  pyfits
+#import pyfits
 import instruments
 from stwcs.distortion import models, coeff_converter
 import altwcs
@@ -928,7 +930,6 @@ adaptive=False, detect_divergence=False, quiet=False)
             return [x, y]
         else:
             return np.dstack( [x, y] )[0]
-
 
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11

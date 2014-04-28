@@ -1,6 +1,7 @@
 import os
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal
 
 import stwcs
@@ -31,7 +32,7 @@ def getHelpAsString(docstring=False):
     return helpString
 
 def run(configObj=None):
-    
+
     headerlet.attach_headerlet(configObj['filename'],configObj['hdrlet'],
                                configObj['logging'])
 

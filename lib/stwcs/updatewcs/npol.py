@@ -1,6 +1,6 @@
 from __future__ import division # confidence high
 
-import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import fileutil
 import utils
 import numpy as np
@@ -83,7 +83,7 @@ class NPOLCorr(object):
                 if idccoeffs != None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
 
-                # Determine EXTVER for the WCSDVARR extension from the 
+                # Determine EXTVER for the WCSDVARR extension from the
                 # NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
                 wcsdvarr_x_version = 2 * extversion -1
@@ -276,8 +276,8 @@ class NPOLCorr(object):
                                   sciheader.get('LTM'+si+'_'+si, 1)
             kw_val1['CRPIX'+si] = npol_header.get('CRPIX'+si, 0.0)
             kw_val1['CRVAL'+si] = (npol_header.get('CRVAL'+si, 0.0) - \
-                                  sciheader.get('LTV'+str(i), 0)) 
-            
+                                  sciheader.get('LTV'+str(i), 0))
+
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',

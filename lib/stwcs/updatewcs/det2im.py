@@ -1,6 +1,6 @@
 from __future__ import division # confidence high
 
-import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import fileutil
 import utils
 import numpy as np

@@ -1,6 +1,7 @@
 import os
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal
 from stsci.tools import parseinput
 
@@ -52,7 +53,7 @@ def run(configObj=None):
 
     if configObj['output'] in ['',' ','INDEF']:
         configObj['output'] = None
-    
+
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',
             'descrip','history','author','output','catalog']
 

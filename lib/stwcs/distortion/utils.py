@@ -1,7 +1,8 @@
 from __future__ import division # confidence high
 import os
 import numpy as np
-import pywcs
+#import pywcs
+from astropy import wcs as pywcs
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil

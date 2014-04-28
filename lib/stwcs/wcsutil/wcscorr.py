@@ -1,5 +1,5 @@
 import os,copy
-import pyfits
+from astropy.io import fits as pyfits
 import numpy as np
 
 from stsci.tools import fileutil

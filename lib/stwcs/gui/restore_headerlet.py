@@ -1,7 +1,8 @@
 import os
-import string 
+import string
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal
 
 import stwcs
@@ -30,10 +31,10 @@ def getHelpAsString(docstring=False):
     return helpString
 
 def run(configObj=None):
-    
+
     if configObj['distname'] not in ['',' ','INDEF']:
         # Call function with properly interpreted input parameters
-        # Syntax: restore_all_with_distname(filename, distname, primary, 
+        # Syntax: restore_all_with_distname(filename, distname, primary,
         #           archive=True, sciext='SCI', verbose=False)
         headerlet.restore_all_with_distname(configObj['filename'],
                         configObj['distname'],configObj['primary'],
@@ -41,7 +42,7 @@ def run(configObj=None):
                         logging=configObj['logging'])
     else:
         # Call function with properly interpreted input parameters
-        #         restore_from_headerlet(filename, hdrname=None, hdrext=None, 
+        #         restore_from_headerlet(filename, hdrname=None, hdrext=None,
         #           archive=True, force=False)
         headerlet.restore_from_headerlet(configObj['filename'],
                         hdrname=configObj['hdrname'],hdrext=configObj['hdrext'],

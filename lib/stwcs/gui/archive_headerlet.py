@@ -1,7 +1,8 @@
 import os
-import string 
+import string
 
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stsci.tools import teal
 
 import stwcs
@@ -41,7 +42,7 @@ def run(configObj=None):
         print '    Please restart this task and provide a value for this parameter.'
         print '='*60
         return
-            
+
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',
             'descrip','history','author']
 
@@ -53,16 +54,16 @@ def run(configObj=None):
     del cdict['_task_name_']
     del cdict['filename']
     del cdict['hdrname']
-    
+
     # Convert blank string input as None
     for kw in str_kw:
         if cdict[kw] == '': cdict[kw] = None
     if cdict['wcskey'].lower() == 'primary': cdict['wcskey'] = ' '
 
     # Call function with properly interpreted input parameters
-    # Syntax: archive_as_headerlet(filename, sciext='SCI', wcsname=None, wcskey=None, 
+    # Syntax: archive_as_headerlet(filename, sciext='SCI', wcsname=None, wcskey=None,
     #                    hdrname=None, destim=None,
-    #                    sipname=None, npolfile=None, d2imfile=None, 
+    #                    sipname=None, npolfile=None, d2imfile=None,
     #                    author=None, descrip=None, history=None,
     #                    hdrlet=None, clobber=False)
     headerlet.archive_as_headerlet(configObj['filename'], configObj['hdrname'],

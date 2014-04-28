@@ -1,8 +1,9 @@
 from __future__ import division # confidence high
 
 import numpy as np
-import pyfits
-import pywcs
+from astropy.io import fits as pyfits
+#import pywcs
+from astropy import wcs as pywcs
 
 def sip2idc(wcs):
     """

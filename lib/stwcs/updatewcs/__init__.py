@@ -1,12 +1,14 @@
 from __future__ import division # confidence high
 
 import os
-import pyfits
+from astropy.io import fits as pyfits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import stwcs
-import pywcs
+#import pywcs
+from astropy import wcs as pywcs
+import astropy
 
 import utils, corrections, makewcs
 import npol, det2im
@@ -171,7 +173,7 @@ def makecorr(fname, allowed_corr):
     if 'HISTORY' in f[0].header:
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
                            comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
+        f[0].header.update(key='PYWCSVER', value=astropy.__version__,
             comment="Version of PYWCS used to updated the WCS", before='HISTORY')
     elif 'ASN_MTYP' in f[0].header:
         f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
