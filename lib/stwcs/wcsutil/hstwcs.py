@@ -164,6 +164,22 @@ class HSTWCS(WCS):
         self.setPscale()
         self.setOrient()
 
+    @property
+    def naxis1(self):
+        return self._naxis1
+
+    @naxis1.setter
+    def naxis1(self, value):
+        self._naxis1 = value
+
+    @property
+    def naxis2(self):
+        return self._naxis2
+
+    @naxis2.setter
+    def naxis2(self, value):
+        self._naxis2 = value
+
     def readIDCCoeffs(self, header):
         """
         Reads in first order IDCTAB coefficients if present in the header
