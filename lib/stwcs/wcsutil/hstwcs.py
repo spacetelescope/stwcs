@@ -384,7 +384,7 @@ class HSTWCS(WCS):
                  If True - include SIP coefficients
         """
 
-        h = self.to_header(wkey=wcskey, relax=relax)
+        h = self.to_header(key=wcskey, relax=relax)
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():
