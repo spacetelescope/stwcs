@@ -81,12 +81,12 @@ class NoConvergence(Exception):
         solution appears to be divergent. If the solution does not diverge,
         `divergent` will be set to `None`.
 
-    failed2converge : None, numpy.array
+    slow_conv : None, numpy.array
         Indices of the points in :py:attr:`best_solution` array for which the
         solution failed to converge within the specified maximum number
-        of iterations. If there are no non-converging poits (i.e., if
+        of iterations. If there are no non-converging points (i.e., if
         the required accuracy has been achieved for all points) then
-        `failed2converge` will be set to `None`.
+        `slow_conv` will be set to `None`.
 
     """
     def __init__(self, *args, **kwargs):
@@ -96,7 +96,7 @@ class NoConvergence(Exception):
         self.accuracy       = kwargs.pop('accuracy', None)
         self.niter          = kwargs.pop('niter', None)
         self.divergent      = kwargs.pop('divergent', None)
-        self.failed2converge= kwargs.pop('failed2converge', None)
+        self.slow_conv  = kwargs.pop('slow_conv', None)
 
 
 #
@@ -163,22 +163,6 @@ class HSTWCS(WCS):
             self.setInstrSpecKw()
         self.setPscale()
         self.setOrient()
-
-    @property
-    def naxis1(self):
-        return self._naxis1
-
-    @naxis1.setter
-    def naxis1(self, value):
-        self._naxis1 = value
-
-    @property
-    def naxis2(self):
-        return self._naxis2
-
-    @naxis2.setter
-    def naxis2(self, value):
-        self._naxis2 = value
 
     def readIDCCoeffs(self, header):
         """
@@ -384,7 +368,7 @@ class HSTWCS(WCS):
                  If True - include SIP coefficients
         """
 
-        h = self.to_header(key=wcskey, relax=relax)
+        h = self.to_header(wkey=wcskey, relax=relax)
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():
@@ -570,7 +554,7 @@ detect_divergence=True, quiet=False)
             .. note::
                Indices of the diverging inverse solutions will be reported
                in the `divergent` attribute of the
-               raised :py:class:`NoConvergence` object.
+               raised :py:class:`NoConvergence` exception object.
 
         quiet : bool, optional (Default = False)
             Do not throw :py:class:`NoConvergence` exceptions when the method
@@ -603,6 +587,12 @@ detect_divergence=True, quiet=False)
         as input a long array of all points that need to be converted
         to :py:meth:`all_sky2pix` instead of calling :py:meth:`all_sky2pix`
         for each data point. Also see the note to the `adaptive` parameter.
+
+        See Also
+        --------
+        A detailed description of the algorithm is available on astropy's
+        GitHub page,
+        issue `#2373 <https://github.com/astropy/astropy/pull/2373>`_\ .
 
         Examples
         --------
@@ -646,7 +636,8 @@ accuracy after 3 iterations.
 adaptive=False, detect_divergence=True, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
-        >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))
+        >>>   print("Indices of poorly converging points: {}"\
+.format(e.slow_conv))
         >>>   print("Best solution: {}".format(e.best_solution))
         >>>   print("Achieved accuracy: {}".format(e.accuracy))
         >>>   raise e
@@ -664,15 +655,18 @@ adaptive=False, detect_divergence=True, quiet=False)
          [  6.02334592e-05   6.59713067e-07]]
         Traceback (innermost last):
           File "<console>", line 8, in <module>
-        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the requested accuracy.
-        After 5 iterations, the solution is diverging at least for one input point.
+        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the \
+requested accuracy.
+        After 5 iterations, the solution is diverging at least for one \
+input point.
 
         >>> try:
         >>>   xy = w.all_sky2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
 adaptive=False, detect_divergence=False, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
-        >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))
+        >>>   print("Indices of poorly converging points: {}"\
+.format(e.slow_conv))
         >>>   print("Best solution: {}".format(e.best_solution))
         >>>   print("Achieved accuracy: {}".format(e.accuracy))
         >>>   raise e
@@ -690,8 +684,10 @@ adaptive=False, detect_divergence=False, quiet=False)
          [  0.   0.]]
         Traceback (innermost last):
           File "<console>", line 8, in <module>
-        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the requested accuracy.
-        After 20 iterations, the solution is diverging at least for one input point.
+        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the \
+requested accuracy.
+        After 20 iterations, the solution is diverging at least for one \
+input point.
 
         """
         #####################################################################
@@ -767,7 +763,7 @@ adaptive=False, detect_divergence=False, quiet=False)
         x -= dx
         y -= dy
 
-        # norn (L2) squared of the correction:
+        # norm (L2) squared of the correction:
         dn2prev   = dx**2+dy**2
         dn2       = dn2prev
 
@@ -802,15 +798,14 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx -= x0
                 dy -= y0
 
-                # update norn (L2) squared of the correction:
+                # update norm (L2) squared of the correction:
                 dn2 = dx**2+dy**2
 
                 # check for divergence (we do this in two stages
                 # to optimize performance for the most common
                 # scenario when succesive approximations converge):
                 if detect_divergence:
-                    ind, = np.where(dn2 <= dn2prev)
-                    if ind.shape[0] < npts:
+                    if np.any(dn2 > dn2prev):
                         inddiv, = np.where(
                             np.logical_and(dn2 > dn2prev, dn2 >= accuracy2))
                         if inddiv.shape[0] > 0:
@@ -851,7 +846,7 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx[ind] -= x0[ind]
                 dy[ind] -= y0[ind]
 
-                # update norn (L2) squared of the correction:
+                # update norm (L2) squared of the correction:
                 dn2 = dx**2+dy**2
 
                 # update indices of elements that still need correction:
@@ -909,7 +904,7 @@ adaptive=False, detect_divergence=False, quiet=False)
                 raise NoConvergence("'HSTWCS.all_sky2pix' failed to "        \
                     "converge to the requested accuracy after {:d} "         \
                     "iterations.".format(k), best_solution = sol,            \
-                    accuracy = err, niter = k, failed2converge = ind,        \
+                    accuracy = err, niter = k, slow_conv = ind,        \
                     divergent = None)
             else:
                 raise NoConvergence("'HSTWCS.all_sky2pix' failed to "        \
@@ -917,7 +912,7 @@ adaptive=False, detect_divergence=False, quiet=False)
                     "After {1:d} iterations, the solution is diverging "     \
                     "at least for one input point."                          \
                     .format(os.linesep, k), best_solution = sol,             \
-                    accuracy = err, niter = k, failed2converge = ind,        \
+                    accuracy = err, niter = k, slow_conv = ind,        \
                     divergent = inddiv)
 
         #####################################################################
@@ -930,6 +925,7 @@ adaptive=False, detect_divergence=False, quiet=False)
             return [x, y]
         else:
             return np.dstack( [x, y] )[0]
+
 
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
