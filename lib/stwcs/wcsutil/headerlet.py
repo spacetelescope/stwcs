@@ -1024,7 +1024,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         whdul = hwcs.to_fits(relax=True, wkey=" ")
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
-            whdul[0].header.update('ORIENTAT', hwcs.orientat, comment=orient_comment)
+            whdul[0].header['ORIENTAT'] = (wcs.orientat, orient_comment)
 
         whdul[0].header.append(('TG_ENAME', ext[0], 'Target science data extname'))
         whdul[0].header.append(('TG_EVER', ext[1], 'Target science data extver'))
@@ -1496,7 +1496,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
             else:
                 priwcs_hdrname = 'UNKNOWN'
             priwcs_name = priwcs_hdrname
-            scihdr.update('WCSNAME', priwcs_name)
+            scihdr['WCSNAME'] = priwcs_name
 
     priwcs_unique = verify_hdrname_is_unique(fobj, priwcs_hdrname)
     if archive and priwcs_unique:
@@ -1915,7 +1915,7 @@ class Headerlet(pyfits.HDUList):
                                 logging=self.logging)
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                 numhlt += 1
-                orig_hlt_hdu.header.update('EXTVER', numhlt)
+                orig_hlt_hdu.header['EXTVER'] = numhlt
                 logger.info("Created headerlet %s to be attached to file" % hdrname)
             else:
                 logger.info("Headerlet with name %s is already attached" % hdrname)
@@ -1954,7 +1954,7 @@ class Headerlet(pyfits.HDUList):
                                 logging=self.logging)
                         numhlt += 1
                         alt_hlet_hdu = HeaderletHDU.fromheaderlet(alt_hlet)
-                        alt_hlet_hdu.header.update('EXTVER', numhlt)
+                        alt_hlet_hdu.header['EXTVER'] = numhlt
                         alt_hlethdu.append(alt_hlet_hdu)
                         hdrlet_extnames.append(hname)
 
@@ -2182,7 +2182,7 @@ class Headerlet(pyfits.HDUList):
 
             numhlt = countExtn(fobj, 'HDRLET')
             new_hlt = HeaderletHDU.fromheaderlet(self)
-            new_hlt.header.update('extver', numhlt + 1)
+            new_hlt.header['extver'] = numhlt + 1
             fobj.append(new_hlt)
             utils.updateNEXTENDKw(fobj)
         else:

@@ -61,7 +61,7 @@ class NoConvergence(Exception):
     """
     An error class used to report non-convergence and/or divergence of
     numerical methods. It is used to report errors in the iterative solution
-    used by the :py:meth:`~stwcs.hstwcs.HSTWCS.all_sky2pix`\ .
+    used by the :py:meth:`~stwcs.hstwcs.HSTWCS.all_world2pix`\ .
 
     Attributes
     ----------
@@ -81,12 +81,12 @@ class NoConvergence(Exception):
         solution appears to be divergent. If the solution does not diverge,
         `divergent` will be set to `None`.
 
-    slow_conv : None, numpy.array
+    failed2converge : None, numpy.array
         Indices of the points in :py:attr:`best_solution` array for which the
         solution failed to converge within the specified maximum number
-        of iterations. If there are no non-converging points (i.e., if
+        of iterations. If there are no non-converging poits (i.e., if
         the required accuracy has been achieved for all points) then
-        `slow_conv` will be set to `None`.
+        `failed2converge` will be set to `None`.
 
     """
     def __init__(self, *args, **kwargs):
@@ -96,7 +96,7 @@ class NoConvergence(Exception):
         self.accuracy       = kwargs.pop('accuracy', None)
         self.niter          = kwargs.pop('niter', None)
         self.divergent      = kwargs.pop('divergent', None)
-        self.slow_conv  = kwargs.pop('slow_conv', None)
+        self.failed2converge= kwargs.pop('failed2converge', None)
 
 
 #
@@ -395,11 +395,11 @@ class HSTWCS(WCS):
                 wname = build_default_wcsname(self.idctab)
             else:
                 wname = 'DEFAULT'
-            h.update('wcsname'+wcskey, value=wname)
+            h['wcsname{0}'.format(wcskey)] = wname
 
         if idc2hdr:
             for card in self._idc2hdr():
-                h.update(card.key+wcskey, value=card.value, comment=card.comment)
+                h[card.key+wcskey] = (card.value, card.comment)
         try:
             del h['RESTFRQ']
             del h['RESTWAV']
@@ -407,9 +407,9 @@ class HSTWCS(WCS):
 
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
-                h.update(card.key,value=card.value,comment=card.comment)
+                h[card.key] = (card.value, card.comment)
             for card in self._sip2hdr('b'):
-                h.update(card.key,value=card.value,comment=card.comment)
+                h[card.key] = (card.value, card.comment)
 
             try:
                 ap = self.sip.ap
@@ -422,10 +422,10 @@ class HSTWCS(WCS):
 
             if ap:
                 for card in self._sip2hdr('ap'):
-                    h.update(card.key,value=card.value,comment=card.comment)
+                    h[card.key] = (card.value, card.comment)
             if bp:
                 for card in self._sip2hdr('bp'):
-                    h.update(card.key,value=card.value,comment=card.comment)
+                    h[card.key] = (card.value, card.comment)
         return h
 
     def _sip2hdr(self, k):
@@ -462,9 +462,9 @@ class HSTWCS(WCS):
     def pc2cd(self):
         self.wcs.cd = self.wcs.pc.copy()
 
-    def all_sky2pix(self, *args, **kwargs):
+    def all_world2pix(self, *args, **kwargs):
         """
-        all_sky2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False, \
+        all_world2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False, \
 detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
@@ -487,7 +487,7 @@ detect_divergence=True, quiet=False)
             other instruments.
 
             .. note::
-               The :py:meth:`all_sky2pix` uses a vectorized implementation
+               The :py:meth:`all_world2pix` uses a vectorized implementation
                of the method of consecutive approximations (see `Notes`
                section below) in which it iterates over *all* input poits
                *regardless* until the required accuracy has been reached for
@@ -498,7 +498,7 @@ detect_divergence=True, quiet=False)
                characteristics of the geometric distortions for a given
                instrument). In this situation it may be
                advantageous to set `adaptive` = `True`\ in which
-               case :py:meth:`all_sky2pix` will continue iterating *only* over
+               case :py:meth:`all_world2pix` will continue iterating *only* over
                the points that have not yet converged to the required
                accuracy. However, for the HST's ACS/WFC detector, which has
                the strongest distortions of all HST instruments, testing has
@@ -511,18 +511,18 @@ detect_divergence=True, quiet=False)
                penalty.
 
             .. note::
-               When `detect_divergence` is `True`\ , :py:meth:`all_sky2pix` \
+               When `detect_divergence` is `True`\ , :py:meth:`all_world2pix` \
                will automatically switch to the adaptive algorithm once
                divergence has been detected.
 
         detect_divergence : bool, optional (Default = True)
             Specifies whether to perform a more detailed analysis of the
-            convergence to a solution. Normally :py:meth:`all_sky2pix`
+            convergence to a solution. Normally :py:meth:`all_world2pix`
             may not achieve the required accuracy
             if either the `tolerance` or `maxiter` arguments are too low.
             However, it may happen that for some geometric distortions
             the conditions of convergence for the the method of consecutive
-            approximations used by :py:meth:`all_sky2pix` may not be
+            approximations used by :py:meth:`all_world2pix` may not be
             satisfied, in which case consecutive approximations to the
             solution will diverge regardless of the `tolerance` or `maxiter`
             settings.
@@ -535,19 +535,19 @@ detect_divergence=True, quiet=False)
             "improve" diverging solutions. This may result in NaN or Inf
             values in the return results (in addition to a performance
             penalties). Even when `detect_divergence` is
-            `False`\ , :py:meth:`all_sky2pix`\ , at the end of the iterative
+            `False`\ , :py:meth:`all_world2pix`\ , at the end of the iterative
             process, will identify invalid results (NaN or Inf) as "diverging"
             solutions and will raise :py:class:`NoConvergence` unless
             the `quiet` parameter is set to `True`\ .
 
-            When `detect_divergence` is `True`\ , :py:meth:`all_sky2pix` will
+            When `detect_divergence` is `True`\ , :py:meth:`all_world2pix` will
             detect points for
             which current correction to the coordinates is larger than
             the correction applied during the previous iteration **if** the
             requested accuracy **has not yet been achieved**\ . In this case,
             if `adaptive` is `True`, these points will be excluded from
             further iterations and if `adaptive`
-            is `False`\ , :py:meth:`all_sky2pix` will automatically
+            is `False`\ , :py:meth:`all_world2pix` will automatically
             switch to the adaptive algorithm.
 
             .. note::
@@ -570,7 +570,7 @@ detect_divergence=True, quiet=False)
             .. note::
                Indices of the diverging inverse solutions will be reported
                in the `divergent` attribute of the
-               raised :py:class:`NoConvergence` exception object.
+               raised :py:class:`NoConvergence` object.
 
         quiet : bool, optional (Default = False)
             Do not throw :py:class:`NoConvergence` exceptions when the method
@@ -595,20 +595,14 @@ detect_divergence=True, quiet=False)
         with the initial approximation, which is computed using the
         non-distorion-aware :py:meth:`wcs_sky2pix` (or equivalent).
 
-        The :py:meth:`all_sky2pix` function uses a vectorized implementation
+        The :py:meth:`all_world2pix` function uses a vectorized implementation
         of the method of consecutive approximations and therefore it is
         highly efficient (>30x) when *all* data points that need to be
         converted from sky coordinates to image coordinates are passed at
         *once*\ . Therefore, it is advisable, whenever possible, to pass
         as input a long array of all points that need to be converted
-        to :py:meth:`all_sky2pix` instead of calling :py:meth:`all_sky2pix`
+        to :py:meth:`all_world2pix` instead of calling :py:meth:`all_world2pix`
         for each data point. Also see the note to the `adaptive` parameter.
-
-        See Also
-        --------
-        A detailed description of the algorithm is available on astropy's
-        GitHub page,
-        issue `#2373 <https://github.com/astropy/astropy/pull/2373>`_\ .
 
         Examples
         --------
@@ -617,43 +611,42 @@ detect_divergence=True, quiet=False)
         >>> w = stwcs.wcsutil.HSTWCS(hdulist, ext=('sci',1))
         >>> hdulist.close()
 
-        >>> ra, dec = w.all_pix2sky([1,2,3],[1,1,1],1); print(ra); print(dec)
+        >>> ra, dec = w.all_pix2world([1,2,3],[1,1,1],1); print(ra); print(dec)
         [ 5.52645241  5.52649277  5.52653313]
         [-72.05171776 -72.05171295 -72.05170814]
-        >>> radec = w.all_pix2sky([[1,1],[2,1],[3,1]],1); print(radec)
+        >>> radec = w.all_pix2world([[1,1],[2,1],[3,1]],1); print(radec)
         [[  5.52645241 -72.05171776]
          [  5.52649277 -72.05171295]
          [  5.52653313 -72.05170814]]
-        >>> x, y = w.all_sky2pix(ra,dec,1)
+        >>> x, y = w.all_world2pix(ra,dec,1)
         >>> print(x)
         [ 1.00000233  2.00000232  3.00000233]
         >>> print(y)
         [ 0.99999997  0.99999997  0.99999998]
-        >>> xy = w.all_sky2pix(radec,1)
+        >>> xy = w.all_world2pix(radec,1)
         >>> print(xy)
         [[ 1.00000233  0.99999997]
          [ 2.00000232  0.99999997]
          [ 3.00000233  0.99999998]]
-        >>> xy = w.all_sky2pix(radec,1, maxiter=3, accuracy=1.0e-10, \
+        >>> xy = w.all_world2pix(radec,1, maxiter=3, accuracy=1.0e-10, \
 quiet=False)
-        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to requested \
+        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested \
 accuracy after 3 iterations.
 
         >>>
         Now try to use some diverging data:
-        >>> divradec = w.all_pix2sky([[1.0,1.0],[10000.0,50000.0],\
+        >>> divradec = w.all_pix2world([[1.0,1.0],[10000.0,50000.0],\
 [3.0,1.0]],1); print(divradec)
         [[  5.52645241 -72.05171776]
          [  7.15979392 -70.81405561]
          [  5.52653313 -72.05170814]]
 
         >>> try:
-        >>>   xy = w.all_sky2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
 adaptive=False, detect_divergence=True, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
-        >>>   print("Indices of poorly converging points: {}"\
-.format(e.slow_conv))
+        >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))
         >>>   print("Best solution: {}".format(e.best_solution))
         >>>   print("Achieved accuracy: {}".format(e.accuracy))
         >>>   raise e
@@ -671,18 +664,15 @@ adaptive=False, detect_divergence=True, quiet=False)
          [  6.02334592e-05   6.59713067e-07]]
         Traceback (innermost last):
           File "<console>", line 8, in <module>
-        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the \
-requested accuracy.
-        After 5 iterations, the solution is diverging at least for one \
-input point.
+        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to the requested accuracy.
+        After 5 iterations, the solution is diverging at least for one input point.
 
         >>> try:
-        >>>   xy = w.all_sky2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
 adaptive=False, detect_divergence=False, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
-        >>>   print("Indices of poorly converging points: {}"\
-.format(e.slow_conv))
+        >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))
         >>>   print("Best solution: {}".format(e.best_solution))
         >>>   print("Achieved accuracy: {}".format(e.accuracy))
         >>>   raise e
@@ -700,10 +690,8 @@ adaptive=False, detect_divergence=False, quiet=False)
          [  0.   0.]]
         Traceback (innermost last):
           File "<console>", line 8, in <module>
-        NoConvergence: 'HSTWCS.all_sky2pix' failed to converge to the \
-requested accuracy.
-        After 20 iterations, the solution is diverging at least for one \
-input point.
+        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to the requested accuracy.
+        After 20 iterations, the solution is diverging at least for one input point.
 
         """
         #####################################################################
@@ -770,8 +758,8 @@ input point.
         dx, dy = self.pix2foc(x, y, origin)
         # If pix2foc does not apply all the required distortion
         # corrections then replace the above line with:
-        #r0, d0 = self.all_pix2sky(x, y, origin)
-        #dx, dy = self.wcs_sky2pix(r0, d0, origin )
+        #r0, d0 = self.all_pix2world(x, y, origin)
+        #dx, dy = self.wcs_world2pix(r0, d0, origin )
         dx -= x0
         dy -= y0
 
@@ -779,7 +767,7 @@ input point.
         x -= dx
         y -= dy
 
-        # norm (L2) squared of the correction:
+        # norn (L2) squared of the correction:
         dn2prev   = dx**2+dy**2
         dn2       = dn2prev
 
@@ -814,14 +802,15 @@ input point.
                 dx -= x0
                 dy -= y0
 
-                # update norm (L2) squared of the correction:
+                # update norn (L2) squared of the correction:
                 dn2 = dx**2+dy**2
 
                 # check for divergence (we do this in two stages
                 # to optimize performance for the most common
                 # scenario when succesive approximations converge):
                 if detect_divergence:
-                    if np.any(dn2 > dn2prev):
+                    ind, = np.where(dn2 <= dn2prev)
+                    if ind.shape[0] < npts:
                         inddiv, = np.where(
                             np.logical_and(dn2 > dn2prev, dn2 >= accuracy2))
                         if inddiv.shape[0] > 0:
@@ -862,7 +851,7 @@ input point.
                 dx[ind] -= x0[ind]
                 dy[ind] -= y0[ind]
 
-                # update norm (L2) squared of the correction:
+                # update norn (L2) squared of the correction:
                 dn2 = dx**2+dy**2
 
                 # update indices of elements that still need correction:
@@ -917,18 +906,18 @@ input point.
             np.seterr(invalid = old_invalid, over = old_over)
 
             if inddiv is None:
-                raise NoConvergence("'HSTWCS.all_sky2pix' failed to "        \
+                raise NoConvergence("'HSTWCS.all_world2pix' failed to "        \
                     "converge to the requested accuracy after {:d} "         \
                     "iterations.".format(k), best_solution = sol,            \
-                    accuracy = err, niter = k, slow_conv = ind,        \
+                    accuracy = err, niter = k, failed2converge = ind,        \
                     divergent = None)
             else:
-                raise NoConvergence("'HSTWCS.all_sky2pix' failed to "        \
+                raise NoConvergence("'HSTWCS.all_world2pix' failed to "        \
                     "converge to the requested accuracy.{0:s}"               \
                     "After {1:d} iterations, the solution is diverging "     \
                     "at least for one input point."                          \
                     .format(os.linesep, k), best_solution = sol,             \
-                    accuracy = err, niter = k, slow_conv = ind,        \
+                    accuracy = err, niter = k, failed2converge = ind,        \
                     divergent = inddiv)
 
         #####################################################################
@@ -942,20 +931,19 @@ input point.
         else:
             return np.dstack( [x, y] )[0]
 
-
     def _updatehdr(self, ext_hdr):
         #kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
-        ext_hdr.update('OCX10', self.idcmodel.cx[1,0])
-        ext_hdr.update('OCX11', self.idcmodel.cx[1,1])
-        ext_hdr.update('OCY10', self.idcmodel.cy[1,0])
-        ext_hdr.update('OCY11', self.idcmodel.cy[1,1])
-        ext_hdr.update('IDCSCALE', self.idcmodel.refpix['PSCALE'])
-        ext_hdr.update('IDCTHETA', self.idcmodel.refpix['THETA'])
-        ext_hdr.update('IDCXREF', self.idcmodel.refpix['XREF'])
-        ext_hdr.update('IDCYREF', self.idcmodel.refpix['YREF'])
-        ext_hdr.update('IDCV2REF', self.idcmodel.refpix['V2REF'])
-        ext_hdr.update('IDCV3REF', self.idcmodel.refpix['V3REF'])
+        ext_hdr['OCX10'] = self.idcmodel.cx[1,0]
+        ext_hdr['OCX11'] = self.idcmodel.cx[1,1]
+        ext_hdr['OCY10'] = self.idcmodel.cy[1,0]
+        ext_hdr['OCY11'] = self.idcmodel.cy[1,1]
+        ext_hdr['IDCSCALE'] = self.idcmodel.refpix['PSCALE']
+        ext_hdr['IDCTHETA'] = self.idcmodel.refpix['THETA']
+        ext_hdr['IDCXREF'] = self.idcmodel.refpix['XREF']
+        ext_hdr['IDCYREF'] = self.idcmodel.refpix['YREF']
+        ext_hdr['IDCV2REF'] =  self.idcmodel.refpix['V2REF']
+        ext_hdr['IDCV3REF'] = self.idcmodel.refpix['V3REF']
 
     def printwcs(self):
         """

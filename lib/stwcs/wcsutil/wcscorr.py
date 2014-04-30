@@ -64,11 +64,9 @@ def init_wcscorr(input, force=False):
     # add new rows later
     wcsext = create_wcscorr(descrip=True,numrows=numsci, padding=(numsci*numwcs) + numsci * 4)
     # Assign the correct EXTNAME value to this table extension
-    wcsext.header.update('TROWS', numsci * 2,
-                         comment='Number of updated rows in table')
-    wcsext.header.update('EXTNAME', 'WCSCORR',
-                         comment='Table with WCS Update history')
-    wcsext.header.update('EXTVER', 1)
+    wcsext.header['TROWS'] = (numsci * 2, 'Number of updated rows in table')
+    wcsext.header['EXTNAME'] = ('WCSCORR', 'Table with WCS Update history')
+    wcsext.header['EXTVER'] = 1
 
     # define set of WCS keywords which need to be managed and copied to the table
     wcs1 = stwcs.wcsutil.HSTWCS(fimg,ext=('SCI',1))
@@ -425,7 +423,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             # Now populate with values from new table
             upd_table.data.field(name)[old_nrows:old_nrows + new_nrows] = \
                     new_table.data.field(name)
-    upd_table.header.update('TROWS', old_nrows + new_nrows)
+    upd_table.header['TROWS'] = old_nrows + new_nrows
 
     # replace old extension with newly updated table extension
     dest['WCSCORR'] = upd_table
@@ -463,14 +461,14 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
                     skey = key
                 else:
                     skey = key[:7]+wcskey
-                fimg['sci',extn].header.update(skey,wcs_table.data.field(tkey)[erow])
+                fimg['sci',extn].header[skey] = wcs_table.data.field(tkey)[erow]
         for key in DEFAULT_PRI_KEYS:
             if key in wcs_table.data.names:
                 if wcskey == '':
                     pkey = key
                 else:
                     pkey = key[:7]+wcskey
-                fimg[0].header.update(pkey,wcs_table.data.field(key)[erow])
+                fimg[0].header[pkey] = wcs_table.data.field(key)[erow]
 
     utils.updateNEXTENDKw(fimg)
 

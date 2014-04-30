@@ -149,7 +149,7 @@ class DET2IMCorr(object):
             before_key = None
 
         for key in keys:
-            hdr.update(key=key, value=values[key], comment=comments[key], before=before_key)
+            hdr.set(key, value=values[key], comment=comments[key], before=before_key)
 
     addSciExtKw = classmethod(addSciExtKw)
 

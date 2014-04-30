@@ -96,9 +96,9 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
 
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
-    f[ext].header.update(key=wcsnamekey, value=wcsname)
+    f[ext].header[wcsnamekey] = wcsname
     for k in hwcs.keys():
-        f[ext].header.update(key=k[:7]+wkey, value=hwcs[k])
+        f[ext].header[k[:7]+wkey] = hwcs[k]
 
     f.close()
 
@@ -108,12 +108,12 @@ def wcs2header(wcsobj):
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
-    h.update('CTYPE1', 'RA---TAN')
-    h.update('CTYPE2', 'DEC--TAN')
+    h['CTYPE1'] = 'RA---TAN'
+    h['CTYPE2'] = 'DEC--TAN'
     norient = np.rad2deg(np.arctan2(h['CD1_2'],h['CD2_2']))
     #okey = 'ORIENT%s' % wkey
     okey = 'ORIENT'
-    h.update(key=okey, value=norient)
+    h[okey] = norient
     return h
 
 def readWCS(input, exts=None, extname=None):

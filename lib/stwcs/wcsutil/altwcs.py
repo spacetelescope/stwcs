@@ -423,7 +423,8 @@ def _restore(fobj, ukey, fromextnum,
     for k in hwcs.keys():
         key = k[:-1]
         if key in fobj[toextension].header.keys():
-            fobj[toextension].header.update(key=key, value = hwcs[k])
+            #fobj[toextension].header.update(key=key, value = hwcs[k])
+            fobj[toextension].header[key] = hwcs[k]
         else:
             continue
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
@@ -431,7 +432,7 @@ def _restore(fobj, ukey, fromextnum,
         fobj[toeztension].header['TDDBETA'] = 0.0
     if 'ORIENTAT' in fobj[toextension].header:
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2'+'%s' %ukey], hwcs['CD2_2'+'%s' %ukey]))
-        fobj[toextension].header.update(key='ORIENTAT', value=norient)
+        fobj[toextension].header['ORIENTAT'] = norient
 
 #header operations
 def _check_headerpars(fobj, ext):
@@ -659,7 +660,8 @@ def pc2cd(hdr, key=' '):
                 val = 1.
             else:
                 val = 0.
-        hdr.update(key='CD'+c+'%s' %key, value=val)
+        #hdr.update(key='CD'+c+'%s' %key, value=val)
+        hdr['CD{0}{1}'.format(c, key)] = val
     return hdr
 
 def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):

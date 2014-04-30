@@ -124,7 +124,7 @@ def makecorr(fname, allowed_corr):
     if 'DET2IMCorr' in allowed_corr:
         kw2update = det2im.DET2IMCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
+            f[1].header[kw] = kw2update[kw]
 
     for i in range(len(f))[1:]:
         extn = f[i]
@@ -146,14 +146,14 @@ def makecorr(fname, allowed_corr):
                         corr_klass = corrections.__getattribute__(c)
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
-                            hdr.update(kw, kw2update[kw])
+                            hdr[kw] = kw2update[kw]
                 # give the primary WCS a WCSNAME value
                 idcname = f[0].header.get('IDCTAB', " ")
                 if idcname.strip() and 'idc.fits' in idcname:
                     wname = ''.join(['IDC_',
                                 utils.extract_rootname(idcname,suffix='_idc')])
                 else: wname = " "
-                hdr.update('WCSNAME', wname)
+                hdr['WCSNAME'] = wname
 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -168,18 +168,22 @@ def makecorr(fname, allowed_corr):
     if 'NPOLCorr' in allowed_corr:
         kw2update = npol.NPOLCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
+            f[1].header[kw] = kw2update[kw]
     # Finally record the version of the software which updated the WCS
     if 'HISTORY' in f[0].header:
-        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
-                           comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=astropy.__version__,
-            comment="Version of PYWCS used to updated the WCS", before='HISTORY')
+        f[0].header.set('UPWCSVER', value=stwcs.__version__,
+                        comment="Version of STWCS used to updated the WCS",
+                        before='HISTORY')
+        f[0].header.set('PYWCSVER', value=astropy.__version__,
+                        comment="Version of PYWCS used to updated the WCS",
+                        before='HISTORY')
     elif 'ASN_MTYP' in f[0].header:
-        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
-            comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
-            comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
+        f[0].header.set('UPWCSVER', value=stwcs.__version__,
+                        comment="Version of STWCS used to updated the WCS",
+                        after='ASN_MTYP')
+        f[0].header.set('PYWCSVER', value=pywcs.__version__,
+                        comment="Version of PYWCS used to updated the WCS",
+                        after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
         for i in range(len(f[0].header) - 1, 0, -1):
@@ -212,7 +216,7 @@ def copyWCS(w, ehdr):
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
         key = k[:7]
-        ehdr.update(key=key, value=hwcs[k])
+        ehdr[key] = hwcs[k]
 
 def getNrefchip(fobj):
     """
