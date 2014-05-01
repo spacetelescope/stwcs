@@ -1,7 +1,6 @@
 import os
 
-#import pyfits
-from astropy.io import fits as pyfits
+from astropy.io import fits
 from stsci.tools import parseinput
 from stsci.tools import fileutil
 from stsci.tools import teal
@@ -67,7 +66,7 @@ def run(configObj=None):
     #
     for file in input:
         # Check to insure that there is a valid reference file to be used
-        idctab = pyfits.getval(file,'idctab')
+        idctab = fits.getval(file, 'idctab')
         if not os.path.exists(fileutil.osfn(idctab)):
             print 'No valid distortion reference file ',idctab,' found in ',file,'!'
             raise ValueError
@@ -78,7 +77,7 @@ def run(configObj=None):
     #
     for file in input:
         # get instrument name from input file
-        instr = pyfits.getval(file,'INSTRUME')
+        instr = fits.getval(file,'INSTRUME')
         # make copy of input parameters dict for this file
         fdict = cdict.copy()
         # Remove any parameter that is not part of this instrument's allowed corrections

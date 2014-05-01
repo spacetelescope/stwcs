@@ -1,18 +1,18 @@
 from __future__ import division # confidence high
 
 import numpy as np
-from astropy.io import fits as pyfits
-#import pywcs
+from astropy.io import fits
 from astropy import wcs as pywcs
 
 def sip2idc(wcs):
     """
     Converts SIP style coefficients to IDCTAB coefficients.
 
-    :Parameters:
-    `wcs`: pyfits.Header or pywcs.WCS object
+    Parameters
+    ----------
+    wcs : `astropy.io.fits.Header` or `astropy.wcs.WCS` object
     """
-    if isinstance(wcs,pyfits.Header):
+    if isinstance(wcs, fits.Header):
         ocx10 = wcs.get('OCX10', None)
         ocx11 = wcs.get('OCX11', None)
         ocy10 = wcs.get('OCY10', None)
@@ -22,7 +22,7 @@ def sip2idc(wcs):
         if None in [ocx10, ocx11, ocy10, ocy11, sipa, sipb]:
             print 'Cannot convert SIP to IDC coefficients.\n'
             return None, None
-    elif isinstance(wcs,pywcs.WCS):
+    elif isinstance(wcs, pywcs.WCS):
         try:
             ocx10 = wcs.ocx10
             ocx11 = wcs.ocx11

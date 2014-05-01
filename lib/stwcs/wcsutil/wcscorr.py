@@ -1,5 +1,5 @@
 import os,copy
-from astropy.io import fits as pyfits
+from astropy.io import fits
 import numpy as np
 
 from stsci.tools import fileutil
@@ -31,9 +31,9 @@ def init_wcscorr(input, force=False):
     """
     # TODO: Create some sort of decorator or (for Python2.5) context for
     # opening a FITS file and closing it when done, if necessary
-    if not isinstance(input, pyfits.HDUList):
-        # input must be a filename, so open as PyFITS object
-        fimg = pyfits.open(input, mode='update')
+    if not isinstance(input, fits.HDUList):
+        # input must be a filename, so open as `astropy.io.fits.HDUList` object
+        fimg = fits.open(input, mode='update')
         need_to_close = True
     else:
         fimg = input
@@ -225,8 +225,8 @@ def archive_wcs_file(image, wcs_id=None):
     newly updated WCS keyword values.
     """
 
-    if not isinstance(image, pyfits.HDUList):
-        fimg = pyfits.open(image, mode='update')
+    if not isinstance(image, fits.HDUList):
+        fimg = fits.open(image, mode='update')
         close_image = True
     else:
         fimg = image
@@ -265,8 +265,8 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         active WCS information, not just appending the WCS to the file as a
         headerlet
     """
-    if not isinstance(dest,pyfits.HDUList):
-        dest = pyfits.open(dest,mode='update')
+    if not isinstance(dest, fits.HDUList):
+        dest = fits.open(dest,mode='update')
     fname = dest.filename()
 
     if source is None:
@@ -409,7 +409,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     if (old_nrows + new_nrows) > old_table.data.shape[0]-1:
         pad_rows = 2 * new_nrows
         # if not, create a new table with 'pad_rows' new empty rows
-        upd_table = pyfits.new_table(old_table.columns,header=old_table.header,
+        upd_table = fits.new_table(old_table.columns,header=old_table.header,
                                      nrows=old_table.data.shape[0]+pad_rows)
     else:
         upd_table = old_table
@@ -435,8 +435,8 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
     If wcskey is specified, the WCS with that key will be updated instead.
     """
 
-    if not isinstance(image, pyfits.HDUList):
-        fimg = pyfits.open(image, mode='update')
+    if not isinstance(image, fits.HDUList):
+        fimg = fits.open(image, mode='update')
         close_image = True
     else:
         fimg = image
@@ -517,32 +517,32 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                  ('NMatch',   def_int32_col), ('Catalog',   def_str40_col)]
 
     # Define selector columns
-    id_col = pyfits.Column(name='WCS_ID', format='40A',
-                           array=np.array(['OPUS'] * numrows + [''] * padding,
-                                          dtype='S24'))
-    extver_col = pyfits.Column(name='EXTVER', format='I',
-                               array=np.array(range(1, numrows + 1),
-                                              dtype=np.int16))
-    wcskey_col = pyfits.Column(name='WCS_key', format='A',
-                               array=np.array(['O'] * numrows + [''] * padding,
-                                              dtype='S'))
+    id_col = fits.Column(name='WCS_ID', format='40A',
+                         array=np.array(['OPUS'] * numrows + [''] * padding,
+                                        dtype='S24'))
+    extver_col = fits.Column(name='EXTVER', format='I',
+                             array=np.array(range(1, numrows + 1),
+                                            dtype=np.int16))
+    wcskey_col = fits.Column(name='WCS_key', format='A',
+                             array=np.array(['O'] * numrows + [''] * padding,
+                                            dtype='S'))
     # create list of remaining columns to be added to table
     col_list = [id_col, extver_col, wcskey_col] # start with selector columns
 
     for c in col_names:
         cdef = copy.deepcopy(c[1])
-        col_list.append(pyfits.Column(name=c[0], format=cdef['format'],
+        col_list.append(fits.Column(name=c[0], format=cdef['format'],
                         array=cdef['array']))
 
     if descrip:
         col_list.append(
-            pyfits.Column(name='DESCRIP', format='128A',
-                          array=np.array(
-                              ['Original WCS computed by OPUS'] * numrows,
-                              dtype='S128')))
+            fits.Column(name='DESCRIP', format='128A',
+                        array=np.array(
+                            ['Original WCS computed by OPUS'] * numrows,
+                            dtype='S128')))
 
     # Now create the new table from the column definitions
-    newtab = pyfits.new_table(pyfits.ColDefs(col_list), nrows=trows)
+    newtab = fits.new_table(fits.ColDefs(col_list), nrows=trows)
     # The fact that setting .name is necessary should be considered a bug in
     # pyfits.
     # TODO: Make sure this is fixed in pyfits, then remove this

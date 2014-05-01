@@ -1,10 +1,8 @@
 from __future__ import division # confidence high
 
 import os
-#from pywcs import WCS
 from astropy.wcs import WCS
-from astropy.io import fits as  pyfits
-#import pyfits
+from astropy.io import fits
 import instruments
 from stwcs.distortion import models, coeff_converter
 import altwcs
@@ -113,22 +111,22 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        fobj: string or PyFITS HDUList object or None
-                a file name, e.g j9irw4b1q_flt.fits
-                a fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
-                a pyfits file object, e.g pyfits.open('j9irw4b1q_flt.fits'), in which case the
-                user is responsible for closing the file object.
-        ext:  int, tuple or None
-                extension number
-                if ext is tuple, it must be ("EXTNAME", EXTNUM), e.g. ("SCI", 2)
-                if ext is None, it is assumed the data is in the primary hdu
-        minerr: float
-                minimum value a distortion correction must have in order to be applied.
-                If CPERRja, CQERRja are smaller than minerr, the corersponding
-                distortion is not applied.
-        wcskey: str
-                A one character A-Z or " " used to retrieve and define an
-                alternate WCS description.
+        fobj : str or `astropy.io.fits.HDUList` object or None
+            file name, e.g j9irw4b1q_flt.fits
+            fully qualified filename[EXTNAME,EXTNUM], e.g. j9irw4b1q_flt.fits[sci,1]
+            `astropy.io.fits` file object, e.g fits.open('j9irw4b1q_flt.fits'), in which case the
+            user is responsible for closing the file object.
+        ext : int, tuple or None
+            extension number
+            if ext is tuple, it must be ("EXTNAME", EXTNUM), e.g. ("SCI", 2)
+            if ext is None, it is assumed the data is in the primary hdu
+        minerr : float
+            minimum value a distortion correction must have in order to be applied.
+            If CPERRja, CQERRja are smaller than minerr, the corersponding
+            distortion is not applied.
+        wcskey : str
+            A one character A-Z or " " used to retrieve and define an
+            alternate WCS description.
         """
 
         self.inst_kw = ins_spec_kw
@@ -146,9 +144,9 @@ class HSTWCS(WCS):
                 self.instrument = instrument_name
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
                          key=self.wcskey)
-            # If input was a pyfits HDUList object, it's the user's
+            # If input was a `astropy.io.fits.HDUList` object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
-            if not isinstance(fobj, pyfits.HDUList):
+            if not isinstance(fobj, fits.HDUList):
                 phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
@@ -197,10 +195,10 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        prim_hdr: pyfits.Header
-                  primary header
-        ext_hdr:  pyfits.Header
-                  extension header
+        prim_hdr : `astropy.io.fits.Header`
+            primary header
+        ext_hdr : `astropy.io.fits.Header`
+            extension header
 
         """
         if self.instrument in inst_mappings.keys():
@@ -270,12 +268,12 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        header: pyfits.Header
-                fits extension header
-        update: boolean (False)
-                if True - record the following IDCTAB quantities as header keywords:
-                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
-                IDCV2REF, IDCV3REF
+        header : `astropy.io.fits.Header`
+            fits extension header
+        update : bool (False)
+            if True - record the following IDCTAB quantities as header keywords:
+            CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
+            IDCV2REF, IDCV3REF
         """
         if self.idctab in [None, '', ' ','N/A']:
             #Keyword idctab is not present in header - check for sip coefficients
@@ -321,12 +319,12 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        header: pyfits.Header
-                fits extension header
-        update: boolean (False)
-                if True - save teh following as header keywords:
-                CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
-                IDCV2REF, IDCV3REF
+        header : `astropy.io.fits.Header`
+            fits extension header
+        update : booln (False)
+            if True - save teh following as header keywords:
+            CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
+            IDCV2REF, IDCV3REF
 
         """
         if self.date_obs == None:
@@ -373,15 +371,15 @@ class HSTWCS(WCS):
 
     def wcs2header(self, sip2hdr=False, idc2hdr=True, wcskey=None, relax=False):
         """
-        Create a pyfits.Header object from WCS keywords.
+        Create a `astropy.io.fits.Header` object from WCS keywords.
 
         If the original header had a CD matrix, return a CD matrix,
         otherwise return a PC matrix.
 
         Parameters
         ----------
-        sip2hdr: boolean
-                 If True - include SIP coefficients
+        sip2hdr : bool
+            If True - include SIP coefficients
         """
 
         h = self.to_header(key=wcskey, relax=relax)
@@ -399,7 +397,7 @@ class HSTWCS(WCS):
 
         if idc2hdr:
             for card in self._idc2hdr():
-                h[card.key+wcskey] = (card.value, card.comment)
+                h[card.keyword + wcskey] = (card.value, card.comment)
         try:
             del h['RESTFRQ']
             del h['RESTWAV']
@@ -407,9 +405,9 @@ class HSTWCS(WCS):
 
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
-                h[card.key] = (card.value, card.comment)
+                h[card.keyword] = (card.value, card.comment)
             for card in self._sip2hdr('b'):
-                h[card.key] = (card.value, card.comment)
+                h[card.keyword] = (card.value, card.comment)
 
             try:
                 ap = self.sip.ap
@@ -422,41 +420,41 @@ class HSTWCS(WCS):
 
             if ap:
                 for card in self._sip2hdr('ap'):
-                    h[card.key] = (card.value, card.comment)
+                    h[card.keyword] = (card.value, card.comment)
             if bp:
                 for card in self._sip2hdr('bp'):
-                    h[card.key] = (card.value, card.comment)
+                    h[card.keyword] = (card.value, card.comment)
         return h
 
     def _sip2hdr(self, k):
         """
         Get a set of SIP coefficients in the form of an array
-        and turn them into a pyfits.Cardlist.
+        and turn them into a `astropy.io.fits.Cardlist`.
         k - one of 'a', 'b', 'ap', 'bp'
         """
 
-        cards = pyfits.CardList()
+        cards = fits.CardList()
         korder = self.sip.__getattribute__(k+'_order')
-        cards.append(pyfits.Card(key=k.upper()+'_ORDER', value=korder))
+        cards.append(fits.Card(keyword=k.upper()+'_ORDER', value=korder))
         coeffs = self.sip.__getattribute__(k)
         ind = coeffs.nonzero()
         for i in range(len(ind[0])):
-            card = pyfits.Card(key=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
-                               value=coeffs[ind[0][i], ind[1][i]])
+            card = fits.Card(keyword=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
+                             value=coeffs[ind[0][i], ind[1][i]])
             cards.append(card)
         return cards
 
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
-        cards = pyfits.CardList()
+        cards = fits.CardList()
         for c in coeffs:
             try:
                 val = self.__getattribute__(c)
             except AttributeError:
                 continue
             if val:
-                cards.append(pyfits.Card(key=c, value=val))
+                cards.append(fits.Card(keyword=c, value=val))
         return cards
 
     def pc2cd(self):
@@ -606,8 +604,9 @@ detect_divergence=True, quiet=False)
 
         Examples
         --------
-        >>> import stwcs, pyfits
-        >>> hdulist = pyfits.open('j94f05bgq_flt.fits')
+        >>> import stwcs
+        >>> from astropy.io import fits
+        >>> hdulist = fits.open('j94f05bgq_flt.fits')
         >>> w = stwcs.wcsutil.HSTWCS(hdulist, ext=('sci',1))
         >>> hdulist.close()
 

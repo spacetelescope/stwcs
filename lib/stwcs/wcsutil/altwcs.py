@@ -3,10 +3,8 @@ import os
 import string
 
 import numpy as np
-#import pywcs
 from astropy import wcs as pywcs
-from astropy.io import fits as pyfits
-#import pyfits
+from astropy.io import fits
 from stsci.tools import fileutil as fu
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
@@ -21,19 +19,19 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     Parameters
     ----------
-    fname:  string or pyfits.HDUList
-            a file name or a file object
-    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
-            fits extensions to work with
-            If a string is provided, it should specify the EXTNAME of extensions
-            with WCSs to be archived
-    wcskey: string "A"-"Z" or " "
-            if " ": get next available key if wcsname is also " " or try
-            to get a key from WCSNAME value
-    wcsname: string
-             Name of alternate WCS description
-    reusekey: boolean
-             if True - overwrites a WCS with the same key
+    fname :  string or `astropy.io.fits.HDUList`
+        file name or a file object
+    ext :    int, tuple, str, or list of integers or tuples (e.g.('sci',1))
+        fits extensions to work with
+        If a string is provided, it should specify the EXTNAME of extensions
+        with WCSs to be archived
+    wcskey : string "A"-"Z" or " "
+        if " ": get next available key if wcsname is also " " or try
+        to get a key from WCSNAME value
+    wcsname : string
+        Name of alternate WCS description
+    reusekey : boolean
+        if True - overwrites a WCS with the same key
 
     Examples
     --------
@@ -55,7 +53,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     """
 
     if isinstance(fname, str):
-        f = pyfits.open(fname, mode='update')
+        f = fits.open(fname, mode='update')
     else:
         f = fname
 
@@ -151,7 +149,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
 
     Parameters
     ----------
-    f:       string or pyfits.HDUList object
+    f:       string or `astropy.io.fits.HDUList`
              a file name or a file object
     fromext: string
              extname from which to read in the alternate WCS, for example 'SCI'
@@ -171,7 +169,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
 
     """
     if isinstance(f, str):
-        fobj = pyfits.open(f, mode='update')
+        fobj = fits.open(f, mode='update')
     else:
         fobj = f
 
@@ -232,17 +230,17 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     Parameters
     ----------
-    f:       string or pyfits.HDUList object
-             a file name or a file object
-    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
-            fits extensions to work with
-            If a string is provided, it should specify the EXTNAME of extensions
-            with WCSs to be archived
-    wcskey:  a charater
-             "A"-"Z" - Used for one of 26 alternate WCS definitions.
-             or " " - find a key from WCSNAMe value
-    wcsname: string (optional)
-             if given and wcskey is " ", will try to restore by WCSNAME value
+    f : str or `astropy.io.fits.HDUList`
+        file name or a file object
+    ext : int, tuple, str, or list of integers or tuples (e.g.('sci',1))
+        fits extensions to work with
+        If a string is provided, it should specify the EXTNAME of extensions
+        with WCSs to be archived
+    wcskey : str
+        "A"-"Z" - Used for one of 26 alternate WCS definitions.
+        or " " - find a key from WCSNAMe value
+    wcsname : str
+        (optional) if given and wcskey is " ", will try to restore by WCSNAME value
 
     See Also
     --------
@@ -251,7 +249,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     """
     if isinstance(f, str):
-        fobj = pyfits.open(f, mode='update')
+        fobj = fits.open(f, mode='update')
     else:
         fobj = f
 
@@ -301,17 +299,18 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
 
     Parameters
     ----------
-    fname:   sting or a pyfits.HDUList object
-    ext:    an int, a tuple, string, or list of integers or tuples (e.g.('sci',1))
-            fits extensions to work with
-            If a string is provided, it should specify the EXTNAME of extensions
-            with WCSs to be archived
-    wcskey:  one of 'A'-'Z' or " "
-    wcsname: string
-             Name of alternate WCS description
+    fname : str or a `astropy.io.fits.HDUList`
+    ext : int, tuple, str, or list of integers or tuples (e.g.('sci',1))
+        fits extensions to work with
+        If a string is provided, it should specify the EXTNAME of extensions
+        with WCSs to be archived
+    wcskey : str
+        one of 'A'-'Z' or " "
+    wcsname : str
+        Name of alternate WCS description
     """
     if isinstance(fname, str):
-        fobj = pyfits.open(fname, mode='update')
+        fobj = fits.open(fname, mode='update')
     else:
         fobj = fname
 
@@ -436,19 +435,19 @@ def _restore(fobj, ukey, fromextnum,
 
 #header operations
 def _check_headerpars(fobj, ext):
-    if not isinstance(fobj, pyfits.Header) and not isinstance(fobj, pyfits.HDUList) \
+    if not isinstance(fobj, fits.Header) and not isinstance(fobj, fits.HDUList) \
                    and not isinstance(fobj, str):
         raise ValueError("Expected a file name, a file object or a header\n")
 
-    if not isinstance(fobj, pyfits.Header):
+    if not isinstance(fobj, fits.Header):
         #raise ValueError("Expected a valid ext parameter when input is a file")
         if not isinstance(ext, int) and not isinstance(ext, tuple):
             raise ValueError("Expected ext to be a number or a tuple, e.g. ('SCI', 1)\n")
 
 def _getheader(fobj, ext):
     if isinstance(fobj, str):
-        hdr = pyfits.getheader(fobj,ext)
-    elif isinstance(fobj, pyfits.Header):
+        hdr = fits.getheader(fobj,ext)
+    elif isinstance(fobj, fits.Header):
         hdr = fobj
     else:
         hdr = fobj[ext].header
@@ -459,21 +458,22 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList
-        fits filename or pyfits file object
+    fobj : str, `astropy.io.fits.HDUList`
+        fits filename or fits file object
         containing alternate/primary WCS(s) to be converted
-    wcskey: string [" ",A-Z]
+    wcskey : str
+        [" ",A-Z]
         alternate/primary WCS key that will be replaced by the new key
-    ext: int
-        extension number
+    ext : int
+        fits extension number
 
     Returns
     -------
-    hdr: pyfits.Header
+    hdr: fits.Header
         header object with ONLY the keywords for specified alternate WCS
     """
     if isinstance(fobj, str):
-        fobj = pyfits.open(fobj)
+        fobj = fits.open(fobj)
 
     hdr = _getheader(fobj,ext)
     try:
@@ -497,19 +497,21 @@ def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList, or pyfits.Header
-        fits filename, pyfits file object or pyfits header
+    fobj : str, `astropy.io.fits.HDUList`, or `astropy.io.fits.Header`
+        fits filename, fits file object or fits header
         containing alternate/primary WCS(s) to be converted
-    ext: int
+    ext : int
         extension number
-    oldkey: string [" ",A-Z]
+    oldkey : str
+        [" ",A-Z]
         alternate/primary WCS key that will be replaced by the new key
-    newkey: string [" ",A-Z]
+    newkey : str
+        [" ",A-Z]
         new alternate/primary WCS key
 
     Returns
     -------
-    hdr: pyfits.Header
+    hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
     hdr = readAltWCS(fobj,ext,wcskey=oldkey)
@@ -532,9 +534,9 @@ def wcskeys(fobj, ext=None):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList or pyfits.Header
-          fits file name, pyfits file object or pyfits header
-    ext: int or None
+    fobj : str, `astropy.io.fits.HDUList` or `astropy.io.fits.Header`
+          fits file name, fits file object or fits header
+    ext : int or None
          extension number
          if None, fobj must be a header
     """
@@ -554,9 +556,9 @@ def wcsnames(fobj, ext=None):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList or pyfits.Header
-          fits file name, pyfits file object or pyfits header
-    ext: int or None
+    fobj : stri, `astropy.io.fits.HDUList` or `astropy.io.fits.Header`
+          fits file name, fits file object or fits header
+    ext : int or None
          extension number
          if None, fobj must be a header
 
@@ -579,11 +581,11 @@ def available_wcskeys(fobj, ext=None):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList or pyfits.Header
-          fits file name, pyfits file object or pyfits header
-    ext: int or None
-         extension number
-         if None, fobj must be a header
+    fobj : str, `astropy.io.fits.HDUList` or `astropy.io.fits.Header`
+        fits file name, fits file object or fits header
+    ext : int or None
+        extension number
+        if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
@@ -602,11 +604,11 @@ def next_wcskey(fobj, ext=None):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList or pyfits.Header
-          fits file name, pyfits file object or pyfits header
-    ext: int or None
-         extension number
-         if None, fobj must be a header
+    fobj : str, `astropy.io.fits.HDUList` or `astropy.io.fits.Header`
+        fits file name, fits file object or fits header
+    ext : int or None
+        extension number
+        if None, fobj must be a header
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
@@ -624,9 +626,9 @@ def getKeyFromName(header, wcsname):
 
     Parameters
     ----------
-    header:  pyfits.Header
-    wcsname: str
-             Value of WCSNAME
+    header :  `astropy.io.fits.Header`
+    wcsname : str
+        value of WCSNAME
     """
     wkey = None
     names = wcsnames(header)
@@ -648,7 +650,7 @@ def pc2cd(hdr, key=' '):
 
     Parameters
     ----------
-    hdr: pyfits.Header
+    hdr: `astropy.io.fits.Header`
 
     """
     for c in ['1_1', '1_2', '2_1', '2_2']:
@@ -668,19 +670,20 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     """
     Check input parameters to altwcs functions
 
-    fobj:    string or pyfits.HDUList object
-             a file name or a file object
-    ext:     an int, a tuple, a python list of integers or a python list
-             of tuples (e.g.('sci',1))
-             fits extensions to work with
-    wcskey:  a charater
-             "A"-"Z" or " "- Used for one of 26 alternate WCS definitions
-    wcsname: string (optional)
-             if given and wcskey is " ", will try to restore by WCSNAME value
-    reusekey: boolean
-             A flag which indicates whether to reuse a wcskey in the header
+    fobj : str or `astropy.io.fits.HDUList` object
+        a file name or a file object
+    ext : int, a tuple, a python list of integers or a python list
+        of tuples (e.g.('sci',1))
+        fits extensions to work with
+    wcskey : str
+        "A"-"Z" or " "- Used for one of 26 alternate WCS definitions
+    wcsname : str
+        (optional)
+        if given and wcskey is " ", will try to restore by WCSNAME value
+    reusekey : bool
+        A flag which indicates whether to reuse a wcskey in the header
     """
-    if not isinstance(fobj,pyfits.HDUList):
+    if not isinstance(fobj, fits.HDUList):
         print "First parameter must be a fits file object or a file name."
         return False
 
@@ -730,8 +733,8 @@ def mapFitsExt2HDUListInd(fname, extname):
     Map FITS extensions with 'EXTNAME' to HDUList indexes.
     """
 
-    if not isinstance(fname, pyfits.HDUList):
-        f = pyfits.open(fname)
+    if not isinstance(fname, fits.HDUList):
+        f = fits.open(fname)
         close_file = True
     else:
         f = fname

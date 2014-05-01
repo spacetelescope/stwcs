@@ -1,6 +1,6 @@
 from __future__ import division # confidence high
 
-from astropy.io import fits as pyfits
+from astropy.io import fits
 from stsci.tools import fileutil
 import utils
 import numpy as np
@@ -37,15 +37,15 @@ class NPOLCorr(object):
         """
         Parameters
         ----------
-        fobj: pyfits object
-                Science file, for which a distortion correction in a NPOLFILE is available
+        fobj : `astropy.io.fits.HDUList` object
+            Science file, for which a distortion correction in a NPOLFILE is available
 
         """
         logger.info("\n\tStarting NPOL: %s" %time.asctime())
         try:
-            assert isinstance(fobj, pyfits.HDUList)
+            assert isinstance(fobj, fits.HDUList)
         except AssertionError:
-            logger.exception('\n\tInput must be a pyfits.HDUList object')
+            logger.exception('\n\tInput must be a fits.HDUList object')
             raise
 
         cls.applyNPOLCorr(fobj)
@@ -58,7 +58,7 @@ class NPOLCorr(object):
 
     def applyNPOLCorr(cls, fobj):
         """
-        For each science extension in a pyfits file object:
+        For each science extension in a fits file object:
             - create a WCSDVARR extension
             - update science header
             - add/update NPOLEXT keyword
@@ -168,7 +168,7 @@ class NPOLCorr(object):
         Get the data arrays from the reference NPOL files
         Make sure 'CCDCHIP' in the npolfile matches "CCDCHIP' in the science file.
         """
-        npl = pyfits.open(nplfile)
+        npl = fits.open(nplfile)
         for ext in npl:
             nplextname  = ext.header.get('EXTNAME',"")
             nplccdchip  = ext.header.get('CCDCHIP',1)
@@ -224,7 +224,7 @@ class NPOLCorr(object):
         Creates an HDU to be added to the file object.
         """
         hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip)
-        hdu=pyfits.ImageHDU(header=hdr, data=data)
+        hdu = fits.ImageHDU(header=hdr, data=data)
         return hdu
 
     createNpolHDU = classmethod(createNpolHDU)
@@ -237,7 +237,7 @@ class NPOLCorr(object):
         i ssuch that a full size npol table is created and then shifted or scaled
         if the science image is a subarray or binned image.
         """
-        npl = pyfits.open(npolfile)
+        npl = fits.open(npolfile)
         npol_phdr = npl[0].header
         for ext in npl:
             try:
@@ -315,7 +315,7 @@ class NPOLCorr(object):
             for card in npol_phdr.cards[start_indx:end_indx]:
                 cdl.append(card)
 
-        hdr = pyfits.Header(cards=cdl)
+        hdr = fits.Header(cards=cdl)
 
         return hdr
 

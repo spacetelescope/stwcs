@@ -1,7 +1,5 @@
 import os
 
-#import pyfits
-from astropy.io import fits as pyfits
 from stsci.tools import teal
 
 import stwcs

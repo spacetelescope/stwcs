@@ -1,4 +1,4 @@
-from astropy.io import fits as pyfits
+from astropy.io import fits
 from stsci.tools import irafglob, fileutil, parseinput
 
 def parseSingleInput(f=None, ext=None):
@@ -20,14 +20,14 @@ def parseSingleInput(f=None, ext=None):
                 extnum = int(ext[1]) #handle ext=('',extnum)
             else:
                 extnum = ext
-        phdu = pyfits.open(filename)
+        phdu = fits.open(filename)
         hdr0 = phdu[0].header
         try:
             ehdr = phdu[extnum].header
         except (IndexError, KeyError), e:
             raise e.__class__('Unable to get extension %s.' % extnum)
 
-    elif isinstance(f, pyfits.HDUList):
+    elif isinstance(f, fits.HDUList):
         phdu = f
         if ext == None:
             extnum = 0
@@ -38,8 +38,8 @@ def parseSingleInput(f=None, ext=None):
         filename = hdr0.get('FILENAME', "")
 
     else:
-        raise ValueError('Input must be a file name string or a pyfits file '
-                         'object')
+        raise ValueError('Input must be a file name string or a'
+                         '`astropy.io.fits.HDUList` object')
 
     return filename, hdr0, ehdr, phdu
 

@@ -1,7 +1,6 @@
 from __future__ import division # confidence high
 import os
 import numpy as np
-#import pywcs
 from astropy import wcs as pywcs
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
@@ -24,7 +23,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     undistort: boolean (default-True)
               a flag whether to create an undistorted output WCS
     """
-    fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
+    fra_dec = np.vstack([w.calc_footprint() for w in list_of_wcsobj])
     wcsname = list_of_wcsobj[0].wcs.name
 
     # This new algorithm may not be strictly necessary, but it may be more

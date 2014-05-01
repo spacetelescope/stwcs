@@ -1,12 +1,11 @@
 from __future__ import division # confidence high
 
 import os
-from astropy.io import fits as pyfits
+from astropy.io import fits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import stwcs
-#import pywcs
 from astropy import wcs as pywcs
 import astropy
 
@@ -23,8 +22,6 @@ import atexit
 atexit.register(logging.shutdown)
 
 #Note: The order of corrections is important
-
-__docformat__ = 'restructuredtext'
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               checkfiles=True, verbose=False):
@@ -46,8 +43,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     Dependencies
     ------------
     `stsci.tools`
-    `pyfits`
-    `pywcs`
+    `astropy.io.fits`
+    `astropy.wcs`
 
     Parameters
     ----------
@@ -114,7 +111,7 @@ def makecorr(fname, allowed_corr):
              list of corrections to be applied
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
@@ -181,7 +178,7 @@ def makecorr(fname, allowed_corr):
         f[0].header.set('UPWCSVER', value=stwcs.__version__,
                         comment="Version of STWCS used to updated the WCS",
                         after='ASN_MTYP')
-        f[0].header.set('PYWCSVER', value=pywcs.__version__,
+        f[0].header.set('PYWCSVER', value=astropy.__version__,
                         comment="Version of PYWCS used to updated the WCS",
                         after='ASN_MTYP')
     else:
@@ -192,7 +189,7 @@ def makecorr(fname, allowed_corr):
             f[0].header.set('UPWCSVER', stwcs.__version__,
                             "Version of STWCS used to updated the WCS",
                             after=i)
-            f[0].header.set('PYWCSVER', pywcs.__version__,
+            f[0].header.set('PYWCSVER', astropy.__version__,
                             "Version of PYWCS used to updated the WCS",
                             after=i)
     # add additional keywords to be used by headerlets
@@ -231,7 +228,7 @@ def getNrefchip(fobj):
 
     Parameters
     ----------
-    fobj: pyfits HDUList object
+    fobj: `astropy.io.fits.HDUList` object
     """
     nrefext = 1
     nrefchip = 1
@@ -337,7 +334,7 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     #When this is called we know there's a kw IDCTAB in the header
-    hdul = pyfits.open(fname)
+    hdul = fits.open(fname)
     idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
     try:
         #check for the presence of IDCTAB in the first extension
@@ -352,7 +349,7 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(f[1].header)
     # Remove the primary WCS from the list
     try:

@@ -19,7 +19,7 @@ import copy
 import time
 
 import numpy as np
-from astropy.io import fits as pyfits
+from astropy.io import fits
 #import pywcs
 from astropy import wcs as pywcs
 from astropy.utils import lazyproperty
@@ -125,27 +125,28 @@ def parse_filename(fname, mode='readonly'):
 
     Parameters
     ----------
-    fname: string, pyfits.HDUList
-        Input pointing to a file or PyFITS object. An input filename (str) will
-        be expanded as necessary to interpret any environmental variables
+    fname : str, `astropy.io.fits.HDUList`
+        Input pointing to a file or `astropy.io.fits.HDUList` object.
+        An input filename (str) will be expanded as necessary to
+        interpret any environmental variables
         included in the filename.
 
-    mode: string
-        Specifies what PyFITS mode to use when opening the file, if it needs
+    mode : string
+        Specifies what mode to use when opening the file, if it needs
         to open the file at all [Default: 'readonly']
 
     Returns
     -------
-    fobj: pyfits.HDUList
-        PyFITS handle for input file
+    fobj : `astropy.io.fits.HDUList`
+        FITS file handle for input
 
-    fname: string
+    fname : str
         Name of input file
 
-    close_fobj: bool
+    close_fobj : bool
         Flag specifying whether or not fobj needs to be closed since it was
         opened by this function. This allows a program to know whether they
-        need to worry about closing the PyFITS object as opposed to letting
+        need to worry about closing the FITS object as opposed to letting
         the higher level interface close the object.
 
     """
@@ -153,7 +154,7 @@ def parse_filename(fname, mode='readonly'):
     if not isinstance(fname, list):
         if isinstance(fname, basestring):
             fname = fu.osfn(fname)
-        fobj = pyfits.open(fname, mode=mode)
+        fobj = fits.open(fname, mode=mode)
         close_fobj = True
     else:
         fobj = fname
@@ -170,8 +171,8 @@ def get_headerlet_kw_names(fobj, kw='HDRNAME'):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList
-    kw: str
+    fobj : str, `astropy.io.fits.HDUList`
+    kw : str
         Name of keyword to be read and reported
     """
 
@@ -179,7 +180,7 @@ def get_headerlet_kw_names(fobj, kw='HDRNAME'):
 
     hdrnames = []
     for ext in fobj:
-        if isinstance(ext, pyfits.hdu.base.NonstandardExtHDU):
+        if isinstance(ext, fits.hdu.base.NonstandardExtHDU):
             hdrnames.append(ext.header[kw])
 
     if open_fobj:
@@ -205,27 +206,27 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList
-        Name of FITS file or open pyfits object (pyfits.HDUList instance)
-    hdrext: int, tuple or None
+    fobj : str, `astropy.io.fits.HDUList`
+        Name of FITS file or open fits object (`astropy.io.fits.HDUList` instance)
+    hdrext : int, tuple or None
         index number(EXTVER) or extension tuple of HeaderletHDU to be returned
-    hdrname: string
+    hdrname : string
         value of HDRNAME for HeaderletHDU to be returned
-    distname: string
+    distname : string
         value of DISTNAME for HeaderletHDUs to be returned
-    strict: bool [Default: True]
+    strict : bool [Default: True]
         Specifies whether or not at least one parameter needs to be provided
         If False, all extension indices returned if hdrext, hdrname and distname
         are all None. If True and hdrext, hdrname, and distname are all None,
         raise an Exception requiring one to be specified.
-    logging: boolean
+    logging : boolean
              enable logging to a file called headerlet.log
-    logmode: 'w' or 'a'
+    logmode : 'w' or 'a'
              log file open mode
 
     Returns
     -------
-    hdrlets: list
+    hdrlets : list
         A list of all matching HeaderletHDU extension indices (could be just one)
 
     """
@@ -249,12 +250,12 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
     hdrlets = []
     if hdrext is not None and isinstance(hdrext, int):
         if hdrext in range(len(fobj)): # insure specified hdrext is in fobj
-            if isinstance(fobj[hdrext], pyfits.hdu.base.NonstandardExtHDU) and \
+            if isinstance(fobj[hdrext], fits.hdu.base.NonstandardExtHDU) and \
                 fobj[hdrext].header['EXTNAME'] == 'HDRLET':
                 hdrlets.append(hdrext)
     else:
         for ext in fobj:
-            if isinstance(ext, pyfits.hdu.base.NonstandardExtHDU):
+            if isinstance(ext, fits.hdu.base.NonstandardExtHDU):
                 if get_all:
                     hdrlets.append(fobj.index(ext))
                 else:
@@ -305,9 +306,9 @@ def verify_hdrname_is_unique(fobj, hdrname):
 
     Parameters
     ----------
-    fobj: string, pyfits.HDUList
-        Name of FITS file or open pyfits object (pyfits.HDUList instance)
-    hdrname: string
+    fobj : str, `astropy.io.fits.HDUList`
+        Name of FITS file or open fits file object
+    hdrname : str
         value of HDRNAME for HeaderletHDU to be compared as unique
 
     Returns
@@ -340,8 +341,8 @@ def update_ref_files(source, dest):
 
     Parameters
     ----------
-    source: pyfits.Header
-    dest:   pyfits.Header
+    source : `astropy.io.fits.Header`
+    dest :   `astropy.io.fits.Header`
     """
     logger.info("Updating reference files")
     phdukw = {'NPOLFILE': True,
@@ -470,7 +471,7 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
     upwcsver = fobj[0].header.get('UPWCSVER', "")
     pywcsver = fobj[0].header.get('PYWCSVER', "")
     # build Primary HDU
-    phdu = pyfits.PrimaryHDU()
+    phdu = fits.PrimaryHDU()
     phdu.header['DESTIM'] = (destim, 'Destination observation root name')
     phdu.header['HDRNAME'] = (hdrname, 'Headerlet name')
     fmt = "%Y-%m-%dT%H:%M:%S"
@@ -555,7 +556,7 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
 
     """
 
-    if isinstance(filename, pyfits.HDUList):
+    if isinstance(filename, fits.HDUList):
         filename = [filename]
     else:
         filename, oname = parseinput.parseinput(filename)
@@ -689,7 +690,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
          enable file logging
     """
 
-    if isinstance(filename, pyfits.HDUList):
+    if isinstance(filename, fits.HDUList):
         filename = [filename]
     else:
         filename, oname = parseinput.parseinput(filename)
@@ -1021,7 +1022,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
 
         hwcs = HSTWCS(fobj, ext=ext, wcskey=wcskey)
 
-        whdul = hwcs.to_fits(relax=True, wkey=" ")
+        whdul = hwcs.to_fits(relax=True, key=" ")
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
             whdul[0].header['ORIENTAT'] = (wcs.orientat, orient_comment)
@@ -1064,7 +1065,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 whdul[0].header['DP1.EXTVER'] = fobj[ext].header['DP1.EXTVER']
             if 'DP2.EXTVER' in whdul[0].header:
                 whdul[0].header['DP2.EXTVER'] = fobj[ext].header['DP2.EXTVER']
-        ihdu = pyfits.ImageHDU(header=whdul[0].header, name='SIPWCS')
+        ihdu = fits.ImageHDU(header=whdul[0].header, name='SIPWCS')
 
         if ext[0] != "PRIMARY":
             ihdu.update_ext_version(fobj[ext].header['EXTVER'], comment='Extension version')
@@ -1761,7 +1762,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
         fobj.close()
 
 #### Headerlet Class definitions
-class Headerlet(pyfits.HDUList):
+class Headerlet(fits.HDUList):
     """
     A Headerlet class
     Ref: http://mediawiki.stsci.edu/mediawiki/index.php/Telescopedia:Headerlets
@@ -2133,7 +2134,7 @@ class Headerlet(pyfits.HDUList):
 
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
-            hwcs_header = hwcs.to_header(wkey=wkey)
+            hwcs_header = hwcs.to_header(key=wkey)
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():
                 hwcs_header = altwcs.pc2cd(hwcs_header, key=wkey)
@@ -2144,7 +2145,7 @@ class Headerlet(pyfits.HDUList):
             for kw in self.fit_kws:
                 #fhdr.insert(wind, pyfits.Card(kw + wkey,
                 #                              self[0].header[kw]))
-                fhdr.append(pyfits.Card(kw + wkey, self[0].header[kw]))
+                fhdr.append(fits.Card(kw + wkey, self[0].header[kw]))
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2301,8 +2302,8 @@ class Headerlet(pyfits.HDUList):
         model/reference files.
         """
         destim_opened = False
-        if not isinstance(dest, pyfits.HDUList):
-            destim = pyfits.open(dest)
+        if not isinstance(dest, fits.HDUList):
+            destim = fits.open(dest)
             destim_opened = True
         else:
             destim = dest
@@ -2333,8 +2334,8 @@ class Headerlet(pyfits.HDUList):
         of the science file (or the name of the destination file)
         """
         try:
-            if not isinstance(dest, pyfits.HDUList):
-                droot = pyfits.getval(dest, 'ROOTNAME')
+            if not isinstance(dest, fits.HDUList):
+                droot = fits.getval(dest, 'ROOTNAME')
             else:
                 droot = dest[0].header['ROOTNAME']
         except KeyError:
@@ -2660,7 +2661,7 @@ def get_extname_extver_list(fobj, sciext):
     return extlist
 
 
-class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
+class HeaderletHDU(fits.hdu.nonstandard.FitsHDU):
     """
     A non-standard extension HDU for encapsulating Headerlets in a file.  These
     HDUs have an extension type of HDRLET and their EXTNAME is derived from the
@@ -2740,4 +2741,4 @@ class HeaderletHDU(pyfits.hdu.nonstandard.FitsHDU):
         return hlet
 
 
-pyfits.register_hdu(HeaderletHDU)
+fits.register_hdu(HeaderletHDU)

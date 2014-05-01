@@ -35,8 +35,8 @@ def updateNEXTENDKw(fobj):
 
     Parameters
     -----------
-    fobj : pyfits.HDUList
-        PyFITS object for file opened in update mode
+    fobj : `astropy.io.fits.HDUList`
+        The FITS object for file opened in `update` mode
 
     """
     if 'nextend' in fobj[0].header:
@@ -124,11 +124,11 @@ def build_sipname(fobj, fname=None, sipname=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    fname: string
-          science file name (to be used if ROOTNAMe is not present
-    sipname: string
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    fname : string
+          science file name (to be used if ROOTNAME is not present
+    sipname : string
           user supplied SIPNAME keyword
 
     Returns
@@ -169,10 +169,10 @@ def build_npolname(fobj, npolfile=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    npolfile: string
-          user supplied NPOLFILE keyword
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    npolfile : string
+        user supplied NPOLFILE keyword
 
     Returns
     -------
@@ -202,10 +202,10 @@ def build_d2imname(fobj, d2imfile=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    d2imfile: string
-          user supplied NPOLFILE keyword
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    d2imfile : string
+        user supplied NPOLFILE keyword
 
     Returns
     -------
