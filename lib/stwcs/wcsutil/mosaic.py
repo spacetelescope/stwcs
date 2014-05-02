@@ -74,7 +74,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
                              [0, outwcs._naxis2], [0, 0]])
         plt.plot(outc[:,0], outc[:,1])
     for wobj in wcsobjects:
-        outcorners = outwcs.wcs_sky2pix(wobj.calcFootprint(),1)
+        outcorners = outwcs.wcs_world2pix(wobj.calc_footprint(),1)
         if plot:
             plt.plot(outcorners[:,0], outcorners[:,1])
         objwcs = outwcs.deepcopy()

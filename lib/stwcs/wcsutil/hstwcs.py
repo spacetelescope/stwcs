@@ -433,7 +433,7 @@ class HSTWCS(WCS):
         k - one of 'a', 'b', 'ap', 'bp'
         """
 
-        cards = fits.CardList()
+        cards = [] #fits.CardList()
         korder = self.sip.__getattribute__(k+'_order')
         cards.append(fits.Card(keyword=k.upper()+'_ORDER', value=korder))
         coeffs = self.sip.__getattribute__(k)
@@ -447,7 +447,7 @@ class HSTWCS(WCS):
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
-        cards = fits.CardList()
+        cards = [] #fits.CardList()
         for c in coeffs:
             try:
                 val = self.__getattribute__(c)
@@ -591,7 +591,7 @@ detect_divergence=True, quiet=False)
 
         Using the method of consecutive approximations we iterate starting
         with the initial approximation, which is computed using the
-        non-distorion-aware :py:meth:`wcs_sky2pix` (or equivalent).
+        non-distorion-aware :py:meth:`wcs_world2pix` (or equivalent).
 
         The :py:meth:`all_world2pix` function uses a vectorized implementation
         of the method of consecutive approximations and therefore it is
@@ -734,7 +734,7 @@ adaptive=False, detect_divergence=False, quiet=False)
         #####################################################################
         ##                INITIALIZE ITERATIVE PROCESS:                    ##
         #####################################################################
-        x0, y0 = self.wcs_sky2pix(ra, dec, origin) # <-- initial approximation
+        x0, y0 = self.wcs_world2pix(ra, dec, origin) # <-- initial approximation
                                                   #     (WCS based only)
 
         # see if an iterative solution is required (when any of the
@@ -796,8 +796,8 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx, dy = self.pix2foc(x, y, origin)
                 # If pix2foc does not apply all the required distortion
                 # corrections then replace the above line with:
-                #r0, d0 = self.all_pix2sky(x, y, origin)
-                #dx, dy = self.wcs_sky2pix(r0, d0, origin )
+                #r0, d0 = self.all_pix2world(x, y, origin)
+                #dx, dy = self.wcs_world2pix(r0, d0, origin )
                 dx -= x0
                 dy -= y0
 
@@ -845,8 +845,8 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx[ind], dy[ind] = self.pix2foc(x[ind], y[ind], origin)
                 # If pix2foc does not apply all the required distortion
                 # corrections then replace the above line with:
-                #r0[ind], d0[ind] = self.all_pix2sky(x[ind], y[ind], origin)
-                #dx[ind], dy[ind] = self.wcs_sky2pix(r0[ind], d0[ind], origin)
+                #r0[ind], d0[ind] = self.all_pix2world(x[ind], y[ind], origin)
+                #dx[ind], dy[ind] = self.wcs_world2pix(r0[ind], d0[ind], origin)
                 dx[ind] -= x0[ind]
                 dy[ind] -= y0[ind]
 

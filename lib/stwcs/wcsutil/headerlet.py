@@ -2657,7 +2657,6 @@ def get_extname_extver_list(fobj, sciext):
               "    a valid EXTNAME string, or an integer."
         logger.critical(errstr)
         raise ValueError
-    print 'extlist', extlist
     return extlist
 
 
