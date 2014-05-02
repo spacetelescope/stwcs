@@ -1025,7 +1025,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         whdul = hwcs.to_fits(relax=True, key=" ")
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
-            whdul[0].header['ORIENTAT'] = (wcs.orientat, orient_comment)
+            whdul[0].header['ORIENTAT'] = (hwcs.orientat, orient_comment)
 
         whdul[0].header.append(('TG_ENAME', ext[0], 'Target science data extname'))
         whdul[0].header.append(('TG_EVER', ext[1], 'Target science data extver'))
