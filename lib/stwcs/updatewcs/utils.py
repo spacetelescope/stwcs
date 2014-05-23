@@ -137,8 +137,10 @@ def build_sipname(fobj, fname=None, sipname=None):
     """
     try:
         idctab = fobj[0].header['IDCTAB']
+        idcname = extract_rootname(idctab,suffix='_idc')
     except KeyError:
         idctab = 'N/A'
+        idcname= 'N/A'
     if not fname:
         try:
             fname = fobj.filename()
@@ -147,15 +149,16 @@ def build_sipname(fobj, fname=None, sipname=None):
     if not sipname:
         try:
             sipname = fobj[0].header["SIPNAME"]
+            if idcname == 'N/A' or idcname not in sipname:
+                raise KeyError
         except KeyError:
-            try:
-                idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')
+            if idcname != 'N/A':
                 try:
                     rootname = fobj[0].header['rootname']
                 except KeyError:
                     rootname = fname
                 sipname = rootname +'_'+ idcname
-            except KeyError:
+            else:
                 if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
                     sipname = 'UNKNOWN'
                 else:

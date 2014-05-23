@@ -428,10 +428,14 @@ def _restore(fobj, ukey, fromextnum,
             continue
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
-        fobj[toeztension].header['TDDBETA'] = 0.0
+        fobj[toextension].header['TDDBETA'] = 0.0
     if 'ORIENTAT' in fobj[toextension].header:
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2'+'%s' %ukey], hwcs['CD2_2'+'%s' %ukey]))
         fobj[toextension].header['ORIENTAT'] = norient
+    # Reset 2014 TDD keywords prior to computing new values (if any are computed)
+    for kw in ['TDD_CYA','TDD_CYB']:
+        if kw in fobj[toextension].header:
+            fobj[toextension].header[kw] = 0.0
 
 #header operations
 def _check_headerpars(fobj, ext):

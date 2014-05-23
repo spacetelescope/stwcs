@@ -73,7 +73,9 @@ class TDDCorr(object):
             cls.apply_tdd2idc2(ext_wcs)
             newkw = {'TDDALPHA': None, 'TDDBETA':None, 'OCX10':ext_wcs.idcmodel.cx[1,0],
                     'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
-                    'OCY11':ext_wcs.idcmodel.cy[1,1],}
+                    'OCY11':ext_wcs.idcmodel.cy[1,1],
+                    'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
+                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA']}
 
         else:
             alpha, beta = cls.compute_alpha_beta(ext_wcs)
@@ -86,7 +88,8 @@ class TDDCorr(object):
 
             newkw = {'TDDALPHA': alpha, 'TDDBETA':beta, 'OCX10':ext_wcs.idcmodel.cx[1,0],
                     'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
-                    'OCY11':ext_wcs.idcmodel.cy[1,1],}
+                    'OCY11':ext_wcs.idcmodel.cy[1,1],
+                    'TDD_CYA':None, 'TDD_CYB':None}
 
         return newkw
     updateWCS = classmethod(updateWCS)
