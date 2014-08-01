@@ -1,4 +1,4 @@
-import pyfits
+from astropy.io import fits
 try:
     import stwcs
     from stwcs import wcsutil
@@ -18,8 +18,8 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
 
         Parameters
         ----------
-        fobj: string or pyfits.HDUList
-            Filename or pyfits object of a file
+        fobj : str or `astropy.io.fits.HDUList`
+            Filename or fits object of a file
 
     """
     if stwcs is None:
@@ -32,7 +32,7 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
     closefits = False
     if isinstance(fobj,str):
         # A filename was provided as input
-        fobj = pyfits.open(fobj,mode='update')
+        fobj = fits.open(fobj,mode='update')
         closefits=True
 
     # Define the header
@@ -78,13 +78,13 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
 
         Parameters
         ----------
-        fobj: string or pyfits.HDUList
-            Filename or pyfits object of a file
+        fobj : str or `astropy.io.fits.HDUList`
+            Filename or fits object of a file
 
         Raises
         ------
         IOError:
-            if input PyFITS object was not opened in 'update' mode
+            if input FITS object was not opened in 'update' mode
 
     """
     # List of O-prefix keywords to create
@@ -93,7 +93,7 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
     closefits = False
     if isinstance(fobj,str):
         # A filename was provided as input
-        fobj = pyfits.open(fobj,mode='update')
+        fobj = fits.open(fobj, mode='update')
         closefits=True
     else:
         # check to make sure this FITS obj has been opened in update mode

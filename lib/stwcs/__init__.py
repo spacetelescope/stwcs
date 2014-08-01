@@ -18,7 +18,6 @@ from __future__ import division # confidence high
 import os
 
 import distortion
-import pywcs
 from stsci.tools import fileutil
 from stsci.tools import teal
 

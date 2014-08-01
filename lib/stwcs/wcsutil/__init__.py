@@ -3,16 +3,14 @@ from __future__ import division # confidence high
 from altwcs import *
 from hstwcs import HSTWCS
 
-__docformat__ = 'restructuredtext'
-
 
 def help():
     print 'How to create an HSTWCS object:\n\n'
     print """ \
-    1. Using a pyfits HDUList object and an extension number \n
+    1. Using a `astropy.io.fits.HDUList` object and an extension number \n
     Example:\n
-
-    fobj = pyfits.open('some_file.fits')\n
+    from astropy.io improt fits
+    fobj = fits.open('some_file.fits')\n
     w = wcsutil.HSTWCS(fobj, 3)\n\n
 
     2. Create an HSTWCS object using a qualified file name. \n

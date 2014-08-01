@@ -35,8 +35,8 @@ def updateNEXTENDKw(fobj):
 
     Parameters
     -----------
-    fobj : pyfits.HDUList
-        PyFITS object for file opened in update mode
+    fobj : `astropy.io.fits.HDUList`
+        The FITS object for file opened in `update` mode
 
     """
     if 'nextend' in fobj[0].header:
@@ -124,11 +124,11 @@ def build_sipname(fobj, fname=None, sipname=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    fname: string
-          science file name (to be used if ROOTNAMe is not present
-    sipname: string
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    fname : string
+          science file name (to be used if ROOTNAME is not present
+    sipname : string
           user supplied SIPNAME keyword
 
     Returns
@@ -137,8 +137,10 @@ def build_sipname(fobj, fname=None, sipname=None):
     """
     try:
         idctab = fobj[0].header['IDCTAB']
+        idcname = extract_rootname(idctab,suffix='_idc')
     except KeyError:
         idctab = 'N/A'
+        idcname= 'N/A'
     if not fname:
         try:
             fname = fobj.filename()
@@ -147,15 +149,16 @@ def build_sipname(fobj, fname=None, sipname=None):
     if not sipname:
         try:
             sipname = fobj[0].header["SIPNAME"]
+            if idcname == 'N/A' or idcname not in sipname:
+                raise KeyError
         except KeyError:
-            try:
-                idcname = extract_rootname(fobj[0].header["IDCTAB"],suffix='_idc')
+            if idcname != 'N/A':
                 try:
                     rootname = fobj[0].header['rootname']
                 except KeyError:
                     rootname = fname
                 sipname = rootname +'_'+ idcname
-            except KeyError:
+            else:
                 if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
                     sipname = 'UNKNOWN'
                 else:
@@ -169,10 +172,10 @@ def build_npolname(fobj, npolfile=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    npolfile: string
-          user supplied NPOLFILE keyword
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    npolfile : string
+        user supplied NPOLFILE keyword
 
     Returns
     -------
@@ -202,10 +205,10 @@ def build_d2imname(fobj, d2imfile=None):
 
     Parameters
     ----------
-    fobj: HDUList
-          pyfits file object
-    d2imfile: string
-          user supplied NPOLFILE keyword
+    fobj : `astropy.io.fits.HDUList`
+        file object
+    d2imfile : string
+        user supplied NPOLFILE keyword
 
     Returns
     -------

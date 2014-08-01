@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 
 import os
-import pyfits
+from astropy.io import fits
 import time
 from stsci.tools import fileutil
 import os.path
@@ -38,7 +38,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     based on user input paramters and allowed corrections
     for the instrument.
     """
-    instrument = pyfits.getval(fname, 'INSTRUME')
+    instrument = fits.getval(fname, 'INSTRUME')
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
 
@@ -66,7 +66,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
 
 def foundIDCTAB(fname):
     try:
-        idctab = fileutil.osfn(pyfits.getval(fname, 'IDCTAB'))
+        idctab = fileutil.osfn(fits.getval(fname, 'IDCTAB'))
     except KeyError:
         return False
     if idctab == 'N/A' or idctab == "":
@@ -85,7 +85,7 @@ def applyTDDCorr(fname, utddcorr):
     - the idc table specified in the primary header is available.
     """
 
-    phdr = pyfits.getheader(fname)
+    phdr = fits.getheader(fname)
     instrument = phdr['INSTRUME']
     try:
         detector = phdr['DETECTOR']
@@ -127,7 +127,7 @@ def applyNpolCorr(fname, unpolcorr):
     applyNPOLCorr = True
     try:
         # get NPOLFILE kw from primary header
-        fnpol0 = pyfits.getval(fname, 'NPOLFILE')
+        fnpol0 = fits.getval(fname, 'NPOLFILE')
         if fnpol0 == 'N/A':
             return False
         fnpol0 = fileutil.osfn(fnpol0)
@@ -140,7 +140,7 @@ def applyNpolCorr(fname, unpolcorr):
             return applyNPOLCorr
         try:
             # get NPOLEXT kw from first extension header
-            fnpol1 = pyfits.getval(fname, 'NPOLEXT', ext=1)
+            fnpol1 = fits.getval(fname, 'NPOLEXT', ext=1)
             fnpol1 = fileutil.osfn(fnpol1)
             if fnpol1 and fileutil.findFile(fnpol1):
                 if fnpol0 != fnpol1:
@@ -172,8 +172,8 @@ def isOldStyleDGEO(fname, dgname):
     # checks if the file defined in a NPOLFILE kw is a full size
     # (old style) image
 
-    sci_hdr = pyfits.getheader(fname, ext=1)
-    dgeo_hdr = pyfits.getheader(dgname, ext=1)
+    sci_hdr = fits.getheader(fname, ext=1)
+    dgeo_hdr = fits.getheader(dgname, ext=1)
     sci_naxis1 = sci_hdr['NAXIS1']
     sci_naxis2 = sci_hdr['NAXIS2']
     dg_naxis1 = dgeo_hdr['NAXIS1']
@@ -190,7 +190,7 @@ def applyD2ImCorr(fname, d2imcorr):
     applyD2IMCorr = True
     try:
         # get D2IMFILE kw from primary header
-        fd2im0 = pyfits.getval(fname, 'D2IMFILE')
+        fd2im0 = fits.getval(fname, 'D2IMFILE')
         if fd2im0 == 'N/A':
             return False
         fd2im0 = fileutil.osfn(fd2im0)
@@ -203,7 +203,7 @@ def applyD2ImCorr(fname, d2imcorr):
             return applyD2IMCorr
         try:
             # get D2IMEXT kw from first extension header
-            fd2imext = pyfits.getval(fname, 'D2IMEXT', ext=1)
+            fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
             fd2imext = fileutil.osfn(fd2imext)
             if fd2imext and fileutil.findFile(fd2imext):
                 if fd2im0 != fd2imext:

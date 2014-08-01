@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 from matplotlib import pyplot as plt
-import pyfits
+from astropy.io import fits
 import string
 
 from stsci.tools import parseinput, irafglob
@@ -69,12 +69,12 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
         else:
             outwcs = utils.output_wcs(wcsobjects, undistort=undistort)
     if plot:
-        outc=np.array([[0.,0], [outwcs.naxis1,0],
-                             [outwcs.naxis1, outwcs.naxis2],
-                             [0,outwcs.naxis2], [0,0]])
+        outc=np.array([[0.,0], [outwcs._naxis1, 0],
+                             [outwcs._naxis1, outwcs._naxis2],
+                             [0, outwcs._naxis2], [0, 0]])
         plt.plot(outc[:,0], outc[:,1])
     for wobj in wcsobjects:
-        outcorners = outwcs.wcs_sky2pix(wobj.calcFootprint(),1)
+        outcorners = outwcs.wcs_world2pix(wobj.calc_footprint(),1)
         if plot:
             plt.plot(outcorners[:,0], outcorners[:,1])
         objwcs = outwcs.deepcopy()
@@ -83,7 +83,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
     return outwcs
 
 def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
-    hdr = pyfits.getheader(fname, ext=ext)
+    hdr = fits.getheader(fname, ext=ext)
     all_keys = list(string.ascii_uppercase)
     if wkey.upper() not in all_keys:
         raise KeyError, "wkey must be one character: A-Z"
@@ -92,13 +92,13 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
             raise ValueError, "wkey %s is already in use. Use clobber=True to overwrite it or specify a different key." %wkey
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
 
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
-    f[ext].header.update(key=wcsnamekey, value=wcsname)
+    f[ext].header[wcsnamekey] = wcsname
     for k in hwcs.keys():
-        f[ext].header.update(key=k[:7]+wkey, value=hwcs[k])
+        f[ext].header[k[:7]+wkey] = hwcs[k]
 
     f.close()
 
@@ -108,12 +108,12 @@ def wcs2header(wcsobj):
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
-    h.update('CTYPE1', 'RA---TAN')
-    h.update('CTYPE2', 'DEC--TAN')
+    h['CTYPE1'] = 'RA---TAN'
+    h['CTYPE2'] = 'DEC--TAN'
     norient = np.rad2deg(np.arctan2(h['CD1_2'],h['CD2_2']))
     #okey = 'ORIENT%s' % wkey
     okey = 'ORIENT'
-    h.update(key=okey, value=norient)
+    h[okey] = norient
     return h
 
 def readWCS(input, exts=None, extname=None):
@@ -152,7 +152,7 @@ def readWCS(input, exts=None, extname=None):
                 continue
     elif extname != None:
         for f in filelist:
-            fobj = pyfits.open(f)
+            fobj = fits.open(f)
             for i in range(len(fobj)):
                 try:
                     ename = fobj[i].header['EXTNAME']

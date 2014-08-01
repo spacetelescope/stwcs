@@ -1,7 +1,7 @@
 from __future__ import division # confidence high
 import os
 import numpy as np
-import pywcs
+from astropy import wcs as pywcs
 from stwcs import wcsutil
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil
@@ -23,7 +23,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
     undistort: boolean (default-True)
               a flag whether to create an undistorted output WCS
     """
-    fra_dec = np.vstack([w.calcFootprint() for w in list_of_wcsobj])
+    fra_dec = np.vstack([w.calc_footprint() for w in list_of_wcsobj])
     wcsname = list_of_wcsobj[0].wcs.name
 
     # This new algorithm may not be strictly necessary, but it may be more
@@ -49,9 +49,9 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
 
     tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']
 
-    outwcs.naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
-    outwcs.naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
-    crpix = np.array([outwcs.naxis1/2., outwcs.naxis2/2.], dtype=np.float64)
+    outwcs._naxis1 = int(np.ceil(tanpix[:,0].max() - tanpix[:,0].min()))
+    outwcs._naxis2 = int(np.ceil(tanpix[:,1].max() - tanpix[:,1].min()))
+    crpix = np.array([outwcs._naxis1/2., outwcs._naxis2/2.], dtype=np.float64)
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']

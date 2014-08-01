@@ -1,7 +1,7 @@
 from __future__ import print_function
-import pywcs
+from astropy import wcs as pywcs
 from collections import OrderedDict
-import pyfits
+from astropy.io import fits
 from .headerlet import parse_filename
 import numpy as np
 
@@ -126,10 +126,10 @@ def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
 
 def get_rootname(fname):
     """
-    returns the value of ROOTNAME or DESTIM
+    Returns the value of ROOTNAME or DESTIM
     """
 
-    hdr = pyfits.getheader(fname)
+    hdr = fits.getheader(fname)
     try:
         rootname = hdr['ROOTNAME']
     except KeyError:

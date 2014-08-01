@@ -1,6 +1,4 @@
 import os
-
-import pyfits
 from stsci.tools import teal
 
 import stwcs
@@ -31,7 +29,7 @@ def getHelpAsString(docstring=False):
     return helpString
 
 def run(configObj=None):
-    
+
     # create dictionary of remaining parameters, deleting extraneous ones
     # such as those above
     cdict = configObj.dict()
@@ -43,7 +41,7 @@ def run(configObj=None):
         cdict['columns'] = None
     # Call function with properly interpreted input parameters
 
-    # Syntax: headerlet_summary(filename,columns=None,pad=2,maxwidth=None, 
+    # Syntax: headerlet_summary(filename,columns=None,pad=2,maxwidth=None,
     #                    output=None,clobber=True,quiet=False)
     headerlet.headerlet_summary(configObj['filename'],**cdict)
 

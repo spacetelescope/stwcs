@@ -1,12 +1,13 @@
 from __future__ import division # confidence high
 
 import os
-import pyfits
+from astropy.io import fits
 import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import stwcs
-import pywcs
+from astropy import wcs as pywcs
+import astropy
 
 import utils, corrections, makewcs
 import npol, det2im
@@ -21,8 +22,6 @@ import atexit
 atexit.register(logging.shutdown)
 
 #Note: The order of corrections is important
-
-__docformat__ = 'restructuredtext'
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               checkfiles=True, verbose=False):
@@ -44,8 +43,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     Dependencies
     ------------
     `stsci.tools`
-    `pyfits`
-    `pywcs`
+    `astropy.io.fits`
+    `astropy.wcs`
 
     Parameters
     ----------
@@ -112,7 +111,7 @@ def makecorr(fname, allowed_corr):
              list of corrections to be applied
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     #Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
@@ -122,7 +121,7 @@ def makecorr(fname, allowed_corr):
     if 'DET2IMCorr' in allowed_corr:
         kw2update = det2im.DET2IMCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
+            f[1].header[kw] = kw2update[kw]
 
     for i in range(len(f))[1:]:
         extn = f[i]
@@ -144,14 +143,14 @@ def makecorr(fname, allowed_corr):
                         corr_klass = corrections.__getattribute__(c)
                         kw2update = corr_klass.updateWCS(ext_wcs, ref_wcs)
                         for kw in kw2update:
-                            hdr.update(kw, kw2update[kw])
+                            hdr[kw] = kw2update[kw]
                 # give the primary WCS a WCSNAME value
                 idcname = f[0].header.get('IDCTAB', " ")
                 if idcname.strip() and 'idc.fits' in idcname:
                     wname = ''.join(['IDC_',
                                 utils.extract_rootname(idcname,suffix='_idc')])
                 else: wname = " "
-                hdr.update('WCSNAME', wname)
+                hdr['WCSNAME'] = wname
 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -166,18 +165,22 @@ def makecorr(fname, allowed_corr):
     if 'NPOLCorr' in allowed_corr:
         kw2update = npol.NPOLCorr.updateWCS(f)
         for kw in kw2update:
-            f[1].header.update(kw, kw2update[kw])
+            f[1].header[kw] = kw2update[kw]
     # Finally record the version of the software which updated the WCS
     if 'HISTORY' in f[0].header:
-        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
-                           comment="Version of STWCS used to updated the WCS", before='HISTORY')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
-            comment="Version of PYWCS used to updated the WCS", before='HISTORY')
+        f[0].header.set('UPWCSVER', value=stwcs.__version__,
+                        comment="Version of STWCS used to updated the WCS",
+                        before='HISTORY')
+        f[0].header.set('PYWCSVER', value=astropy.__version__,
+                        comment="Version of PYWCS used to updated the WCS",
+                        before='HISTORY')
     elif 'ASN_MTYP' in f[0].header:
-        f[0].header.update(key='UPWCSVER', value=stwcs.__version__,
-            comment="Version of STWCS used to updated the WCS", after='ASN_MTYP')
-        f[0].header.update(key='PYWCSVER', value=pywcs.__version__,
-            comment="Version of PYWCS used to updated the WCS", after='ASN_MTYP')
+        f[0].header.set('UPWCSVER', value=stwcs.__version__,
+                        comment="Version of STWCS used to updated the WCS",
+                        after='ASN_MTYP')
+        f[0].header.set('PYWCSVER', value=astropy.__version__,
+                        comment="Version of PYWCS used to updated the WCS",
+                        after='ASN_MTYP')
     else:
         # Find index of last non-blank card, and insert this new keyword after that card
         for i in range(len(f[0].header) - 1, 0, -1):
@@ -186,7 +189,7 @@ def makecorr(fname, allowed_corr):
             f[0].header.set('UPWCSVER', stwcs.__version__,
                             "Version of STWCS used to updated the WCS",
                             after=i)
-            f[0].header.set('PYWCSVER', pywcs.__version__,
+            f[0].header.set('PYWCSVER', astropy.__version__,
                             "Version of PYWCS used to updated the WCS",
                             after=i)
     # add additional keywords to be used by headerlets
@@ -210,7 +213,7 @@ def copyWCS(w, ehdr):
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
         key = k[:7]
-        ehdr.update(key=key, value=hwcs[k])
+        ehdr[key] = hwcs[k]
 
 def getNrefchip(fobj):
     """
@@ -225,7 +228,7 @@ def getNrefchip(fobj):
 
     Parameters
     ----------
-    fobj: pyfits HDUList object
+    fobj: `astropy.io.fits.HDUList` object
     """
     nrefext = 1
     nrefchip = 1
@@ -331,7 +334,7 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     #When this is called we know there's a kw IDCTAB in the header
-    hdul = pyfits.open(fname)
+    hdul = fits.open(fname)
     idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
     try:
         #check for the presence of IDCTAB in the first extension
@@ -346,7 +349,7 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
-    f = pyfits.open(fname, mode='update')
+    f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(f[1].header)
     # Remove the primary WCS from the list
     try:
