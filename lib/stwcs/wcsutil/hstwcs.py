@@ -138,12 +138,15 @@ class HSTWCS(WCS):
                                                                    ext=ext)
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
-            if instrument_name in ['IRAF/ARTDATA','',' ','N/A']:
+            if instrument_name == 'DEFAULT' or instrument_name not in inst_mappings.keys():
+                #['IRAF/ARTDATA','',' ','N/A']:
                 self.instrument = 'DEFAULT'
             else:
                 self.instrument = instrument_name
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
                          key=self.wcskey)
+            if self.instrument == 'DEFAULT':
+                self.pc2cd()
             # If input was a `astropy.io.fits.HDUList` object, it's the user's
             # responsibility to close it, otherwise, it's closed here.
             if not isinstance(fobj, fits.HDUList):
@@ -458,7 +461,9 @@ class HSTWCS(WCS):
         return cards
 
     def pc2cd(self):
-        self.wcs.cd = self.wcs.pc.copy()
+        if not self.wcs.has_pc():
+            self.wcs.pc = self.wcs.get_pc()
+        self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
 
     def all_world2pix(self, *args, **kwargs):
         """
