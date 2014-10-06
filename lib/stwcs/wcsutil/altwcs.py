@@ -350,8 +350,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         if hwcs is None:
             continue
         for k in hwcs.keys():
-            if k in hdr:
-                del hdr[k]
+            del hdr[k]
             #del hdr['ORIENT'+wkey]
         prexts.append(i)
     if prexts != []:
@@ -434,7 +433,7 @@ def _restore(fobj, ukey, fromextnum,
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2'+'%s' %ukey], hwcs['CD2_2'+'%s' %ukey]))
         fobj[toextension].header['ORIENTAT'] = norient
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
-    for kw in ['TDD_CYA','TDD_CYB']:
+    for kw in ['TDD_CYA','TDD_CYB','TDD_CXA','TDD_CXB']:
         if kw in fobj[toextension].header:
             fobj[toextension].header[kw] = 0.0
 
