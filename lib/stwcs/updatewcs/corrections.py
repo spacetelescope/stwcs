@@ -75,7 +75,9 @@ class TDDCorr(object):
                     'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
                     'OCY11':ext_wcs.idcmodel.cy[1,1],
                     'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
-                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA']}
+                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'],
+                    'TDD_CXA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_ALPHA'],
+                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_BETA']}
 
         else:
             alpha, beta = cls.compute_alpha_beta(ext_wcs)
@@ -89,7 +91,7 @@ class TDDCorr(object):
             newkw = {'TDDALPHA': alpha, 'TDDBETA':beta, 'OCX10':ext_wcs.idcmodel.cx[1,0],
                     'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
                     'OCY11':ext_wcs.idcmodel.cy[1,1],
-                    'TDD_CYA':None, 'TDD_CYB':None}
+                    'TDD_CYA':None, 'TDD_CYB':None, 'TDD_CXA':None, 'TDD_CXB':None}
 
         return newkw
     updateWCS = classmethod(updateWCS)
@@ -108,10 +110,18 @@ class TDDCorr(object):
         skew_coeffs = hwcs.idcmodel.refpix['skew_coeffs']
         cy_beta = skew_coeffs['TDD_CY_BETA']
         cy_alpha = skew_coeffs['TDD_CY_ALPHA']
+        delta_date = rday - skew_coeffs['TDD_DATE']
         if cy_alpha is None:
-            hwcs.idcmodel.cy[1,1] += cy_beta*(rday - skew_coeffs['TDD_DATE'])
+            hwcs.idcmodel.cy[1,1] += cy_beta*delta_date
         else:
-            hwcs.idcmodel.cy[1,1] = cy_alpha + cy_beta*(rday - skew_coeffs['TDD_DATE'])
+            new_beta = cy_alpha + cy_beta*delta_date
+            hwcs.idcmodel.cy[1,1] = new_beta
+
+        cx_beta = skew_coeffs['TDD_CX_BETA']
+        cx_alpha = skew_coeffs['TDD_CX_ALPHA']
+        if cx_alpha is not None:
+            new_beta = cx_alpha + cx_beta*delta_date
+            hwcs.idcmodel.cx[1,1] = new_beta
 
     apply_tdd2idc2 = classmethod(apply_tdd2idc2)
 
