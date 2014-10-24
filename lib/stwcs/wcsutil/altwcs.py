@@ -636,10 +636,15 @@ def getKeyFromName(header, wcsname):
     """
     wkey = None
     names = wcsnames(header)
+    wkeys = []
     for item in names.items():
         if item[1].lower() == wcsname.lower():
-            wkey = item[0]
-            break
+            wkeys.append(item[0])
+    wkeys.sort()
+    if len(wkeys) > 0:
+        wkey = wkeys[-1]
+    else:
+        wkey = None
     return wkey
 
 def pc2cd(hdr, key=' '):
