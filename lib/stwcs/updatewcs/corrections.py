@@ -1,14 +1,16 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
 import copy
 import datetime
+import logging, time
 import numpy as np
 from numpy import linalg
 from stsci.tools import fileutil
-from utils import diff_angles
-import makewcs, npol
 
-import logging, time
+from . import npol
+from . import makewcs
+from .utils import diff_angles
+
 logger=logging.getLogger('stwcs.updatewcs.corrections')
 
 MakeWCS = makewcs.MakeWCS
@@ -221,7 +223,7 @@ class TDDCorr(object):
                 err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
                 err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
                 err_str +=  "------------------------------------------------------------------------  \n"
-                print err_str
+                print(err_str)
             # Using default pre-SM4 coefficients
             skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
                         'TDD_B':[-0.029,-0.030/2.5],

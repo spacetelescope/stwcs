@@ -1,11 +1,13 @@
-from __future__ import division # confidence high
-
-from astropy.io import fits
-from stsci.tools import fileutil
-import utils
-import numpy as np
+from __future__ import absolute_import, division # confidence high
 
 import logging, time
+
+import numpy as np
+from astropy.io import fits
+
+from stsci.tools import fileutil
+from . import utils
+
 logger = logging.getLogger('stwcs.updatewcs.npol')
 
 class NPOLCorr(object):
@@ -264,7 +266,7 @@ class NPOLCorr(object):
 
         kw_comm1 = {}
         kw_val1 = {}
-        for key in kw.keys():
+        for key in kw:
             for i in range(1, naxis+1):
                 si = str(i)
                 kw_comm1[key+si] = kw[key]
@@ -297,9 +299,9 @@ class NPOLCorr(object):
                     'CCDCHIP': ccdchip,
                 }
         cdl = []
-        for key in kw_comm0.keys():
+        for key in kw_comm0:
             cdl.append((key, kw_val0[key], kw_comm0[key]))
-        for key in kw_comm1.keys():
+        for key in kw_comm1:
             cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header

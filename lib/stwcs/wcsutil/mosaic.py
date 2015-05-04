@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 from matplotlib import pyplot as plt
 from astropy.io import fits
@@ -86,10 +86,10 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     hdr = fits.getheader(fname, ext=ext)
     all_keys = list(string.ascii_uppercase)
     if wkey.upper() not in all_keys:
-        raise KeyError, "wkey must be one character: A-Z"
+        raise KeyError("wkey must be one character: A-Z")
     if wkey not in altwcs.available_wcskeys(hdr):
         if not clobber:
-            raise ValueError, "wkey %s is already in use. Use clobber=True to overwrite it or specify a different key." %wkey
+            raise ValueError("wkey %s is already in use. Use clobber=True to overwrite it or specify a different key." %wkey)
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
     f = fits.open(fname, mode='update')
@@ -97,7 +97,7 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
     f[ext].header[wcsnamekey] = wcsname
-    for k in hwcs.keys():
+    for k in hwcs:
         f[ext].header[k[:7]+wkey] = hwcs[k]
 
     f.close()
@@ -164,17 +164,17 @@ def readWCS(input, exts=None, extname=None):
                     continue
             fobj.close()
     if fomited != []:
-        print "These files were skipped:"
+        print("These files were skipped:")
         for f in fomited:
-            print f
+            print(f)
     return wcso
 
 
 def validateExt(ext):
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
        and not isinstance(ext, list):
-        print "Ext must be integer, tuple, a list of int extension numbers, \
-        or a list of tuples representing a fits extension, for example ('sci', 1)."
+        print("Ext must be integer, tuple, a list of int extension numbers, \
+        or a list of tuples representing a fits extension, for example ('sci', 1).")
         return False
     else:
         return True

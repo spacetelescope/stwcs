@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 from stsci.tools import teal
@@ -34,11 +35,11 @@ def run(configObj=None):
 
     if configObj['hdrname'] == '' and configObj['hdrext'] is None and \
         configObj['distname'] == '':
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "hdrname", "hdrext" or "distname" parameter value provided!'
-        print '    Please restart this task and provide a value for one of these parameters.'
-        print '='*60
+        print('='*60)
+        print('ERROR:')
+        print('    No valid "hdrname", "hdrext" or "distname" parameter value provided!')
+        print('    Please restart this task and provide a value for one of these parameters.')
+        print('='*60)
         return
     filename = parseinput.parseinput(configObj['filename'])[0]
     # Call function with properly interpreted input parameters

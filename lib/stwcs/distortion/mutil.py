@@ -1,4 +1,4 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
 from stsci.tools import fileutil
 import numpy as np
@@ -34,7 +34,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
  # Return a default geometry model if no IDCTAB filename
     # is given.  This model will not distort the data in any way.
     if tabname == None:
-        print 'Warning: No IDCTAB specified! No distortion correction will be applied.'
+        print('Warning: No IDCTAB specified! No distortion correction will be applied.')
         return defaultModel()
 
     # Implement default values for filters here to avoid the default
@@ -62,7 +62,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         err_str += "present run will continue using the old coefficients provided in         \n"
         err_str += "the Dither Package (ca. 1995-1998).                                      \n"
         err_str += "------------------------------------------------------------------------ \n"
-        raise IOError,err_str
+        raise IOError(err_str)
 
     #First thing we need, is to read in the coefficients from the IDC
     # table and populate the Fx and Fy matrices.
@@ -108,7 +108,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 
     # Loop over all the rows looking for the one which corresponds
     # to the value of CCDCHIP we are working on...
-    for i in xrange(fshape[0]):
+    for i in range(fshape[0]):
 
         try:
             # Match FILTER combo to appropriate row,
@@ -178,9 +178,9 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         err_str += '     FILTERS: '+filtstr+'\n'
         ftab.close()
         del ftab
-        raise LookupError,err_str
+        raise LookupError(err_str)
     else:
-        print '- IDCTAB: Distortion model from row',str(row+1),'for chip',detchip,':',filtstr
+        print('- IDCTAB: Distortion model from row',str(row+1),'for chip',detchip,':',filtstr)
 
     # Read in V2REF and V3REF: this can either come from current table,
     # or from an OFFTAB if time-dependent (i.e., for WFPC2)
@@ -227,9 +227,9 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         cxstr = 'A'
         cystr = 'B'
 
-    for i in xrange(norder+1):
+    for i in range(norder+1):
         if i > 0:
-            for j in xrange(i+1):
+            for j in range(i+1):
                 xcname = cxstr+str(i)+str(j)
                 ycname = cystr+str(i)+str(j)
                 fx[i,j] = ftab[1].data.field(xcname)[row]
@@ -307,7 +307,7 @@ def read_tdd_coeffs(phdr, chip=1):
         if "TDDORDER" in phdr:
             n = int(phdr["TDDORDER"])
         else:
-            print ('TDDORDER kw not present, using default TDD correction')
+            print('TDDORDER kw not present, using default TDD correction')
             return None
 
         a = np.zeros((n+1,), np.float64)
@@ -316,7 +316,7 @@ def read_tdd_coeffs(phdr, chip=1):
             a[i] = phdr.get(("TDD_A%d" % i), 0.0)
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
         if (a==0).all() and (b==0).all():
-            print ('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
+            print('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
                    but TDDORDER is %d.' % TDDORDER)
 
         skew_coeffs['TDDORDER'] = n
@@ -346,7 +346,7 @@ def readOfftab(offtab, date, chip=None):
     try:
         ftab = fileutil.openImage(offtab)
     except:
-        raise IOError,"Offset table '%s' not valid as specified!" % offtab
+        raise IOError("Offset table '%s' not valid as specified!" % offtab)
 
     #Determine row from which to get the coefficients.
     # How many rows do we have in the table...
@@ -365,7 +365,7 @@ def readOfftab(offtab, date, chip=None):
     num_date = convertDate(date)
     # Loop over all the rows looking for the one which corresponds
     # to the value of CCDCHIP we are working on...
-    for ri in xrange(fshape[0]):
+    for ri in range(fshape[0]):
         i = fshape[0] - ri - 1
         if 'DETCHIP' in colnames:
             detchip = ftab[1].data.field('DETCHIP')[i]
@@ -405,12 +405,12 @@ def readOfftab(offtab, date, chip=None):
     del ftab
 
     if row_start == None and row_end == None:
-        print 'Row corresponding to DETCHIP of ',detchip,' was not found!'
+        print('Row corresponding to DETCHIP of ',detchip,' was not found!')
         raise LookupError
     elif row_start == None:
-        print '- OFFTAB: Offset defined by row',str(row_end+1)
+        print('- OFFTAB: Offset defined by row',str(row_end+1))
     else:
-        print '- OFFTAB: Offset interpolated from rows',str(row_start+1),'and',str(row_end+1)
+        print('- OFFTAB: Offset interpolated from rows',str(row_start+1),'and',str(row_end+1))
 
     # Now, do the interpolation for v2ref, v3ref, and theta
     if row_start == None or row_end == row_start:
@@ -476,16 +476,16 @@ def readWCSCoeffs(header):
     cxstr = 'A_'
     cystr = 'B_'
     # Read coeffs into their own matrix
-    for i in xrange(_xorder+1):
-        for j in xrange(i+1):
+    for i in range(_xorder+1):
+        for j in range(i+1):
             xcname = cxstr+str(j)+'_'+str(i-j)
             if xcname in header:
                 fx[i,j] = header[xcname]
 
     # Extract Y coeffs separately as a different order may
     # have been used to fit it.
-    for i in xrange(_yorder+1):
-        for j in xrange(i+1):
+    for i in range(_yorder+1):
+        for j in range(i+1):
             ycname = cystr+str(j)+'_'+str(i-j)
             if ycname in header:
                 fy[i,j] = header[ycname]

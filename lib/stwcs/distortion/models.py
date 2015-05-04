@@ -1,11 +1,11 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, division, print_function # confidence high
 
-import types
-# Import PyDrizzle utility modules
-import mutil
+
 import numpy as np
-import mutil
-from mutil import combin
+
+# Import PyDrizzle utility modules
+from . import mutil
+from .mutil import combin
 
 yes = True
 no = False
@@ -76,14 +76,14 @@ class GeometryModel:
         _cys = np.zeros(shape=self.cy.shape,dtype=self.cy.dtype)
         _k = self.norder + 1
         # loop over each input coefficient
-        for m in xrange(_k):
-            for n in xrange(_k):
+        for m in range(_k):
+            for n in range(_k):
                 if m >= n:
                     # For this coefficient, shift by xs/ys.
-                    _ilist = range(m, _k)
+                    _ilist = list(range(m, _k))
                     # sum from m to k
                     for i in _ilist:
-                        _jlist = range(n, i - (m-n)+1)
+                        _jlist = list(range(n, i - (m-n)+1))
                         # sum from n to i-(m-n)
                         for j in _jlist:
                             _cxs[m,n] += self.cx[i,j]*combin(j,n)*combin((i-j),(m-n))*pow(xs,(j-n))*pow(ys,((i-j)-(m-n)))
@@ -156,7 +156,7 @@ class GeometryModel:
         elif self.norder==5:
             lines.append('quintic\n')
         else:
-            raise ValueError, "Drizzle cannot handle poly distortions of order %d"%self.norder
+            raise ValueError("Drizzle cannot handle poly distortions of order %d" % self.norder)
 
         str = '%16.8f %16.8g %16.8g %16.8g %16.8g \n'% (x0,cx[1,1],cx[1,0],cx[2,2],cx[2,1])
         lines.append(str)
@@ -219,7 +219,7 @@ class GeometryModel:
         _cx[0,0] = 0.
         _cy[0,0] = 0.
 
-        if isinstance(_p,types.ListType) or isinstance(_p,types.TupleType):
+        if isinstance(_p, list) or isinstance(_p, tuple):
             _p = np.array(_p,dtype=np.float64)
             _convert = yes
 

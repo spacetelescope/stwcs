@@ -1,19 +1,18 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, division, print_function # confidence high
 
 import os
 from astropy.wcs import WCS
 from astropy.io import fits
-import instruments
 from stwcs.distortion import models, coeff_converter
-import altwcs
 import numpy as np
 from stsci.tools import fileutil
 
-import getinput
-import mappings
-from mappings import inst_mappings, ins_spec_kw
-from mappings import basic_wcs
-
+from . import altwcs
+from . import getinput
+from . import mappings
+from . import instruments
+from .mappings import inst_mappings, ins_spec_kw
+from .mappings import basic_wcs
 
 __docformat__ = 'restructuredtext'
 
@@ -138,7 +137,7 @@ class HSTWCS(WCS):
                                                                    ext=ext)
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
-            if instrument_name == 'DEFAULT' or instrument_name not in inst_mappings.keys():
+            if instrument_name == 'DEFAULT' or instrument_name not in inst_mappings:
                 #['IRAF/ARTDATA','',' ','N/A']:
                 self.instrument = 'DEFAULT'
             else:
@@ -204,7 +203,7 @@ class HSTWCS(WCS):
             extension header
 
         """
-        if self.instrument in inst_mappings.keys():
+        if self.instrument in inst_mappings:
             inst_kl = inst_mappings[self.instrument]
             inst_kl = instruments.__dict__[inst_kl]
             insobj = inst_kl(prim_hdr, ext_hdr)
@@ -221,7 +220,7 @@ class HSTWCS(WCS):
                         pass
 
         else:
-            raise KeyError, "Unsupported instrument - %s" %self.instrument
+            raise KeyError("Unsupported instrument - %s" %self.instrument)
 
     def setPscale(self):
         """
@@ -233,9 +232,9 @@ class HSTWCS(WCS):
             self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
         except AttributeError:
             if self.wcs.has_cd():
-                print "This file has a PC matrix. You may want to convert it \n \
+                print("This file has a PC matrix. You may want to convert it \n \
                 to a CD matrix, if reasonable, by running pc2.cd() method.\n \
-                The plate scale can be set then by calling setPscale() method.\n"
+                The plate scale can be set then by calling setPscale() method.\n")
             self.pscale = None
 
     def setOrient(self):
@@ -248,9 +247,9 @@ class HSTWCS(WCS):
             self.orientat = np.rad2deg(np.arctan2(cd12,cd22))
         except AttributeError:
             if self.wcs.has_cd():
-                print "This file has a PC matrix. You may want to convert it \n \
+                print("This file has a PC matrix. You may want to convert it \n \
                 to a CD matrix, if reasonable, by running pc2.cd() method.\n \
-                The orientation can be set then by calling setOrient() method.\n"
+                The orientation can be set then by calling setOrient() method.\n")
             self.pscale = None
 
     def updatePscale(self, scale):
@@ -283,20 +282,20 @@ class HSTWCS(WCS):
             if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
-                print "Distortion model is not available: IDCTAB=None\n"
+                print("Distortion model is not available: IDCTAB=None\n")
                 self.idcmodel = None
         elif not os.path.exists(fileutil.osfn(self.idctab)):
             if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
-                print 'Distortion model is not available: IDCTAB file %s not found\n' % self.idctab
+                print('Distortion model is not available: IDCTAB file %s not found\n' % self.idctab)
                 self.idcmodel = None
         else:
             self.readModelFromIDCTAB(header=header, update=update)
 
     def _readModelFromHeader(self, header):
         # Recreate idc model from SIP coefficients and header kw
-        print 'Restoring IDC model from SIP coefficients\n'
+        print('Restoring IDC model from SIP coefficients\n')
         model = models.GeometryModel()
         cx, cy = coeff_converter.sip2idc(self)
         model.cx = cx
@@ -331,7 +330,7 @@ class HSTWCS(WCS):
 
         """
         if self.date_obs == None:
-            print 'date_obs not available\n'
+            print('date_obs not available\n')
             self.idcmodel = None
             return
         if self.filter1 == None and self.filter2 == None:
@@ -349,7 +348,7 @@ class HSTWCS(WCS):
 
         if update:
             if header==None:
-                print 'Update header with IDC model kw requested but header was not provided\n.'
+                print('Update header with IDC model kw requested but header was not provided\n.')
             else:
                 self._updatehdr(header)
 
@@ -776,7 +775,7 @@ adaptive=False, detect_divergence=False, quiet=False)
         dn2       = dn2prev
 
         # prepare for iterative process
-        iterlist  = range(1, maxiter+1)
+        iterlist  = list(range(1, maxiter+1))
         accuracy2 = accuracy**2
         ind       = None
         inddiv    = None
@@ -839,7 +838,7 @@ adaptive=False, detect_divergence=False, quiet=False)
         #####################################################################
         if adaptive:
             if ind is None:
-                ind = np.asarray(range(npts), dtype=np.int64)
+                ind = np.asarray(list(range(npts)), dtype=np.int64)
 
             for k in iterlist:
                 # check convergence:
@@ -953,11 +952,11 @@ adaptive=False, detect_divergence=False, quiet=False)
         """
         Print the basic WCS keywords.
         """
-        print 'WCS Keywords\n'
-        print 'CD_11  CD_12: %r %r' % (self.wcs.cd[0,0],  self.wcs.cd[0,1])
-        print 'CD_21  CD_22: %r %r' % (self.wcs.cd[1,0],  self.wcs.cd[1,1])
-        print 'CRVAL    : %r %r' % (self.wcs.crval[0], self.wcs.crval[1])
-        print 'CRPIX    : %r %r' % (self.wcs.crpix[0], self.wcs.crpix[1])
-        print 'NAXIS    : %d %d' % (self.naxis1, self.naxis2)
-        print 'Plate Scale : %r' % self.pscale
-        print 'ORIENTAT : %r' % self.orientat
+        print('WCS Keywords\n')
+        print('CD_11  CD_12: %r %r' % (self.wcs.cd[0,0],  self.wcs.cd[0,1]))
+        print('CD_21  CD_22: %r %r' % (self.wcs.cd[1,0],  self.wcs.cd[1,1]))
+        print('CRVAL    : %r %r' % (self.wcs.crval[0], self.wcs.crval[1]))
+        print('CRPIX    : %r %r' % (self.wcs.crpix[0], self.wcs.crpix[1]))
+        print('NAXIS    : %d %d' % (self.naxis1, self.naxis2))
+        print('Plate Scale : %r' % self.pscale)
+        print('ORIENTAT : %r' % self.orientat)

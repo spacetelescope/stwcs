@@ -1,11 +1,10 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
-import os
 from astropy.io import fits
-import numpy as np
 from stwcs import wcsutil
 from stwcs.wcsutil import HSTWCS
 import stwcs
+
 from astropy import wcs as pywcs
 import astropy
 
@@ -84,7 +83,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     if checkfiles:
         files = checkFiles(files)
         if not files:
-            print 'No valid input, quitting ...\n'
+            print('No valid input, quitting ...\n')
             return
 
     for f in files:
@@ -242,9 +241,9 @@ def getNrefchip(fobj):
                      img.header['EXTNAME'].lower()=='sci']
         fitsext = [i for i in range(len(fobj))[1:] if
                    fobj[i].header['EXTNAME'].lower()=='sci']
-        det2ext=dict(map(None, detectors,extvers))
-        ext2det=dict(map(None, extvers, detectors))
-        ext2fitsext=dict(map(None, extvers, fitsext))
+        det2ext=dict(list(zip(detectors, extvers)))
+        ext2det=dict(list(zip(extvers, detectors)))
+        ext2fitsext=dict(list(zip(extvers, fitsext)))
 
         if 3 not in detectors:
             nrefchip = ext2det.pop(extvers[0])
@@ -263,9 +262,9 @@ def getNrefchip(fobj):
                      img.header['EXTNAME'].lower()=='sci']
         fitsext = [i for i in range(len(fobj))[1:] if
                    fobj[i].header['EXTNAME'].lower()=='sci']
-        det2ext=dict(map(None, detectors,extvers))
-        ext2det=dict(map(None, extvers, detectors))
-        ext2fitsext=dict(map(None, extvers, fitsext))
+        det2ext=dict(list(zip(detectors, extvers)))
+        ext2det=dict(list(zip(extvers, detectors)))
+        ext2fitsext=dict(list(zip(extvers, fitsext)))
 
         if 2 not in detectors:
             nrefchip = ext2det.pop(extvers[0])
@@ -356,7 +355,7 @@ def cleanWCS(fname):
         keys.remove(' ')
     except ValueError:
         pass
-    fext = range(len(f))
+    fext = list(range(len(f)))
     for key in keys:
         wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
 
@@ -369,5 +368,5 @@ def getCorrections(instrument):
     """
     acorr = apply_corrections.allowed_corrections[instrument]
 
-    print "The following corrections will be performed for instrument %s\n" % instrument
-    for c in acorr: print c,': ' ,  apply_corrections.cnames[c]
+    print("The following corrections will be performed for instrument %s\n" % instrument)
+    for c in acorr: print(c,': ' ,  apply_corrections.cnames[c])

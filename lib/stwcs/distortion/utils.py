@@ -1,4 +1,5 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
+
 import os
 import numpy as np
 from astropy import wcs as pywcs
@@ -92,7 +93,7 @@ def  undistortWCS(wcsobj):
     plate scale in the undistorted frame.
     """
     assert isinstance(wcsobj, pywcs.WCS)
-    import coeff_converter
+    from . import coeff_converter
 
     cx, cy = coeff_converter.sip2idc(wcsobj)
     # cx, cy can be None because either there is no model available
@@ -103,9 +104,9 @@ def  undistortWCS(wcsobj):
             Run updatewcs() to update the headers or
             pass 'undistort=False' keyword to output_wcs().\n
             """
-            raise RuntimeError, m
+            raise RuntimeError(m)
         else:
-            print 'Distortion model is not available, using input reference image for output WCS.\n'
+            print('Distortion model is not available, using input reference image for output WCS.\n')
             return wcsobj.copy()
     crpix1 = wcsobj.wcs.crpix[0]
     crpix2 = wcsobj.wcs.crpix[1]
@@ -128,7 +129,7 @@ def  undistortWCS(wcsobj):
     # Check the determinant for singularity
     _det = (am * dm) - (bm * cm)
     if ( _det == 0.0):
-        print 'Singular matrix in updateWCS, aborting ...'
+        print('Singular matrix in updateWCS, aborting ...')
         return
 
     lin_wcsobj = pywcs.WCS()
@@ -160,10 +161,10 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
         return pixpos
 
     if order is None:
-        print 'Unknown order of distortion model \n'
+        print('Unknown order of distortion model \n')
         return pixpos
     if pscale is None:
-        print 'Unknown model plate scale\n'
+        print('Unknown model plate scale\n')
         return pixpos
 
     # Apply in the same way that 'drizzle' would...

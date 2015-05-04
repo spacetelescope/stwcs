@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 from stsci.tools import teal
@@ -34,19 +35,19 @@ def getHelpAsString(docstring=False):
 def run(configObj=None):
     flist,oname = parseinput.parseinput(configObj['filename'])
     if len(flist) == 0:
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "filename" parameter value provided!'
-        print '    Please check the working directory and restart this task.'
-        print '='*60
+        print('='*60)
+        print('ERROR:')
+        print('    No valid "filename" parameter value provided!')
+        print('    Please check the working directory and restart this task.')
+        print('='*60)
         return
 
     if configObj['hdrname'] in ['',' ','INDEF']:
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "hdrname" parameter value provided!'
-        print '    Please restart this task and provide a value for this parameter.'
-        print '='*60
+        print('='*60)
+        print('ERROR:')
+        print('    No valid "hdrname" parameter value provided!')
+        print('    Please restart this task and provide a value for this parameter.')
+        print('='*60)
         return
 
     if configObj['output'] in ['',' ','INDEF']:

@@ -1,13 +1,14 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, division # confidence high
 
 import datetime
 
 import numpy as np
-from math import sin, sqrt, pow, cos, asin, atan2,pi
-import utils
-from stsci.tools import fileutil
-
 import logging, time
+from math import sin, sqrt, pow, cos, asin, atan2,pi
+
+from stsci.tools import fileutil
+from . import utils
+
 logger = logging.getLogger(__name__)
 
 class MakeWCS(object):

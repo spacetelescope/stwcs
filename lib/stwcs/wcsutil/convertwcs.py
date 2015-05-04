@@ -1,4 +1,4 @@
-from astropy.io import fits
+from __future__ import print_function
 try:
     import stwcs
     from stwcs import wcsutil
@@ -23,9 +23,9 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
 
     """
     if stwcs is None:
-        print '====================='
-        print 'The STWCS package is needed to convert an old-style OPUS WCS to an alternate WCS'
-        print '====================='
+        print('=====================')
+        print('The STWCS package is needed to convert an old-style OPUS WCS to an alternate WCS')
+        print('=====================')
         raise ImportError
 
 
@@ -41,7 +41,7 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
 
     numextn = fileutil.countExtn(fobj)
     extlist = []
-    for e in xrange(1,numextn+1):
+    for e in range(1,numextn+1):
         extlist.append(('sci',e))
 
     # Insure that the 'O' alternate WCS is present
@@ -57,10 +57,10 @@ def archive_prefix_OPUS_WCS(fobj,extname='SCI'):
     # create HSTWCS object from PRIMARY WCS
     wcsobj = wcsutil.HSTWCS(fobj,ext=ext,wcskey='O')
     # get list of WCS keywords
-    wcskeys = wcsobj.wcs2header().keys()
+    wcskeys = list(wcsobj.wcs2header().keys())
 
     # For each SCI extension...
-    for e in xrange(1,numextn+1):
+    for e in range(1,numextn+1):
         # Now, look for any WCS keywords with a prefix of 'O'
         for key in wcskeys:
             okey = 'O'+key[:7]
@@ -98,7 +98,7 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
     else:
         # check to make sure this FITS obj has been opened in update mode
         if fobj.fileinfo(0)['filemode'] != 'update':
-            print 'File not opened with "mode=update". Quitting...'
+            print('File not opened with "mode=update". Quitting...')
             raise IOError
 
     # check for existance of O-prefix WCS
@@ -108,7 +108,7 @@ def create_prefix_OPUS_WCS(fobj,extname='SCI'):
         numextn = fileutil.countExtn(fobj,extname=extname)
         if numextn == 0:
             extname = ''
-        for extn in xrange(1,numextn+1):
+        for extn in range(1,numextn+1):
             hdr = fobj[(extname,extn)].header
             for okey in owcskeys:
                 hdr[okey] = hdr[okey[1:]+'O']
