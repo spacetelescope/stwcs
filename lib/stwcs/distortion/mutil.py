@@ -256,6 +256,9 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 def read_tdd_coeffs(phdr, chip=1):
     ''' Read in the TDD related keywords from the PRIMARY header of the IDCTAB
     '''
+    # Insure we have an integer form of chip
+    ic = int(chip)
+
     skew_coeffs = {}
     skew_coeffs['TDDORDER'] = 0
     skew_coeffs['TDD_DATE'] = ""
@@ -266,9 +269,23 @@ def read_tdd_coeffs(phdr, chip=1):
     skew_coeffs['TDD_CX_BETA'] = None
     skew_coeffs['TDD_CX_ALPHA'] = None
 
-    if "TDD_CYB1" in phdr:
+    # Skew-based TDD coefficients
+    skew_terms = ['TDD_CTB','TDD_CTA','TDD_CYA','TDD_CYB','TDD_CXA','TDD_CXB']
+    for s in skew_terms:
+        skew_coeffs[s] = None
+
+    if "TDD_CTB1" in phdr:
+        # We have the 2015-calibrated TDD correction to apply
+        # This correction is based on correcting the skew in the linear terms
+        # not just set polynomial terms
+        print("Using 2015-calibrated VAFACTOR-corrected TDD correction...")
+        skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
+        for s in skew_terms:
+            skew_coeffs[s] = phdr.get('{0}{1}'.format(s,ic),None)
+
+    elif "TDD_CYB1" in phdr:
         # We have 2014-calibrated TDD correction to apply, not J.A.-derived values
-        print "Using 2014-calibrated TDD correction..."
+        print("Using 2014-calibrated TDD correction...")
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         # Read coefficients for TDD Y coefficient
         cyb_kw = 'TDD_CYB{0}'.format(int(chip))
@@ -290,7 +307,7 @@ def read_tdd_coeffs(phdr, chip=1):
         if "TDDORDER" in phdr:
             n = int(phdr["TDDORDER"])
         else:
-            print 'TDDORDER kw not present, using default TDD correction'
+            print ('TDDORDER kw not present, using default TDD correction')
             return None
 
         a = np.zeros((n+1,), np.float64)
@@ -299,8 +316,8 @@ def read_tdd_coeffs(phdr, chip=1):
             a[i] = phdr.get(("TDD_A%d" % i), 0.0)
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
         if (a==0).all() and (b==0).all():
-            print 'Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
-                   but TDDORDER is %d.' % TDDORDER
+            print ('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
+                   but TDDORDER is %d.' % TDDORDER)
 
         skew_coeffs['TDDORDER'] = n
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
