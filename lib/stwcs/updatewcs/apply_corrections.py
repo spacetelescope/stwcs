@@ -1,4 +1,4 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
 import os
 from astropy.io import fits
@@ -198,7 +198,7 @@ def applyD2ImCorr(fname, d2imcorr):
             msg = """\n\tKw D2IMFILE exists in primary header but file %s not found\n
                      Detector to image correction will not be applied\n""" % fd2im0
             logger.critical(msg)
-            print msg
+            print(msg)
             applyD2IMCorr = False
             return applyD2IMCorr
         try:
@@ -220,6 +220,6 @@ def applyD2ImCorr(fname, d2imcorr):
             # in first extension header
             applyD2IMCorr = True
     except KeyError:
-        print 'D2IMFILE keyword not found in primary header'
+        print('D2IMFILE keyword not found in primary header')
         applyD2IMCorr = False
         return applyD2IMCorr

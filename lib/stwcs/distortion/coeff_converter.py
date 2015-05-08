@@ -1,4 +1,4 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
 import numpy as np
 from astropy.io import fits
@@ -20,7 +20,7 @@ def sip2idc(wcs):
         order = wcs.get('A_ORDER', None)
         sipa, sipb = _read_sip_kw(wcs)
         if None in [ocx10, ocx11, ocy10, ocy11, sipa, sipb]:
-            print 'Cannot convert SIP to IDC coefficients.\n'
+            print('Cannot convert SIP to IDC coefficients.\n')
             return None, None
     elif isinstance(wcs, pywcs.WCS):
         try:
@@ -29,29 +29,29 @@ def sip2idc(wcs):
             ocy10 = wcs.ocy10
             ocy11 = wcs.ocy11
         except AttributeError:
-            print 'First order IDCTAB coefficients are not available.\n'
-            print 'Cannot convert SIP to IDC coefficients.\n'
+            print('First order IDCTAB coefficients are not available.\n')
+            print('Cannot convert SIP to IDC coefficients.\n')
             return None, None
         try:
             sipa = wcs.sip.a
             sipb = wcs.sip.b
         except AttributeError:
-            print 'SIP coefficients are not available.'
-            print 'Cannot convert SIP to IDC coefficients.\n'
+            print('SIP coefficients are not available.')
+            print('Cannot convert SIP to IDC coefficients.\n')
             return None, None
         try:
             order = wcs.sip.a_order
         except AttributeError:
-            print 'SIP model order unknown, exiting ...\n'
+            print('SIP model order unknown, exiting ...\n')
             return None, None
 
     else:
-        print 'Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n'
+        print('Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n')
         return
 
 
     if None in [ocx10, ocx11, ocy10, ocy11]:
-        print 'First order IDC coefficients not found, exiting ...\n'
+        print('First order IDC coefficients not found, exiting ...\n')
         return None, None
     idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
     cx = np.zeros((order+1,order+1), dtype=np.double)

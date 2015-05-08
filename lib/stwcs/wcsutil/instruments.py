@@ -1,6 +1,6 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, division, print_function # confidence high
 
-from mappings import ins_spec_kw
+from .mappings import ins_spec_kw
 
 class InstrWCS(object):
     """
@@ -157,7 +157,7 @@ class ACSWCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print 'ERROR: Detector kw not found.\n'
+            print('ERROR: Detector kw not found.\n')
             raise
 
     def set_parity(self):
@@ -165,7 +165,7 @@ class ACSWCS(InstrWCS):
                 'HRC':[[-1.0,0.0],[0.0,1.0]],
                 'SBC':[[-1.0,0.0],[0.0,1.0]]}
 
-        if self.detector not in parity.keys():
+        if self.detector not in parity:
             parity = InstrWCS.set_parity(self)
         else:
             self.parity = parity[self.detector]
@@ -208,7 +208,7 @@ class WFPC2WCS(InstrWCS):
         try:
             self.detector = self.exthdr['DETECTOR']
         except KeyError:
-            print 'ERROR: Detector kw not found.\n'
+            print('ERROR: Detector kw not found.\n')
             raise
 
 
@@ -227,7 +227,7 @@ class WFC3WCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print 'ERROR: Detector kw not found.\n'
+            print('ERROR: Detector kw not found.\n')
             raise
 
     def set_filter1(self):
@@ -243,7 +243,7 @@ class WFC3WCS(InstrWCS):
         parity = {'UVIS':[[-1.0,0.0],[0.0,1.0]],
           'IR':[[-1.0,0.0],[0.0,1.0]]}
 
-        if self.detector not in parity.keys():
+        if self.detector not in parity:
             parity = InstrWCS.set_parity(self)
         else:
             self.parity = parity[self.detector]
@@ -278,7 +278,7 @@ class NICMOSWCS(InstrWCS):
         try:
             self.detector = self.primhdr['CAMERA']
         except KeyError:
-            print 'ERROR: Detector kw not found.\n'
+            print('ERROR: Detector kw not found.\n')
             raise
 
 class STISWCS(InstrWCS):
@@ -309,7 +309,7 @@ class STISWCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print 'ERROR: Detector kw not found.\n'
+            print('ERROR: Detector kw not found.\n')
             raise
 
     def set_date_obs(self):

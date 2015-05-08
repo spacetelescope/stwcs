@@ -24,7 +24,7 @@ def parseSingleInput(f=None, ext=None):
         hdr0 = phdu[0].header
         try:
             ehdr = phdu[extnum].header
-        except (IndexError, KeyError), e:
+        except (IndexError, KeyError) as e:
             raise e.__class__('Unable to get extension %s.' % extnum)
 
     elif isinstance(f, fits.HDUList):

@@ -1,12 +1,14 @@
-import os,copy
-from astropy.io import fits
-import numpy as np
+from __future__ import absolute_import, division, print_function
 
-from stsci.tools import fileutil
+import os,copy
+import numpy as np
+from astropy.io import fits
+
 import stwcs
 from stwcs.wcsutil import altwcs
 from stwcs.updatewcs import utils
-import convertwcs
+from stsci.tools import fileutil
+from . import convertwcs
 
 DEFAULT_WCS_KEYS = ['CRVAL1','CRVAL2','CRPIX1','CRPIX2',
                     'CD1_1','CD1_2','CD2_1','CD2_2',
@@ -51,7 +53,7 @@ def init_wcscorr(input, force=False):
             return
         else:
             del fimg['wcscorr']
-    print 'Initializing new WCSCORR table for ',fimg.filename()
+    print('Initializing new WCSCORR table for ',fimg.filename())
 
     used_wcskeys = altwcs.wcskeys(fimg['SCI', 1].header)
 
@@ -73,7 +75,7 @@ def init_wcscorr(input, force=False):
     idc2header = True
     if wcs1.idcscale is None:
         idc2header = False
-    wcs_keywords = wcs1.wcs2header(idc2hdr=idc2header).keys()
+    wcs_keywords = list(wcs1.wcs2header(idc2hdr=idc2header).keys())
 
     prihdr = fimg[0].header
     prihdr_keys = DEFAULT_PRI_KEYS
@@ -82,7 +84,7 @@ def init_wcscorr(input, force=False):
                  'D2IMNAME':stwcs.updatewcs.utils.build_d2imname}
 
     # Now copy original OPUS values into table
-    for extver in xrange(1, numsci + 1):
+    for extver in range(1, numsci + 1):
         rowind = find_wcscorr_row(wcsext.data,
                                   {'WCS_ID': 'OPUS', 'EXTVER': extver,
                                    'WCS_key':'O'})
@@ -107,7 +109,7 @@ def init_wcscorr(input, force=False):
         if wcsext.data.field('CRVAL1')[rownum] != 0:
             # If we find values for these keywords already in the table, do not
             # overwrite them again
-            print 'WCS keywords already updated...'
+            print('WCS keywords already updated...')
             break
         for key in wcs_keywords:
             if key in wcsext.data.names:
@@ -129,7 +131,7 @@ def init_wcscorr(input, force=False):
     # TODO: Much of this appears to be redundant with update_wcscorr; consider
     # merging them...
     for uwkey in used_wcskeys:
-        for extver in xrange(1, numsci + 1):
+        for extver in range(1, numsci + 1):
             hdr = fimg['SCI', extver].header
             wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver),
                                        wcskey=uwkey)
@@ -146,7 +148,7 @@ def init_wcscorr(input, force=False):
             if len(rows[0]) > 0:
                 rownum = np.where(rowind)[0][0]
             else:
-                print 'No available rows found for updating. '
+                print('No available rows found for updating. ')
 
             # Update selection columns for this row with relevant values
             wcsext.data.field('WCS_ID')[rownum] = wcsid
@@ -294,7 +296,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
 
     for colname in wcscorr_cols:
         if colname not in old_table.data.columns.names:
-            print "WARNING:    Replacing outdated WCSCORR table..."
+            print("WARNING:    Replacing outdated WCSCORR table...")
             outdated_table = old_table.copy()
             del dest['WCSCORR']
             init_wcscorr(dest)
@@ -305,7 +307,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     # extension version; if this should not be assumed then this can be
     # modified...
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
-    wcs_keys = filter(None, wcs_keys)
+    wcs_keys = [kk for kk in wcs_keys if kk]
     if ' ' not in wcs_keys: wcs_keys.append(' ') # Insure that primary WCS gets used
     # apply logic for only updating WCSCORR table with specified keywords
     # corresponding to the WCS with WCSNAME=wcs_id
@@ -319,7 +321,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             wkeys.remove(' ')
         wcs_keys = wkeys
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
-    wcs_keywords = wcshdr.keys()
+    wcs_keywords = list(wcshdr.keys())
 
     if 'O' in wcs_keys:
         wcs_keys.remove('O') # 'O' is reserved for original OPUS WCS
@@ -368,7 +370,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             wcshdr = wcs.wcs2header()
 
             # Update selection column values
-            for key, val in selection.iteritems():
+            for key, val in selection.items():
                 if key in new_table.data.names:
                     new_table.data.field(key)[idx] = val
 
@@ -521,7 +523,7 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                          array=np.array(['OPUS'] * numrows + [''] * padding,
                                         dtype='S24'))
     extver_col = fits.Column(name='EXTVER', format='I',
-                             array=np.array(range(1, numrows + 1),
+                             array=np.array(list(range(1, numrows + 1)),
                                             dtype=np.int16))
     wcskey_col = fits.Column(name='WCS_key', format='A',
                              array=np.array(['O'] * numrows + [''] * padding,
@@ -572,16 +574,16 @@ def delete_wcscorr_row(wcstab,selections=None,rows=None):
     """
 
     if selections is None and rows is None:
-        print 'ERROR: Some row selection information must be provided!'
-        print '       Either a row numbers or "selections" must be provided.'
+        print('ERROR: Some row selection information must be provided!')
+        print('       Either a row numbers or "selections" must be provided.')
         raise ValueError
 
     delete_rows = None
     if rows is None:
         if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
             delete_rows = None
-            print 'WARNING: OPUS WCS information can not be deleted from WCSCORR table.'
-            print '         This row will not be deleted!'
+            print('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
+            print('         This row will not be deleted!')
         else:
             rowind = find_wcscorr_row(wcstab, selections=selections)
             delete_rows = np.where(rowind)[0].tolist()
@@ -626,8 +628,8 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
         of the value of 'selections'
     """
     if selections is None and rows is None:
-        print 'ERROR: Some row selection information must be provided!'
-        print '       Either a row numbers or "selections" must be provided.'
+        print('ERROR: Some row selection information must be provided!')
+        print('       Either a row numbers or "selections" must be provided.')
         raise ValueError
 
     if not isinstance(values, list):
@@ -637,8 +639,8 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
     if rows is None:
         if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
             update_rows = None
-            print 'WARNING: OPUS WCS information can not be deleted from WCSCORR table.'
-            print '         This row will not be deleted!'
+            print('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
+            print('         This row will not be deleted!')
         else:
             rowind = find_wcscorr_row(wcstab, selections=selections)
             update_rows = np.where(rowind)[0].tolist()
@@ -652,11 +654,11 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
 
     # Expand single input value to apply to all selected rows
     if len(values) > 1 and len(values) < len(update_rows):
-        print 'ERROR: Number of new values',len(values)
-        print '       does not match number of rows',len(update_rows),' to be updated!'
-        print '       Please enter either 1 value or the same number of values'
-        print '       as there are rows to be updated.'
-        print '    Table will not be updated...'
+        print('ERROR: Number of new values',len(values))
+        print('       does not match number of rows',len(update_rows),' to be updated!')
+        print('       Please enter either 1 value or the same number of values')
+        print('       as there are rows to be updated.')
+        print('    Table will not be updated...')
         raise ValueError
 
     if len(values) == 1 and len(values) < len(update_rows):

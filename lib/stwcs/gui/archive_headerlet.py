@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import string
 
@@ -35,11 +36,11 @@ def getHelpAsString(docstring=False):
 def run(configObj=None):
 
     if configObj['hdrname'] in ['',' ','INDEF']:
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "hdrname" parameter value provided!'
-        print '    Please restart this task and provide a value for this parameter.'
-        print '='*60
+        print('='*60)
+        print('ERROR:')
+        print('    No valid "hdrname" parameter value provided!')
+        print('    Please restart this task and provide a value for this parameter.')
+        print('='*60)
         return
 
     str_kw = ['wcsname','destim','sipname','npolfile','d2imfile',

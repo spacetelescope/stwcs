@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 from stsci.tools import teal
@@ -33,11 +34,11 @@ def getHelpAsString(docstring=False):
 def run(configObj=None):
 
     if configObj['output'] in ['',' ',None]:
-        print '='*60
-        print 'ERROR:'
-        print '    No valid "output" parameter value provided!'
-        print '    Please restart this task and provide a value for this parameter.'
-        print '='*60
+        print('='*60)
+        print('ERROR:')
+        print('    No valid "output" parameter value provided!')
+        print('    Please restart this task and provide a value for this parameter.')
+        print('='*60)
         return
 
     # create dictionary of remaining parameters, deleting extraneous ones

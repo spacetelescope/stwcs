@@ -1,4 +1,4 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 import os
 import string
 
@@ -80,7 +80,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         Alternatively choose another wcskey with altwcs.available_wcskeys()." %wcskey)
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
-        if wcsname.strip() in wcsnames(f[wcsext].header).values():
+        if wcsname.strip() in wcsnames(f[wcsext].header):
             if reusekey:
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
@@ -132,8 +132,8 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
             old_wcsname=hwcs.pop('WCSNAME')
         except:
             pass
-        for k in hwcs.keys():
-
+        
+        for k in hwcs:
             key = k[:7] + wkey
             f[e].header[key] = hwcs[k]
     closefobj(fname, f)
@@ -202,7 +202,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
                 raise KeyError("Could not get a key from wcsname %s ." % wcsname)
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            print "Could not find alternate WCS with key %s in this file" % wcskey
+            print("Could not find alternate WCS with key %s in this file" % wcskey)
             closefobj(f, fobj)
             return
         wkey = wcskey
@@ -322,7 +322,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     ext = _buildExtlist(fobj, ext)
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
-        print "Wcskey 'O' is reserved for the original WCS and should not be deleted."
+        print("Wcskey 'O' is reserved for the original WCS and should not be deleted.")
         closefobj(fname, fobj)
         return
 
@@ -349,14 +349,14 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         hwcs = readAltWCS(fobj,i,wcskey=wkey)
         if hwcs is None:
             continue
-        for k in hwcs.keys():
+        for k in hwcs:
             del hdr[k]
             #del hdr['ORIENT'+wkey]
         prexts.append(i)
     if prexts != []:
-        print 'Deleted all instances of WCS with key %s in extensions' % wkey, prexts
+        print('Deleted all instances of WCS with key %s in extensions' % wkey, prexts)
     else:
-        print "Did not find WCS with key %s in any of the extensions" % wkey
+        print("Did not find WCS with key %s in any of the extensions" % wkey)
     closefobj(fname, fobj)
 
 def _buildExtlist(fobj, ext):
@@ -419,9 +419,9 @@ def _restore(fobj, ukey, fromextnum,
     if hwcs is None:
         return
 
-    for k in hwcs.keys():
+    for k in hwcs:
         key = k[:-1]
-        if key in fobj[toextension].header.keys():
+        if key in fobj[toextension].header:
             #fobj[toextension].header.update(key=key, value = hwcs[k])
             fobj[toextension].header[key] = hwcs[k]
         else:
@@ -484,8 +484,8 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
-            print 'readAltWCS: Could not read WCS with key %s' %wcskey
-            print '            Skipping %s[%s]' % (fobj.filename(), str(ext))
+            print('readAltWCS: Could not read WCS with key %s' %wcskey)
+            print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
     hwcs = nwcs.to_header()
 
@@ -693,7 +693,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         A flag which indicates whether to reuse a wcskey in the header
     """
     if not isinstance(fobj, fits.HDUList):
-        print "First parameter must be a fits file object or a file name."
+        print("First parameter must be a fits file object or a file name.")
         return False
 
     # first one covers the case of an object created in memory
@@ -703,27 +703,27 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     else:
         # an HDUList object with associated file
         if fobj.fileinfo(0)['filemode'] is not 'update':
-            print "First parameter must be a file name or a file object opened in 'update' mode."
+            print("First parameter must be a file name or a file object opened in 'update' mode.")
             return False
 
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
         and not isinstance(ext,str) \
         and not isinstance(ext, list) and ext is not None:
-        print "Ext must be integer, tuple, string,a list of int extension numbers, \n\
-        or a list of tuples representing a fits extension, for example ('sci', 1)."
+        print("Ext must be integer, tuple, string,a list of int extension numbers, \n\
+        or a list of tuples representing a fits extension, for example ('sci', 1).")
         return False
 
     if not isinstance(fromext, str) and fromext is not None:
-        print "fromext must be a string representing a valid extname"
+        print("fromext must be a string representing a valid extname")
         return False
 
     if not isinstance(toext, list) and not isinstance(toext, str) and \
                      toext is not None :
-        print "toext must be a string or a list of strings representing extname"
+        print("toext must be a string or a list of strings representing extname")
         return False
 
     if len(wcskey) != 1:
-        print 'Parameter wcskey must be a character - one of "A"-"Z" or " "'
+        print('Parameter wcskey must be a character - one of "A"-"Z" or " "')
         return False
 
     return True

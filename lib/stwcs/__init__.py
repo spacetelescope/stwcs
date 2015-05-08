@@ -14,10 +14,10 @@ transformation. wcsutil also provides functions for manipulating alternate WCS
 descriptions in the headers.
 
 """
-from __future__ import division # confidence high
+from __future__ import absolute_import, print_function # confidence high
 import os
 
-import distortion
+from . import distortion
 from stsci.tools import fileutil
 from stsci.tools import teal
 
@@ -28,6 +28,6 @@ from .version import *
 try:
     import gui
     teal.print_tasknames(gui.__name__, os.path.dirname(gui.__file__))
-    print '\n'
+    print('\n')
 except:
-    print 'No TEAL-based tasks available for this package!'
+    print('No TEAL-based tasks available for this package!')

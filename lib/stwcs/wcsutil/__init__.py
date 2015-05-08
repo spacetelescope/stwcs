@@ -1,12 +1,11 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, print_function # confidence high
 
-from altwcs import *
-from hstwcs import HSTWCS
+from .altwcs import *
+from .hstwcs import HSTWCS
 
 
 def help():
-    print 'How to create an HSTWCS object:\n\n'
-    print """ \
+    doc = """ \
     1. Using a `astropy.io.fits.HDUList` object and an extension number \n
     Example:\n
     from astropy.io improt fits
@@ -31,3 +30,5 @@ def help():
     w = wcsutil.HSTWCS(instrument='DEFAULT')\n\n
     """
 
+    print('How to create an HSTWCS object:\n\n')
+    print(doc)

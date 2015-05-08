@@ -10,10 +10,11 @@ when only the WCS information has been updated.
 
 """
 
-from __future__ import division
+from __future__ import absolute_import, division, print_function
+import os
+import sys
 import functools
 import logging
-import os
 import textwrap
 import copy
 import time
@@ -24,15 +25,15 @@ from astropy.io import fits
 from astropy import wcs as pywcs
 from astropy.utils import lazyproperty
 
-import altwcs
-import wcscorr
-from hstwcs import HSTWCS
-from mappings import basic_wcs
-from stwcs.updatewcs import utils
-
 from stsci.tools.fileutil import countExtn
 from stsci.tools import fileutil as fu
 from stsci.tools import parseinput
+
+from stwcs.updatewcs import utils
+from . import altwcs
+from . import wcscorr
+from .hstwcs import HSTWCS
+from .mappings import basic_wcs
 
 #### Logging support functions
 class FuncNameLoggingFormatter(logging.Formatter):
@@ -108,8 +109,12 @@ def with_logging(func):
         level = kw.get('logging', 100)
         mode = kw.get('logmode', 'w')
         func_args = kw.copy()
-        for argname, arg in zip(func.func_code.co_varnames, args):
-            func_args[argname] = arg
+        if sys.version_info[0] < 3:
+            for argname, arg in zip(func.func_code.co_varnames, args):
+                func_args[argname] = arg
+        else:
+            for argname, arg in zip(func.__code__.co_varnames, args):
+                func_args[argname] = arg
         init_logging(func.__name__, level, mode, **func_args)
         return func(*args, **kw)
     return wrapped
@@ -152,7 +157,11 @@ def parse_filename(fname, mode='readonly'):
     """
     close_fobj = False
     if not isinstance(fname, list):
-        if isinstance(fname, basestring):
+        if sys.version > '3':
+            is_string = isinstance(fname, str)
+        else:
+            is_string = isinstance(fname, basestring)
+        if is_string:
             fname = fu.osfn(fname)
         fobj = fits.open(fname, mode=mode)
         close_fobj = True
@@ -400,7 +409,7 @@ def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
             outstr += COLUMN_FMT.format(val, width=column_widths[kw])
         outstr += '\n'
     if not quiet:
-        print outstr
+        print(outstr)
 
     # If specified, write info to separate text file
     write_file = False
@@ -411,9 +420,9 @@ def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
             if clobber:
                 os.remove(output)
             else:
-                print 'WARNING: Not writing results to file!'
-                print '         Output text file ', output, ' already exists.'
-                print '         Set "clobber" to True or move file before trying again.'
+                print('WARNING: Not writing results to file!')
+                print('         Output text file ', output, ' already exists.')
+                print('         Set "clobber" to True or move file before trying again.')
                 write_file = False
         if write_file:
             fout = open(output, mode='w')
@@ -1139,7 +1148,7 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
                 "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
     for fname,h in zip(filename,hdrlet):
-        print "Applying {0} as Primary WCS to {1}".format(h,fname)
+        print("Applying {0} as Primary WCS to {1}".format(h,fname))
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.apply_as_primary(fname, attach=attach, archive=archive,
                           force=force)
@@ -1181,7 +1190,7 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
                 "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
     for fname,h in zip(filename,hdrlet):
-        print 'Applying {0} as an alternate WCS to {1}'.format(h,fname)
+        print('Applying {0} as an alternate WCS to {1}'.format(h,fname))
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.apply_as_alternate(fname, attach=attach,
                             wcsname=wcsname, wcskey=wcskey)
@@ -1211,7 +1220,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
                 "{0:d} filenames and {1:d} headerlets specified".format(len(filename),len(hdrlet)))
 
     for fname,h in zip(filename,hdrlet):
-        print 'Attaching {0} as Headerlet extension to {1}'.format(h,fname)
+        print('Attaching {0} as Headerlet extension to {1}'.format(h,fname))
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.attach_to_file(fname,archive=True)
 
@@ -1252,7 +1261,7 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         filename = [filename]
 
     for f in filename:
-        print "Deleting Headerlet from ",f
+        print("Deleting Headerlet from ",f)
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
                             distname=distname, logging=logging, logmode='a')
 
@@ -1386,8 +1395,8 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                     for key in COLUMN_DICT:
                         summary_dict[kw][key].extend(ext_summary[kw][key])
             except:
-                print "Skipping headerlet"
-                print "Could not read Headerlet from extension ", hdrlet_indx
+                print("Skipping headerlet")
+                print("Could not read Headerlet from extension ", hdrlet_indx)
 
     if close_fobj:
         fobj.close()
@@ -1484,7 +1493,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     priwcs_name = None
 
     scihdr = extlist[0].header
-    sci_wcsnames = altwcs.wcsnames(scihdr).values()
+    #sci_wcsnames = altwcs.wcsnames(scihdr).values()
     if 'hdrname' in scihdr:
         priwcs_hdrname = scihdr['hdrname']
     else:

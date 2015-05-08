@@ -1,13 +1,16 @@
-from __future__ import division # confidence high
+from __future__ import division, print_function # confidence high
 
+import copy
 import datetime
+import logging, time
 import numpy as np
 from numpy import linalg
 from stsci.tools import fileutil
-from utils import diff_angles
-import makewcs, npol
 
-import logging, time
+from . import npol
+from . import makewcs
+from .utils import diff_angles
+
 logger=logging.getLogger('stwcs.updatewcs.corrections')
 
 MakeWCS = makewcs.MakeWCS
@@ -64,20 +67,41 @@ class TDDCorr(object):
         - Writes 2 new kw to the extension header: TDDALPHA and TDDBETA
         """
         logger.info("\n\tStarting TDDCorr: %s" % time.asctime())
+        ext_wcs.idcmodel.ocx = copy.deepcopy(ext_wcs.idcmodel.cx)
+        ext_wcs.idcmodel.ocy = copy.deepcopy(ext_wcs.idcmodel.cy)
+
+        newkw = {'TDDALPHA': None, 'TDDBETA':None,
+                'OCX10':ext_wcs.idcmodel.ocx[1,0],
+                'OCX11':ext_wcs.idcmodel.ocx[1,1],
+                'OCY10':ext_wcs.idcmodel.ocy[1,0],
+                'OCY11':ext_wcs.idcmodel.ocy[1,1],
+                'TDD_CTA':None, 'TDD_CTB':None,
+                'TDD_CYA':None, 'TDD_CYB':None,
+                'TDD_CXA':None, 'TDD_CXB':None}
 
         if ext_wcs.idcmodel.refpix['skew_coeffs']is not None and \
+            ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'] is not None:
+            cls.apply_tdd2idc2015(ref_wcs)
+            cls.apply_tdd2idc2015(ext_wcs)
+
+            newkw.update({
+                    'TDD_CTA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTA'],
+                    'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYA'],
+                    'TDD_CXA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXA'],
+                    'TDD_CTB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'],
+                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYB'],
+                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXB']})
+
+        elif ext_wcs.idcmodel.refpix['skew_coeffs']is not None and \
             ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'] is not None:
             logger.info("\n\t Applying 2014-calibrated TDD: %s" % time.asctime())
             # We have 2014-calibrated TDD, not J.A.-style TDD
             cls.apply_tdd2idc2(ref_wcs)
             cls.apply_tdd2idc2(ext_wcs)
-            newkw = {'TDDALPHA': None, 'TDDBETA':None, 'OCX10':ext_wcs.idcmodel.cx[1,0],
-                    'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
-                    'OCY11':ext_wcs.idcmodel.cy[1,1],
-                    'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
+            newkw.update({'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
                     'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'],
                     'TDD_CXA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_ALPHA'],
-                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_BETA']}
+                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_BETA']})
 
         else:
             alpha, beta = cls.compute_alpha_beta(ext_wcs)
@@ -88,13 +112,31 @@ class TDDCorr(object):
             ref_wcs.idcmodel.refpix['TDDALPHA'] = alpha
             ref_wcs.idcmodel.refpix['TDDBETA'] = beta
 
-            newkw = {'TDDALPHA': alpha, 'TDDBETA':beta, 'OCX10':ext_wcs.idcmodel.cx[1,0],
-                    'OCX11':ext_wcs.idcmodel.cx[1,1],'OCY10':ext_wcs.idcmodel.cy[1,0],
-                    'OCY11':ext_wcs.idcmodel.cy[1,1],
-                    'TDD_CYA':None, 'TDD_CYB':None, 'TDD_CXA':None, 'TDD_CXB':None}
+            newkw.update( {'TDDALPHA': alpha, 'TDDBETA':beta} )
 
         return newkw
     updateWCS = classmethod(updateWCS)
+
+    def apply_tdd2idc2015(cls, hwcs):
+        """ Applies 2015-calibrated TDD correction to a couple of IDCTAB
+            coefficients for ACS/WFC observations.
+        """
+        if not isinstance(hwcs.date_obs,float):
+            year,month,day = hwcs.date_obs.split('-')
+            rdate = datetime.datetime(int(year),int(month),int(day))
+            rday = float(rdate.strftime("%j"))/365.25 + rdate.year
+        else:
+            rday = hwcs.date_obs
+
+        skew_coeffs = hwcs.idcmodel.refpix['skew_coeffs']
+        delta_date = rday - skew_coeffs['TDD_DATE']
+
+        hwcs.idcmodel.cx[1,1] = skew_coeffs['TDD_CXA'] + skew_coeffs['TDD_CXB']*delta_date
+        hwcs.idcmodel.cy[1,1] = skew_coeffs['TDD_CTA'] + skew_coeffs['TDD_CTB']*delta_date
+        hwcs.idcmodel.cy[1,0] = skew_coeffs['TDD_CYA'] + skew_coeffs['TDD_CYB']*delta_date
+        #print("CX[1,1]_TDD={},  CY[1,1]_TDD={},  CY[1,0]_TDD={}".format(hwcs.idcmodel.cx[1,1],hwcs.idcmodel.cy[1,1],hwcs.idcmodel.cy[1,0]))
+
+    apply_tdd2idc2015 = classmethod(apply_tdd2idc2015)
 
     def apply_tdd2idc2(cls, hwcs):
         """ Applies 2014-calibrated TDD correction to single IDCTAB coefficient
@@ -111,17 +153,21 @@ class TDDCorr(object):
         cy_beta = skew_coeffs['TDD_CY_BETA']
         cy_alpha = skew_coeffs['TDD_CY_ALPHA']
         delta_date = rday - skew_coeffs['TDD_DATE']
+        print("DELTA_DATE: {0}   based on rday: {1}, TDD_DATE: {2}".format(delta_date,rday,skew_coeffs['TDD_DATE']))
+
         if cy_alpha is None:
             hwcs.idcmodel.cy[1,1] += cy_beta*delta_date
         else:
             new_beta = cy_alpha + cy_beta*delta_date
             hwcs.idcmodel.cy[1,1] = new_beta
+        print("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1,1],cy_alpha,cy_beta))
 
         cx_beta = skew_coeffs['TDD_CX_BETA']
         cx_alpha = skew_coeffs['TDD_CX_ALPHA']
         if cx_alpha is not None:
             new_beta = cx_alpha + cx_beta*delta_date
             hwcs.idcmodel.cx[1,1] = new_beta
+            print("CX11: {0} based on alpha: {1}, beta: {2}".format(new_beta,cx_alpha,cx_beta))
 
     apply_tdd2idc2 = classmethod(apply_tdd2idc2)
 
@@ -177,7 +223,7 @@ class TDDCorr(object):
                 err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
                 err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
                 err_str +=  "------------------------------------------------------------------------  \n"
-                print err_str
+                print(err_str)
             # Using default pre-SM4 coefficients
             skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
                         'TDD_B':[-0.029,-0.030/2.5],
