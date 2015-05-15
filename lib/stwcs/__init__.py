@@ -26,7 +26,7 @@ __docformat__ = 'restructuredtext'
 from .version import *
 
 try:
-    import gui
+    from . import gui
     teal.print_tasknames(gui.__name__, os.path.dirname(gui.__file__))
     print('\n')
 except:
