@@ -137,7 +137,7 @@ class HSTWCS(WCS):
                                                                    ext=ext)
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
-            if instrument_name == 'DEFAULT' or instrument_name not in inst_mappings:
+            if instrument_name == 'DEFAULT' or instrument_name not in list(inst_mappings.keys()):
                 #['IRAF/ARTDATA','',' ','N/A']:
                 self.instrument = 'DEFAULT'
             else:
@@ -203,7 +203,7 @@ class HSTWCS(WCS):
             extension header
 
         """
-        if self.instrument in inst_mappings:
+        if self.instrument in list(inst_mappings.keys()):
             inst_kl = inst_mappings[self.instrument]
             inst_kl = instruments.__dict__[inst_kl]
             insobj = inst_kl(prim_hdr, ext_hdr)

@@ -8,10 +8,10 @@ import stwcs
 from astropy import wcs as pywcs
 import astropy
 
-import utils, corrections, makewcs
-import npol, det2im
+from . import utils, corrections, makewcs
+from . import npol, det2im
 from stsci.tools import parseinput, fileutil
-import apply_corrections
+from . import apply_corrections
 
 import time
 import logging
