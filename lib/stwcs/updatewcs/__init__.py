@@ -343,6 +343,8 @@ def newIDCTAB(fname):
     if idctab == oldidctab:
         return False
     else:
+        if not os.path.exists(idctab):
+            print("IDCTAB {0} not found".format(idctab))
         return True
 
 def cleanWCS(fname):
@@ -357,7 +359,10 @@ def cleanWCS(fname):
         pass
     fext = list(range(len(f)))
     for key in keys:
-        wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
+        try:
+            wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
+        except KeyError:
+            pass
 
 def getCorrections(instrument):
     """
