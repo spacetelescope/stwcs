@@ -12,7 +12,6 @@ logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
 
 #Note: The order of corrections is important
 
-__docformat__ = 'restructuredtext'
 
 # A dictionary which lists the allowed corrections for each instrument.
 # These are the default corrections applied also in the pipeline.
@@ -64,17 +63,35 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     logger.info("\n\tCorrections to be applied to %s: %s " % (fname, str(acorr)))
     return acorr
 
+
 def foundIDCTAB(fname):
+    """
+    This functions looks for an "IDCTAB" keyword in the primary header.
+
+    Returns
+    -------
+    status : bool
+        If False : MakeWCS, CompSIP and TDDCorr should not be applied.
+        If True : there's no restriction on corrections, they all should be applied.
+
+    Raises
+    ------
+    IOError : If IDCTAB file not found on disk.
+    """
+
     try:
-        idctab = fileutil.osfn(fits.getval(fname, 'IDCTAB'))
+        #idctab = fileutil.osfn(fits.getval(fname, 'IDCTAB'))
+        idctab = fits.getval(fname, 'IDCTAB').strip()
+        if idctab == 'N/A' or idctab == "":
+            return False
     except KeyError:
         return False
-    if idctab == 'N/A' or idctab == "":
-        return False
+    idctab = fileutil.osfn(idctab)
     if os.path.exists(idctab):
         return True
     else:
-        return False
+        raise IOError("IDCTAB file {0} not found".format(idctab))
+
 
 def applyTDDCorr(fname, utddcorr):
     """
