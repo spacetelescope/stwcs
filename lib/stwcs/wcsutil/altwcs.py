@@ -327,7 +327,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         return
 
     wcskeyext = ext[0]
-    print('wcskeyext', wcskeyext, ext)
+
     if not wcskeys and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
 
