@@ -80,7 +80,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         Alternatively choose another wcskey with altwcs.available_wcskeys()." %wcskey)
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
-        if wcsname.strip() in wcsnames(f[wcsext].header):
+        if wcsname.strip() in wcsnames(f[wcsext].header).values():
             if reusekey:
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
@@ -133,7 +133,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         except:
             pass
         
-        for k in hwcs:
+        for k in hwcs.keys():
             key = k[:7] + wkey
             f[e].header[key] = hwcs[k]
     closefobj(fname, f)
@@ -327,7 +327,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         return
 
     wcskeyext = ext[0]
-
+    print('wcskeyext', wcskeyext, ext)
     if not wcskeys and not wcsname:
         raise KeyError("Either wcskey or wcsname should be specified")
 
@@ -419,7 +419,7 @@ def _restore(fobj, ukey, fromextnum,
     if hwcs is None:
         return
 
-    for k in hwcs:
+    for k in hwcs.keys():
         key = k[:-1]
         if key in fobj[toextension].header:
             #fobj[toextension].header.update(key=key, value = hwcs[k])

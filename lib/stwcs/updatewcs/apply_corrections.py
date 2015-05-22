@@ -41,14 +41,14 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     instrument = fits.getval(fname, 'INSTRUME')
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
-
+    print('in setCoorections', acorr)
     # Check if idctab is present on disk
     # If kw IDCTAB is present in the header but the file is
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
-    if not foundIDCTAB(fname):
-        if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
-        if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
-        if 'CompSIP' in acorr: acorr.remove('CompSIP')
+    #if not foundIDCTAB(fname):
+        #if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
+        #if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
+        #if 'CompSIP' in acorr: acorr.remove('CompSIP')
 
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
@@ -74,6 +74,7 @@ def foundIDCTAB(fname):
     if os.path.exists(idctab):
         return True
     else:
+        print("IDCTAB file {0} not found".format(idctab))
         return False
 
 def applyTDDCorr(fname, utddcorr):

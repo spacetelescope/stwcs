@@ -165,7 +165,7 @@ class ACSWCS(InstrWCS):
                 'HRC':[[-1.0,0.0],[0.0,1.0]],
                 'SBC':[[-1.0,0.0],[0.0,1.0]]}
 
-        if self.detector not in parity:
+        if self.detector not in list(parity.keys()):
             parity = InstrWCS.set_parity(self)
         else:
             self.parity = parity[self.detector]
@@ -243,7 +243,7 @@ class WFC3WCS(InstrWCS):
         parity = {'UVIS':[[-1.0,0.0],[0.0,1.0]],
           'IR':[[-1.0,0.0],[0.0,1.0]]}
 
-        if self.detector not in parity:
+        if self.detector not in list(parity.keys()):
             parity = InstrWCS.set_parity(self)
         else:
             self.parity = parity[self.detector]

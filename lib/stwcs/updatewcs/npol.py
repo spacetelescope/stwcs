@@ -266,7 +266,7 @@ class NPOLCorr(object):
 
         kw_comm1 = {}
         kw_val1 = {}
-        for key in kw:
+        for key in kw.keys():
             for i in range(1, naxis+1):
                 si = str(i)
                 kw_comm1[key+si] = kw[key]
@@ -299,9 +299,9 @@ class NPOLCorr(object):
                     'CCDCHIP': ccdchip,
                 }
         cdl = []
-        for key in kw_comm0:
+        for key in kw_comm0.keys():
             cdl.append((key, kw_val0[key], kw_comm0[key]))
-        for key in kw_comm1:
+        for key in kw_comm1.keys():
             cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header

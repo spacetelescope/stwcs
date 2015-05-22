@@ -109,12 +109,14 @@ def with_logging(func):
         level = kw.get('logging', 100)
         mode = kw.get('logmode', 'w')
         func_args = kw.copy()
-        if sys.version_info[0] < 3:
-            for argname, arg in zip(func.func_code.co_varnames, args):
-                func_args[argname] = arg
+        if sys.version_info[0] >= 3:
+            argnames = func.__code__.co_varnames
         else:
-            for argname, arg in zip(func.__code__.co_varnames, args):
-                func_args[argname] = arg
+            argnames = func.func_code.co_varnames
+
+        for argname, arg in zip(argnames, args):
+            func_args[argname] = arg
+
         init_logging(func.__name__, level, mode, **func_args)
         return func(*args, **kw)
     return wrapped
@@ -157,7 +159,7 @@ def parse_filename(fname, mode='readonly'):
     """
     close_fobj = False
     if not isinstance(fname, list):
-        if sys.version > '3':
+        if sys.version_info[0] >= 3:
             is_string = isinstance(fname, str)
         else:
             is_string = isinstance(fname, basestring)
@@ -1493,7 +1495,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     priwcs_name = None
 
     scihdr = extlist[0].header
-    #sci_wcsnames = altwcs.wcsnames(scihdr).values()
+    sci_wcsnames = altwcs.wcsnames(scihdr).values()
     if 'hdrname' in scihdr:
         priwcs_hdrname = scihdr['hdrname']
     else:
