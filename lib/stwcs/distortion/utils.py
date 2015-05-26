@@ -33,7 +33,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
 
     crval = np.array([crval1,crval2], dtype=np.float64) # this value is now zero-based
     if owcs is None:
-        if ref_wcs == None:
+        if ref_wcs is None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
         if undistort:
             outwcs = undistortWCS(ref_wcs)
@@ -98,7 +98,7 @@ def  undistortWCS(wcsobj):
     cx, cy = coeff_converter.sip2idc(wcsobj)
     # cx, cy can be None because either there is no model available
     # or updatewcs was not run.
-    if cx == None or cy == None:
+    if cx is None or cy is None:
         if foundIDCTAB(wcsobj.idctab):
             m = """IDCTAB is present but distortion model is missing.
             Run updatewcs() to update the headers or
@@ -157,7 +157,7 @@ def apply_idc(pixpos, cx, cy, pixref, pscale= None, order=None):
     pixref: reference opixel position
 
     """
-    if cx == None:
+    if cx is None:
         return pixpos
 
     if order is None:

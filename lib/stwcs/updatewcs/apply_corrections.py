@@ -153,8 +153,7 @@ def applyNpolCorr(fname, unpolcorr):
                       Non-polynomial distortion correction will not be applied\n
                     """ % fnpol0
             logger.critical(msg)
-            applyNPOLCorr = False
-            return applyNPOLCorr
+            raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
             # get NPOLEXT kw from first extension header
             fnpol1 = fits.getval(fname, 'NPOLEXT', ext=1)
@@ -216,8 +215,7 @@ def applyD2ImCorr(fname, d2imcorr):
                      Detector to image correction will not be applied\n""" % fd2im0
             logger.critical(msg)
             print(msg)
-            applyD2IMCorr = False
-            return applyD2IMCorr
+            raise IOError("D2IMFILE {0} not found".format(fd2im0))
         try:
             # get D2IMEXT kw from first extension header
             fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
