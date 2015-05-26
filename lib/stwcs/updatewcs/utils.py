@@ -1,7 +1,11 @@
 from __future__ import division # confidence high
 import os
-
+from astropy.io import fits
 from stsci.tools import fileutil
+
+import logging
+logger = logging.getLogger("stwcs.updatewcs.utils")
+
 
 def diff_angles(a,b):
     """
@@ -231,3 +235,30 @@ def build_d2imname(fobj, d2imfile=None):
         if d2imname == 'NONE':
             d2imname = 'NOMODEL'
     return d2imname, d2imfile
+
+
+def remove_distortion(fname, dist_keyword):
+    logger.info("Removing distortion {0} from file {0}".format(dist_keyword, fname))
+    from ..wcsutil import altwcs
+    if dist_keyword == "NPOLFILE":
+        extname = "WCSDVARR"
+        keywords = ["CPERR*", "DP1.*", "DP2.*", "CPDIS*", "NPOLEXT"]
+    elif dist_keyword == "D2IMFILE":
+        extname = "D2IMARR"
+        keywords = ["D2IMERR*", "D2IM1.*", "D2IM2.*", "D2IMDIS*", "D2IMEXT"]
+    else:
+        raise AttributeError("Unrecognized distortion keyword "
+                             "{0} when attempting to remove distortion".format(dist_keyword))
+    ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, "SCI").values()
+    f = fits.open(fname, mode="update")
+    for hdu in ext_mapping:
+        for kw in keywords:
+            try:
+                del f[hdu].header[kw]
+            except AttributeError:
+                pass
+    ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, extname).values()
+    ext_mapping.sort()
+    for hdu in ext_mapping[::-1]:
+        del f[hdu]
+    f.close()

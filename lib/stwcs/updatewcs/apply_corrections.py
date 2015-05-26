@@ -6,6 +6,7 @@ import time
 from stsci.tools import fileutil
 import os.path
 from stwcs.wcsutil import altwcs
+from . import utils
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
@@ -80,7 +81,6 @@ def foundIDCTAB(fname):
     """
 
     try:
-        #idctab = fileutil.osfn(fits.getval(fname, 'IDCTAB'))
         idctab = fits.getval(fname, 'IDCTAB').strip()
         if idctab == 'N/A' or idctab == "":
             return False
@@ -146,6 +146,7 @@ def applyNpolCorr(fname, unpolcorr):
         # get NPOLFILE kw from primary header
         fnpol0 = fits.getval(fname, 'NPOLFILE')
         if fnpol0 == 'N/A':
+            utils.remove_distortion(fname, "NPOLFILE")
             return False
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
@@ -208,6 +209,7 @@ def applyD2ImCorr(fname, d2imcorr):
         # get D2IMFILE kw from primary header
         fd2im0 = fits.getval(fname, 'D2IMFILE')
         if fd2im0 == 'N/A':
+            utils.remove_distortion(fname, "D2IMFILE")
             return False
         fd2im0 = fileutil.osfn(fd2im0)
         if not fileutil.findFile(fd2im0):
