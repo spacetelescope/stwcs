@@ -343,13 +343,11 @@ def newIDCTAB(fname):
     if idctab == oldidctab:
         return False
     else:
-        if not os.path.exists(idctab):
-            print("IDCTAB {0} not found".format(idctab))
         return True
 
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
-    # We are deleting all of them except the original OPUS WCS.nvalidates all WCS's.
+    # We are deleting all of them except the original OPUS WCS.
     f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(f[1].header)
     # Remove the primary WCS from the list
@@ -357,12 +355,13 @@ def cleanWCS(fname):
         keys.remove(' ')
     except ValueError:
         pass
-    fext = list(range(len(f)))
+    fext = list(range(1, len(f)))
     for key in keys:
         try:
             wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
         except KeyError:
-            pass
+            # Some extensions don't have the alternate (or any) WCS keywords
+            continue
 
 def getCorrections(instrument):
     """

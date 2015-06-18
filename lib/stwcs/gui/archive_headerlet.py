@@ -1,6 +1,5 @@
 from __future__ import print_function
 import os
-import string
 
 from astropy.io import fits
 from stsci.tools import teal

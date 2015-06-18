@@ -2,7 +2,6 @@ from __future__ import division, print_function # confidence high
 
 from stsci.tools import fileutil
 import numpy as np
-import string
 import calendar
 
 # Set up IRAF-compatible Boolean values
@@ -150,7 +149,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
             detchip = 1
 
         if 'DIRECTION' in colnames:
-            direct = string.strip(string.lower(ftab[1].data.field('DIRECTION')[i]))
+            direct = ftab[1].data.field('DIRECTION')[i].lower().strip()
         else:
             direct = 'forward'
 
@@ -514,7 +513,7 @@ def readTraugerTable(idcfile,wavelength):
     ifile = open(idcfile,'r')
     # Search for the first line of the coefficients
     _line = fileutil.rAsciiLine(ifile)
-    while string.lower(_line[:7]) != 'trauger':
+    while _line[:7].lower() != 'trauger':
         _line = fileutil.rAsciiLine(ifile)
     # Read in each row of coefficients,split them into their values,
     # and convert them into cubic coefficients based on
@@ -524,7 +523,7 @@ def readTraugerTable(idcfile,wavelength):
     while j < 20:
         _line = fileutil.rAsciiLine(ifile)
         if _line == '': continue
-        _lc = string.split(_line)
+        _lc = _line.split()
         if j < 10:
             a_coeffs[j] = float(_lc[0])+float(_lc[1])*(indx-1.5)+float(_lc[2])*(indx-1.5)**2
         else:
@@ -591,20 +590,20 @@ def readCubicTable(idcfile):
     # split them into their values, and create a list for A coefficients
     # and another list for the B coefficients
     _line = fileutil.rAsciiLine(ifile)
-    a_coeffs = string.split(_line)
+    a_coeffs = _line.split()
 
     x0 = float(a_coeffs[0])
     _line = fileutil.rAsciiLine(ifile)
-    a_coeffs[len(a_coeffs):] = string.split(_line)
+    a_coeffs[len(a_coeffs):] = _line.split()
     # Scale coefficients for use within PyDrizzle
     for i in range(len(a_coeffs)):
         a_coeffs[i] = float(a_coeffs[i])
 
     _line = fileutil.rAsciiLine(ifile)
-    b_coeffs = string.split(_line)
+    b_coeffs = _line.split()
     y0 = float(b_coeffs[0])
     _line = fileutil.rAsciiLine(ifile)
-    b_coeffs[len(b_coeffs):] = string.split(_line)
+    b_coeffs[len(b_coeffs):] = _line.split()
     # Scale coefficients for use within PyDrizzle
     for i in range(len(b_coeffs)):
         b_coeffs[i] = float(b_coeffs[i])

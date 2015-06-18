@@ -142,6 +142,10 @@ class HSTWCS(WCS):
                 self.instrument = 'DEFAULT'
             else:
                 self.instrument = instrument_name
+            # Set the correct reference frame
+            refframe = determine_refframe(hdr0)
+            ehdr['RADESYS'] = refframe
+
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
                          key=self.wcskey)
             if self.instrument == 'DEFAULT':
@@ -960,3 +964,25 @@ adaptive=False, detect_divergence=False, quiet=False)
         print('NAXIS    : %d %d' % (self.naxis1, self.naxis2))
         print('Plate Scale : %r' % self.pscale)
         print('ORIENTAT : %r' % self.orientat)
+
+
+def determine_refframe(phdr):
+    """
+    Determine the reference frame in standard FITS WCS terms.
+
+    Parameters
+    ----------
+    phdr : `astropy.io.fits.Header`
+        Primary Header of an HST observation
+
+    In HST images the reference frame is recorded in the primary extension as REFFRAME.
+    Values are "GSC1" which means FK5 or ICRS (for GSC2 observations).
+    """
+    try:
+        refframe = phdr['REFFRAME']
+    except KeyError:
+        refframe = " "
+    if refframe == "GSC1":
+        refframe = "FK5"
+    return refframe
+

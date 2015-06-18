@@ -82,7 +82,7 @@ class NPOLCorr(object):
                 dx,dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
 
-                if idccoeffs != None:
+                if idccoeffs is not None:
                     dx, dy = cls.transformData(dx,dy, idccoeffs)
 
                 # Determine EXTVER for the WCSDVARR extension from the

@@ -6,13 +6,13 @@ import time
 from stsci.tools import fileutil
 import os.path
 from stwcs.wcsutil import altwcs
+from . import utils
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
 
 #Note: The order of corrections is important
 
-__docformat__ = 'restructuredtext'
 
 # A dictionary which lists the allowed corrections for each instrument.
 # These are the default corrections applied also in the pipeline.
@@ -41,14 +41,14 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     instrument = fits.getval(fname, 'INSTRUME')
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
-    print('in setCoorections', acorr)
+
     # Check if idctab is present on disk
     # If kw IDCTAB is present in the header but the file is
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
-    #if not foundIDCTAB(fname):
-        #if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
-        #if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
-        #if 'CompSIP' in acorr: acorr.remove('CompSIP')
+    if not foundIDCTAB(fname):
+        if 'TDDCorr' in acorr: acorr.remove('TDDCorr')
+        if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
+        if 'CompSIP' in acorr: acorr.remove('CompSIP')
 
     if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
@@ -64,18 +64,34 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     logger.info("\n\tCorrections to be applied to %s: %s " % (fname, str(acorr)))
     return acorr
 
+
 def foundIDCTAB(fname):
+    """
+    This functions looks for an "IDCTAB" keyword in the primary header.
+
+    Returns
+    -------
+    status : bool
+        If False : MakeWCS, CompSIP and TDDCorr should not be applied.
+        If True : there's no restriction on corrections, they all should be applied.
+
+    Raises
+    ------
+    IOError : If IDCTAB file not found on disk.
+    """
+
     try:
-        idctab = fileutil.osfn(fits.getval(fname, 'IDCTAB'))
+        idctab = fits.getval(fname, 'IDCTAB').strip()
+        if idctab == 'N/A' or idctab == "":
+            return False
     except KeyError:
         return False
-    if idctab == 'N/A' or idctab == "":
-        return False
+    idctab = fileutil.osfn(idctab)
     if os.path.exists(idctab):
         return True
     else:
-        print("IDCTAB file {0} not found".format(idctab))
-        return False
+        raise IOError("IDCTAB file {0} not found".format(idctab))
+
 
 def applyTDDCorr(fname, utddcorr):
     """
@@ -130,6 +146,7 @@ def applyNpolCorr(fname, unpolcorr):
         # get NPOLFILE kw from primary header
         fnpol0 = fits.getval(fname, 'NPOLFILE')
         if fnpol0 == 'N/A':
+            utils.remove_distortion(fname, "NPOLFILE")
             return False
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
@@ -137,8 +154,7 @@ def applyNpolCorr(fname, unpolcorr):
                       Non-polynomial distortion correction will not be applied\n
                     """ % fnpol0
             logger.critical(msg)
-            applyNPOLCorr = False
-            return applyNPOLCorr
+            raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
             # get NPOLEXT kw from first extension header
             fnpol1 = fits.getval(fname, 'NPOLEXT', ext=1)
@@ -193,6 +209,7 @@ def applyD2ImCorr(fname, d2imcorr):
         # get D2IMFILE kw from primary header
         fd2im0 = fits.getval(fname, 'D2IMFILE')
         if fd2im0 == 'N/A':
+            utils.remove_distortion(fname, "D2IMFILE")
             return False
         fd2im0 = fileutil.osfn(fd2im0)
         if not fileutil.findFile(fd2im0):
@@ -200,8 +217,7 @@ def applyD2ImCorr(fname, d2imcorr):
                      Detector to image correction will not be applied\n""" % fd2im0
             logger.critical(msg)
             print(msg)
-            applyD2IMCorr = False
-            return applyD2IMCorr
+            raise IOError("D2IMFILE {0} not found".format(fd2im0))
         try:
             # get D2IMEXT kw from first extension header
             fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
