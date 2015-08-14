@@ -1,4 +1,4 @@
-from __future__ import division, print_function # confidence high
+from __future__ import absolute_import, division, print_function # confidence high
 
 from astropy.io import fits
 from stwcs import wcsutil
