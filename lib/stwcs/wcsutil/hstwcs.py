@@ -188,7 +188,8 @@ class HSTWCS(WCS):
         """
         Reads in first order IDCTAB coefficients if present in the header
         """
-        coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
+        coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale',
+                    'idcv2ref','idcv3ref', 'idctheta']
         for c in coeffs:
             self.__setattr__(c, header.get(c, None))
 
@@ -985,4 +986,3 @@ def determine_refframe(phdr):
     if refframe == "GSC1":
         refframe = "FK5"
     return refframe
-
