@@ -1,9 +1,13 @@
 from __future__ import division, print_function # confidence high
 
 import os
+
 import numpy as np
+from numpy import linalg
 from astropy import wcs as pywcs
+
 from stwcs import wcsutil
+from stwcs import updatewcs
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil
 
@@ -36,7 +40,8 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
         if ref_wcs is None:
             ref_wcs = list_of_wcsobj[0].deepcopy()
         if undistort:
-            outwcs = undistortWCS(ref_wcs)
+            #outwcs = undistortWCS(ref_wcs)
+            outwcs = make_orthogonal_cd(ref_wcs)
         else:
             outwcs = ref_wcs.deepcopy()
         outwcs.wcs.crval = crval
@@ -85,6 +90,66 @@ def computeFootprintCenter(edges):
     crval2 = np.rad2deg(np.arctan2(zmean,np.sqrt(xmean*xmean+ymean*ymean)))
 
     return crval1,crval2
+
+def make_orthogonal_cd(wcs):
+    """ Create a perfect (square, orthogonal, undistorted) CD matrix from the
+        input WCS.
+    """
+    # get determinant of the CD matrix:
+    cd = wcs.celestial.pixel_scale_matrix
+
+
+    if hasattr(wcs, 'idcv2ref') and wcs.idcv2ref is not None:
+        # Convert the PA_V3 orientation to the orientation at the aperture
+        # This is for the reference chip only - we use this for the
+        # reference tangent plane definition
+        # It has the same orientation as the reference chip
+        pv = updatewcs.makewcs.troll(wcs.pav3,wcs.wcs.crval[1],wcs.idcv2ref,wcs.idcv3ref)
+        # Add the chip rotation angle
+        if wcs.idctheta:
+            pv += wcs.idctheta
+        cs = np.cos(np.deg2rad(pv))
+        sn = np.sin(np.deg2rad(pv))
+        pvmat = np.dot(np.array([[cs,sn],[-sn,cs]]),wcs.parity)
+        rot = np.arctan2(pvmat[0,1],pvmat[1,1])
+        scale = wcs.idcscale/3600.
+
+        det = linalg.det(wcs.parity)
+
+    else:
+
+        det = linalg.det(cd)
+
+        # find pixel scale:
+        if hasattr(wcs, 'idcscale'):
+            scale = (wcs.idcscale) / 3600. # HST pixel scale provided
+        else:
+            scale = np.sqrt(np.abs(det)) # find as sqrt(pixel area)
+
+        # find Y-axis orientation:
+        if hasattr(wcs, 'orientat') and not ignoreHST:
+            rot = np.deg2rad(wcs.orientat) # use HST ORIENTAT
+        else:
+            rot = np.arctan2(wcs.wcs.cd[0,1], wcs.wcs.cd[1,1]) # angle of the Y-axis
+
+    par = -1 if det < 0.0 else 1
+
+    # create a perfectly square, orthogonal WCS
+    sn = np.sin(rot)
+    cs = np.cos(rot)
+    orthogonal_cd = scale * np.array([[par*cs, sn], [-par*sn, cs]])
+
+    lin_wcsobj = pywcs.WCS()
+    lin_wcsobj.wcs.cd = orthogonal_cd
+    lin_wcsobj.wcs.set()
+    lin_wcsobj.orientat = arctan2(lin_wcsobj.wcs.cd[0,1],lin_wcsobj.wcs.cd[1,1]) * 180./np.pi
+    lin_wcsobj.pscale = sqrt(lin_wcsobj.wcs.cd[0,0]**2 + lin_wcsobj.wcs.cd[1,0]**2)*3600.
+    lin_wcsobj.wcs.crval = np.array([0.,0.])
+    lin_wcsobj.wcs.crpix = np.array([0.,0.])
+    lin_wcsobj.wcs.ctype = ['RA---TAN', 'DEC--TAN']
+    lin_wcsobj.wcs.set()
+
+    return lin_wcsobj
 
 def  undistortWCS(wcsobj):
     """
@@ -203,4 +268,3 @@ def foundIDCTAB(idctab):
     except KeyError:
         idctab_found = False
     return idctab_found
-
