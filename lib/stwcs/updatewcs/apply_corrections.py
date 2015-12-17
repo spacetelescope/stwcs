@@ -1,4 +1,4 @@
-from __future__ import division, print_function # confidence high
+from __future__ import division, print_function  # confidence high
 
 import os
 from astropy.io import fits
@@ -7,6 +7,7 @@ from stsci.tools import fileutil
 import os.path
 from stwcs.wcsutil import altwcs
 from . import utils
+from . import wfpc2_dgeo
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
@@ -42,6 +43,11 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     # make a copy of this list !
     acorr = allowed_corrections[instrument][:]
 
+    # For WFPC2 images, the old-style DGEOFILE needs to be
+    # converted on-the-fly into a proper D2IMFILE here...
+    if instrument == 'WFPC2':
+        # check for DGEOFILE, and convert it to D2IMFILE if found
+        d2imfile = wfpc2_dgeo.update_wfpc2_d2geofile(fname)
     # Check if idctab is present on disk
     # If kw IDCTAB is present in the header but the file is
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP
