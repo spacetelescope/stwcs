@@ -17,6 +17,23 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     """
     Creates a D2IMFILE from the DGEOFILE for a WFPC2 image (input), and
     modifies the header to reflect the new usage.
+    
+    Parameters
+    ----------
+    filename: string
+        Name of WFPC2 file to be processed.  This file will be updated
+        to delete any reference to a DGEOFILE and add a D2IMFILE to replace
+        that correction when running updatewcs.
+    fhdu: object
+        FITS object for WFPC2 image.  If user has already opened the WFPC2
+        file, they can simply pass that FITS object in for direct processing.
+
+    Returns
+    -------
+    d2imfile: string
+        Name of D2IMFILE created from DGEOFILE.  The D2IMFILE keyword in the
+        image header will be updated/added to point to this newly created file.
+        
     """
     
     close_fhdu = False
