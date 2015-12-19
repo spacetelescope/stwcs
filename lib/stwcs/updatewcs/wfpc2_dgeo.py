@@ -52,7 +52,8 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     else:
         d2imfile = None
         fhdu['PRIMARY'].header['DGEOFILE'] = 'N/A'
-        fhdu['PRIMARY'].header['D2IMFILE'] = 'N/A'
+        if 'D2IMFILE' not in fhdu['PRIMARY'].header:
+            fhdu['PRIMARY'].header['D2IMFILE'] = 'N/A'
 
     # Only close the file handle if opened in this function
     if close_fhdu:
