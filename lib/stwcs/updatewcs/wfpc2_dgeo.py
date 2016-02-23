@@ -17,7 +17,7 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     """
     Creates a D2IMFILE from the DGEOFILE for a WFPC2 image (input), and
     modifies the header to reflect the new usage.
-    
+
     Parameters
     ----------
     filename: string
@@ -33,16 +33,19 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     d2imfile: string
         Name of D2IMFILE created from DGEOFILE.  The D2IMFILE keyword in the
         image header will be updated/added to point to this newly created file.
-        
+
     """
-    
+
     close_fhdu = False
     if fhdu is None:
         fhdu = fileutil.openImage(filename, mode='update')
         close_fhdu = True
 
     dgeofile = fhdu['PRIMARY'].header.get('DGEOFILE', None)
-    if dgeofile not in [None, "N/A", "", " "]:
+    already_converted = dgeofile not in [None, "N/A", "", " "]
+    if already_converted or 'ODGEOFIL' in fhdu['PRIMARY'].header:
+        if not already_converted:
+            dgeofile = fhdu['PRIMARY'].header.get('ODGEOFIL', None)
         logger.info('Converting DGEOFILE %s into D2IMFILE...' % dgeofile)
         rootname = filename[:filename.find('.fits')]
         d2imfile = convert_dgeo_to_d2im(dgeofile,rootname)
