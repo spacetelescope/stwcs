@@ -35,7 +35,7 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
         image header will be updated/added to point to this newly created file.
 
     """
-
+    
     close_fhdu = False
     if fhdu is None:
         fhdu = fileutil.openImage(filename, mode='update')
