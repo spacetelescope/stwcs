@@ -12,10 +12,6 @@ htmlcov
 MANIFEST
 .coverage
 docs/api/
-MANIFEST
-
-# Sphinx
-docs/api
 docs/_build
 
 # Eclipse editor project files
@@ -43,6 +39,6 @@ distribute-*.tar.gz
 # Other
 .*.swp
 *~
-
+RECON-INFO
 # Mac OSX
 .DS_Store
