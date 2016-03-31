@@ -1,13 +1,16 @@
 # Compiled files
 *.py[co]
 *.a
-*.o
+RELIC-INFO
+lib/*/version.py
+build/
+dist/
+*.pyc
 *.so
 __pycache__
 
 # Other generated files
 */version.py
-lib/stwcs/version.py
 htmlcov
 MANIFEST
 .coverage
