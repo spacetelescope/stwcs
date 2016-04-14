@@ -2,6 +2,7 @@
 *.py[co]
 *.a
 RELIC-INFO
+relic/
 lib/*/version.py
 build/
 dist/
