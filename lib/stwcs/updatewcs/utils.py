@@ -255,7 +255,7 @@ def remove_distortion(fname, dist_keyword):
         for kw in keywords:
             try:
                 del f[hdu].header[kw]
-            except AttributeError:
+            except KeyError:
                 pass
     ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, extname).values()
     ext_mapping.sort()
