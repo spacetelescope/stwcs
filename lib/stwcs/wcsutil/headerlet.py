@@ -21,7 +21,6 @@ import time
 
 import numpy as np
 from astropy.io import fits
-#import pywcs
 from astropy import wcs as pywcs
 from astropy.utils import lazyproperty
 
@@ -2149,7 +2148,9 @@ class Headerlet(fits.HDUList):
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():
                 hwcs_header = altwcs.pc2cd(hwcs_header, key=wkey)
-
+            for ax in range(1, hwcs.naxis + 1):
+                hwcs_header['CTYPE{0}{1}'.format(ax, wkey)] = \
+                           self[('SIPWCS', 1)].header['CTYPE{0}'.format(ax)]
             fhdr.extend(hwcs_header)
             fhdr['WCSNAME' + wkey] = wname
             # also update with HDRNAME (a non-WCS-standard kw)
