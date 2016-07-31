@@ -1,21 +1,21 @@
 # Compiled files
 *.py[co]
 *.a
-*.o
+RELIC-INFO
+relic/
+lib/*/version.py
+build/
+dist/
+*.pyc
 *.so
 __pycache__
 
 # Other generated files
 */version.py
-lib/stwcs/version.py
 htmlcov
 MANIFEST
 .coverage
 docs/api/
-MANIFEST
-
-# Sphinx
-docs/api
 docs/_build
 
 # Eclipse editor project files
@@ -43,6 +43,6 @@ distribute-*.tar.gz
 # Other
 .*.swp
 *~
-
+RECON-INFO
 # Mac OSX
 .DS_Store
