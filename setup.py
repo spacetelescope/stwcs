@@ -32,7 +32,7 @@ setup(
     version = version.pep386,
     author = 'Nadia Dencheva, Warren Hack',
     author_email = 'help@stsci.edu',
-    description = 'Recomputes the WCS of an HST observation and puts all distortion',
+    description = 'Recomputes and records the WCS of an HST observation (includeing distortion) in the file.',
     url = 'https://github.com/spacetelescope/stwcs',
     classifiers = [
         'Intended Audience :: Science/Research',
@@ -44,7 +44,6 @@ setup(
     ],
     install_requires = [
         'astropy',
-        'nose',
         'numpy',
         'stsci.tools',
     ],
