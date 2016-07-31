@@ -349,7 +349,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         hwcs = readAltWCS(fobj,i,wcskey=wkey)
         if hwcs is None:
             continue
-        for k in hwcs:
+        for k in hwcs[::-1]:
             del hdr[k]
             #del hdr['ORIENT'+wkey]
         prexts.append(i)
