@@ -1,0 +1,6 @@
+_task_name_ = string_kw(default="delete_headerlet")
+filename = string_kw(default="", comment="FITS image file name(s), list or wild-card")
+hdrname = string_kw(default="", comment="Delete headerlet with this HDRNAME")
+hdrext = integer_or_none_kw(default=None, comment="Delete headerlet from this extension")
+distname = string_kw(default="", comment="Delete *ALL* with this DISTNAME")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")

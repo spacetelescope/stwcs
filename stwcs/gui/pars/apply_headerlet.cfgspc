@@ -1,0 +1,12 @@
+_task_name_ = string_kw(default="apply_headerlet")
+filename = string_kw(default="", comment="Input file name")
+hdrlet = string_kw(default="", comment="Headerlet FITS filename")
+attach = boolean_kw(default=True, comment= "Append headerlet to FITS file as new extension?")
+primary = boolean_kw(default=True, triggers="_rule1_", comment="Replace PRIMARY WCS with headerlet WCS?")
+archive = boolean_kw(default=True, active_if="_rule1_", comment="Save PRIMARY WCS as new headerlet extension?")
+force = boolean_kw(default=False, active_if="_rule1_", comment="If distortions do not match, force update anyway?")
+wcskey = option_kw("A","B","C","D","E","F","G","H","I","J","K","L","M","N","P","Q","R","S","T","U","V","W","X","Y","Z","", default="", inactive_if="_rule1_", comment="Apply headerlet as alternate WCS with this letter")
+wcsname = string_kw(default="", inactive_if="_rule1_", comment="Apply headerlet as alternate WCS with this name")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")
+[ _RULES_ ]
+_rule1_ = string_kw(default=True, code='tyfn={"yes":True, "no":False}; OUT = tyfn[VAL]')

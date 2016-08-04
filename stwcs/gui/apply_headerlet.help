@@ -1,0 +1,38 @@
+This task applies a headerlet to a science observation to update either the
+PRIMARY WCS or to add it as an alternate WCS.
+
+filename = ""
+hdrlet = ""
+attach = True
+primary = True
+archive = True
+force = False
+wcskey = ""
+wcsname = ""
+verbose = False
+
+Parameters
+----------
+filename: string, @-file or wild-card name
+         File name(s) of science observation whose WCS solution will be updated
+hdrlet: string, @-file or wild-card name
+         Headerlet file(s), must match input filenames 1-to-1
+attach: boolean
+        True (default): append headerlet to FITS file as a new extension.
+primary: boolean
+        Specify whether or not to replace PRIMARY WCS with WCS from headerlet.
+archive: boolean
+        True (default): before updating, create a headerlet with the
+        WCS old solution.
+force: boolean
+        If True, this will cause the headerlet to replace the current PRIMARY
+        WCS even if it has a different distortion model. [Default: False]
+wcskey: string
+      Key value (A-Z, except O) for this alternate WCS
+      If None, the next available key will be used
+wcsname: string
+      Name to be assigned to this alternate WCS
+      WCSNAME is a required keyword in a Headerlet but this allows the
+      user to change it as desired.
+logging: boolean
+        enable file logging
