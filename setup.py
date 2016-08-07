@@ -2,10 +2,8 @@
 import os
 import subprocess
 import sys
-from glob import glob
-from numpy import get_include as np_include
-from setuptools import setup, find_packages, Extension
-
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
 
 if os.path.exists('relic'):
     sys.path.insert(1, 'relic')
@@ -25,14 +23,41 @@ else:
 
 
 version = relic.release.get_info()
-relic.release.write_template(version, 'lib/stwcs')
+relic.release.write_template(version, 'stwcs')
+ 
+try:
+    from distutils.config import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
+conf = ConfigParser()
+conf.read(['setup.cfg'])
+
+# Get some config values                                                                   
+metadata = dict(conf.items('metadata'))
+PACKAGENAME = metadata.get('package_name', 'stwcs')
+DESCRIPTION = metadata.get('description', '')
+AUTHOR = metadata.get('author', 'STScI')
+AUTHOR_EMAIL = metadata.get('author_email', 'help@stsci.edu')
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = ['stwcs/tests']
+        self.test_suite = True
+
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded                                
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
-    name = 'stwcs',
+    name = PACKAGENAME,
     version = version.pep386,
-    author = 'Nadia Dencheva, Warren Hack',
-    author_email = 'help@stsci.edu',
-    description = 'Recomputes and records the WCS of an HST observation (includeing distortion) in the file.',
+    author = AUTHOR,
+    author_email = AUTHOR_EMAIL,
+    description = DESCRIPTION,
     url = 'https://github.com/spacetelescope/stwcs',
     classifiers = [
         'Intended Audience :: Science/Research',
@@ -47,13 +72,12 @@ setup(
         'numpy',
         'stsci.tools',
     ],
-    package_dir = {
-        '': 'lib',
-    },
-    packages = find_packages('lib'),
+    packages = find_packages(),
+    tests_require = ['pytest'],
     package_data = {
         'stwcs/gui': ['*.help'],
         'stwcs/gui/pars': ['*'],
         'stwcs/gui/htmlhelp': ['*'],
     },
+    cmdclass = {"test": PyTest}
 )

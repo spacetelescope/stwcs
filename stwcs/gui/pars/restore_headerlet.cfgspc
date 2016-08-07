@@ -1,0 +1,12 @@
+_task_name_ = string_kw(default="restore_headerlet")
+filename = string_kw(default="", comment="Input file name")
+archive = boolean_kw(default=True, comment= "Create headerlets from WCSs being replaced?")
+force = boolean_kw(default=False, comment="If distortions do not match, force update anyway?")
+distname = string_kw(default="", triggers="_rule1_", comment="Restore ALL headerlet extensions with this DISTNAME")
+primary = integer_or_none_kw(default=None, inactive_if="_rule1_", comment="Headerlet extension to restore as new primary WCS")
+sciext = string_kw(default="SCI", inactive_if="_rule1_", comment="EXTNAME of extension with WCS")
+hdrname = string_kw(default="", active_if="_rule1_", comment="HDRNAME of headerlet extension to be restored")
+hdrext = integer_or_none_kw(default=None, active_if="_rule1_", comment="Extension number for headerlet to be restored")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")
+[ _RULES_ ]
+_rule1_ = string_kw(default=True, code='from stwcs import wcsutil;from stwcs.wcsutil import headerlet;OUT = headerlet.is_par_blank(VAL)')

@@ -1,0 +1,7 @@
+_task_name_ = string_kw(default="extract_headerlet")
+filename = string_kw(default="", comment="Input file name")
+output = string_kw(default="", comment="Output headerlet FITS filename")
+extnum = integer_or_none_kw(default=None, comment="FITS extension number of headerlet")
+hdrname = string_kw(default="", comment="Unique name(HDRNAME) for headerlet")
+clobber = boolean_kw(default=True, comment= "Overwrite existing headerlet FITS file?")
+logging = boolean_kw(default=False, comment= "Enable logging to a file")

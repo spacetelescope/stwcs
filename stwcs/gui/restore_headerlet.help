@@ -1,0 +1,43 @@
+Restore headerlet extension(s) as either a primary WCS or as alternate WCSs
+
+This task can restore a WCS solution stored in a headerlet extension or 
+restore all WCS solutions from all headerlet extensions with the same 
+distortion model. 
+
+Parameters
+----------
+filename: string or HDUList
+    Either a filename or PyFITS HDUList object for the input science file
+    An input filename (str) will be expanded as necessary to interpret 
+    any environmental variables included in the filename.
+
+archive: boolean (default True)
+    flag indicating if HeaderletHDUs should be created from the
+    primary and alternate WCSs in fname before restoring all matching
+    headerlet extensions
+
+force: boolean (default:False)
+    When the distortion models of the headerlet and the primary do
+    not match, and archive is False, this flag forces an update of
+    the primary.
+
+distname: string 
+    distortion model as represented by a DISTNAME keyword         
+
+primary: int or string or None
+    HeaderletHDU to be restored as primary
+    if int - a fits extension
+    if string - HDRNAME
+    if None - use first HeaderletHDU
+
+sciext: string (default: SCI)
+    EXTNAME value of FITS extensions with WCS keywords
+
+hdrname: string
+    HDRNAME keyword of HeaderletHDU 
+
+hdrext: int or tuple
+    Headerlet extension number of tuple ('HDRLET',2) 
+
+logging: boolean
+        enable file logging
