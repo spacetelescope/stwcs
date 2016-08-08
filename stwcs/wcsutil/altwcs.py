@@ -121,9 +121,19 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         wname = wcsname
 
     for e in ext:
-        hwcs = readAltWCS(f,e,wcskey=' ')
+        hdr = _getheader(f, e)
+        w = pywcs.WCS(hdr, f)
+        hwcs = w.to_header()
+
         if hwcs is None:
             continue
+
+        if w.sip is not None:
+            for i in range(1, w.naxis + 1):
+                hwcs['CTYPE{0}'.format(i)] = hwcs['CTYPE{0}'.format(i)] + '-SIP'
+
+        if w.wcs.has_cd():
+            hwcs = pc2cd(hwcs, key=" ")
 
         wcsnamekey = 'WCSNAME' + wkey
         f[e].header[wcsnamekey] = wname
@@ -132,7 +142,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
             old_wcsname=hwcs.pop('WCSNAME')
         except:
             pass
-        
+
         for k in hwcs.keys():
             key = k[:7] + wkey
             f[e].header[key] = hwcs[k]
@@ -260,7 +270,6 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
     # Interpret input 'ext' value to get list of extensions to process
     ext = _buildExtlist(fobj, ext)
 
-
     # the case of an HDUList object in memory without an associated file
 
     #if fobj.filename() is not None:
@@ -274,22 +283,18 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     if wcskey == " ":
         if wcsname.strip():
-            wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
-            if not wkey:
+            wcskey = getKeyFromName(fobj[wcskeyext].header, wcsname)
+            if not wcskey:
                 closefobj(f, fobj)
                 raise KeyError("Could not get a key from wcsname %s ." % wcsname)
-    else:
-        if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            #print "Could not find alternate WCS with key %s in this file" % wcskey
-            closefobj(f, fobj)
-            return
-        wkey = wcskey
 
     for e in ext:
-        _restore(fobj, wkey, fromextnum=e, verbose=False)
+        if wcskey not in wcskeys(fobj, ext=e):
+            continue
+        else:
+            _restore(fobj, wcskey, fromextnum=e, verbose=False)
 
     if fobj.filename() is not None:
-        #fobj.writeto(name)
         closefobj(f, fobj)
 
 def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
@@ -351,7 +356,6 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
             continue
         for k in hwcs[::-1]:
             del hdr[k]
-            #del hdr['ORIENT'+wkey]
         prexts.append(i)
     if prexts != []:
         print('Deleted all instances of WCS with key %s in extensions' % wkey, prexts)
@@ -415,17 +419,28 @@ def _restore(fobj, ukey, fromextnum,
     else:
         toextension = fromextension
 
-    hwcs = readAltWCS(fobj,fromextension,wcskey=ukey,verbose=verbose)
+    hdr = _getheader(fobj, fromextension)
+    # keep a copy of the ctype because of the "-SIP" suffix.
+    ctype = hdr['ctype*']
+    w = pywcs.WCS(hdr, fobj, key=ukey)
+    hwcs = w.to_header()
+
     if hwcs is None:
         return
+
+    if w.wcs.has_cd():
+        hwcs = pc2cd(hwcs, key=ukey)
+
+    for i in range(1, w.naxis + 1):
+        hwcs['CTYPE{0}{1}'.format(i, ukey)] = ctype['CTYPE{0}'.format(i)]
 
     for k in hwcs.keys():
         key = k[:-1]
         if key in fobj[toextension].header:
-            #fobj[toextension].header.update(key=key, value = hwcs[k])
             fobj[toextension].header[key] = hwcs[k]
         else:
             continue
+
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
@@ -458,7 +473,8 @@ def _getheader(fobj, ext):
     return hdr
 
 def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
-    """ Reads in alternate WCS from specified extension
+    """
+    Reads in alternate primary WCS from specified extension.
 
     Parameters
     ----------
@@ -649,7 +665,7 @@ def getKeyFromName(header, wcsname):
 
 def pc2cd(hdr, key=' '):
     """
-    Convert a CD PC matrix to a CD matrix.
+    Convert a CD matrix to a CD matrix.
 
     WCSLIB (and PyWCS) recognizes CD keywords as input
     but converts them and works internally with the PC matrix.
@@ -664,14 +680,13 @@ def pc2cd(hdr, key=' '):
     """
     for c in ['1_1', '1_2', '2_1', '2_2']:
         try:
-            val = hdr['PC'+c+'%s' % key]
-            del hdr['PC'+c+ '%s' % key]
+            val = hdr['PC{0}{1}'.format(c, key)]
+            del hdr['PC{0}{1}'.format(c, key)]
         except KeyError:
-            if c=='1_1' or c == '2_2':
+            if c == '1_1' or c == '2_2':
                 val = 1.
             else:
                 val = 0.
-        #hdr.update(key='CD'+c+'%s' %key, value=val)
         hdr['CD{0}{1}'.format(c, key)] = val
     return hdr
 
@@ -681,7 +696,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
 
     fobj : str or `astropy.io.fits.HDUList` object
         a file name or a file object
-    ext : int, a tuple, a python list of integers or a python list
+    ext : int, a tuple,a python list of integers or a python list
         of tuples (e.g.('sci',1))
         fits extensions to work with
     wcskey : str
