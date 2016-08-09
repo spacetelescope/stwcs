@@ -1988,10 +1988,8 @@ class Headerlet(fits.HDUList):
             # Update WCS with HDRNAME as well
 
             for kw in ['SIMPLE', 'BITPIX', 'NAXIS', 'EXTEND']:
-                try:
+                if kw in priwcs[0].header:
                     priwcs[0].header.remove(kw)
-                except ValueError:
-                    pass
 
             priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "")
             priwcs[0].header.set('WCSAXES', self[('SIPWCS', i)].header['WCSAXES'], "")
