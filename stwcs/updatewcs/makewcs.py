@@ -204,8 +204,8 @@ class MakeWCS(object):
                 alpha = 0.0
                 beta = 0.0
                 v23_corr = np.array([[0.], [0.]])
-                logger.debug("TDD Zero point correction for chip {0} defaulted to: {1}".format((hwcs.chip,
-                                                                                                v23_corr)))
+                logger.debug("TDD Zero point correction for chip"
+                             "{0} defaulted to: {1}".format(hwcs.chip, v23_corr))
                 return v23_corr
 
         tdd = np.array([[beta, alpha], [alpha, -beta]])
@@ -213,7 +213,7 @@ class MakeWCS(object):
         xy0 = np.array([[cls.tdd_xyref[hwcs.chip][0] - 2048.],
                         [cls.tdd_xyref[hwcs.chip][1] - 2048.]])
         v23_corr = np.dot(mrotp, np.dot(tdd, xy0)) * 0.05
-        logger.debug("TDD Zero point correction for chip {0}: {1}".format((hwcs.chip, v23_corr)))
+        logger.debug("TDD Zero point correction for chip {0}: {1}".format(hwcs.chip, v23_corr))
         return v23_corr
 
     zero_point_corr = classmethod(zero_point_corr)

@@ -1,11 +1,14 @@
+from __future__ import absolute_import, division, print_function
+
 import shutil
 import os
 from astropy.io import fits as pyfits
-from stwcs.wcsutil import altwcs
-from stwcs import updatewcs
-from stwcs.wcsutil import HSTWCS
+from ..wcsutil import altwcs
+from .. import updatewcs
+from .. import wcsutil
 import numpy as np
 from numpy.testing import utils
+import pytest
 
 from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
@@ -70,25 +73,25 @@ class TestAltWCS(object):
         updatewcs.updatewcs(acs_file)
         self.acs_file = acs_file
         self.simplefits = simple_file
-        self.ww = HSTWCS(self.acs_file, ext=1)
+        self.ww = wcsutil.HSTWCS(self.acs_file, ext=1)
 
     def test_archive(self):
         altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST', reusekey=False)
-        w1 = HSTWCS(self.acs_file, ext=1)
-        w1z = HSTWCS(self.acs_file, ext=1, wcskey='Z')
+        w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
+        w1z = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
         compare_wcs(w1, w1z)
 
     def test_archive_clobber(self):
         altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST', reusekey=True)
-        w1 = HSTWCS(self.acs_file, ext=1)
-        w1z = HSTWCS(self.acs_file, ext=1, wcskey='Z')
+        w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
+        w1z = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
         compare_wcs(w1, w1z)
 
     def test_restore_wcs(self):
         # test restore on a file
         altwcs.restoreWCS(self.acs_file, ext=1, wcskey='O')
-        w1o = HSTWCS(self.acs_file, ext=1, wcskey='O')
-        w1 = HSTWCS(self.acs_file, ext=1)
+        w1o = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='O')
+        w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
         compare_wcs(w1, w1o, exclude_keywords=['ctype'])
 
     def test_restore_wcs_mem(self):
@@ -99,8 +102,8 @@ class TestAltWCS(object):
         f = pyfits.open(self.acs_file, mode='update')
         altwcs.restoreWCS(f, ext=1, wcskey='T')
         f.close()
-        w1o = HSTWCS(self.acs_file, ext=1, wcskey='T')
-        w1 = HSTWCS(self.acs_file, ext=1)
+        w1o = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='T')
+        w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
         compare_wcs(w1, w1o)
 
     def test_restore_simple(self):
@@ -108,8 +111,8 @@ class TestAltWCS(object):
         altwcs.archiveWCS(self.simplefits, ext=0, wcskey='R')
         pyfits.setval(self.simplefits, ext=0, keyword='CRVAL1R', value=1)
         altwcs.restoreWCS(self.simplefits, ext=0, wcskey='R')
-        wo = HSTWCS(self.simplefits, ext=0, wcskey='R')
-        ws = HSTWCS(self.simplefits, ext=0)
+        wo = wcsutil.HSTWCS(self.simplefits, ext=0, wcskey='R')
+        ws = wcsutil.HSTWCS(self.simplefits, ext=0)
         compare_wcs(ws, wo)
 
     def test_restore_wcs_from_to(self):
@@ -121,25 +124,27 @@ class TestAltWCS(object):
         altwcs.restore_from_to(f, fromext='SCI', toext=['SCI', 'ERR', 'DQ'],
                                wcskey='T')
         f.close()
-        w1o = HSTWCS(self.acs_file, ext=('SCI', 1), wcskey='T')
-        w1 = HSTWCS(self.acs_file, ext=('SCI', 1))
+        w1o = wcsutil.HSTWCS(self.acs_file, ext=('SCI', 1), wcskey='T')
+        w1 = wcsutil.HSTWCS(self.acs_file, ext=('SCI', 1))
         compare_wcs(w1, w1o)
-        w2 = HSTWCS(self.acs_file, ext=('ERR', 1))
+        w2 = wcsutil.HSTWCS(self.acs_file, ext=('ERR', 1))
         compare_wcs(w2, w1o, exclude_keywords=['ctype'])
-        w3 = HSTWCS(self.acs_file, ext=('DQ', 1))
+        w3 = wcsutil.HSTWCS(self.acs_file, ext=('DQ', 1))
         compare_wcs(w3, w1o, exclude_keywords=['ctype'])
-        w4o = HSTWCS(self.acs_file, ext=4, wcskey='T')
-        w4 = HSTWCS(self.acs_file, ext=('SCI', 2))
+        w4o = wcsutil.HSTWCS(self.acs_file, ext=4, wcskey='T')
+        w4 = wcsutil.HSTWCS(self.acs_file, ext=('SCI', 2))
         compare_wcs(w4, w4o)
-        w5 = HSTWCS(self.acs_file, ext=('ERR', 2))
+        w5 = wcsutil.HSTWCS(self.acs_file, ext=('ERR', 2))
         compare_wcs(w5, w4o, exclude_keywords=['ctype'])
-        w6 = HSTWCS(self.acs_file, ext=('DQ', 2))
+        w6 = wcsutil.HSTWCS(self.acs_file, ext=('DQ', 2))
         compare_wcs(w3, w1o, exclude_keywords=['ctype'])
 
     def test_delete_wcs(self):
         #altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z')
         altwcs.deleteWCS(self.acs_file, ext=1, wcskey='Z')
-        utils.assert_raises(KeyError, HSTWCS, self.acs_file, ext=1, wcskey='Z')
+        #utils.assert_raises(KeyError, wcsutil.HSTWCS, self.acs_file, ext=1, wcskey='Z')
+        with pytest.raises(KeyError):
+            wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
 
     def test_pars_file_mode1(self):
         assert(not altwcs._parpasscheck(self.acs_file, ext=1, wcskey='Z'))

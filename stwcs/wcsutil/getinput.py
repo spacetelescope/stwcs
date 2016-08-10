@@ -1,13 +1,14 @@
 from __future__ import absolute_import, division, print_function
+
 from astropy.io import fits
 from stsci.tools import irafglob, fileutil, parseinput
-from .hstwcs import HSTWCS
+#from . import HSTWCS
 
 
 def parseSingleInput(f=None, ext=None):
     if isinstance(f, str):
         # create an HSTWCS object from a filename
-        if ext is None:
+        if ext is not None:
             filename = f
             if isinstance(ext, tuple):
                 if ext[0] == '':
@@ -57,9 +58,9 @@ def parseMultipleInput(input):
                 filelist, output = parseinput.parseinput(input)
             except IOError: raise
     elif isinstance(input, list):
-        if isinstance(input[0], HSTWCS):
-            # a list of HSTWCS objects
-            return input
-        else:
-            filelist = input[:]
+        #if isinstance(input[0], HSTWCS):
+            ## a list of HSTWCS objects
+            #return input
+        #else:
+        filelist = input[:]
     return filelist

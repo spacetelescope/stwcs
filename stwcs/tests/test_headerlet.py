@@ -1,9 +1,11 @@
+from __future__ import absolute_import, division, print_function
+
 import shutil
 import os
 from astropy.io import fits
-from stwcs import updatewcs
-from stwcs.wcsutil import headerlet, wcsdiff
-from stwcs.wcsutil import HSTWCS
+from .. import updatewcs
+from ..wcsutil import headerlet, wcsdiff
+from ..wcsutil import HSTWCS
 import numpy as np
 from numpy.testing import utils
 from nose.tools import *

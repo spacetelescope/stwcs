@@ -1,8 +1,10 @@
 from __future__ import absolute_import, division, print_function
+
 import atexit
 from astropy.io import fits
 from .. import wcsutil
-from ..wcsutil import HSTWCS
+#from ..wcsutil.hwstwcs import HSTWCS
+
 from .. import __version__
 
 from astropy import wcs as pywcs
@@ -115,7 +117,7 @@ def makecorr(fname, allowed_corr):
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
-    rwcs = HSTWCS(fobj=f, ext=nrefext)
+    rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
     if 'DET2IMCorr' in allowed_corr:
@@ -133,7 +135,7 @@ def makecorr(fname, allowed_corr):
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
-                ext_wcs = HSTWCS(fobj=f, ext=i)
+                ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
                 wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)

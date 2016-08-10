@@ -3,14 +3,16 @@ from __future__ import absolute_import, division, print_function
 import os
 from astropy.wcs import WCS
 from astropy.io import fits
-from stwcs.distortion import models, coeff_converter
+from ..distortion import models, coeff_converter
 import numpy as np
 from stsci.tools import fileutil
 
-from . import altwcs
+from . import pc2cd
 from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
+
+__all__ = ['HSTWCS']
 
 
 def extract_rootname(kwvalue, suffix=""):
@@ -384,7 +386,7 @@ class HSTWCS(WCS):
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():
-            h = altwcs.pc2cd(h, key=wcskey)
+            h = pc2cd(h, key=wcskey)
 
         if 'wcsname' not in h:
             if self.idctab is not None:
