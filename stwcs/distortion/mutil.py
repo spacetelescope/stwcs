@@ -1,12 +1,8 @@
-from __future__ import division, print_function # confidence high
+from __future__ import division, print_function
 
 from stsci.tools import fileutil
 import numpy as np
 import calendar
-
-# Set up IRAF-compatible Boolean values
-yes = True
-no = False
 
 # This function read the IDC table and generates the two matrices with
 # the geometric correction coefficients.
@@ -14,12 +10,13 @@ no = False
 #       INPUT: FITS object of open IDC table
 #       OUTPUT: coefficient matrices for Fx and Fy
 #
-#### If 'tabname' == None: This should return a default, undistorted
-####                        solution.
+#    If 'tabname' == None: This should return a default, undistorted
+#                            solution.
 #
 
-def readIDCtab (tabname, chip=1, date=None, direction='forward',
-                filter1=None,filter2=None, offtab=None):
+
+def readIDCtab(tabname, chip=1, date=None, direction='forward',
+               filter1=None, filter2=None, offtab=None):
 
     """
         Read IDCTAB, and optional OFFTAB if sepcified, and generate
@@ -30,17 +27,17 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 
     """
 
- # Return a default geometry model if no IDCTAB filename
+    # Return a default geometry model if no IDCTAB filename
     # is given.  This model will not distort the data in any way.
-    if tabname == None:
+    if tabname is None:
         print('Warning: No IDCTAB specified! No distortion correction will be applied.')
         return defaultModel()
 
     # Implement default values for filters here to avoid the default
     # being overwritten by values of None passed by user.
-    if filter1 == None or filter1.find('CLEAR') == 0 or filter1.strip() == '':
+    if filter1 is None or filter1.find('CLEAR') == 0 or filter1.strip() == '':
         filter1 = 'CLEAR'
-    if filter2 == None or filter2.find('CLEAR') == 0 or filter2.strip() == '':
+    if filter2 is None or filter2.find('CLEAR') == 0 or filter2.strip() == '':
         filter2 = 'CLEAR'
 
     # Insure that tabname is full filename with fully expanded
@@ -51,7 +48,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     try:
         ftab = fileutil.openImage(tabname)
     except:
-        err_str =  "------------------------------------------------------------------------ \n"
+        err_str = "------------------------------------------------------------------------ \n"
         err_str += "WARNING: the IDCTAB geometric distortion file specified in the image     \n"
         err_str += "header was not found on disk. Please verify that your environment        \n"
         err_str += "variable ('jref'/'uref'/'oref'/'nref') has been correctly defined. If    \n"
@@ -63,7 +60,7 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         err_str += "------------------------------------------------------------------------ \n"
         raise IOError(err_str)
 
-    #First thing we need, is to read in the coefficients from the IDC
+    # First thing we need, is to read in the coefficients from the IDC
     # table and populate the Fx and Fy matrices.
 
     if 'DETECTOR' in ftab['PRIMARY'].header:
@@ -96,10 +93,10 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     else:
         order = norder
 
-    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
-    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fx = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
+    fy = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
 
-    #Determine row from which to get the coefficients.
+    # Determine row from which to get the coefficients.
     # How many rows do we have in the table...
     fshape = ftab[1].data.shape
     colnames = ftab[1].data.names
@@ -111,14 +108,14 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
 
         try:
             # Match FILTER combo to appropriate row,
-            #if there is a filter column in the IDCTAB...
+            # if there is a filter column in the IDCTAB...
             if 'FILTER1' in colnames and 'FILTER2' in colnames:
 
                 filt1 = ftab[1].data.field('FILTER1')[i]
-                if filt1.find('CLEAR') > -1: filt1 = filt1[:5]
+                if filt1.find('CLEAR') > -1: filt1 = filt1[: 5]
 
                 filt2 = ftab[1].data.field('FILTER2')[i]
-                if filt2.find('CLEAR') > -1: filt2 = filt2[:5]
+                if filt2.find('CLEAR') > -1: filt2 = filt2[: 5]
             else:
                 if 'OPT_ELEM' in colnames:
                     filt1 = ftab[1].data.field('OPT_ELEM')
@@ -170,16 +167,17 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         joinstr = ''
     else:
         f2str = filter2.strip()
-    filtstr = (joinstr.join([f1str,f2str])).strip()
+    filtstr = (joinstr.join([f1str, f2str])).strip()
     if row < 0:
         err_str = '\nProblem finding row in IDCTAB! Could not find row matching:\n'
-        err_str += '        CHIP: '+str(detchip)+'\n'
-        err_str += '     FILTERS: '+filtstr+'\n'
+        err_str += '        CHIP: ' + str(detchip) + '\n'
+        err_str += '     FILTERS: ' + filtstr + '\n'
         ftab.close()
         del ftab
         raise LookupError(err_str)
     else:
-        print('- IDCTAB: Distortion model from row',str(row+1),'for chip',detchip,':',filtstr)
+        print('- IDCTAB: Distortion model from row', str(row + 1), 'for chip',
+              detchip, ':', filtstr)
 
     # Read in V2REF and V3REF: this can either come from current table,
     # or from an OFFTAB if time-dependent (i.e., for WFPC2)
@@ -190,12 +188,12 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     else:
         # Read V2REF/V3REF from offset table (OFFTAB)
         if offtab:
-            v2ref,v3ref,theta = readOfftab(offtab, date, chip=detchip)
+            v2ref, v3ref, theta = readOfftab(offtab, date, chip=detchip)
         else:
             v2ref = 0.0
             v3ref = 0.0
 
-    if theta == None:
+    if theta is None:
         if 'THETA' in colnames:
             theta = ftab[1].data.field('THETA')[row]
         else:
@@ -206,14 +204,14 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     refpix['YREF'] = ftab[1].data.field('YREF')[row]
     refpix['XSIZE'] = ftab[1].data.field('XSIZE')[row]
     refpix['YSIZE'] = ftab[1].data.field('YSIZE')[row]
-    refpix['PSCALE'] = round(ftab[1].data.field('SCALE')[row],8)
+    refpix['PSCALE'] = round(ftab[1].data.field('SCALE')[row], 8)
     refpix['V2REF'] = v2ref
     refpix['V3REF'] = v3ref
     refpix['THETA'] = theta
     refpix['XDELTA'] = 0.0
     refpix['YDELTA'] = 0.0
-    refpix['DEFAULT_SCALE'] = yes
-    refpix['centered'] = no
+    refpix['DEFAULT_SCALE'] = True
+    refpix['centered'] = False
     refpix['skew_coeffs'] = skew_coeffs
     # Now that we know which row to look at, read coefficients into the
     #   numeric arrays we have set up...
@@ -226,13 +224,13 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
         cxstr = 'A'
         cystr = 'B'
 
-    for i in range(norder+1):
+    for i in range(norder + 1):
         if i > 0:
-            for j in range(i+1):
-                xcname = cxstr+str(i)+str(j)
-                ycname = cystr+str(i)+str(j)
-                fx[i,j] = ftab[1].data.field(xcname)[row]
-                fy[i,j] = ftab[1].data.field(ycname)[row]
+            for j in range(i + 1):
+                xcname = cxstr + str(i) + str(j)
+                ycname = cystr + str(i) + str(j)
+                fx[i, j] = ftab[1].data.field(xcname)[row]
+                fy[i, j] = ftab[1].data.field(ycname)[row]
 
     ftab.close()
     del ftab
@@ -240,21 +238,21 @@ def readIDCtab (tabname, chip=1, date=None, direction='forward',
     # If CX11 is 1.0 and not equal to the PSCALE, then the
     # coeffs need to be scaled
 
-    if fx[1,1] == 1.0 and abs(fx[1,1]) != refpix['PSCALE']:
+    if fx[1, 1] == 1.0 and abs(fx[1, 1]) != refpix['PSCALE']:
         fx *= refpix['PSCALE']
         fy *= refpix['PSCALE']
 
     # Return arrays and polynomial order read in from table.
     # NOTE: XREF and YREF are stored in Fx,Fy arrays respectively.
-    return fx,fy,refpix,order
-#
-#
-# Time-dependent skew correction coefficients (only ACS/WFC)
-#
-#
+    return fx, fy, refpix, order
+
+
 def read_tdd_coeffs(phdr, chip=1):
-    ''' Read in the TDD related keywords from the PRIMARY header of the IDCTAB
-    '''
+    """
+    Time-dependent skew correction coefficients (only ACS/WFC).
+
+    Read in the TDD related keywords from the PRIMARY header of the IDCTAB
+    """
     # Insure we have an integer form of chip
     ic = int(chip)
 
@@ -269,7 +267,7 @@ def read_tdd_coeffs(phdr, chip=1):
     skew_coeffs['TDD_CX_ALPHA'] = None
 
     # Skew-based TDD coefficients
-    skew_terms = ['TDD_CTB','TDD_CTA','TDD_CYA','TDD_CYB','TDD_CXA','TDD_CXB']
+    skew_terms = ['TDD_CTB', 'TDD_CTA', 'TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']
     for s in skew_terms:
         skew_coeffs[s] = None
 
@@ -280,7 +278,7 @@ def read_tdd_coeffs(phdr, chip=1):
         print("Using 2015-calibrated VAFACTOR-corrected TDD correction...")
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         for s in skew_terms:
-            skew_coeffs[s] = phdr.get('{0}{1}'.format(s,ic),None)
+            skew_coeffs[s] = phdr.get('{0}{1}'.format(s, ic), None)
 
     elif "TDD_CYB1" in phdr:
         # We have 2014-calibrated TDD correction to apply, not J.A.-derived values
@@ -288,17 +286,17 @@ def read_tdd_coeffs(phdr, chip=1):
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         # Read coefficients for TDD Y coefficient
         cyb_kw = 'TDD_CYB{0}'.format(int(chip))
-        skew_coeffs['TDD_CY_BETA'] = phdr.get(cyb_kw,None)
+        skew_coeffs['TDD_CY_BETA'] = phdr.get(cyb_kw, None)
         cya_kw = 'TDD_CYA{0}'.format(int(chip))
-        tdd_cya = phdr.get(cya_kw,None)
+        tdd_cya = phdr.get(cya_kw, None)
         if tdd_cya == 0 or tdd_cya == 'N/A': tdd_cya = None
         skew_coeffs['TDD_CY_ALPHA'] = tdd_cya
 
         # Read coefficients for TDD X coefficient
         cxb_kw = 'TDD_CXB{0}'.format(int(chip))
-        skew_coeffs['TDD_CX_BETA'] = phdr.get(cxb_kw,None)
+        skew_coeffs['TDD_CX_BETA'] = phdr.get(cxb_kw, None)
         cxa_kw = 'TDD_CXA{0}'.format(int(chip))
-        tdd_cxa = phdr.get(cxa_kw,None)
+        tdd_cxa = phdr.get(cxa_kw, None)
         if tdd_cxa == 0 or tdd_cxa == 'N/A': tdd_cxa = None
         skew_coeffs['TDD_CX_ALPHA'] = tdd_cxa
 
@@ -309,12 +307,12 @@ def read_tdd_coeffs(phdr, chip=1):
             print('TDDORDER kw not present, using default TDD correction')
             return None
 
-        a = np.zeros((n+1,), np.float64)
-        b = np.zeros((n+1,), np.float64)
-        for i in range(n+1):
+        a = np.zeros((n + 1,), np.float64)
+        b = np.zeros((n + 1,), np.float64)
+        for i in range(n + 1):
             a[i] = phdr.get(("TDD_A%d" % i), 0.0)
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
-        if (a==0).all() and (b==0).all():
+        if (a == 0).all() and (b == 0).all():
             print('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
                    but TDDORDER is %d.' % TDDORDER)
 
@@ -325,15 +323,15 @@ def read_tdd_coeffs(phdr, chip=1):
 
     return skew_coeffs
 
+
 def readOfftab(offtab, date, chip=None):
-
-
-#Read V2REF,V3REF from a specified offset table (OFFTAB).
-# Return a default geometry model if no IDCTAB filenam  e
-# is given.  This model will not distort the data in any way.
-
-    if offtab == None:
-        return 0.,0.
+    """
+    Read V2REF,V3REF from a specified offset table (OFFTAB).
+    Return a default geometry model if no IDCTAB filenam  e
+    is given.  This model will not distort the data in any way.
+    """
+    if offtab is None:
+        return 0., 0.
 
     # Provide a default value for chip
     if chip:
@@ -347,7 +345,7 @@ def readOfftab(offtab, date, chip=None):
     except:
         raise IOError("Offset table '%s' not valid as specified!" % offtab)
 
-    #Determine row from which to get the coefficients.
+    # Determine row from which to get the coefficients.
     # How many rows do we have in the table...
     fshape = ftab[1].data.shape
     colnames = ftab[1].data.names
@@ -374,7 +372,7 @@ def readOfftab(offtab, date, chip=None):
         obsdate = convertDate(ftab[1].data.field('OBSDATE')[i])
 
         # If the row is appropriate for the chip...
-            # Interpolate between dates
+        # Interpolate between dates
         if int(detchip) == int(chip) or int(detchip) == -999:
             if num_date <= obsdate:
                 date_end = obsdate
@@ -384,7 +382,7 @@ def readOfftab(offtab, date, chip=None):
                 row_end = i
                 continue
 
-            if row_end == None and (num_date > obsdate):
+            if row_end is None and (num_date > obsdate):
                 date_end = obsdate
                 v2end = ftab[1].data.field('V2REF')[i]
                 v3end = ftab[1].data.field('V3REF')[i]
@@ -403,16 +401,17 @@ def readOfftab(offtab, date, chip=None):
     ftab.close()
     del ftab
 
-    if row_start == None and row_end == None:
-        print('Row corresponding to DETCHIP of ',detchip,' was not found!')
+    if row_start is None and row_end is None:
+        print('Row corresponding to DETCHIP of ', detchip, ' was not found!')
         raise LookupError
-    elif row_start == None:
-        print('- OFFTAB: Offset defined by row',str(row_end+1))
+    elif row_start is None:
+        print('- OFFTAB: Offset defined by row', str(row_end + 1))
     else:
-        print('- OFFTAB: Offset interpolated from rows',str(row_start+1),'and',str(row_end+1))
+        print('- OFFTAB: Offset interpolated from rows', str(row_start + 1),
+              'and', str(row_end + 1))
 
     # Now, do the interpolation for v2ref, v3ref, and theta
-    if row_start == None or row_end == row_start:
+    if row_start is None or row_end is row_start:
         # We are processing an observation taken after the last calibration
         date_start = date_end
         v2start = v2end
@@ -426,31 +425,32 @@ def readOfftab(offtab, date, chip=None):
     v3ref = _fraction * (v3end - v3start) + v3start
     theta = _fraction * (theta_end - theta_start) + theta_start
 
-    return v2ref,v3ref,theta
+    return v2ref, v3ref, theta
+
 
 def readWCSCoeffs(header):
-
-    #Read distortion coeffs from WCS header keywords and
-    #populate distortion coeffs arrays.
-
+    """
+    Read distortion coeffs from WCS header keywords and
+    populate distortion coeffs arrays.
+    """
     # Read in order for polynomials
     _xorder = header['a_order']
     _yorder = header['b_order']
-    order = max(max(_xorder,_yorder),3)
+    order = max(max(_xorder, _yorder), 3)
 
-    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
-    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fx = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
+    fy = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
 
     # Read in CD matrix
     _cd11 = header['cd1_1']
     _cd12 = header['cd1_2']
     _cd21 = header['cd2_1']
     _cd22 = header['cd2_2']
-    _cdmat = np.array([[_cd11,_cd12],[_cd21,_cd22]])
-    _theta = np.arctan2(-_cd12,_cd22)
-    _rotmat = np.array([[np.cos(_theta),np.sin(_theta)],
-                      [-np.sin(_theta),np.cos(_theta)]])
-    _rCD = np.dot(_rotmat,_cdmat)
+    _cdmat = np.array([[_cd11, _cd12], [_cd21, _cd22]])
+    _theta = np.arctan2(-_cd12, _cd22)
+    _rotmat = np.array([[np.cos(_theta), np.sin(_theta)],
+                        [-np.sin(_theta), np.cos(_theta)]])
+    _rCD = np.dot(_rotmat, _cdmat)
     _skew = np.arcsin(-_rCD[1][0] / _rCD[0][0])
     _scale = _rCD[0][0] * np.cos(_skew) * 3600.
     _scale2 = _rCD[1][1] * 3600.
@@ -467,40 +467,40 @@ def readWCSCoeffs(header):
     refpix['THETA'] = np.rad2deg(_theta)
     refpix['XDELTA'] = 0.0
     refpix['YDELTA'] = 0.0
-    refpix['DEFAULT_SCALE'] = yes
-    refpix['centered'] = yes
-
+    refpix['DEFAULT_SCALE'] = True
+    refpix['centered'] = True
 
     # Set up template for coeffs keyword names
     cxstr = 'A_'
     cystr = 'B_'
     # Read coeffs into their own matrix
-    for i in range(_xorder+1):
-        for j in range(i+1):
-            xcname = cxstr+str(j)+'_'+str(i-j)
+    for i in range(_xorder + 1):
+        for j in range(i + 1):
+            xcname = cxstr + str(j) + '_' + str(i - j)
             if xcname in header:
-                fx[i,j] = header[xcname]
+                fx[i, j] = header[xcname]
 
     # Extract Y coeffs separately as a different order may
     # have been used to fit it.
-    for i in range(_yorder+1):
-        for j in range(i+1):
-            ycname = cystr+str(j)+'_'+str(i-j)
+    for i in range(_yorder + 1):
+        for j in range(i + 1):
+            ycname = cystr + str(j) + '_' + str(i - j)
             if ycname in header:
-                fy[i,j] = header[ycname]
+                fy[i, j] = header[ycname]
 
     # Now set the linear terms
     fx[0][0] = 1.0
     fy[0][0] = 1.0
 
-    return fx,fy,refpix,order
+    return fx, fy, refpix, order
 
 
-def readTraugerTable(idcfile,wavelength):
-
-    # Return a default geometry model if no coefficients filename
-    # is given.  This model will not distort the data in any way.
-    if idcfile == None:
+def readTraugerTable(idcfile, wavelength):
+    """
+    Return a default geometry model if no coefficients filename
+    is given.  This model will not distort the data in any way.
+    """
+    if idcfile is None:
         return fileutil.defaultModel()
 
     # Trauger coefficients only result in a cubic file...
@@ -510,10 +510,10 @@ def readTraugerTable(idcfile,wavelength):
     b_coeffs = [0] * numco
     indx = _MgF2(wavelength)
 
-    ifile = open(idcfile,'r')
+    ifile = open(idcfile, 'r')
     # Search for the first line of the coefficients
     _line = fileutil.rAsciiLine(ifile)
-    while _line[:7].lower() != 'trauger':
+    while _line[: 7].lower() != 'trauger':
         _line = fileutil.rAsciiLine(ifile)
     # Read in each row of coefficients,split them into their values,
     # and convert them into cubic coefficients based on
@@ -525,9 +525,11 @@ def readTraugerTable(idcfile,wavelength):
         if _line == '': continue
         _lc = _line.split()
         if j < 10:
-            a_coeffs[j] = float(_lc[0])+float(_lc[1])*(indx-1.5)+float(_lc[2])*(indx-1.5)**2
+            a_coeffs[j] = float(_lc[0]) + float(_lc[1]) * (indx - 1.5) + \
+                float(_lc[2]) * (indx - 1.5) ** 2
         else:
-            b_coeffs[j-10] = float(_lc[0])+float(_lc[1])*(indx-1.5)+float(_lc[2])*(indx-1.5)**2
+            b_coeffs[j - 10] = float(_lc[0]) + float(_lc[1]) * (indx - 1.5) + \
+                float(_lc[2]) * (indx - 1.5) ** 2
         j = j + 1
 
     ifile.close()
@@ -536,17 +538,17 @@ def readTraugerTable(idcfile,wavelength):
     # Now, convert the coefficients into a Numeric array
     # with the right coefficients in the right place.
     # Populate output values now...
-    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
-    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fx = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
+    fy = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
     # Assign the coefficients to their array positions
-    fx[0,0] = 0.
-    fx[1] = np.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=np.float64)
-    fx[2] = np.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=np.float64)
-    fx[3] = np.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=np.float64)
-    fy[0,0] = 0.
-    fy[1] = np.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=np.float64)
-    fy[2] = np.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=np.float64)
-    fy[3] = np.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=np.float64)
+    fx[0, 0] = 0.
+    fx[1] = np.array([a_coeffs[2], a_coeffs[1], 0., 0.], dtype=np.float64)
+    fx[2] = np.array([a_coeffs[5], a_coeffs[4], a_coeffs[3], 0.], dtype=np.float64)
+    fx[3] = np.array([a_coeffs[9], a_coeffs[8], a_coeffs[7], a_coeffs[6]], dtype=np.float64)
+    fy[0, 0] = 0.
+    fy[1] = np.array([b_coeffs[2], b_coeffs[1], 0., 0.], dtype=np.float64)
+    fy[2] = np.array([b_coeffs[5], b_coeffs[4], b_coeffs[3], 0.], dtype=np.float64)
+    fy[3] = np.array([b_coeffs[9], b_coeffs[8], b_coeffs[7], b_coeffs[6]], dtype=np.float64)
 
     # Used in Pattern.computeOffsets()
     refpix = {}
@@ -557,10 +559,10 @@ def readTraugerTable(idcfile,wavelength):
     refpix['XDELTA'] = 0.
     refpix['YDELTA'] = 0.
     refpix['PSCALE'] = None
-    refpix['DEFAULT_SCALE'] = no
-    refpix['centered'] = yes
+    refpix['DEFAULT_SCALE'] = False
+    refpix['centered'] = True
 
-    return fx,fy,refpix,order
+    return fx, fy, refpix, order
 
 
 def readCubicTable(idcfile):
@@ -572,17 +574,17 @@ def readCubicTable(idcfile):
 
     # Return a default geometry model if no coefficients filename
     # is given.  This model will not distort the data in any way.
-    if idcfile == None:
+    if idcfile is None:
         return fileutil.defaultModel()
 
-    ifile = open(idcfile,'r')
+    ifile = open(idcfile, 'r')
     # Search for the first line of the coefficients
     _line = fileutil.rAsciiLine(ifile)
 
-    _found = no
-    while _found == no:
-        if _line[:7] in  ['cubic','quartic','quintic'] or _line[:4] == 'poly':
-            found = yes
+    _found = False
+    while not _found:
+        if _line[:7] in ['cubic', 'quartic', 'quintic'] or _line[: 4] == 'poly':
+            found = True
             break
         _line = fileutil.rAsciiLine(ifile)
 
@@ -613,17 +615,17 @@ def readCubicTable(idcfile):
     # Now, convert the coefficients into a Numeric array
     # with the right coefficients in the right place.
     # Populate output values now...
-    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
-    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fx = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
+    fy = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
     # Assign the coefficients to their array positions
-    fx[0,0] = 0.
-    fx[1] = np.array([a_coeffs[2],a_coeffs[1],0.,0.],dtype=np.float64)
-    fx[2] = np.array([a_coeffs[5],a_coeffs[4],a_coeffs[3],0.],dtype=np.float64)
-    fx[3] = np.array([a_coeffs[9],a_coeffs[8],a_coeffs[7],a_coeffs[6]],dtype=np.float64)
-    fy[0,0] = 0.
-    fy[1] = np.array([b_coeffs[2],b_coeffs[1],0.,0.],dtype=np.float64)
-    fy[2] = np.array([b_coeffs[5],b_coeffs[4],b_coeffs[3],0.],dtype=np.float64)
-    fy[3] = np.array([b_coeffs[9],b_coeffs[8],b_coeffs[7],b_coeffs[6]],dtype=np.float64)
+    fx[0, 0] = 0.
+    fx[1] = np.array([a_coeffs[2], a_coeffs[1], 0., 0.], dtype=np.float64)
+    fx[2] = np.array([a_coeffs[5], a_coeffs[4], a_coeffs[3], 0.], dtype=np.float64)
+    fx[3] = np.array([a_coeffs[9], a_coeffs[8], a_coeffs[7], a_coeffs[6]], dtype=np.float64)
+    fy[0, 0] = 0.
+    fy[1] = np.array([b_coeffs[2], b_coeffs[1], 0., 0.], dtype=np.float64)
+    fy[2] = np.array([b_coeffs[5], b_coeffs[4], b_coeffs[3], 0.], dtype=np.float64)
+    fy[3] = np.array([b_coeffs[9], b_coeffs[8], b_coeffs[7], b_coeffs[6]], dtype=np.float64)
 
     # Used in Pattern.computeOffsets()
     refpix = {}
@@ -634,21 +636,23 @@ def readCubicTable(idcfile):
     refpix['XDELTA'] = 0.
     refpix['YDELTA'] = 0.
     refpix['PSCALE'] = None
-    refpix['DEFAULT_SCALE'] = no
-    refpix['centered'] = yes
+    refpix['DEFAULT_SCALE'] = False
+    refpix['centered'] = True
 
-    return fx,fy,refpix,order
+    return fx, fy, refpix, order
+
 
 def factorial(n):
     """ Compute a factorial for integer n. """
     m = 1
     for i in range(int(n)):
-        m = m * (i+1)
+        m = m * (i + 1)
     return m
 
-def combin(j,n):
+
+def combin(j, n):
     """ Return the combinatorial factor for j in n."""
-    return (factorial(j) / (factorial(n) * factorial( (j-n) ) ) )
+    return (factorial(j) / (factorial(n) * factorial((j - n))))
 
 
 def defaultModel():
@@ -657,15 +661,15 @@ def defaultModel():
     """
     order = 3
 
-    fx = np.zeros(shape=(order+1,order+1),dtype=np.float64)
-    fy = np.zeros(shape=(order+1,order+1),dtype=np.float64)
+    fx = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
+    fy = np.zeros(shape=(order + 1, order + 1), dtype=np.float64)
 
-    fx[1,1] = 1.
-    fy[1,0] = 1.
+    fx[1, 1] = 1.
+    fy[1, 0] = 1.
 
     # Used in Pattern.computeOffsets()
     refpix = {}
-    refpix['empty_model'] = yes
+    refpix['empty_model'] = True
     refpix['XREF'] = None
     refpix['YREF'] = None
     refpix['V2REF'] = 0.
@@ -675,17 +679,20 @@ def defaultModel():
     refpix['XDELTA'] = 0.
     refpix['YDELTA'] = 0.
     refpix['PSCALE'] = None
-    refpix['DEFAULT_SCALE'] = no
+    refpix['DEFAULT_SCALE'] = False
     refpix['THETA'] = 0.
-    refpix['centered'] = yes
-    return fx,fy,refpix,order
+    refpix['centered'] = True
+    return fx, fy, refpix, order
 
-# Function to compute the index of refraction for MgF2 at
-# the specified wavelength for use with Trauger coefficients
+
 def _MgF2(lam):
-    _sig = pow((1.0e7/lam),2)
-    return np.sqrt(1.0 + 2.590355e10/(5.312993e10-_sig) +
-        4.4543708e9/(11.17083e9-_sig) + 4.0838897e5/(1.766361e5-_sig))
+    """
+    Function to compute the index of refraction for MgF2 at
+    the specified wavelength for use with Trauger coefficients
+    """
+    _sig = pow((1.0e7 / lam), 2)
+    return np.sqrt(1.0 + 2.590355e10 / (5.312993e10 - _sig) +
+                   4.4543708e9 / (11.17083e9 - _sig) + 4.0838897e5 / (1.766361e5 - _sig))
 
 
 def convertDate(date):
