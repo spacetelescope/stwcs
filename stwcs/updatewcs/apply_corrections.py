@@ -121,7 +121,7 @@ def applyTDDCorr(fname, utddcorr):
     except KeyError:
         tddswitch = 'PERFORM'
 
-    if instrument == 'ACS' and detector == 'WFC' and not utddcorr and tddswitch == 'PERFORM':
+    if instrument == 'ACS' and detector == 'WFC' and utddcorr and tddswitch == 'PERFORM':
         tddcorr = True
         try:
             idctab = phdr['IDCTAB']
