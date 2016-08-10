@@ -1,8 +1,9 @@
-from __future__ import division, print_function # confidence high
+from __future__ import absolute_import, division, print_function
 
 import copy
 import datetime
-import logging, time
+import logging
+import time
 import numpy as np
 from numpy import linalg
 from stsci.tools import fileutil
@@ -11,10 +12,11 @@ from . import npol
 from . import makewcs
 from .utils import diff_angles
 
-logger=logging.getLogger('stwcs.updatewcs.corrections')
+logger = logging.getLogger('stwcs.updatewcs.corrections')
 
 MakeWCS = makewcs.MakeWCS
 NPOLCorr = npol.NPOLCorr
+
 
 class TDDCorr(object):
     """
@@ -70,39 +72,39 @@ class TDDCorr(object):
         ext_wcs.idcmodel.ocx = copy.deepcopy(ext_wcs.idcmodel.cx)
         ext_wcs.idcmodel.ocy = copy.deepcopy(ext_wcs.idcmodel.cy)
 
-        newkw = {'TDDALPHA': None, 'TDDBETA':None,
-                'OCX10':ext_wcs.idcmodel.ocx[1,0],
-                'OCX11':ext_wcs.idcmodel.ocx[1,1],
-                'OCY10':ext_wcs.idcmodel.ocy[1,0],
-                'OCY11':ext_wcs.idcmodel.ocy[1,1],
-                'TDD_CTA':None, 'TDD_CTB':None,
-                'TDD_CYA':None, 'TDD_CYB':None,
-                'TDD_CXA':None, 'TDD_CXB':None}
+        newkw = {'TDDALPHA': None, 'TDDBETA': None,
+                 'OCX10': ext_wcs.idcmodel.ocx[1, 0],
+                 'OCX11': ext_wcs.idcmodel.ocx[1, 1],
+                 'OCY10': ext_wcs.idcmodel.ocy[1, 0],
+                 'OCY11': ext_wcs.idcmodel.ocy[1, 1],
+                 'TDD_CTA': None, 'TDD_CTB': None,
+                 'TDD_CYA': None, 'TDD_CYB': None,
+                 'TDD_CXA': None, 'TDD_CXB': None
+                 }
 
-        if ext_wcs.idcmodel.refpix['skew_coeffs']is not None and \
-            ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'] is not None:
+        if ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
+                ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'] is not None:
             cls.apply_tdd2idc2015(ref_wcs)
             cls.apply_tdd2idc2015(ext_wcs)
 
-            newkw.update({
-                    'TDD_CTA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTA'],
-                    'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYA'],
-                    'TDD_CXA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXA'],
-                    'TDD_CTB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'],
-                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYB'],
-                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXB']})
+            newkw.update({'TDD_CTA': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTA'],
+                          'TDD_CYA': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYA'],
+                          'TDD_CXA': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXA'],
+                          'TDD_CTB': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'],
+                          'TDD_CYB': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CYB'],
+                          'TDD_CXB': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CXB']
+                          })
 
-        elif ext_wcs.idcmodel.refpix['skew_coeffs']is not None and \
-            ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'] is not None:
-            logger.info("\n\t Applying 2014-calibrated TDD: %s" % time.asctime())
+        elif ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
+                ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'] is not None:
+            logger.info("Applying 2014-calibrated TDD: {0}".format(time.asctime()))
             # We have 2014-calibrated TDD, not J.A.-style TDD
             cls.apply_tdd2idc2(ref_wcs)
             cls.apply_tdd2idc2(ext_wcs)
-            newkw.update({'TDD_CYA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
-                    'TDD_CYB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'],
-                    'TDD_CXA':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_ALPHA'],
-                    'TDD_CXB':ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_BETA']})
-
+            newkw.update({'TDD_CYA': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_ALPHA'],
+                          'TDD_CYB': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'],
+                          'TDD_CXA': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_ALPHA'],
+                          'TDD_CXB': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_BETA']})
         else:
             alpha, beta = cls.compute_alpha_beta(ext_wcs)
             cls.apply_tdd2idc(ref_wcs, alpha, beta)
@@ -111,8 +113,7 @@ class TDDCorr(object):
             ext_wcs.idcmodel.refpix['TDDBETA'] = beta
             ref_wcs.idcmodel.refpix['TDDALPHA'] = alpha
             ref_wcs.idcmodel.refpix['TDDBETA'] = beta
-
-            newkw.update( {'TDDALPHA': alpha, 'TDDBETA':beta} )
+            newkw.update({'TDDALPHA': alpha, 'TDDBETA': beta} )
 
         return newkw
     updateWCS = classmethod(updateWCS)
@@ -121,10 +122,10 @@ class TDDCorr(object):
         """ Applies 2015-calibrated TDD correction to a couple of IDCTAB
             coefficients for ACS/WFC observations.
         """
-        if not isinstance(hwcs.date_obs,float):
-            year,month,day = hwcs.date_obs.split('-')
-            rdate = datetime.datetime(int(year),int(month),int(day))
-            rday = float(rdate.strftime("%j"))/365.25 + rdate.year
+        if not isinstance(hwcs.date_obs, float):
+            year, month, day = hwcs.date_obs.split('-')
+            rdate = datetime.datetime(int(year), int(month), int(day))
+            rday = float(rdate.strftime("%j")) / 365.25 + rdate.year
         else:
             rday = hwcs.date_obs
 
@@ -132,12 +133,11 @@ class TDDCorr(object):
         delta_date = rday - skew_coeffs['TDD_DATE']
 
         if skew_coeffs['TDD_CXB'] is not None:
-            hwcs.idcmodel.cx[1,1] +=  skew_coeffs['TDD_CXB']*delta_date
+            hwcs.idcmodel.cx[1, 1] += skew_coeffs['TDD_CXB'] * delta_date
         if skew_coeffs['TDD_CTB'] is not None:
-            hwcs.idcmodel.cy[1,1] += skew_coeffs['TDD_CTB']*delta_date
+            hwcs.idcmodel.cy[1, 1] += skew_coeffs['TDD_CTB'] * delta_date
         if skew_coeffs['TDD_CYB'] is not None:
-            hwcs.idcmodel.cy[1,0] +=  skew_coeffs['TDD_CYB']*delta_date
-        #print("CX[1,1]_TDD={},  CY[1,1]_TDD={},  CY[1,0]_TDD={}".format(hwcs.idcmodel.cx[1,1],hwcs.idcmodel.cy[1,1],hwcs.idcmodel.cy[1,0]))
+            hwcs.idcmodel.cy[1, 0] += skew_coeffs['TDD_CYB'] * delta_date
 
     apply_tdd2idc2015 = classmethod(apply_tdd2idc2015)
 
@@ -145,10 +145,10 @@ class TDDCorr(object):
         """ Applies 2014-calibrated TDD correction to single IDCTAB coefficient
             of an ACS/WFC observation.
         """
-        if not isinstance(hwcs.date_obs,float):
-            year,month,day = hwcs.date_obs.split('-')
-            rdate = datetime.datetime(int(year),int(month),int(day))
-            rday = float(rdate.strftime("%j"))/365.25 + rdate.year
+        if not isinstance(hwcs.date_obs, float):
+            year, month, day = hwcs.date_obs.split('-')
+            rdate = datetime.datetime(int(year), int(month), int(day))
+            rday = float(rdate.strftime("%j")) / 365.25 + rdate.year
         else:
             rday = hwcs.date_obs
 
@@ -156,21 +156,24 @@ class TDDCorr(object):
         cy_beta = skew_coeffs['TDD_CY_BETA']
         cy_alpha = skew_coeffs['TDD_CY_ALPHA']
         delta_date = rday - skew_coeffs['TDD_DATE']
-        print("DELTA_DATE: {0}   based on rday: {1}, TDD_DATE: {2}".format(delta_date,rday,skew_coeffs['TDD_DATE']))
+        logger.info("DELTA_DATE: {0} based on rday: {1}, TDD_DATE: {2}".format(delta_date, rday,
+                                                                               skew_coeffs['TDD_DATE']))
 
         if cy_alpha is None:
-            hwcs.idcmodel.cy[1,1] += cy_beta*delta_date
+            hwcs.idcmodel.cy[1, 1] += cy_beta * delta_date
         else:
-            new_beta = cy_alpha + cy_beta*delta_date
-            hwcs.idcmodel.cy[1,1] = new_beta
-        print("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1,1],cy_alpha,cy_beta))
-
+            new_beta = cy_alpha + cy_beta * delta_date
+            hwcs.idcmodel.cy[1, 1] = new_beta
+        logger.info("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1, 1],
+                                                                      cy_alpha, cy_beta))
+        
         cx_beta = skew_coeffs['TDD_CX_BETA']
         cx_alpha = skew_coeffs['TDD_CX_ALPHA']
         if cx_alpha is not None:
-            new_beta = cx_alpha + cx_beta*delta_date
-            hwcs.idcmodel.cx[1,1] = new_beta
-            print("CX11: {0} based on alpha: {1}, beta: {2}".format(new_beta,cx_alpha,cx_beta))
+            new_beta = cx_alpha + cx_beta * delta_date
+            hwcs.idcmodel.cx[1, 1] = new_beta
+            logger.info("CX11: {0} based on alpha: {1}, beta: {2}".format(new_beta,
+                                                                          cx_alpha, cx_beta))
 
     apply_tdd2idc2 = classmethod(apply_tdd2idc2)
 
@@ -182,11 +185,12 @@ class TDDCorr(object):
         theta_v2v3 = 2.234529
         mrotp = fileutil.buildRotMatrix(theta_v2v3)
         mrotn = fileutil.buildRotMatrix(-theta_v2v3)
-        tdd_mat = np.array([[1+(beta/2048.), alpha/2048.],[alpha/2048.,1-(beta/2048.)]],np.float64)
+        tdd_mat = np.array([[1 + (beta / 2048.), alpha / 2048.],
+                            [alpha / 2048., 1 - (beta / 2048.)]], np.float64)
         abmat1 = np.dot(tdd_mat, mrotn)
-        abmat2 = np.dot(mrotp,abmat1)
+        abmat2 = np.dot(mrotp, abmat1)
         xshape, yshape = hwcs.idcmodel.cx.shape, hwcs.idcmodel.cy.shape
-        icxy = np.dot(abmat2,[hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
+        icxy = np.dot(abmat2, [hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
         hwcs.idcmodel.cx = icxy[0]
         hwcs.idcmodel.cy = icxy[1]
         hwcs.idcmodel.cx.shape = xshape
@@ -209,10 +213,10 @@ class TDDCorr(object):
         alpha = 0.095 + 0.090*(rday-dday)/2.5
         beta = -0.029 - 0.030*(rday-dday)/2.5
         """
-        if not isinstance(ext_wcs.date_obs,float):
-            year,month,day = ext_wcs.date_obs.split('-')
-            rdate = datetime.datetime(int(year),int(month),int(day))
-            rday = float(rdate.strftime("%j"))/365.25 + rdate.year
+        if not isinstance(ext_wcs.date_obs, float):
+            year, month, day = ext_wcs.date_obs.split('-')
+            rdate = datetime.datetime(int(year), int(month), int(day))
+            rday = float(rdate.strftime("%j")) / 365.25 + rdate.year
         else:
             rday = ext_wcs.date_obs
 
@@ -220,26 +224,27 @@ class TDDCorr(object):
         if skew_coeffs is None:
             # Only print out warning for post-SM4 data where this may matter
             if rday > 2009.0:
-                err_str =  "------------------------------------------------------------------------  \n"
+                err_str = "------------------------------------------------------------------------  \n"
                 err_str += "WARNING: the IDCTAB geometric distortion file specified in the image      \n"
                 err_str += "         header did not have the time-dependent distortion coefficients.  \n"
                 err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
                 err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
-                err_str +=  "------------------------------------------------------------------------  \n"
+                err_str += "------------------------------------------------------------------------  \n"
                 print(err_str)
             # Using default pre-SM4 coefficients
-            skew_coeffs = {'TDD_A':[0.095,0.090/2.5],
-                        'TDD_B':[-0.029,-0.030/2.5],
-                        'TDD_DATE':2004.5,'TDDORDER':1}
+            skew_coeffs = {'TDD_A': [0.095, 0.090 / 2.5],
+                           'TDD_B': [-0.029, -0.030 / 2.5],
+                           'TDD_DATE': 2004.5,
+                           'TDDORDER': 1}
 
         alpha = 0
         beta = 0
         # Compute skew terms, allowing for non-linear coefficients as well
-        for c in range(skew_coeffs['TDDORDER']+1):
-            alpha += skew_coeffs['TDD_A'][c]* np.power((rday-skew_coeffs['TDD_DATE']),c)
-            beta += skew_coeffs['TDD_B'][c]*np.power((rday-skew_coeffs['TDD_DATE']),c)
+        for c in range(skew_coeffs['TDDORDER'] + 1):
+            alpha += skew_coeffs['TDD_A'][c] * np.power((rday - skew_coeffs['TDD_DATE']), c)
+            beta += skew_coeffs['TDD_B'][c] * np.power((rday - skew_coeffs['TDD_DATE']), c)
 
-        return alpha,beta
+        return alpha, beta
     compute_alpha_beta = classmethod(compute_alpha_beta)
 
 
@@ -254,21 +259,21 @@ class VACorr(object):
 
     """
     def updateWCS(cls, ext_wcs, ref_wcs):
-        logger.info("\n\tStarting VACorr: %s" % time.asctime())
+        logger.info("Starting VACorr: %s" % time.asctime())
         if ext_wcs.vafactor != 1:
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
-            crval0 = ref_wcs.wcs.crval[0] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[0],
-                                                                         ref_wcs.wcs.crval[0])
-            crval1 = ref_wcs.wcs.crval[1] + ext_wcs.vafactor*diff_angles(ext_wcs.wcs.crval[1],
-                                                                         ref_wcs.wcs.crval[1])
-            crval = np.array([crval0,crval1])
+            crval0 = ref_wcs.wcs.crval[0] + ext_wcs.vafactor * diff_angles(ext_wcs.wcs.crval[0],
+                                                                           ref_wcs.wcs.crval[0])
+            crval1 = ref_wcs.wcs.crval[1] + ext_wcs.vafactor * diff_angles(ext_wcs.wcs.crval[1],
+                                                                           ref_wcs.wcs.crval[1])
+            crval = np.array([crval0, crval1])
             ext_wcs.wcs.crval = crval
             ext_wcs.wcs.set()
         else:
             pass
-        kw2update={'CD1_1': ext_wcs.wcs.cd[0,0], 'CD1_2':ext_wcs.wcs.cd[0,1],
-                    'CD2_1':ext_wcs.wcs.cd[1,0], 'CD2_2':ext_wcs.wcs.cd[1,1],
-                    'CRVAL1':ext_wcs.wcs.crval[0], 'CRVAL2':ext_wcs.wcs.crval[1]}
+        kw2update = {'CD1_1': ext_wcs.wcs.cd[0, 0], 'CD1_2': ext_wcs.wcs.cd[0, 1],
+                     'CD2_1': ext_wcs.wcs.cd[1, 0], 'CD2_2': ext_wcs.wcs.cd[1, 1],
+                     'CRVAL1': ext_wcs.wcs.crval[0], 'CRVAL2': ext_wcs.wcs.crval[1]}
         return kw2update
 
     updateWCS = classmethod(updateWCS)
@@ -291,34 +296,34 @@ class CompSIP(object):
 
     """
     def updateWCS(cls, ext_wcs, ref_wcs):
-        logger.info("\n\tStarting CompSIP: %s" %time.asctime())
+        logger.info("Starting CompSIP: {0}".format(time.asctime()))
         kw2update = {}
         if not ext_wcs.idcmodel:
-            logger.info("IDC model not found, SIP coefficient will not be computed")
+            logger.info("IDC model not found, SIP coefficient will not be computed.")
             return kw2update
         order = ext_wcs.idcmodel.norder
         kw2update['A_ORDER'] = order
         kw2update['B_ORDER'] = order
-        pscale = ext_wcs.idcmodel.refpix['PSCALE']
+        # pscale = ext_wcs.idcmodel.refpix['PSCALE']
 
         cx = ext_wcs.idcmodel.cx
         cy = ext_wcs.idcmodel.cy
 
-        matr = np.array([[cx[1,1],cx[1,0]], [cy[1,1],cy[1,0]]], dtype=np.float64)
+        matr = np.array([[cx[1, 1], cx[1, 0]], [cy[1, 1], cy[1, 0]]], dtype=np.float64)
         imatr = linalg.inv(matr)
-        akeys1 = np.zeros((order+1,order+1), dtype=np.float64)
-        bkeys1 = np.zeros((order+1,order+1), dtype=np.float64)
-        for n in range(order+1):
-            for m in range(order+1):
-                if n >= m and n>=2:
-                    idcval = np.array([[cx[n,m]],[cy[n,m]]])
+        akeys1 = np.zeros((order + 1, order + 1), dtype=np.float64)
+        bkeys1 = np.zeros((order + 1, order + 1), dtype=np.float64)
+        for n in range(order + 1):
+            for m in range(order + 1):
+                if n >= m and n >= 2:
+                    idcval = np.array([[cx[n, m]], [cy[n, m]]])
                     sipval = np.dot(imatr, idcval)
-                    akeys1[m,n-m] = sipval[0]
-                    bkeys1[m,n-m] = sipval[1]
-                    Akey="A_%d_%d" % (m,n-m)
-                    Bkey="B_%d_%d" % (m,n-m)
-                    kw2update[Akey] = sipval[0,0] * ext_wcs.binned
-                    kw2update[Bkey] = sipval[1,0] * ext_wcs.binned
+                    akeys1[m, n - m] = sipval[0]
+                    bkeys1[m, n - m] = sipval[1]
+                    Akey = "A_%d_%d" % (m, n - m)
+                    Bkey = "B_%d_%d" % (m, n - m)
+                    kw2update[Akey] = sipval[0, 0] * ext_wcs.binned
+                    kw2update[Bkey] = sipval[1, 0] * ext_wcs.binned
         kw2update['CTYPE1'] = 'RA---TAN-SIP'
         kw2update['CTYPE2'] = 'DEC--TAN-SIP'
         return kw2update

@@ -1,6 +1,7 @@
 """ wfpc2_dgeo - Functions to convert WFPC2 DGEOFILE into D2IMFILE
 
 """
+from __future__ import absolute_import, division, print_function
 import os
 import datetime
 
@@ -12,6 +13,7 @@ from stsci.tools import fileutil
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
+
 
 def update_wfpc2_d2geofile(filename, fhdu=None):
     """
@@ -35,7 +37,7 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
         image header will be updated/added to point to this newly created file.
 
     """
-    
+
     close_fhdu = False
     if fhdu is None:
         fhdu = fileutil.openImage(filename, mode='update')
@@ -48,7 +50,7 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
             dgeofile = fhdu['PRIMARY'].header.get('ODGEOFIL', None)
         logger.info('Converting DGEOFILE %s into D2IMFILE...' % dgeofile)
         rootname = filename[:filename.find('.fits')]
-        d2imfile = convert_dgeo_to_d2im(dgeofile,rootname)
+        d2imfile = convert_dgeo_to_d2im(dgeofile, rootname)
         fhdu['PRIMARY'].header['ODGEOFIL'] = dgeofile
         fhdu['PRIMARY'].header['DGEOFILE'] = 'N/A'
         fhdu['PRIMARY'].header['D2IMFILE'] = d2imfile
@@ -67,25 +69,26 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     # (multidrizzle clean=True mode of operation)
     return d2imfile
 
-def convert_dgeo_to_d2im(dgeofile,output,clobber=True):
+
+def convert_dgeo_to_d2im(dgeofile, output, clobber=True):
     """ Routine that converts the WFPC2 DGEOFILE into a D2IMFILE.
     """
     dgeo = fileutil.openImage(dgeofile)
-    outname = output+'_d2im.fits'
+    outname = output + '_d2im.fits'
 
     removeFileSafely(outname)
-    data = np.array([dgeo['dy',1].data[:,0]])
+    data = np.array([dgeo['dy', 1].data[:, 0]])
     scihdu = fits.ImageHDU(data=data)
     dgeo.close()
     # add required keywords for D2IM header
     scihdu.header['EXTNAME'] = ('DY', 'Extension name')
     scihdu.header['EXTVER'] = (1, 'Extension version')
-    fits_str = 'PYFITS Version '+str(astropy.__version__)
+    fits_str = 'PYFITS Version ' + str(astropy.__version__)
     scihdu.header['ORIGIN'] = (fits_str, 'FITS file originator')
     scihdu.header['INHERIT'] = (False, 'Inherits global header')
 
     dnow = datetime.datetime.now()
-    scihdu.header['DATE'] = (str(dnow).replace(' ','T'),
+    scihdu.header['DATE'] = (str(dnow).replace(' ', 'T'),
                              'Date FITS file was generated')
 
     scihdu.header['CRPIX1'] = (0, 'Distortion array reference pixel')
@@ -116,7 +119,7 @@ def convert_dgeo_to_d2im(dgeofile,output,clobber=True):
     return outname
 
 
-def removeFileSafely(filename,clobber=True):
+def removeFileSafely(filename, clobber=True):
     """ Delete the file specified, but only if it exists and clobber is True.
     """
     if filename is not None and filename.strip() != '':

@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function # confidence high
+from __future__ import absolute_import, division, print_function
 
 import os
 from astropy.wcs import WCS
@@ -9,17 +9,11 @@ from stsci.tools import fileutil
 
 from . import altwcs
 from . import getinput
-from . import mappings
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
-from .mappings import basic_wcs
 
-__docformat__ = 'restructuredtext'
 
-#
-#### Utility functions copied from 'updatewcs.utils' to avoid circular imports
-#
-def extract_rootname(kwvalue,suffix=""):
+def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
 
         If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
@@ -28,13 +22,13 @@ def extract_rootname(kwvalue,suffix=""):
         This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
-    if kwvalue.strip() in ['','N/A','NONE','INDEF',None]:
-        return 'NONE' # no valid value, so return 'NONE'
+    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF', None]:
+        return 'NONE'  # no valid value, so return 'NONE'
 
     # for a valid kwvalue, parse out the rootname
     # strip off any environment variable from input filename, if any are given
     if '$' in kwvalue:
-        fullval = kwvalue[kwvalue.find('$')+1:]
+        fullval = kwvalue[kwvalue.find('$') + 1:]
     else:
         fullval = kwvalue
     # Extract filename without path from kwvalue
@@ -44,12 +38,13 @@ def extract_rootname(kwvalue,suffix=""):
     rootname = fileutil.buildNewRootname(fname)
 
     # Now, remove any known suffix from rootname
-    rootname = rootname.replace(suffix,'')
+    rootname = rootname.replace(suffix, '')
     return rootname.strip()
+
 
 def build_default_wcsname(idctab):
 
-    idcname = extract_rootname(idctab,suffix='_idc')
+    idcname = extract_rootname(idctab, suffix='_idc')
     wcsname = 'IDC_' + idcname
     return wcsname
 
@@ -93,12 +88,9 @@ class NoConvergence(Exception):
         self.accuracy       = kwargs.pop('accuracy', None)
         self.niter          = kwargs.pop('niter', None)
         self.divergent      = kwargs.pop('divergent', None)
-        self.failed2converge= kwargs.pop('failed2converge', None)
+        self.failed2converge = kwargs.pop('failed2converge', None)
 
 
-#
-#### HSTWCS Class definition
-#
 class HSTWCS(WCS):
 
     def __init__(self, fobj=None, ext=None, minerr=0.0, wcskey=" "):
@@ -138,7 +130,6 @@ class HSTWCS(WCS):
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
             if instrument_name == 'DEFAULT' or instrument_name not in list(inst_mappings.keys()):
-                #['IRAF/ARTDATA','',' ','N/A']:
                 self.instrument = 'DEFAULT'
             else:
                 self.instrument = instrument_name
@@ -189,7 +180,7 @@ class HSTWCS(WCS):
         Reads in first order IDCTAB coefficients if present in the header
         """
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale',
-                    'idcv2ref','idcv3ref', 'idctheta']
+                  'idcv2ref', 'idcv3ref', 'idctheta']
         for c in coeffs:
             self.__setattr__(c, header.get(c, None))
 
@@ -225,7 +216,7 @@ class HSTWCS(WCS):
                         pass
 
         else:
-            raise KeyError("Unsupported instrument - %s" %self.instrument)
+            raise KeyError("Unsupported instrument - %s" % self.instrument)
 
     def setPscale(self):
         """
@@ -234,7 +225,7 @@ class HSTWCS(WCS):
         try:
             cd11 = self.wcs.cd[0][0]
             cd21 = self.wcs.cd[1][0]
-            self.pscale = np.sqrt(np.power(cd11,2)+np.power(cd21,2)) * 3600.
+            self.pscale = np.sqrt(np.power(cd11, 2) + np.power(cd21, 2)) * 3600.
         except AttributeError:
             if self.wcs.has_cd():
                 print("This file has a PC matrix. You may want to convert it \n \
@@ -249,7 +240,7 @@ class HSTWCS(WCS):
         try:
             cd12 = self.wcs.cd[0][1]
             cd22 = self.wcs.cd[1][1]
-            self.orientat = np.rad2deg(np.arctan2(cd12,cd22))
+            self.orientat = np.rad2deg(np.arctan2(cd12, cd22))
         except AttributeError:
             if self.wcs.has_cd():
                 print("This file has a PC matrix. You may want to convert it \n \
@@ -261,7 +252,7 @@ class HSTWCS(WCS):
         """
         Updates the CD matrix with a new plate scale
         """
-        self.wcs.cd = self.wcs.cd/self.pscale*scale
+        self.wcs.cd = self.wcs.cd / self.pscale * scale
         self.setPscale()
 
     def readModel(self, update=False, header=None):
@@ -282,8 +273,8 @@ class HSTWCS(WCS):
             CX10, CX11, CY10, CY11, IDCSCALE, IDCTHETA, IDCXREF, IDCYREF,
             IDCV2REF, IDCV3REF
         """
-        if self.idctab in [None, '', ' ','N/A']:
-            #Keyword idctab is not present in header - check for sip coefficients
+        if self.idctab in [None, '', ' ', 'N/A']:
+            # Keyword idctab is not present in header - check for sip coefficients
             if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
@@ -319,7 +310,6 @@ class HSTWCS(WCS):
 
         self.idcmodel = model
 
-
     def readModelFromIDCTAB(self, header=None, update=False):
         """
         Read distortion model from idc table.
@@ -334,25 +324,26 @@ class HSTWCS(WCS):
             IDCV2REF, IDCV3REF
 
         """
-        if self.date_obs == None:
+        if self.date_obs is None:
             print('date_obs not available\n')
             self.idcmodel = None
             return
-        if self.filter1 == None and self.filter2 == None:
+        if self.filter1 is None and self.filter2 is None:
             'No filter information available\n'
             self.idcmodel = None
             return
 
         self.idcmodel = models.IDCModel(self.idctab,
-                    chip=self.chip, direction='forward', date=self.date_obs,
-                    filter1=self.filter1, filter2=self.filter2,
-                    offtab=self.offtab, binned=self.binned)
+                                        chip=self.chip, direction='forward',
+                                        date=self.date_obs,
+                                        filter1=self.filter1, filter2=self.filter2,
+                                        offtab=self.offtab, binned=self.binned)
 
         if self.ltv1 != 0. or self.ltv2 != 0.:
             self.resetLTV()
 
         if update:
-            if header==None:
+            if header is None:
                 print('Update header with IDC model kw requested but header was not provided\n.')
             else:
                 self._updatehdr(header)
@@ -440,13 +431,13 @@ class HSTWCS(WCS):
         k - one of 'a', 'b', 'ap', 'bp'
         """
 
-        cards = [] #fits.CardList()
-        korder = self.sip.__getattribute__(k+'_order')
-        cards.append(fits.Card(keyword=k.upper()+'_ORDER', value=korder))
+        cards = []
+        korder = self.sip.__getattribute__(k + '_order')
+        cards.append(fits.Card(keyword=k.upper() + '_ORDER', value=korder))
         coeffs = self.sip.__getattribute__(k)
         ind = coeffs.nonzero()
         for i in range(len(ind[0])):
-            card = fits.Card(keyword=k.upper()+'_'+str(ind[0][i])+'_'+str(ind[1][i]),
+            card = fits.Card(keyword=k.upper() + '_' + str(ind[0][i]) + '_' + str(ind[1][i]),
                              value=coeffs[ind[0][i], ind[1][i]])
             cards.append(card)
         return cards
@@ -454,7 +445,7 @@ class HSTWCS(WCS):
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
-        cards = [] #fits.CardList()
+        cards = []
         for c in coeffs:
             try:
                 val = self.__getattribute__(c)
@@ -711,27 +702,25 @@ adaptive=False, detect_divergence=False, quiet=False)
             try:
                 ra     = np.asarray(args[0], dtype=np.float64)
                 dec    = np.asarray(args[1], dtype=np.float64)
-                #assert( len(ra.shape) == 1 and len(dec.shape) == 1 )
+                # assert( len(ra.shape) == 1 and len(dec.shape) == 1 )
                 origin = int(args[2])
                 vect1D = True
             except:
-                raise TypeError("When providing three arguments, they must " \
-                            "be (Ra, Dec, origin) where Ra and Dec are " \
-                            "Nx1 vectors.")
+                raise TypeError("When providing three arguments, they must "
+                                "be (Ra, Dec, origin) where Ra and Dec are "
+                                "Nx1 vectors.")
         elif nargs == 2:
             try:
                 rd  = np.asarray(args[0], dtype=np.float64)
-                #assert( rd.shape[1] == 2 )
-                ra  = rd[:,0]
-                dec = rd[:,1]
+                ra  = rd[:, 0]
+                dec = rd[:, 1]
                 origin = int(args[1])
                 vect1D = False
             except:
-                raise TypeError("When providing two arguments, they must " \
-                            "be (RaDec, origin) where RaDec is a Nx2 array.")
+                raise TypeError("When providing two arguments, they must "
+                                "be (RaDec, origin) where RaDec is a Nx2 array.")
         else:
-            raise TypeError("Expected 2 or 3 arguments, {:d} given." \
-                            .format(nargs))
+            raise TypeError("Expected 2 or 3 arguments, {:d} given.".format(nargs))
 
         # process optional arguments:
         accuracy          = kwargs.pop('accuracy', 1.0e-4)
@@ -743,8 +732,8 @@ adaptive=False, detect_divergence=False, quiet=False)
         #####################################################################
         ##                INITIALIZE ITERATIVE PROCESS:                    ##
         #####################################################################
-        x0, y0 = self.wcs_world2pix(ra, dec, origin) # <-- initial approximation
-                                                  #     (WCS based only)
+        x0, y0 = self.wcs_world2pix(ra, dec, origin)  # <-- initial approximation
+                                                      #     (WCS based only)
 
         # see if an iterative solution is required (when any of the
         # non-CD-matrix corrections are present). If not required
@@ -757,17 +746,17 @@ adaptive=False, detect_divergence=False, quiet=False)
             if vect1D:
                 return [x0, y0]
             else:
-                return np.dstack([x0,y0])[0]
+                return np.dstack([x0, y0])[0]
 
-        x  = x0.copy() # 0-order solution
-        y  = y0.copy() # 0-order solution
+        x  = x0.copy()  # 0-order solution
+        y  = y0.copy()  # 0-order solution
 
         # initial correction:
         dx, dy = self.pix2foc(x, y, origin)
         # If pix2foc does not apply all the required distortion
         # corrections then replace the above line with:
-        #r0, d0 = self.all_pix2world(x, y, origin)
-        #dx, dy = self.wcs_world2pix(r0, d0, origin )
+        # r0, d0 = self.all_pix2world(x, y, origin)
+        # dx, dy = self.wcs_world2pix(r0, d0, origin )
         dx -= x0
         dy -= y0
 
@@ -776,21 +765,21 @@ adaptive=False, detect_divergence=False, quiet=False)
         y -= dy
 
         # norn (L2) squared of the correction:
-        dn2prev   = dx**2+dy**2
-        dn2       = dn2prev
+        dn2prev = dx ** 2 + dy ** 2
+        dn2 = dn2prev
 
         # prepare for iterative process
-        iterlist  = list(range(1, maxiter+1))
-        accuracy2 = accuracy**2
-        ind       = None
-        inddiv    = None
+        iterlist  = list(range(1, maxiter + 1))
+        accuracy2 = accuracy ** 2
+        ind = None
+        inddiv = None
 
-        npts      = x.shape[0]
+        npts = x.shape[0]
 
         # turn off numpy runtime warnings for 'invalid' and 'over':
         old_invalid = np.geterr()['invalid']
-        old_over    = np.geterr()['over']
-        np.seterr(invalid = 'ignore', over = 'ignore')
+        old_over = np.geterr()['over']
+        np.seterr(invalid='ignore', over='ignore')
 
         #####################################################################
         ##                     NON-ADAPTIVE ITERATIONS:                    ##
@@ -805,13 +794,13 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx, dy = self.pix2foc(x, y, origin)
                 # If pix2foc does not apply all the required distortion
                 # corrections then replace the above line with:
-                #r0, d0 = self.all_pix2world(x, y, origin)
-                #dx, dy = self.wcs_world2pix(r0, d0, origin )
+                # r0, d0 = self.all_pix2world(x, y, origin)
+                # dx, dy = self.wcs_world2pix(r0, d0, origin )
                 dx -= x0
                 dy -= y0
 
                 # update norn (L2) squared of the correction:
-                dn2 = dx**2+dy**2
+                dn2 = dx ** 2 + dy ** 2
 
                 # check for divergence (we do this in two stages
                 # to optimize performance for the most common
@@ -826,12 +815,12 @@ adaptive=False, detect_divergence=False, quiet=False)
                             x[ind] -= dx[ind]
                             y[ind] -= dy[ind]
                             # switch to adaptive iterations:
-                            ind, = np.where((dn2 >= accuracy2) & \
-                                        (dn2 <= dn2prev) & np.isfinite(dn2))
+                            ind, = np.where((dn2 >= accuracy2) &
+                                            (dn2 <= dn2prev) & np.isfinite(dn2))
                             iterlist = iterlist[k:]
                             adaptive = True
                             break
-                    #dn2prev[ind] = dn2[ind]
+                    # dn2prev[ind] = dn2[ind]
                     dn2prev = dn2
 
                 # apply correction:
@@ -854,22 +843,22 @@ adaptive=False, detect_divergence=False, quiet=False)
                 dx[ind], dy[ind] = self.pix2foc(x[ind], y[ind], origin)
                 # If pix2foc does not apply all the required distortion
                 # corrections then replace the above line with:
-                #r0[ind], d0[ind] = self.all_pix2world(x[ind], y[ind], origin)
-                #dx[ind], dy[ind] = self.wcs_world2pix(r0[ind], d0[ind], origin)
+                # r0[ind], d0[ind] = self.all_pix2world(x[ind], y[ind], origin)
+                # dx[ind], dy[ind] = self.wcs_world2pix(r0[ind], d0[ind], origin)
                 dx[ind] -= x0[ind]
                 dy[ind] -= y0[ind]
 
                 # update norn (L2) squared of the correction:
-                dn2 = dx**2+dy**2
+                dn2 = dx ** 2 + dy ** 2
 
                 # update indices of elements that still need correction:
                 if detect_divergence:
                     ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev))
-                    #ind = ind[np.where((dn2[ind] >= accuracy2) & (dn2[ind] <= dn2prev))]
+                    # ind = ind[np.where((dn2[ind] >= accuracy2) & (dn2[ind] <= dn2prev))]
                     dn2prev[ind] = dn2[ind]
                 else:
                     ind, = np.where(dn2 >= accuracy2)
-                    #ind = ind[np.where(dn2[ind] >= accuracy2)]
+                    # ind = ind[np.where(dn2[ind] >= accuracy2)]
 
                 # apply correction:
                 x[ind] -= dx[ind]
@@ -880,9 +869,9 @@ adaptive=False, detect_divergence=False, quiet=False)
         ##         AND FAILED-TO-CONVERGE POINTS                           ##
         #####################################################################
         # Identify diverging and/or invalid points:
-        invalid = (((~np.isfinite(y)) | (~np.isfinite(x)) | \
-                    (~np.isfinite(dn2))) & \
-                   (np.isfinite(ra)) &  (np.isfinite(dec)))
+        invalid = (((~np.isfinite(y)) | (~np.isfinite(x)) |
+                    (~np.isfinite(dn2))) &
+                   (np.isfinite(ra)) & (np.isfinite(dec)))
         # When detect_divergence==False, dn2prev is outdated (it is the
         # norm^2 of the very first correction). Still better than nothing...
         inddiv, = np.where(((dn2 >= accuracy2) & (dn2 > dn2prev)) | invalid)
@@ -891,7 +880,7 @@ adaptive=False, detect_divergence=False, quiet=False)
         # identify points that did not converge within
         # 'maxiter' iterations:
         if k >= maxiter:
-            ind,= np.where((dn2 >= accuracy2) & (dn2 <= dn2prev) & (~invalid))
+            ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev) & (~invalid))
             if ind.shape[0] == 0:
                 ind = None
         else:
@@ -907,50 +896,50 @@ adaptive=False, detect_divergence=False, quiet=False)
                 sol  = [x, y]
                 err  = [np.abs(dx), np.abs(dy)]
             else:
-                sol  = np.dstack( [x, y] )[0]
-                err  = np.dstack( [np.abs(dx), np.abs(dy)] )[0]
+                sol  = np.dstack([x, y] )[0]
+                err  = np.dstack([np.abs(dx), np.abs(dy)] )[0]
 
             # restore previous numpy error settings:
-            np.seterr(invalid = old_invalid, over = old_over)
+            np.seterr(invalid=old_invalid, over=old_over)
 
             if inddiv is None:
-                raise NoConvergence("'HSTWCS.all_world2pix' failed to "        \
-                    "converge to the requested accuracy after {:d} "         \
-                    "iterations.".format(k), best_solution = sol,            \
-                    accuracy = err, niter = k, failed2converge = ind,        \
-                    divergent = None)
+                raise NoConvergence("'HSTWCS.all_world2pix' failed to "
+                                    "converge to the requested accuracy after {:d} "
+                                    "iterations.".format(k), best_solution=sol,
+                                    accuracy=err, niter=k, failed2converge=ind,
+                                    divergent=None)
             else:
-                raise NoConvergence("'HSTWCS.all_world2pix' failed to "        \
-                    "converge to the requested accuracy.{0:s}"               \
-                    "After {1:d} iterations, the solution is diverging "     \
-                    "at least for one input point."                          \
-                    .format(os.linesep, k), best_solution = sol,             \
-                    accuracy = err, niter = k, failed2converge = ind,        \
-                    divergent = inddiv)
+                raise NoConvergence("'HSTWCS.all_world2pix' failed to "
+                                    "converge to the requested accuracy.{0:s}"
+                                    "After {1:d} iterations, the solution is diverging "
+                                    "at least for one input point."
+                                    .format(os.linesep, k), best_solution=sol,
+                                    accuracy=err, niter=k, failed2converge=ind,
+                                    divergent=inddiv)
 
         #####################################################################
         ##             FINALIZE AND FORMAT DATA FOR RETURN:                ##
         #####################################################################
         # restore previous numpy error settings:
-        np.seterr(invalid = old_invalid, over = old_over)
+        np.seterr(invalid=old_invalid, over=old_over)
 
         if vect1D:
             return [x, y]
         else:
-            return np.dstack( [x, y] )[0]
+            return np.dstack([x, y] )[0]
 
     def _updatehdr(self, ext_hdr):
-        #kw2add : OCX10, OCX11, OCY10, OCY11
+        # kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
-        ext_hdr['OCX10'] = self.idcmodel.cx[1,0]
-        ext_hdr['OCX11'] = self.idcmodel.cx[1,1]
-        ext_hdr['OCY10'] = self.idcmodel.cy[1,0]
-        ext_hdr['OCY11'] = self.idcmodel.cy[1,1]
+        ext_hdr['OCX10'] = self.idcmodel.cx[1, 0]
+        ext_hdr['OCX11'] = self.idcmodel.cx[1, 1]
+        ext_hdr['OCY10'] = self.idcmodel.cy[1, 0]
+        ext_hdr['OCY11'] = self.idcmodel.cy[1, 1]
         ext_hdr['IDCSCALE'] = self.idcmodel.refpix['PSCALE']
         ext_hdr['IDCTHETA'] = self.idcmodel.refpix['THETA']
         ext_hdr['IDCXREF'] = self.idcmodel.refpix['XREF']
         ext_hdr['IDCYREF'] = self.idcmodel.refpix['YREF']
-        ext_hdr['IDCV2REF'] =  self.idcmodel.refpix['V2REF']
+        ext_hdr['IDCV2REF'] = self.idcmodel.refpix['V2REF']
         ext_hdr['IDCV3REF'] = self.idcmodel.refpix['V3REF']
 
     def printwcs(self):
@@ -958,8 +947,8 @@ adaptive=False, detect_divergence=False, quiet=False)
         Print the basic WCS keywords.
         """
         print('WCS Keywords\n')
-        print('CD_11  CD_12: %r %r' % (self.wcs.cd[0,0],  self.wcs.cd[0,1]))
-        print('CD_21  CD_22: %r %r' % (self.wcs.cd[1,0],  self.wcs.cd[1,1]))
+        print('CD_11  CD_12: %r %r' % (self.wcs.cd[0, 0], self.wcs.cd[0, 1]))
+        print('CD_21  CD_22: %r %r' % (self.wcs.cd[1, 0], self.wcs.cd[1, 1]))
         print('CRVAL    : %r %r' % (self.wcs.crval[0], self.wcs.crval[1]))
         print('CRPIX    : %r %r' % (self.wcs.crpix[0], self.wcs.crpix[1]))
         print('NAXIS    : %d %d' % (self.naxis1, self.naxis2))

@@ -1,4 +1,4 @@
-from __future__ import division # confidence high
+from __future__ import absolute_import, division, print_function
 import os
 from astropy.io import fits
 from stsci.tools import fileutil
@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger("stwcs.updatewcs.utils")
 
 
-def diff_angles(a,b):
+def diff_angles(a, b):
     """
     Perform angle subtraction a-b taking into account
     small-angle differences across 360degree line.
@@ -23,6 +23,7 @@ def diff_angles(a,b):
 
     return diff
 
+
 def getBinning(fobj, extver=1):
     # Return the binning factor
     binned = 1
@@ -30,8 +31,9 @@ def getBinning(fobj, extver=1):
         mode = fobj[0].header.get('MODE', "")
         if mode == 'AREA': binned = 2
     else:
-        binned = fobj['SCI', extver].header.get('BINAXIS',1)
+        binned = fobj['SCI', extver].header.get('BINAXIS', 1)
     return binned
+
 
 def updateNEXTENDKw(fobj):
     """
@@ -44,9 +46,10 @@ def updateNEXTENDKw(fobj):
 
     """
     if 'nextend' in fobj[0].header:
-        fobj[0].header['nextend'] = len(fobj) -1
+        fobj[0].header['nextend'] = len(fobj) - 1
 
-def extract_rootname(kwvalue,suffix=""):
+
+def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
 
         If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
@@ -55,13 +58,13 @@ def extract_rootname(kwvalue,suffix=""):
         This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
-    if kwvalue.strip() in ['','N/A','NONE','INDEF',None]:
-        return 'NONE' # no valid value, so return 'NONE'
+    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF', None]:
+        return 'NONE'  # no valid value, so return 'NONE'
 
     # for a valid kwvalue, parse out the rootname
     # strip off any environment variable from input filename, if any are given
     if '$' in kwvalue:
-        fullval = kwvalue[kwvalue.find('$')+1:]
+        fullval = kwvalue[kwvalue.find('$') + 1: ]
     else:
         fullval = kwvalue
     # Extract filename without path from kwvalue
@@ -71,10 +74,11 @@ def extract_rootname(kwvalue,suffix=""):
     rootname = fileutil.buildNewRootname(fname)
 
     # Now, remove any known suffix from rootname
-    rootname = rootname.replace(suffix,'')
+    rootname = rootname.replace(suffix, '')
     return rootname.strip()
 
-def construct_distname(fobj,wcsobj):
+
+def construct_distname(fobj, wcsobj):
     """
     This function constructs the value for the keyword 'DISTNAME'.
     It relies on the reference files specified by the keywords 'IDCTAB',
@@ -85,8 +89,8 @@ def construct_distname(fobj,wcsobj):
     and have a value of 'NONE' if no reference files are specified.
     """
     idcname = extract_rootname(fobj[0].header.get('IDCTAB', "NONE"),
-                                suffix='_idc')
-    if (idcname is None or idcname=='NONE') and wcsobj.sip is not None:
+                               suffix='_idc')
+    if (idcname is None or idcname == 'NONE') and wcsobj.sip is not None:
         idcname = 'UNKNOWN'
 
     npolname, npolfile = build_npolname(fobj)
@@ -99,28 +103,29 @@ def construct_distname(fobj,wcsobj):
 
     sipname, idctab = build_sipname(fobj)
 
-    distname = build_distname(sipname,npolname,d2imname)
-    return {'DISTNAME':distname,'SIPNAME':sipname}
+    distname = build_distname(sipname, npolname, d2imname)
+    return {'DISTNAME': distname, 'SIPNAME': sipname}
 
-def build_distname(sipname,npolname,d2imname):
+
+def build_distname(sipname, npolname, d2imname):
     """
     Core function to build DISTNAME keyword value without the HSTWCS input.
     """
-
     distname = sipname.strip()
     if npolname != 'NONE' or d2imname != 'NONE':
         if d2imname != 'NONE':
-            distname+= '-'+npolname.strip() + '-'+d2imname.strip()
+            distname += '-' + npolname.strip() + '-' + d2imname.strip()
         else:
-            distname+='-'+npolname.strip()
+            distname += '-' + npolname.strip()
 
     return distname
 
-def build_default_wcsname(idctab):
 
-    idcname = extract_rootname(idctab,suffix='_idc')
+def build_default_wcsname(idctab):
+    idcname = extract_rootname(idctab, suffix='_idc')
     wcsname = 'IDC_' + idcname
     return wcsname
+
 
 def build_sipname(fobj, fname=None, sipname=None):
     """
@@ -141,10 +146,10 @@ def build_sipname(fobj, fname=None, sipname=None):
     """
     try:
         idctab = fobj[0].header['IDCTAB']
-        idcname = extract_rootname(idctab,suffix='_idc')
+        idcname = extract_rootname(idctab, suffix='_idc')
     except KeyError:
         idctab = 'N/A'
-        idcname= 'N/A'
+        idcname = 'N/A'
     if not fname:
         try:
             fname = fobj.filename()
@@ -161,7 +166,7 @@ def build_sipname(fobj, fname=None, sipname=None):
                     rootname = fobj[0].header['rootname']
                 except KeyError:
                     rootname = fname
-                sipname = rootname +'_'+ idcname
+                sipname = rootname + '_' + idcname
             else:
                 if 'A_ORDER' in fobj[1].header or 'B_ORDER' in fobj[1].header:
                     sipname = 'UNKNOWN'
@@ -169,6 +174,7 @@ def build_sipname(fobj, fname=None, sipname=None):
                     idcname = 'NOMODEL'
 
     return sipname, idctab
+
 
 def build_npolname(fobj, npolfile=None):
     """
@@ -203,6 +209,7 @@ def build_npolname(fobj, npolfile=None):
             npolname = 'NOMODEL'
     return npolname, npolfile
 
+
 def build_d2imname(fobj, d2imfile=None):
     """
     Build a D2IMNAME from D2IMFILE
@@ -227,11 +234,11 @@ def build_d2imname(fobj, d2imfile=None):
                 d2imname = 'UNKNOWN'
             else:
                 d2imname = 'NOMODEL'
-        d2imname = extract_rootname(d2imfile,suffix='_d2i')
+        d2imname = extract_rootname(d2imfile, suffix='_d2i')
         if d2imname == 'NONE':
             d2imname = 'NOMODEL'
     else:
-        d2imname = extract_rootname(d2imfile,suffix='_d2i')
+        d2imname = extract_rootname(d2imfile, suffix='_d2i')
         if d2imname == 'NONE':
             d2imname = 'NOMODEL'
     return d2imname, d2imfile

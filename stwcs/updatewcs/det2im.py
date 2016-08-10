@@ -1,13 +1,12 @@
-from __future__ import absolute_import, division # confidence high
+from __future__ import absolute_import, division, print_function
 
-import numpy as np
 from astropy.io import fits
 from stsci.tools import fileutil
 
-from . import utils
-
-import logging, time
+import logging
+import time
 logger = logging.getLogger('stwcs.updatewcs.d2im')
+
 
 class DET2IMCorr(object):
     """
@@ -38,11 +37,11 @@ class DET2IMCorr(object):
                 Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("\n\tStarting DET2IM: %s" %time.asctime())
+        logger.info("Starting DET2IM: {0}".format(time.asctime()))
         try:
             assert isinstance(fobj, fits.HDUList)
         except AssertionError:
-            logger.exception('\n\tInput must be a fits.HDUList object')
+            logger.exception('Input must be a fits.HDUList object')
             raise
 
         cls.applyDet2ImCorr(fobj)
@@ -84,7 +83,7 @@ class DET2IMCorr(object):
                         hdu = cls.createD2ImHDU(header, d2imfile=d2imfile,
                                                 wdvarr_ver=d2im_num_ext,
                                                 d2im_extname=ename[0],
-                                                data=ename[1],ccdchip=ccdchip)
+                                                data=ename[1], ccdchip=ccdchip)
                         if wcsdvarr_ind and d2im_num_ext in wcsdvarr_ind:
                             fobj[wcsdvarr_ind[d2im_num_ext]] = hdu
                         else:
@@ -108,7 +107,7 @@ class DET2IMCorr(object):
                 continue
             if ename == 'D2IMARR':
                 wcsd[fobj[e].header['EXTVER']] = e
-        logger.debug("A map of D2IMARR extensions %s" % wcsd)
+        logger.debug("A map of D2IMARR extensions {0}".format(wcsd))
         return wcsd
 
     getWCSIndex = classmethod(getWCSIndex)
@@ -118,17 +117,17 @@ class DET2IMCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if d2im_extname =='DX':
-            j=1
+        if d2im_extname == 'DX':
+            j = 1
         else:
-            j=2
+            j = 2
 
-        d2imerror = 'D2IMERR%s' %j
-        d2imdis = 'D2IMDIS%s' %j
-        d2imext = 'D2IM%s.' %j + 'EXTVER'
-        d2imnaxes = 'D2IM%s.' %j +'NAXES'
-        d2imaxis1 = 'D2IM%s.' %j+'AXIS.1'
-        d2imaxis2 = 'D2IM%s.' %j+'AXIS.2'
+        d2imerror = 'D2IMERR%s' % j
+        d2imdis = 'D2IMDIS%s' % j
+        d2imext = 'D2IM%s.' % j + 'EXTVER'
+        d2imnaxes = 'D2IM%s.' % j + 'NAXES'
+        d2imaxis1 = 'D2IM%s.' % j + 'AXIS.1'
+        d2imaxis2 = 'D2IM%s.' % j + 'AXIS.2'
         keys = [d2imerror, d2imdis, d2imext, d2imnaxes, d2imaxis1, d2imaxis2]
         values = {d2imerror: error_val,
                   d2imdis: 'Lookup',
@@ -154,7 +153,7 @@ class DET2IMCorr(object):
 
     addSciExtKw = classmethod(addSciExtKw)
 
-    def getData(cls,d2imfile, ccdchip):
+    def getData(cls, d2imfile, ccdchip):
         """
         Get the data arrays from the reference D2I files
         Make sure 'CCDCHIP' in the npolfile matches "CCDCHIP' in the science file.
@@ -162,8 +161,8 @@ class DET2IMCorr(object):
         xdata, ydata = (None, None)
         d2im = fits.open(d2imfile)
         for ext in d2im:
-            d2imextname  = ext.header.get('EXTNAME',"")
-            d2imccdchip  = ext.header.get('CCDCHIP',1)
+            d2imextname  = ext.header.get('EXTNAME', "")
+            d2imccdchip  = ext.header.get('CCDCHIP', 1)
             if d2imextname == 'DX' and d2imccdchip == ccdchip:
                 xdata = ext.data.copy()
                 continue
@@ -177,7 +176,7 @@ class DET2IMCorr(object):
     getData = classmethod(getData)
 
     def createD2ImHDU(cls, sciheader, d2imfile=None, wdvarr_ver=1,
-                      d2im_extname=None,data = None, ccdchip=1):
+                      d2im_extname=None, data=None, ccdchip=1):
         """
         Creates an HDU to be added to the file object.
         """
@@ -216,26 +215,26 @@ class DET2IMCorr(object):
         naxis = d2im[1].header['NAXIS']
         ccdchip = d2imextname
 
-        kw = { 'NAXIS': 'Size of the axis',
-               'CDELT': 'Coordinate increment along axis',
-               'CRPIX': 'Coordinate system reference pixel',
-               'CRVAL': 'Coordinate system value at reference pixel',
-               }
+        kw = {'NAXIS': 'Size of the axis',
+              'CDELT': 'Coordinate increment along axis',
+              'CRPIX': 'Coordinate system reference pixel',
+              'CRVAL': 'Coordinate system value at reference pixel',
+              }
 
         kw_comm1 = {}
         kw_val1 = {}
         for key in kw.keys():
-            for i in range(1, naxis+1):
+            for i in range(1, naxis + 1):
                 si = str(i)
-                kw_comm1[key+si] = kw[key]
+                kw_comm1[key + si] = kw[key]
 
-        for i in range(1, naxis+1):
+        for i in range(1, naxis + 1):
             si = str(i)
-            kw_val1['NAXIS'+si] = d2im_header.get('NAXIS'+si)
-            kw_val1['CDELT'+si] = d2im_header.get('CDELT'+si, 1.0) * sciheader.get('LTM'+si+'_'+si, 1)
-            kw_val1['CRPIX'+si] = d2im_header.get('CRPIX'+si, 0.0)
-            kw_val1['CRVAL'+si] = (d2im_header.get('CRVAL'+si, 0.0) - \
-                                   sciheader.get('LTV'+str(i), 0))
+            kw_val1['NAXIS' + si] = d2im_header.get('NAXIS' + si)
+            kw_val1['CDELT' + si] = d2im_header.get('CDELT' + si, 1.0) * sciheader.get('LTM' + si + '_' + si, 1)
+            kw_val1['CRPIX' + si] = d2im_header.get('CRPIX' + si, 0.0)
+            kw_val1['CRVAL' + si] = (d2im_header.get('CRVAL' + si, 0.0) -
+                                     sciheader.get('LTV' + str(i), 0))
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
                     'NAXIS': 'Number of axes',
@@ -245,15 +244,15 @@ class DET2IMCorr(object):
                     'GCOUNT': 'One data group',
                     }
 
-        kw_val0 = { 'XTENSION': 'IMAGE',
-                    'BITPIX': -32,
-                    'NAXIS': naxis,
-                    'EXTNAME': 'D2IMARR',
-                    'EXTVER':  wdvarr_ver,
-                    'PCOUNT': 0,
-                    'GCOUNT': 1,
-                    'CCDCHIP': ccdchip,
-                }
+        kw_val0 = {'XTENSION': 'IMAGE',
+                   'BITPIX': -32,
+                   'NAXIS': naxis,
+                   'EXTNAME': 'D2IMARR',
+                   'EXTVER': wdvarr_ver,
+                   'PCOUNT': 0,
+                   'GCOUNT': 1,
+                   'CCDCHIP': ccdchip,
+                   }
         cdl = []
         for key in kw_comm0.keys():
             cdl.append((key, kw_val0[key], kw_comm0[key]))
@@ -266,8 +265,8 @@ class DET2IMCorr(object):
         for i, c in enumerate(d2im_phdr):
             if c == 'FILENAME':
                 start_indx = i
-            if c == '': # remove blanks from end of header
-                end_indx = i+1
+            if c == '':  # remove blanks from end of header
+                end_indx = i + 1
                 break
         if start_indx >= 0:
             for card in d2im_phdr.cards[start_indx:end_indx]:
@@ -287,7 +286,7 @@ class DET2IMCorr(object):
         if fobj[0].header['INSTRUME'] == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC':
             ccdchip = fobj[extname, extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFC3' and fobj[0].header['DETECTOR'] == 'UVIS':
-            ccdchip =  fobj[extname, extver].header['CCDCHIP']
+            ccdchip = fobj[extname, extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFPC2':
             ccdchip = fobj[extname, extver].header['DETECTOR']
         elif fobj[0].header['INSTRUME'] == 'STIS':

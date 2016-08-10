@@ -1,14 +1,15 @@
-from __future__ import absolute_import, division # confidence high
+from __future__ import absolute_import, division, print_function
 
-import logging, time
+import logging
+import time
 
 import numpy as np
 from astropy.io import fits
 
 from stsci.tools import fileutil
-from . import utils
 
 logger = logging.getLogger('stwcs.updatewcs.npol')
+
 
 class NPOLCorr(object):
     """
@@ -43,7 +44,7 @@ class NPOLCorr(object):
             Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("\n\tStarting NPOL: %s" %time.asctime())
+        logger.info("\n\tStarting NPOL: %s" % time.asctime())
         try:
             assert isinstance(fobj, fits.HDUList)
         except AssertionError:
@@ -79,27 +80,27 @@ class NPOLCorr(object):
                 header = ext.header
                 # get the data arrays from the reference file and transform
                 # them for use with SIP
-                dx,dy = cls.getData(nplfile, ccdchip)
+                dx, dy = cls.getData(nplfile, ccdchip)
                 idccoeffs = cls.getIDCCoeffs(header)
 
                 if idccoeffs is not None:
-                    dx, dy = cls.transformData(dx,dy, idccoeffs)
+                    dx, dy = cls.transformData(dx, dy, idccoeffs)
 
                 # Determine EXTVER for the WCSDVARR extension from the
                 # NPL file (EXTNAME, EXTVER) kw.
                 # This is used to populate DPj.EXTVER kw
-                wcsdvarr_x_version = 2 * extversion -1
+                wcsdvarr_x_version = 2 * extversion - 1
                 wcsdvarr_y_version = 2 * extversion
-                for ename in zip(['DX', 'DY'], [wcsdvarr_x_version,wcsdvarr_y_version],[dx, dy]):
+                for ename in zip(['DX', 'DY'], [wcsdvarr_x_version, wcsdvarr_y_version], [dx, dy]):
                     error_val = ename[2].max()
                     cls.addSciExtKw(header, wdvarr_ver=ename[1], npol_extname=ename[0], error_val=error_val)
-                    hdu = cls.createNpolHDU(header, npolfile=nplfile, \
-                        wdvarr_ver=ename[1], npl_extname=ename[0], data=ename[2],ccdchip=ccdchip)
+                    hdu = cls.createNpolHDU(header, npolfile=nplfile,
+                                            wdvarr_ver=ename[1], npl_extname=ename[0],
+                                            data=ename[2], ccdchip=ccdchip)
                     if wcsdvarr_ind:
                         fobj[wcsdvarr_ind[ename[1]]] = hdu
                     else:
                         fobj.append(hdu)
-
 
     applyNPOLCorr = classmethod(applyNPOLCorr)
 
@@ -129,17 +130,17 @@ class NPOLCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if npol_extname =='DX':
-            j=1
+        if npol_extname == 'DX':
+            j = 1
         else:
-            j=2
+            j = 2
 
-        cperror = 'CPERR%s' %j
-        cpdis = 'CPDIS%s' %j
-        dpext = 'DP%s.' %j + 'EXTVER'
-        dpnaxes = 'DP%s.' %j +'NAXES'
-        dpaxis1 = 'DP%s.' %j+'AXIS.1'
-        dpaxis2 = 'DP%s.' %j+'AXIS.2'
+        cperror = 'CPERR%s' % j
+        cpdis = 'CPDIS%s' % j
+        dpext = 'DP%s.' % j + 'EXTVER'
+        dpnaxes = 'DP%s.' % j + 'NAXES'
+        dpaxis1 = 'DP%s.' % j + 'AXIS.1'
+        dpaxis2 = 'DP%s.' % j + 'AXIS.2'
         keys = [cperror, cpdis, dpext, dpnaxes, dpaxis1, dpaxis2]
         values = {cperror: error_val,
                   cpdis: 'Lookup',
@@ -165,15 +166,15 @@ class NPOLCorr(object):
 
     addSciExtKw = classmethod(addSciExtKw)
 
-    def getData(cls,nplfile, ccdchip):
+    def getData(cls, nplfile, ccdchip):
         """
         Get the data arrays from the reference NPOL files
         Make sure 'CCDCHIP' in the npolfile matches "CCDCHIP' in the science file.
         """
         npl = fits.open(nplfile)
         for ext in npl:
-            nplextname  = ext.header.get('EXTNAME',"")
-            nplccdchip  = ext.header.get('CCDCHIP',1)
+            nplextname  = ext.header.get('EXTNAME', "")
+            nplccdchip  = ext.header.get('CCDCHIP', 1)
             if nplextname == 'DX' and nplccdchip == ccdchip:
                 xdata = ext.data.copy()
                 continue
@@ -192,7 +193,7 @@ class NPOLCorr(object):
         """
         ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()]).astype(np.float32)
         ndx.shape = dx.shape
-        ndy.shape=dy.shape
+        ndy.shape = dy.shape
         return ndx, ndy
 
     transformData = classmethod(transformData)
@@ -206,7 +207,7 @@ class NPOLCorr(object):
             ocx11 = header['OCX11']
             ocy10 = header['OCY10']
             ocy11 = header['OCY11']
-            coeffs = np.array([[ocx11, ocx10], [ocy11,ocy10]], dtype=np.float32)
+            coeffs = np.array([[ocx11, ocx10], [ocy11, ocy10]], dtype=np.float32)
         except KeyError:
             logger.exception('\n\tFirst order IDCTAB coefficients are not available. \n\
             Cannot convert SIP to IDC coefficients.')
@@ -217,15 +218,17 @@ class NPOLCorr(object):
             logger.exception("IDCSCALE not found in header - setting it to 1.")
             idcscale = 1
 
-        return np.linalg.inv(coeffs/idcscale)
+        return np.linalg.inv(coeffs / idcscale)
 
     getIDCCoeffs = classmethod(getIDCCoeffs)
 
-    def createNpolHDU(cls, sciheader, npolfile=None, wdvarr_ver=1, npl_extname=None,data = None, ccdchip=1):
+    def createNpolHDU(cls, sciheader, npolfile=None, wdvarr_ver=1, npl_extname=None,
+                      data=None, ccdchip=1):
         """
         Creates an HDU to be added to the file object.
         """
-        hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver, npl_extname=npl_extname, ccdchip=ccdchip)
+        hdr = cls.createNpolHdr(sciheader, npolfile=npolfile, wdvarr_ver=wdvarr_ver,
+                                npl_extname=npl_extname, ccdchip=ccdchip)
         hdu = fits.ImageHDU(header=hdr, data=data)
         return hdu
 
@@ -256,29 +259,29 @@ class NPOLCorr(object):
         npl.close()
 
         naxis = npl[1].header['NAXIS']
-        ccdchip = nplextname #npol_header['CCDCHIP']
+        ccdchip = nplextname  # npol_header['CCDCHIP']
 
-        kw = { 'NAXIS': 'Size of the axis',
-               'CDELT': 'Coordinate increment along axis',
-               'CRPIX': 'Coordinate system reference pixel',
-               'CRVAL': 'Coordinate system value at reference pixel',
-               }
+        kw = {'NAXIS': 'Size of the axis',
+              'CDELT': 'Coordinate increment along axis',
+              'CRPIX': 'Coordinate system reference pixel',
+              'CRVAL': 'Coordinate system value at reference pixel',
+              }
 
         kw_comm1 = {}
         kw_val1 = {}
         for key in kw.keys():
-            for i in range(1, naxis+1):
+            for i in range(1, naxis + 1):
                 si = str(i)
-                kw_comm1[key+si] = kw[key]
+                kw_comm1[key + si] = kw[key]
 
-        for i in range(1, naxis+1):
+        for i in range(1, naxis + 1):
             si = str(i)
-            kw_val1['NAXIS'+si] = npol_header.get('NAXIS'+si)
-            kw_val1['CDELT'+si] = npol_header.get('CDELT'+si, 1.0) * \
-                                  sciheader.get('LTM'+si+'_'+si, 1)
-            kw_val1['CRPIX'+si] = npol_header.get('CRPIX'+si, 0.0)
-            kw_val1['CRVAL'+si] = (npol_header.get('CRVAL'+si, 0.0) - \
-                                  sciheader.get('LTV'+str(i), 0))
+            kw_val1['NAXIS' + si] = npol_header.get('NAXIS' + si)
+            kw_val1['CDELT' + si] = npol_header.get('CDELT' + si, 1.0) * \
+                sciheader.get('LTM' + si + '_' + si, 1)
+            kw_val1['CRPIX' + si] = npol_header.get('CRPIX' + si, 0.0)
+            kw_val1['CRVAL' + si] = (npol_header.get('CRVAL' + si, 0.0) -
+                                     sciheader.get('LTV' + str(i), 0))
 
         kw_comm0 = {'XTENSION': 'Image extension',
                     'BITPIX': 'IEEE floating point',
@@ -289,15 +292,15 @@ class NPOLCorr(object):
                     'GCOUNT': 'One data group',
                     }
 
-        kw_val0 = { 'XTENSION': 'IMAGE',
-                    'BITPIX': -32,
-                    'NAXIS': naxis,
-                    'EXTNAME': 'WCSDVARR',
-                    'EXTVER':  wdvarr_ver,
-                    'PCOUNT': 0,
-                    'GCOUNT': 1,
-                    'CCDCHIP': ccdchip,
-                }
+        kw_val0 = {'XTENSION': 'IMAGE',
+                   'BITPIX': -32,
+                   'NAXIS': naxis,
+                   'EXTNAME': 'WCSDVARR',
+                   'EXTVER': wdvarr_ver,
+                   'PCOUNT': 0,
+                   'GCOUNT': 1,
+                   'CCDCHIP': ccdchip,
+                   }
         cdl = []
         for key in kw_comm0.keys():
             cdl.append((key, kw_val0[key], kw_comm0[key]))
@@ -310,11 +313,11 @@ class NPOLCorr(object):
         for i, c in enumerate(npol_phdr):
             if c == 'FILENAME':
                 start_indx = i
-            if c == '': # remove blanks from end of header
-                end_indx = i+1
+            if c == '':  # remove blanks from end of header
+                end_indx = i + 1
                 break
         if start_indx >= 0:
-            for card in npol_phdr.cards[start_indx:end_indx]:
+            for card in npol_phdr.cards[start_indx: end_indx]:
                 cdl.append(card)
 
         hdr = fits.Header(cards=cdl)
@@ -331,7 +334,7 @@ class NPOLCorr(object):
         if fobj[0].header['INSTRUME'] == 'ACS' and fobj[0].header['DETECTOR'] == 'WFC':
             ccdchip = fobj[extname, extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFC3' and fobj[0].header['DETECTOR'] == 'UVIS':
-            ccdchip =  fobj[extname, extver].header['CCDCHIP']
+            ccdchip = fobj[extname, extver].header['CCDCHIP']
         elif fobj[0].header['INSTRUME'] == 'WFPC2':
             ccdchip = fobj[extname, extver].header['DETECTOR']
         elif fobj[0].header['INSTRUME'] == 'STIS':
