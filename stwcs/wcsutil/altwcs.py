@@ -356,7 +356,10 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         if hwcs is None:
             continue
         for k in hwcs[::-1]:
-            del hdr[k]
+            try:
+                del hdr[k]
+            except KeyError:
+                pass
         prexts.append(i)
     if prexts != []:
         print('Deleted all instances of WCS with key %s in extensions' % wkey, prexts)
@@ -455,7 +458,7 @@ def _restore(fobj, ukey, fromextnum,
         if kw in fobj[toextension].header:
             fobj[toextension].header[kw] = 0.0
 
- 
+
 # header operations
 
 
