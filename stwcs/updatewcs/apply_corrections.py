@@ -1,37 +1,35 @@
-from __future__ import division, print_function  # confidence high
+from __future__ import absolute_import, division, print_function
 
-import os
-from astropy.io import fits
-import time
-from stsci.tools import fileutil
 import os.path
-from stwcs.wcsutil import altwcs
+from astropy.io import fits
+from stsci.tools import fileutil
 from . import utils
 from . import wfpc2_dgeo
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
 
-#Note: The order of corrections is important
+# Note: The order of corrections is important
 
 
 # A dictionary which lists the allowed corrections for each instrument.
 # These are the default corrections applied also in the pipeline.
 
-allowed_corrections={'WFPC2': ['DET2IMCorr', 'MakeWCS','CompSIP', 'VACorr'],
-                    'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP','VACorr', 'NPOLCorr'],
-                    'STIS': ['MakeWCS', 'CompSIP','VACorr'],
-                    'NICMOS': ['MakeWCS', 'CompSIP','VACorr'],
-                    'WFC3': ['DET2IMCorr', 'MakeWCS', 'CompSIP','VACorr', 'NPOLCorr'],
-                    }
+allowed_corrections = {'WFPC2': ['DET2IMCorr', 'MakeWCS', 'CompSIP', 'VACorr'],
+                       'ACS': ['DET2IMCorr', 'TDDCorr', 'MakeWCS', 'CompSIP', 'VACorr', 'NPOLCorr'],
+                       'STIS': ['MakeWCS', 'CompSIP', 'VACorr'],
+                       'NICMOS': ['MakeWCS', 'CompSIP', 'VACorr'],
+                       'WFC3': ['DET2IMCorr', 'MakeWCS', 'CompSIP', 'VACorr', 'NPOLCorr'],
+                       }
 
 cnames = {'DET2IMCorr': 'Detector to Image Correction',
-         'TDDCorr': 'Time Dependent Distortion Correction',
-         'MakeWCS': 'Recalculate basic WCS keywords based on the distortion model',
-         'CompSIP': 'Given IDCTAB distortion model calculate the SIP coefficients',
-         'VACorr':  'Velocity Aberration Correction',
-         'NPOLCorr': 'Lookup Table Distortion'
-         }
+          'TDDCorr': 'Time Dependent Distortion Correction',
+          'MakeWCS': 'Recalculate basic WCS keywords based on the distortion model',
+          'CompSIP': 'Given IDCTAB distortion model calculate the SIP coefficients',
+          'VACorr': 'Velocity Aberration Correction',
+          'NPOLCorr': 'Lookup Table Distortion'
+          }
+
 
 def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True):
     """
@@ -40,7 +38,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     for the instrument.
     """
     instrument = fits.getval(fname, 'INSTRUME')
-    # make a copy of this list !
+    # make a copy of this list
     acorr = allowed_corrections[instrument][:]
 
     # For WFPC2 images, the old-style DGEOFILE needs to be
@@ -56,18 +54,22 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
         if 'MakeWCS' in acorr: acorr.remove('MakeWCS')
         if 'CompSIP' in acorr: acorr.remove('CompSIP')
 
-    if 'VACorr' in acorr and vacorr==False:  acorr.remove('VACorr')
+    if 'VACorr' in acorr and not vacorr:
+        acorr.remove('VACorr')
     if 'TDDCorr' in acorr:
         tddcorr = applyTDDCorr(fname, tddcorr)
-        if tddcorr == False: acorr.remove('TDDCorr')
+        if not tddcorr:
+            acorr.remove('TDDCorr')
 
     if 'NPOLCorr' in acorr:
         npolcorr = applyNpolCorr(fname, npolcorr)
-        if npolcorr == False: acorr.remove('NPOLCorr')
+        if not npolcorr:
+            acorr.remove('NPOLCorr')
     if 'DET2IMCorr' in acorr:
         d2imcorr = applyD2ImCorr(fname, d2imcorr)
-        if d2imcorr == False: acorr.remove('DET2IMCorr')
-    logger.info("\n\tCorrections to be applied to %s: %s " % (fname, str(acorr)))
+        if not d2imcorr:
+            acorr.remove('DET2IMCorr')
+    logger.info("Corrections to be applied to {0} {1}".format(fname, acorr))
     return acorr
 
 
@@ -119,21 +121,20 @@ def applyTDDCorr(fname, utddcorr):
     except KeyError:
         tddswitch = 'PERFORM'
 
-    if instrument == 'ACS' and detector == 'WFC' and utddcorr == True and tddswitch == 'PERFORM':
+    if instrument == 'ACS' and detector == 'WFC' and utddcorr and tddswitch == 'PERFORM':
         tddcorr = True
         try:
             idctab = phdr['IDCTAB']
         except KeyError:
             tddcorr = False
-            #print "***IDCTAB keyword not found - not applying TDD correction***\n"
         if os.path.exists(fileutil.osfn(idctab)):
             tddcorr = True
         else:
             tddcorr = False
-            #print "***IDCTAB file not found - not applying TDD correction***\n"
     else:
         tddcorr = False
     return tddcorr
+
 
 def applyNpolCorr(fname, unpolcorr):
     """
@@ -156,9 +157,8 @@ def applyNpolCorr(fname, unpolcorr):
             return False
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
-            msg =  """\n\tKw "NPOLFILE" exists in primary header but file %s not found
-                      Non-polynomial distortion correction will not be applied\n
-                    """ % fnpol0
+            msg = '"NPOLFILE" exists in primary header but file {0} not found.'
+            'Non-polynomial distortion correction will not be applied.'.format(file)
             logger.critical(msg)
             raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
@@ -176,7 +176,7 @@ def applyNpolCorr(fname, unpolcorr):
             else:
                 # npl file defined in first extension may not be found
                 # but if a valid kw exists in the primary header, non-polynomial
-                #distortion correction should be applied.
+                # distortion correction should be applied.
                 applyNPOLCorr = True
         except KeyError:
             # the case of "NPOLFILE" kw present in primary header but "NPOLEXT" missing
@@ -190,6 +190,7 @@ def applyNpolCorr(fname, unpolcorr):
     if isOldStyleDGEO(fname, fnpol0):
             applyNPOLCorr = False
     return (applyNPOLCorr and unpolcorr)
+
 
 def isOldStyleDGEO(fname, dgname):
     # checks if the file defined in a NPOLFILE kw is a full size
@@ -208,6 +209,7 @@ def isOldStyleDGEO(fname, dgname):
         return True
     else:
         return False
+
 
 def applyD2ImCorr(fname, d2imcorr):
     applyD2IMCorr = True

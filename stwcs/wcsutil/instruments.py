@@ -1,6 +1,5 @@
-from __future__ import absolute_import, division, print_function # confidence high
+from __future__ import absolute_import, division, print_function
 
-from .mappings import ins_spec_kw
 
 class InstrWCS(object):
     """
@@ -135,12 +134,13 @@ class InstrWCS(object):
             self.chip = 1
 
     def set_parity(self):
-        self.parity = [[1.0,0.0],[0.0,-1.0]]
+        self.parity = [[1.0, 0.0], [0.0, -1.0]]
 
     def set_detector(self):
         # each instrument has a different kw for detector and it can be
         # in a different header, so this is to be handled by the instrument classes
         self.detector = 'DEFAULT'
+
 
 class ACSWCS(InstrWCS):
     """
@@ -150,7 +150,7 @@ class ACSWCS(InstrWCS):
     def __init__(self, hdr0, hdr):
         self.primhdr = hdr0
         self.exthdr = hdr
-        InstrWCS.__init__(self,hdr0, hdr)
+        InstrWCS.__init__(self, hdr0, hdr)
         self.set_ins_spec_kw()
 
     def set_detector(self):
@@ -161,9 +161,9 @@ class ACSWCS(InstrWCS):
             raise
 
     def set_parity(self):
-        parity = {'WFC':[[1.0,0.0],[0.0,-1.0]],
-                'HRC':[[-1.0,0.0],[0.0,1.0]],
-                'SBC':[[-1.0,0.0],[0.0,1.0]]}
+        parity = {'WFC': [[1.0, 0.0], [0.0, -1.0]],
+                  'HRC': [[-1.0, 0.0], [0.0, 1.0]],
+                  'SBC': [[-1.0, 0.0], [0.0, 1.0]]}
 
         if self.detector not in list(parity.keys()):
             parity = InstrWCS.set_parity(self)
@@ -173,23 +173,21 @@ class ACSWCS(InstrWCS):
 
 class WFPC2WCS(InstrWCS):
 
-
     def __init__(self, hdr0, hdr):
         self.primhdr = hdr0
         self.exthdr = hdr
-        InstrWCS.__init__(self,hdr0, hdr)
+        InstrWCS.__init__(self, hdr0, hdr)
         self.set_ins_spec_kw()
 
     def set_filter1(self):
         self.filter1 = self.primhdr.get('FILTNAM1', None)
-        if self.filter1 == " " or self.filter1 == None:
+        if self.filter1 == " " or self.filter1 is None:
             self.filter1 = 'CLEAR1'
 
     def set_filter2(self):
         self.filter2 = self.primhdr.get('FILTNAM2', None)
-        if self.filter2 == " " or self.filter2 == None:
+        if self.filter2 == " " or self.filter2 is None:
             self.filter2 = 'CLEAR2'
-
 
     def set_binned(self):
         mode = self.primhdr.get('MODE', 1)
@@ -202,7 +200,7 @@ class WFPC2WCS(InstrWCS):
         self.chip = self.exthdr.get('DETECTOR', 1)
 
     def set_parity(self):
-        self.parity = [[-1.0,0.],[0.,1.0]]
+        self.parity = [[-1.0, 0.], [0., 1.0]]
 
     def set_detector(self):
         try:
@@ -220,7 +218,7 @@ class WFC3WCS(InstrWCS):
     def __init__(self, hdr0, hdr):
         self.primhdr = hdr0
         self.exthdr = hdr
-        InstrWCS.__init__(self,hdr0, hdr)
+        InstrWCS.__init__(self, hdr0, hdr)
         self.set_ins_spec_kw()
 
     def set_detector(self):
@@ -232,21 +230,22 @@ class WFC3WCS(InstrWCS):
 
     def set_filter1(self):
         self.filter1 = self.primhdr.get('FILTER', None)
-        if self.filter1 == " " or self.filter1 == None:
+        if self.filter1 == " " or self.filter1 is None:
             self.filter1 = 'CLEAR'
 
     def set_filter2(self):
-        #Nicmos idc tables do not allow 2 filters.
+        # Nicmos idc tables do not allow 2 filters.
         self.filter2 = 'CLEAR'
 
     def set_parity(self):
-        parity = {'UVIS':[[-1.0,0.0],[0.0,1.0]],
-          'IR':[[-1.0,0.0],[0.0,1.0]]}
+        parity = {'UVIS': [[-1.0, 0.0], [0.0, 1.0]],
+                  'IR': [[-1.0, 0.0], [0.0, 1.0]]}
 
         if self.detector not in list(parity.keys()):
             parity = InstrWCS.set_parity(self)
         else:
             self.parity = parity[self.detector]
+
 
 class NICMOSWCS(InstrWCS):
     """
@@ -256,19 +255,19 @@ class NICMOSWCS(InstrWCS):
     def __init__(self, hdr0, hdr):
         self.primhdr = hdr0
         self.exthdr = hdr
-        InstrWCS.__init__(self,hdr0, hdr)
+        InstrWCS.__init__(self, hdr0, hdr)
         self.set_ins_spec_kw()
 
     def set_parity(self):
-        self.parity = [[-1.0,0.],[0.,1.0]]
+        self.parity = [[-1.0, 0.], [0., 1.0]]
 
     def set_filter1(self):
         self.filter1 = self.primhdr.get('FILTER', None)
-        if self.filter1 == " " or self.filter1 == None:
+        if self.filter1 == " " or self.filter1 is None:
             self.filter1 = 'CLEAR'
 
     def set_filter2(self):
-        #Nicmos idc tables do not allow 2 filters.
+        # Nicmos idc tables do not allow 2 filters.
         self.filter2 = 'CLEAR'
 
     def set_chip(self):
@@ -281,6 +280,7 @@ class NICMOSWCS(InstrWCS):
             print('ERROR: Detector kw not found.\n')
             raise
 
+
 class STISWCS(InstrWCS):
     """
     A STIS specific class
@@ -289,20 +289,20 @@ class STISWCS(InstrWCS):
     def __init__(self, hdr0, hdr):
         self.primhdr = hdr0
         self.exthdr = hdr
-        InstrWCS.__init__(self,hdr0, hdr)
+        InstrWCS.__init__(self, hdr0, hdr)
         self.set_ins_spec_kw()
 
     def set_parity(self):
-        self.parity = [[-1.0,0.],[0.,1.0]]
+        self.parity = [[-1.0, 0.], [0., 1.0]]
 
     def set_filter1(self):
         self.filter1 = self.exthdr.get('OPT_ELEM', None)
-        if self.filter1 == " " or self.filter1 == None:
+        if self.filter1 == " " or self.filter1 is None:
             self.filter1 = 'CLEAR1'
 
     def set_filter2(self):
         self.filter2 = self.exthdr.get('FILTER', None)
-        if self.filter2 == " " or self.filter2 == None:
+        if self.filter2 == " " or self.filter2 is None:
             self.filter2 = 'CLEAR2'
 
     def set_detector(self):

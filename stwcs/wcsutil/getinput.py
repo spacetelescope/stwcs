@@ -1,23 +1,27 @@
+from __future__ import absolute_import, division, print_function
+
 from astropy.io import fits
 from stsci.tools import irafglob, fileutil, parseinput
+#from . import HSTWCS
+
 
 def parseSingleInput(f=None, ext=None):
     if isinstance(f, str):
         # create an HSTWCS object from a filename
-        if ext != None:
+        if ext is not None:
             filename = f
-            if isinstance(ext,tuple):
+            if isinstance(ext, tuple):
                 if ext[0] == '':
-                    extnum = ext[1] # handle ext=('',1)
+                    extnum = ext[1]  # handle ext=('',1)
                 else:
                     extnum = ext
             else:
                 extnum = int(ext)
-        elif ext == None:
+        elif ext is None:
             filename, ext = fileutil.parseFilename(f)
             ext = fileutil.parseExtn(ext)
             if ext[0] == '':
-                extnum = int(ext[1]) #handle ext=('',extnum)
+                extnum = int(ext[1])  # handle ext=('',extnum)
             else:
                 extnum = ext
         phdu = fits.open(filename)
@@ -29,7 +33,7 @@ def parseSingleInput(f=None, ext=None):
 
     elif isinstance(f, fits.HDUList):
         phdu = f
-        if ext == None:
+        if ext is None:
             extnum = 0
         else:
             extnum = ext
@@ -54,9 +58,9 @@ def parseMultipleInput(input):
                 filelist, output = parseinput.parseinput(input)
             except IOError: raise
     elif isinstance(input, list):
-        if isinstance(input[0], wcsutil.HSTWCS):
-            # a list of HSTWCS objects
-            return input
-        else:
-            filelist = input[:]
+        #if isinstance(input[0], HSTWCS):
+            ## a list of HSTWCS objects
+            #return input
+        #else:
+        filelist = input[:]
     return filelist

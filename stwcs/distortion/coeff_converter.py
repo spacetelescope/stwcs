@@ -1,8 +1,9 @@
-from __future__ import division, print_function # confidence high
+from __future__ import (absolute_import, unicode_literals, division, print_function)
 
 import numpy as np
 from astropy.io import fits
 from astropy import wcs as pywcs
+
 
 def sip2idc(wcs):
     """
@@ -49,27 +50,27 @@ def sip2idc(wcs):
         print('Input to sip2idc must be a PyFITS header or a wcsutil.HSTWCS object\n')
         return
 
-
     if None in [ocx10, ocx11, ocy10, ocy11]:
         print('First order IDC coefficients not found, exiting ...\n')
         return None, None
     idc_coeff = np.array([[ocx11, ocx10], [ocy11, ocy10]])
-    cx = np.zeros((order+1,order+1), dtype=np.double)
-    cy = np.zeros((order+1,order+1), dtype=np.double)
-    for n in range(order+1):
-        for m in range(order+1):
-            if n >= m and n>=2:
-                sipval = np.array([[sipa[m,n-m]],[sipb[m,n-m]]])
+    cx = np.zeros((order + 1, order + 1), dtype=np.double)
+    cy = np.zeros((order + 1, order + 1), dtype=np.double)
+    for n in range(order + 1):
+        for m in range(order + 1):
+            if n >= m and n >= 2:
+                sipval = np.array([[sipa[m, n - m]], [sipb[m, n - m]]])
                 idcval = np.dot(idc_coeff, sipval)
-                cx[n,m] = idcval[0]
-                cy[n,m] = idcval[1]
+                cx[n, m] = idcval[0]
+                cy[n, m] = idcval[1]
 
-    cx[1,0] = ocx10
-    cx[1,1] = ocx11
-    cy[1,0] = ocy10
-    cy[1,1] = ocy11
+    cx[1, 0] = ocx10
+    cx[1, 1] = ocx11
+    cy[1, 0] = ocy10
+    cy[1, 1] = ocy11
 
     return cx, cy
+
 
 def _read_sip_kw(header):
     """
@@ -84,15 +85,15 @@ def _read_sip_kw(header):
                 "keyword for SIP distortion")
 
         m = int(header["A_ORDER"])
-        a = np.zeros((m+1, m+1), np.double)
-        for i in range(m+1):
-            for j in range(m-i+1):
+        a = np.zeros((m + 1, m + 1), np.double)
+        for i in range(m + 1):
+            for j in range(m - i + 1):
                 a[i, j] = header.get("A_%d_%d" % (i, j), 0.0)
 
         m = int(header["B_ORDER"])
-        b = np.zeros((m+1, m+1), np.double)
-        for i in range(m+1):
-            for j in range(m-i+1):
+        b = np.zeros((m + 1, m + 1), np.double)
+        for i in range(m + 1):
+            for j in range(m - i + 1):
                 b[i, j] = header.get("B_%d_%d" % (i, j), 0.0)
     elif "B_ORDER" in header:
         raise ValueError(
@@ -102,7 +103,7 @@ def _read_sip_kw(header):
         a = None
         b = None
 
-    return a , b
+    return a, b
 
 
 """

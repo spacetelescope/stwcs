@@ -1,12 +1,13 @@
+from __future__ import absolute_import, division, print_function
 import os
 from stsci.tools import teal
 
-import stwcs
-from stwcs.wcsutil import headerlet
+from .. import __version__
+from ..wcsutil import headerlet
 
 __taskname__ = __name__.split('.')[-1] # needed for help string
 __package__ = headerlet.__name__
-__version__ = stwcs.__version__
+# __version__ = stwcs.__version__
 #
 #### Interfaces used by TEAL
 #
@@ -15,18 +16,19 @@ def getHelpAsString(docstring=False):
     return useful help from a file in the script directory called __taskname__.help
     """
     install_dir = os.path.dirname(__file__)
-    htmlfile = os.path.join(install_dir,'htmlhelp',__taskname__+'.html')
-    helpfile = os.path.join(install_dir,__taskname__+'.help')
+    htmlfile = os.path.join(install_dir, 'htmlhelp', __taskname__ + '.html')
+    helpfile = os.path.join(install_dir, __taskname__ + '.help')
     if docstring or (not docstring and not os.path.exists(htmlfile)):
-        helpString = __taskname__+' Version '+__version__+'\n\n'
+        helpString = __taskname__ + ' Version ' + __version__ + '\n\n'
         if os.path.exists(helpfile):
-            helpString += teal.getHelpFileAsString(__taskname__,__file__)
+            helpString += teal.getHelpFileAsString(__taskname__, __file__)
         else:
-            helpString += eval('.'.join([__package__,__taskname__,'__doc__']))
+            helpString += eval('.'.join([__package__, __taskname__, '__doc__']))
     else:
-        helpString = 'file://'+htmlfile
+        helpString = 'file://' + htmlfile
 
     return helpString
+
 
 def run(configObj=None):
 
@@ -43,5 +45,4 @@ def run(configObj=None):
 
     # Syntax: headerlet_summary(filename,columns=None,pad=2,maxwidth=None,
     #                    output=None,clobber=True,quiet=False)
-    headerlet.headerlet_summary(configObj['filename'],**cdict)
-
+    headerlet.headerlet_summary(configObj['filename'], **cdict)

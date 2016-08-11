@@ -1,12 +1,14 @@
+from __future__ import absolute_import, division, print_function
+
 import shutil
 import os
 
 from astropy import wcs
 from astropy.io import fits
-from stwcs import updatewcs
-from stwcs.updatewcs import apply_corrections
-from stwcs.distortion import utils as dutils
-from stwcs.wcsutil import HSTWCS
+from .. import updatewcs
+from ..updatewcs import apply_corrections
+from ..distortion import utils as dutils
+from ..wcsutil import HSTWCS
 import numpy as np
 from numpy.testing import utils
 import pytest
@@ -111,7 +113,7 @@ class TestStwcs(object):
 
         #print('outwcs.wcs.crval = {0}'.format(outwcs.wcs.crval))
         utils.assert_allclose(
-            outwcs.wcs.crval, np.array([5.65109952, -72.0674181]), rtol=1e-7)
+            outwcs.wcs.crval, np.array([5.65109952, -72.0674181]), atol=1e-7)
 
         utils.assert_almost_equal(outwcs.wcs.crpix, np.array([2107.0, 2118.5]))
         utils.assert_almost_equal(

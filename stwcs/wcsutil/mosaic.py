@@ -1,15 +1,17 @@
-from __future__ import division, print_function
+from __future__ import absolute_import, division, print_function
 import numpy as np
 from matplotlib import pyplot as plt
 from astropy.io import fits
 import string
 
 from stsci.tools import parseinput, irafglob
-from stwcs.distortion import utils
-from stwcs import updatewcs, wcsutil
-from stwcs.wcsutil import altwcs
+from ..distortion import utils
+from .. import wcsutil
+from ..wcsutil import altwcs
 
-def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort=True, wkey='V', wname='VirtualMosaic', plot=False, clobber=False):
+
+def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort=True,
+            wkey='V', wname='VirtualMosaic', plot=False, clobber=False):
     """
     Create a virtual mosaic using the WCS of the input images.
 
@@ -61,26 +63,28 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
        tangent plane and the virtual WCS is recorded in the header.
     """
     wcsobjects = readWCS(fnames, ext, extname)
-    if outwcs != None:
+    if outwcs is not None:
         outwcs = outwcs.deepcopy()
     else:
-        if ref_wcs != None:
+        if ref_wcs is not None:
             outwcs = utils.output_wcs(wcsobjects, ref_wcs=ref_wcs, undistort=undistort)
         else:
             outwcs = utils.output_wcs(wcsobjects, undistort=undistort)
     if plot:
-        outc=np.array([[0.,0], [outwcs._naxis1, 0],
-                             [outwcs._naxis1, outwcs._naxis2],
-                             [0, outwcs._naxis2], [0, 0]])
-        plt.plot(outc[:,0], outc[:,1])
+        outc = np.array([[0., 0], [outwcs._naxis1, 0],
+                         [outwcs._naxis1, outwcs._naxis2],
+                         [0, outwcs._naxis2], [0, 0]])
+        plt.plot(outc[:, 0], outc[:, 1])
     for wobj in wcsobjects:
-        outcorners = outwcs.wcs_world2pix(wobj.calc_footprint(),1)
+        outcorners = outwcs.wcs_world2pix(wobj.calc_footprint(), 1)
         if plot:
-            plt.plot(outcorners[:,0], outcorners[:,1])
+            plt.plot(outcorners[:, 0], outcorners[:, 1])
         objwcs = outwcs.deepcopy()
         objwcs.wcs.crpix = objwcs.wcs.crpix - (outcorners[0])
-        updatehdr(wobj.filename, objwcs,wkey=wkey, wcsname=wname, ext=wobj.extname, clobber=clobber)
+        updatehdr(wobj.filename, objwcs, wkey=wkey, wcsname=wname, ext=wobj.extname,
+                  clobber=clobber)
     return outwcs
+
 
 def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     hdr = fits.getheader(fname, ext=ext)
@@ -89,7 +93,9 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
         raise KeyError("wkey must be one character: A-Z")
     if wkey not in altwcs.available_wcskeys(hdr):
         if not clobber:
-            raise ValueError("wkey %s is already in use. Use clobber=True to overwrite it or specify a different key." %wkey)
+            raise ValueError("wkey {0} is already in use."
+                             "Use clobber=True to overwrite it or"
+                             "specify a different key.".format(wkey))
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
     f = fits.open(fname, mode='update')
@@ -98,23 +104,24 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     wcsnamekey = 'WCSNAME' + wkey
     f[ext].header[wcsnamekey] = wcsname
     for k in hwcs:
-        f[ext].header[k[:7]+wkey] = hwcs[k]
+        f[ext].header[k[: 7] + wkey] = hwcs[k]
 
     f.close()
 
-def wcs2header(wcsobj):
 
+def wcs2header(wcsobj):
     h = wcsobj.to_header()
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
     h['CTYPE1'] = 'RA---TAN'
     h['CTYPE2'] = 'DEC--TAN'
-    norient = np.rad2deg(np.arctan2(h['CD1_2'],h['CD2_2']))
-    #okey = 'ORIENT%s' % wkey
+    norient = np.rad2deg(np.arctan2(h['CD1_2'], h['CD2_2']))
+    # okey = 'ORIENT%s' % wkey
     okey = 'ORIENT'
     h[okey] = norient
     return h
+
 
 def readWCS(input, exts=None, extname=None):
     if isinstance(input, str):
@@ -134,15 +141,15 @@ def readWCS(input, exts=None, extname=None):
     wcso = []
     fomited = []
     # figure out which FITS extension(s) to use
-    if exts == None and extname == None:
-        #Assume it's simple FITS and the data is in the primary HDU
+    if exts is None and extname is None:
+        # Assume it's simple FITS and the data is in the primary HDU
         for f in filelist:
             try:
                 wcso = wcsutil.HSTWCS(f)
             except AttributeError:
                 fomited.append(f)
                 continue
-    elif exts != None and validateExt(exts):
+    elif exts is not None and validateExt(exts):
         exts = [exts]
         for f in filelist:
             try:
@@ -150,7 +157,7 @@ def readWCS(input, exts=None, extname=None):
             except KeyError:
                 fomited.append(f)
                 continue
-    elif extname != None:
+    elif extname is not None:
         for f in filelist:
             fobj = fits.open(f)
             for i in range(len(fobj)):
@@ -159,7 +166,7 @@ def readWCS(input, exts=None, extname=None):
                 except KeyError:
                     continue
                 if ename.lower() == extname.lower():
-                    wcso.append(wcsutil.HSTWCS(f,ext=i))
+                    wcso.append(wcsutil.HSTWCS(f, ext=i))
                 else:
                     continue
             fobj.close()
@@ -178,6 +185,4 @@ def validateExt(ext):
         return False
     else:
         return True
-
-
 

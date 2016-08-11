@@ -1,7 +1,6 @@
-from __future__ import division, print_function # confidence high
-import os
-import string
+from __future__ import absolute_import, division, print_function
 
+import string
 import numpy as np
 from astropy import wcs as pywcs
 from astropy.io import fits
@@ -9,9 +8,11 @@ from stsci.tools import fileutil as fu
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
-altwcskw_extra = ['LATPOLE','LONPOLE','RESTWAV','RESTFRQ']
+altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
 # file operations
+
+
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     """
     Copy the primary WCS to the header as an alternate WCS
@@ -77,7 +78,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         closefobj(fname, f)
         raise KeyError("Wcskey %s is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
-        Alternatively choose another wcskey with altwcs.available_wcskeys()." %wcskey)
+        Alternatively choose another wcskey with altwcs.available_wcskeys()." % wcskey)
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
         if wcsname.strip() in wcsnames(f[wcsext].header).values():
@@ -89,13 +90,13 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                     wkey = next_wcskey(f[wcsext].header)
                 elif wkey is None:
                     closefobj(fname, f)
-                    raise KeyError("Could not get a valid wcskey from wcsname %s" %wcsname)
+                    raise KeyError("Could not get a valid wcskey from wcsname %s" % wcsname)
             else:
                 closefobj(fname, f)
                 raise KeyError("Wcsname %s is aready used. \
                 Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
                 Alternatively choose another wcskey with altwcs.available_wcskeys() or\
-                choose another wcsname." %wcsname)
+                choose another wcsname." % wcsname)
         else:
             wkey = next_wcskey(f[wcsext].header)
             if wcsname.strip():
@@ -103,7 +104,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
                 wnames = wcsnames(f[wcsext].header)
-                if 'O' in wnames: del wnames['O'] # we don't want OPUS/original
+                if 'O' in wnames: del wnames['O']  # we don't want OPUS/original
                 if len(wnames) > 0:
                     if ' ' in wnames:
                         wname = wnames[' ']
@@ -139,14 +140,15 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         f[e].header[wcsnamekey] = wname
 
         try:
-            old_wcsname=hwcs.pop('WCSNAME')
+            old_wcsname = hwcs.pop('WCSNAME')
         except:
             pass
 
         for k in hwcs.keys():
-            key = k[:7] + wkey
+            key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
     closefobj(fname, f)
+
 
 def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     """
@@ -188,14 +190,14 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
         raise ValueError("Input parameters problem")
 
     # Interpret input 'ext' value to get list of extensions to process
-    #ext = _buildExtlist(fobj, ext)
+    # ext = _buildExtlist(fobj, ext)
 
     if isinstance(toext, str):
         toext = [toext]
 
     # the case of an HDUList object in memory without an associated file
 
-    #if fobj.filename() is not None:
+    # if fobj.filename() is not None:
     #        name = fobj.filename()
 
     simplefits = fu.isFits(fobj)[1] is 'simple'
@@ -221,13 +223,14 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     if not countext:
         raise KeyError("File does not have extension with extname %s", fromext)
     else:
-        for i in range(1, countext+1):
+        for i in range(1, countext + 1):
             for toe in toext:
                 _restore(fobj, fromextnum=i, fromextnam=fromext, toextnum=i, toextnam=toe, ukey=wkey)
 
     if fobj.filename() is not None:
-        #fobj.writeto(name)
+        # fobj.writeto(name)
         closefobj(f, fobj)
+
 
 def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
     """
@@ -272,9 +275,6 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     # the case of an HDUList object in memory without an associated file
 
-    #if fobj.filename() is not None:
-    #        name = fobj.filename()
-
     simplefits = fu.isFits(fobj)[1] is 'simple'
     if simplefits:
         wcskeyext = 0
@@ -296,6 +296,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     if fobj.filename() is not None:
         closefobj(f, fobj)
+
 
 def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     """
@@ -351,7 +352,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        hwcs = readAltWCS(fobj,i,wcskey=wkey)
+        hwcs = readAltWCS(fobj, i, wcskey=wkey)
         if hwcs is None:
             continue
         for k in hwcs[::-1]:
@@ -362,6 +363,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     else:
         print("Did not find WCS with key %s in any of the extensions" % wkey)
     closefobj(fname, fobj)
+
 
 def _buildExtlist(fobj, ext):
     """
@@ -378,8 +380,8 @@ def _buildExtlist(fobj, ext):
             If a string is provided, it should specify the EXTNAME of extensions
             with WCSs to be archived
     """
-    if not isinstance(ext,list):
-        if isinstance(ext,str):
+    if not isinstance(ext, list):
+        if isinstance(ext, str):
             extstr = ext
             ext = []
             for extn in range(1, len(fobj)):
@@ -390,6 +392,7 @@ def _buildExtlist(fobj, ext):
         else:
             raise KeyError("Valid extensions in 'ext' parameter need to be specified.")
     return ext
+
 
 def _restore(fobj, ukey, fromextnum,
              toextnum=None, fromextnam=None, toextnam=None, verbose=True):
@@ -415,7 +418,7 @@ def _restore(fobj, ukey, fromextnum,
         if toextnam:
             toextension = (toextnam, toextnum)
         else:
-            toextension =toextnum
+            toextension = toextnum
     else:
         toextension = fromextension
 
@@ -445,34 +448,38 @@ def _restore(fobj, ukey, fromextnum,
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
     if 'ORIENTAT' in fobj[toextension].header:
-        norient = np.rad2deg(np.arctan2(hwcs['CD1_2'+'%s' %ukey], hwcs['CD2_2'+'%s' %ukey]))
+        norient = np.rad2deg(np.arctan2(hwcs['CD1_2' + '%s' % ukey], hwcs['CD2_2' + '%s' % ukey]))
         fobj[toextension].header['ORIENTAT'] = norient
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
-    for kw in ['TDD_CYA','TDD_CYB','TDD_CXA','TDD_CXB']:
+    for kw in ['TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']:
         if kw in fobj[toextension].header:
             fobj[toextension].header[kw] = 0.0
 
-#header operations
+ 
+# header operations
+
+
 def _check_headerpars(fobj, ext):
     if not isinstance(fobj, fits.Header) and not isinstance(fobj, fits.HDUList) \
-                   and not isinstance(fobj, str):
+            and not isinstance(fobj, str):
         raise ValueError("Expected a file name, a file object or a header\n")
 
     if not isinstance(fobj, fits.Header):
-        #raise ValueError("Expected a valid ext parameter when input is a file")
         if not isinstance(ext, int) and not isinstance(ext, tuple):
             raise ValueError("Expected ext to be a number or a tuple, e.g. ('SCI', 1)\n")
 
+
 def _getheader(fobj, ext):
     if isinstance(fobj, str):
-        hdr = fits.getheader(fobj,ext)
+        hdr = fits.getheader(fobj, ext)
     elif isinstance(fobj, fits.Header):
         hdr = fobj
     else:
         hdr = fobj[ext].header
     return hdr
 
-def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
+
+def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     """
     Reads in alternate primary WCS from specified extension.
 
@@ -495,12 +502,12 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
     if isinstance(fobj, str):
         fobj = fits.open(fobj)
 
-    hdr = _getheader(fobj,ext)
+    hdr = _getheader(fobj, ext)
     try:
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
-            print('readAltWCS: Could not read WCS with key %s' %wcskey)
+            print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
     hwcs = nwcs.to_header()
@@ -510,7 +517,8 @@ def readAltWCS(fobj, ext, wcskey=' ',verbose=False):
 
     return hwcs
 
-def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
+
+def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
     """
     Translates the alternate/primary WCS with one key to an alternate/primary WCS with
     another key.
@@ -534,7 +542,7 @@ def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
     hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
-    hdr = readAltWCS(fobj,ext,wcskey=oldkey)
+    hdr = readAltWCS(fobj, ext, wcskey=oldkey)
     if hdr is None:
         return None
     # Converting WCS to new key
@@ -543,9 +551,10 @@ def convertAltWCS(fobj,ext,oldkey=" ",newkey=' '):
             cname = card
         else:
             cname = card.rstrip(oldkey)
-        hdr.rename_key(card,cname+newkey,force=True)
+        hdr.rename_key(card, cname + newkey, force=True)
 
     return hdr
+
 
 def wcskeys(fobj, ext=None):
     """
@@ -565,10 +574,11 @@ def wcskeys(fobj, ext=None):
     names = hdr["WCSNAME*"]
     d = []
     for key in names:
-        wkey = key.replace('WCSNAME','')
+        wkey = key.replace('WCSNAME', '')
         if wkey == '': wkey = ' '
         d.append(wkey)
     return d
+
 
 def wcsnames(fobj, ext=None):
     """
@@ -588,10 +598,11 @@ def wcsnames(fobj, ext=None):
     names = hdr["WCSNAME*"]
     d = {}
     for keyword, value in names.items():
-        wkey = keyword.replace('WCSNAME','')
+        wkey = keyword.replace('WCSNAME', '')
         if wkey == '': wkey = ' '
         d[wkey] = value
     return d
+
 
 def available_wcskeys(fobj, ext=None):
     """
@@ -618,6 +629,7 @@ def available_wcskeys(fobj, ext=None):
     [all_keys.remove(key) for key in used_keys]
     return all_keys
 
+
 def next_wcskey(fobj, ext=None):
     """
     Returns next available character to be used for an alternate WCS
@@ -637,6 +649,7 @@ def next_wcskey(fobj, ext=None):
         return allkeys[0]
     else:
         return None
+
 
 def getKeyFromName(header, wcsname):
     """
@@ -662,6 +675,7 @@ def getKeyFromName(header, wcsname):
     else:
         wkey = None
     return wkey
+
 
 def pc2cd(hdr, key=' '):
     """
@@ -689,6 +703,7 @@ def pc2cd(hdr, key=' '):
                 val = 0.
         hdr['CD{0}{1}'.format(c, key)] = val
     return hdr
+
 
 def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     """
@@ -722,7 +737,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
             return False
 
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
-        and not isinstance(ext,str) \
+        and not isinstance(ext, str) \
         and not isinstance(ext, list) and ext is not None:
         print("Ext must be integer, tuple, string,a list of int extension numbers, \n\
         or a list of tuples representing a fits extension, for example ('sci', 1).")
@@ -733,7 +748,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         return False
 
     if not isinstance(toext, list) and not isinstance(toext, str) and \
-                     toext is not None :
+                        toext is not None:
         print("toext must be a string or a list of strings representing extname")
         return False
 
@@ -743,6 +758,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
 
     return True
 
+
 def closefobj(fname, f):
     """
     Functions in this module accept as input a file name or a file object.
@@ -751,6 +767,7 @@ def closefobj(fname, f):
     """
     if isinstance(fname, str):
         f.close()
+
 
 def mapFitsExt2HDUListInd(fname, extname):
     """
