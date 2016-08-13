@@ -137,7 +137,8 @@ class HSTWCS(WCS):
                 self.instrument = instrument_name
             # Set the correct reference frame
             refframe = determine_refframe(hdr0)
-            ehdr['RADESYS'] = refframe
+            if refframe is not None:
+                ehdr['RADESYS'] = refframe
 
             WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
                          key=self.wcskey)
@@ -960,20 +961,34 @@ adaptive=False, detect_divergence=False, quiet=False)
 
 def determine_refframe(phdr):
     """
-    Determine the reference frame in standard FITS WCS terms.
+    Determine the reference frame in standard FITS WCS.
+
+    This is necessary for two reasons:
+    - The reference frame in HST images is stored not in RADESYS (FITS standard) but in REFFRAME.
+    - REFFRAME is in the primary header, while the rest of the WCS keywords are in the
+      extension header.
+
+    The values of REFFRAME are populated from the APT template where observers are
+    given three options: GSC1 (corresponds to FK5), ICRS or OTHER.
+    In the case of "OTHER", we leave this to wcslib which has a default of ICRS.
 
     Parameters
     ----------
     phdr : `astropy.io.fits.Header`
         Primary Header of an HST observation
 
-    In HST images the reference frame is recorded in the primary extension as REFFRAME.
-    Values are "GSC1" which means FK5 or ICRS (for GSC2 observations).
+    Returns
+    -------
+    refframe : str or None
+        One of the FITS WCS standard reference frames.
+
     """
     try:
-        refframe = phdr['REFFRAME']
+        refframe = phdr['REFFRAME'].upper()
     except KeyError:
-        refframe = " "
+        refframe = None
     if refframe == "GSC1":
         refframe = "FK5"
+    elif refframe != "ICRS":
+        refframe = None
     return refframe
