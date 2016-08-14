@@ -12,6 +12,9 @@ from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
 
+from astropy import log
+default_log_level = log.getEffectiveLevel()
+
 __all__ = ['HSTWCS']
 
 
@@ -382,8 +385,11 @@ class HSTWCS(WCS):
         sip2hdr : bool
             If True - include SIP coefficients
         """
-
+        if not relax and not sip2hdr:
+            log.setLevel('WARNING')
         h = self.to_header(key=wcskey, relax=relax)
+        log.setLevel(default_log_level)
+
         if not wcskey:
             wcskey = self.wcs.alt
         if self.wcs.has_cd():

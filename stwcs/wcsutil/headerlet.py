@@ -34,6 +34,9 @@ from . import wcscorr
 from .hstwcs import HSTWCS
 from .mappings import basic_wcs
 
+from astropy import log
+default_log_level = log.getEffectiveLevel()
+
 # Logging support functions
 
 
@@ -2144,6 +2147,8 @@ class Headerlet(fits.HDUList):
                     fobj.close()
                 raise ValueError(mess)
         numsip = countExtn(self, 'SIPWCS')
+
+        log.setLevel('WARNING')
         for idx in range(1, numsip + 1):
             siphdr = self[('SIPWCS', idx)].header
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
@@ -2164,6 +2169,8 @@ class Headerlet(fits.HDUList):
                 # fhdr.insert(wind, pyfits.Card(kw + wkey,
                 #                              self[0].header[kw]))
                 fhdr.append(fits.Card(kw + wkey, self[0].header[kw]))
+
+        log.setLevel(default_log_level)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 

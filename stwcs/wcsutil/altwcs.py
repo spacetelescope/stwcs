@@ -6,6 +6,9 @@ from astropy import wcs as pywcs
 from astropy.io import fits
 from stsci.tools import fileutil as fu
 
+from astropy import log
+default_log_level = log.getEffectiveLevel()
+
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
 altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
@@ -120,7 +123,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
-
+    log.setLevel('WARNING')
     for e in ext:
         hdr = _getheader(f, e)
         w = pywcs.WCS(hdr, f)
@@ -147,6 +150,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
+    log.setLevel(default_log_level)
     closefobj(fname, f)
 
 
@@ -429,8 +433,9 @@ def _restore(fobj, ukey, fromextnum,
     # keep a copy of the ctype because of the "-SIP" suffix.
     ctype = hdr['ctype*']
     w = pywcs.WCS(hdr, fobj, key=ukey)
+    log.setLevel('WARNING')
     hwcs = w.to_header()
-
+    log.setLevel(default_log_level)
     if hwcs is None:
         return
 
@@ -513,7 +518,9 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
+    log.setLevel('WARNING')
     hwcs = nwcs.to_header()
+    log.setLevel(default_log_level)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
