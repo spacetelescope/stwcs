@@ -9,6 +9,8 @@ from .. import __version__
 
 from astropy import wcs as pywcs
 import astropy
+from astropy import log
+default_log_level = log.getEffectiveLevel()
 
 from . import utils, corrections
 from . import npol, det2im
@@ -210,7 +212,9 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
+    log.setLevel('WARNING')
     hwcs = w.to_header()
+    log.setLevel(default_log_level)
 
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
