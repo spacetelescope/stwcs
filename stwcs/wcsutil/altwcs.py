@@ -3,9 +3,11 @@ from __future__ import absolute_import, division, print_function
 import string
 import numpy as np
 from astropy import wcs as pywcs
-from astropy import log
 from astropy.io import fits
 from stsci.tools import fileutil as fu
+
+from astropy import log
+default_log_level = log.getEffectiveLevel()
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
@@ -148,7 +150,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
-    log.setLevel('DEBUG')
+    log.setLevel(default_log_level)
     closefobj(fname, f)
 
 
@@ -433,7 +435,7 @@ def _restore(fobj, ukey, fromextnum,
     w = pywcs.WCS(hdr, fobj, key=ukey)
     log.setLevel('WARNING')
     hwcs = w.to_header()
-    log.setLevel('DEBUG')
+    log.setLevel(default_log_level)
     if hwcs is None:
         return
 
@@ -518,7 +520,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
         return None
     log.setLevel('WARNING')
     hwcs = nwcs.to_header()
-    log.setLevel('DEBUG')
+    log.setLevel(default_log_level)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
