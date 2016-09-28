@@ -409,8 +409,8 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     if (old_nrows + new_nrows) > old_table.data.shape[0] - 1:
         pad_rows = 2 * new_nrows
         # if not, create a new table with 'pad_rows' new empty rows
-        upd_table = fits.from_columns(old_table.columns, header=old_table.header,
-                                   nrows=old_table.data.shape[0] + pad_rows)
+        upd_table = fits.BinTableHDU.from_columns(old_table.columns, header=old_table.header,
+                                                  nrows=old_table.data.shape[0] + pad_rows)
     else:
         upd_table = old_table
         pad_rows = 0
@@ -542,7 +542,7 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                             dtype='S128')))
 
     # Now create the new table from the column definitions
-    newtab = fits.from_columns(fits.ColDefs(col_list), nrows=trows)
+    newtab = fits.BinTableHDU.from_columns(fits.ColDefs(col_list), nrows=trows)
     # The fact that setting .name is necessary should be considered a bug in
     # pyfits.
     # TODO: Make sure this is fixed in pyfits, then remove this
