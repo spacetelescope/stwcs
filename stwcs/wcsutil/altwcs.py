@@ -561,7 +561,7 @@ def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
             cname = card
         else:
             cname = card.rstrip(oldkey)
-        hdr.rename_key(card, cname + newkey, force=True)
+        hdr.rename_keyword(card, cname + newkey, force=True)
 
     return hdr
 
