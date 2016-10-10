@@ -1089,26 +1089,26 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         ihdu = fits.ImageHDU(header=whdul[0].header, name='SIPWCS')
 
         if ext[0] != "PRIMARY":
-            ihdu.ver = fobj[ext].header['EXTVER']
+            ihdu.ver = int(fobj[ext].header['EXTVER'])
 
         hdul.append(ihdu)
 
         if hwcs.cpdis1:
             whdu = whdul[('WCSDVARR', 1)].copy()
-            whdu.ver = fobj[ext].header['DP1.EXTVER']
+            whdu.ver = int(fobj[ext].header['DP1.EXTVER'])
             hdul.append(whdu)
         if hwcs.cpdis2:
             whdu = whdul[('WCSDVARR', 2)].copy()
-            whdu.ver = fobj[ext].header['DP2.EXTVER']
+            whdu.ver = int(fobj[ext].header['DP2.EXTVER'])
             hdul.append(whdu)
 
         if hwcs.det2im1:
             whdu = whdul[('D2IMARR', 1)].copy()
-            whdu.ver = ihdu.header['D2IM1.EXTVER']
+            whdu.ver = int(ihdu.header['D2IM1.EXTVER'])
             hdul.append(whdu)
         if hwcs.det2im2:
             whdu = whdul[('D2IMARR', 2)].copy()
-            whdu.ver = ihdu.header['D2IM2.EXTVER']
+            whdu.ver = int(ihdu.header['D2IM2.EXTVER'])
             hdul.append(whdu)
 
     if close_file:
@@ -2046,19 +2046,19 @@ class Headerlet(fits.HDUList):
             fobj[target_ext].header.extend(priwcs[0].header)
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
-                whdu.ver = self[('SIPWCS', i)].header['DP1.EXTVER']
+                whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.cpdis2:
                 whdu = priwcs[('WCSDVARR', i * numnpol)].copy()
-                whdu.ver = self[('SIPWCS', i)].header['DP2.EXTVER']
+                whdu.ver = int(self[('SIPWCS', i)].header['DP2.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.det2im1:  # or sipwcs.det2im2:
                 whdu = priwcs[('D2IMARR', (i - 1) * numd2im + 1)].copy()
-                whdu.ver = self[('SIPWCS', i)].header['D2IM1.EXTVER']
+                whdu.ver = int(self[('SIPWCS', i)].header['D2IM1.EXTVER'])
                 fobj.append(whdu)
             if sipwcs.det2im2:
                 whdu = priwcs[('D2IMARR', i * numd2im)].copy()
-                whdu.ver = self[('SIPWCS', i)].header['D2IM2.EXTVER']
+                whdu.ver = int(self[('SIPWCS', i)].header['D2IM2.EXTVER'])
                 fobj.append(whdu)
 
         update_versions(self[0].header, fobj[0].header)
