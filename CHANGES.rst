@@ -1,4 +1,4 @@
-1.3.0 (2016-10-27)
+1.2.4 (2016-10-27)
 ------------------
 
 - Fix a bug in removing LookupTable distortion. [#3]
