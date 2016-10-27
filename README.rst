@@ -8,7 +8,7 @@ transformation for the imaging instruments on the Hubble Space Telescope (HST).
 Installation
 ------------
 
-To clone the project from github and initialize the asdf-standard submodule::
+To clone the project from github::
 
     git clone https://github.com/spacetelescope/stwcs.git
 
