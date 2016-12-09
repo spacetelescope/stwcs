@@ -158,7 +158,7 @@ def applyNpolCorr(fname, unpolcorr):
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
             msg = '"NPOLFILE" exists in primary header but file {0} not found.'
-            'Non-polynomial distortion correction will not be applied.'.format(file)
+            'Non-polynomial distortion correction will not be applied.'.format(fnpol0)
             logger.critical(msg)
             raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
