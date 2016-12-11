@@ -116,6 +116,7 @@ def makecorr(fname, allowed_corr):
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
     f = fits.open(fname, mode='update')
+    f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
