@@ -1,3 +1,9 @@
+1.3 (Unreleased)
+----------------
+
+- updatewcs() now reads all extension immediately after opening a file
+  to fix a problem after astropy implemented fits lazy loading. [#21]
+
 1.2.4 (2016-10-27)
 ------------------
 
