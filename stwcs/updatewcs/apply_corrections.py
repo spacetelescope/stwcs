@@ -212,6 +212,28 @@ def isOldStyleDGEO(fname, dgname):
 
 
 def apply_d2im_correction(fname, d2imcorr):
+    """
+    Logic to decide whether to apply the D2IM correction.
+
+    Parameters
+    ----------
+    fname : str
+        Science file name.
+    d2imcorr : bool
+        Flag indicating if D2IM is should be enabled if allowed.
+
+    Return
+    ------
+    applyD2IMCorr : bool
+        Flag whether to apply the correction.
+
+    The D2IM correction is applied to a science file if it is in the
+    allowed corrections for the instrument. The name of the file
+    with the correction is saved in the ``D2IMFILE`` keyword in the
+    primary header. When the correction is applied the name of the
+    file is saved in the ``D2IMEXT`` keyword in the 1st extension header.
+
+    """
     applyD2IMCorr = True
     if not d2imcorr:
         logger.info("D2IM correction not requested - not applying it.")
@@ -221,7 +243,7 @@ def apply_d2im_correction(fname, d2imcorr):
         fd2im0 = fits.getval(fname, 'D2IMFILE')
     except KeyError:
         logger.info("D2IMFILE keyword is missing - D2IM correction will not be applied.")
-
+        return False
     if fd2im0 == 'N/A':
         utils.remove_distortion(fname, "D2IMFILE")
         return False
