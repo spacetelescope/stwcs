@@ -310,7 +310,6 @@ def test_update_d2im_distortion():
     npol_file = get_filepath('qbu16424j_npl.fits')
     d2imfile = get_filepath('new_wfc_d2i.fits')
     newd2im = get_filepath('new_wfc_d2i.fits', current_dir)
-    print('newd2im', newd2im)
     try:
         os.remove(acs_file)
     except OSError:
