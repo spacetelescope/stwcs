@@ -107,7 +107,7 @@ class TestCreateHeaderlet(object):
         """
         newf = get_filepath('ncomp.fits', os.path.abspath(os.path.curdir))
         shutil.copyfile(self.comp_file, newf)
-        fits.delval(newf, 'HDRNAME', ext=1)
+        #fits.delval(newf, 'HDRNAME', ext=1)
         fits.delval(newf, 'WCSNAME', ext=1)
         with pytest.raises(KeyError):
             hlet = headerlet.create_headerlet(newf)
