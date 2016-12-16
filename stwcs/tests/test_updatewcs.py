@@ -325,6 +325,7 @@ def test_update_d2im_distortion():
     newf = fits.open(newd2im, mode='update')
     for ext in newf[1:]:
         ext.data = ext.data * 100
+    newf.flush()
     newf.close()
     fits.setval(acs_file, keyword="D2IMFILE", value=newd2im)
     updatewcs.updatewcs(acs_file)
