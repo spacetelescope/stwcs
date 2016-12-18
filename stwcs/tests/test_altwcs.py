@@ -117,7 +117,6 @@ class TestAltWCS(object):
 
     def test_restore_wcs_from_to(self):
         # test restore from ... to ...
-        #altwcs.archiveWCS(self.acs_file, ext=[('SCI',1), ('SCI',2)], wcskey='T')
         pyfits.setval(self.acs_file, ext=('SCI', 1), keyword='CRVAL1', value=1)
         pyfits.setval(self.acs_file, ext=('SCI', 2), keyword='CRVAL1', value=1)
         f = pyfits.open(self.acs_file, mode='update')
@@ -140,9 +139,7 @@ class TestAltWCS(object):
         compare_wcs(w3, w1o, exclude_keywords=['ctype'])
 
     def test_delete_wcs(self):
-        #altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z')
         altwcs.deleteWCS(self.acs_file, ext=1, wcskey='Z')
-        #utils.assert_raises(KeyError, wcsutil.HSTWCS, self.acs_file, ext=1, wcskey='Z')
         with pytest.raises(KeyError):
             wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
 

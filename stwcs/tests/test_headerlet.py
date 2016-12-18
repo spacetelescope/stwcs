@@ -8,7 +8,7 @@ from ..wcsutil import headerlet, wcsdiff
 from ..wcsutil import HSTWCS
 import numpy as np
 from numpy.testing import utils
-from nose.tools import *
+import pytest
 
 from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
@@ -100,7 +100,6 @@ class TestCreateHeaderlet(object):
         assert(wcsdiff.is_wcs_identical(self.simple_file, self.headerlet_name,
                                         [0], [1], verbose=True)[0])
 
-    @raises(KeyError)
     def test_no_HDRNAME_no_WCSNAME(self):
         """
         Test create_headerlet stepping through all
@@ -108,9 +107,10 @@ class TestCreateHeaderlet(object):
         """
         newf = get_filepath('ncomp.fits', os.path.abspath(os.path.curdir))
         shutil.copyfile(self.comp_file, newf)
-        fits.delval(newf, 'HDRNAME', ext=1)
+        #fits.delval(newf, 'HDRNAME', ext=1)
         fits.delval(newf, 'WCSNAME', ext=1)
-        hlet = headerlet.create_headerlet(newf)
+        with pytest.raises(KeyError):
+            hlet = headerlet.create_headerlet(newf)
 
     def test1SciExt(self):
         """
@@ -176,23 +176,24 @@ class TestApplyHeaderlet:
         hlet.apply_as_primary('comp.fits')
     """
 
-    @raises(ValueError)
+
     def testWrongSIPModel(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1',
                                           sipname='WRONG')
-        hlet.apply_as_primary(self.comp_file)
+        with pytest.raises(ValueError):
+            hlet.apply_as_primary(self.comp_file)
 
-    @raises(ValueError)
     def testWrongNPOLModel(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1',
                                           npolfile='WRONG')
-        hlet.apply_as_primary(self.comp_file)
+        with pytest.raises(ValueError):
+            hlet.apply_as_primary(self.comp_file)
 
-    @raises(ValueError)
     def testWrongD2IMModel(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1',
                                           d2imfile='WRONG')
-        hlet.apply_as_primary(self.comp_file)
+        with pytest.raises(ValueError):
+            hlet.apply_as_primary(self.comp_file)
 
     def test_apply_as_primary_method(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test2')

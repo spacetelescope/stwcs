@@ -66,7 +66,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
         if not npolcorr:
             acorr.remove('NPOLCorr')
     if 'DET2IMCorr' in acorr:
-        d2imcorr = applyD2ImCorr(fname, d2imcorr)
+        d2imcorr = apply_d2im_correction(fname, d2imcorr)
         if not d2imcorr:
             acorr.remove('DET2IMCorr')
     logger.info("Corrections to be applied to {0} {1}".format(fname, acorr))
@@ -158,7 +158,7 @@ def applyNpolCorr(fname, unpolcorr):
         fnpol0 = fileutil.osfn(fnpol0)
         if not fileutil.findFile(fnpol0):
             msg = '"NPOLFILE" exists in primary header but file {0} not found.'
-            'Non-polynomial distortion correction will not be applied.'.format(file)
+            'Non-polynomial distortion correction will not be applied.'.format(fnpol0)
             logger.critical(msg)
             raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
@@ -211,40 +211,64 @@ def isOldStyleDGEO(fname, dgname):
         return False
 
 
-def applyD2ImCorr(fname, d2imcorr):
+def apply_d2im_correction(fname, d2imcorr):
+    """
+    Logic to decide whether to apply the D2IM correction.
+
+    Parameters
+    ----------
+    fname : str
+        Science file name.
+    d2imcorr : bool
+        Flag indicating if D2IM is should be enabled if allowed.
+
+    Return
+    ------
+    applyD2IMCorr : bool
+        Flag whether to apply the correction.
+
+    The D2IM correction is applied to a science file if it is in the
+    allowed corrections for the instrument. The name of the file
+    with the correction is saved in the ``D2IMFILE`` keyword in the
+    primary header. When the correction is applied the name of the
+    file is saved in the ``D2IMEXT`` keyword in the 1st extension header.
+
+    """
     applyD2IMCorr = True
+    if not d2imcorr:
+        logger.info("D2IM correction not requested - not applying it.")
+        return False
+    # get D2IMFILE kw from primary header
     try:
-        # get D2IMFILE kw from primary header
         fd2im0 = fits.getval(fname, 'D2IMFILE')
-        if fd2im0 == 'N/A':
-            utils.remove_distortion(fname, "D2IMFILE")
-            return False
-        fd2im0 = fileutil.osfn(fd2im0)
-        if not fileutil.findFile(fd2im0):
-            msg = """\n\tKw D2IMFILE exists in primary header but file %s not found\n
-                     Detector to image correction will not be applied\n""" % fd2im0
-            logger.critical(msg)
-            print(msg)
-            raise IOError("D2IMFILE {0} not found".format(fd2im0))
-        try:
-            # get D2IMEXT kw from first extension header
-            fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
-            fd2imext = fileutil.osfn(fd2imext)
-            if fd2imext and fileutil.findFile(fd2imext):
-                if fd2im0 != fd2imext:
-                    applyD2IMCorr = True
-                else:
-                    applyD2IMCorr = False
-            else:
-                # D2IM file defined in first extension may not be found
-                # but if a valid kw exists in the primary header,
-                # detector to image correction should be applied.
-                applyD2IMCorr = True
-        except KeyError:
-            # the case of D2IMFILE kw present in primary header but D2IMEXT missing
-            # in first extension header
-            applyD2IMCorr = True
     except KeyError:
-        print('D2IMFILE keyword not found in primary header')
-        applyD2IMCorr = False
-        return applyD2IMCorr
+        logger.info("D2IMFILE keyword is missing - D2IM correction will not be applied.")
+        return False
+    if fd2im0 == 'N/A':
+        utils.remove_distortion(fname, "D2IMFILE")
+        return False
+    fd2im0 = fileutil.osfn(fd2im0)
+    if not fileutil.findFile(fd2im0):
+        message = "D2IMFILE {0} not found.".format(fname)
+        logger.critical(message)
+        raise IOError(message)
+    try:
+        # get D2IMEXT kw from first extension header
+        fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
+
+    except KeyError:
+        # the case of D2IMFILE kw present in primary header but D2IMEXT missing
+        # in first extension header
+        return True
+    fd2imext = fileutil.osfn(fd2imext)
+    if fd2imext and fileutil.findFile(fd2imext):
+        if fd2im0 != fd2imext:
+            applyD2IMCorr = True
+        else:
+            applyD2IMCorr = False
+    else:
+        # D2IM file defined in first extension may not be found
+        # but if a valid kw exists in the primary header,
+        # detector to image correction should be applied.
+        applyD2IMCorr = True
+    return applyD2IMCorr

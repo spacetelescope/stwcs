@@ -296,12 +296,68 @@ def test_add_radesys():
     fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
 
-    #shutil.copyfile('orig/ibof01ahq_flt.fits', './ibof01ahq_flt.fits')
     updatewcs.updatewcs(acs_file)
-    # updatewcs.updatewcs('ibof01ahq_flt.fits')
     for ext in [('SCI', 1), ('SCI', 2)]:
         hdr = fits.getheader(acs_file, ext)
         assert hdr['RADESYS'] == 'FK5'
 
-    #hdr = fits.getheader('ibof01ahq_flt.fits', ext=('SCI', 1))
-    #assert hdr['RADESYS'] == 'ICRS'
+def test_update_d2im_distortion():
+    acs_orig_file = get_filepath('j94f05bgq_flt.fits')
+    current_dir = os.path.abspath(os.path.curdir)
+    acs_file = get_filepath('j94f05bgq_flt.fits', current_dir)
+
+    idctab = get_filepath('postsm4_idc.fits')
+    npol_file = get_filepath('qbu16424j_npl.fits')
+    d2imfile = get_filepath('new_wfc_d2i.fits')
+    newd2im = get_filepath('new_wfc_d2i.fits', current_dir)
+    try:
+        os.remove(acs_file)
+    except OSError:
+        pass
+    shutil.copyfile(acs_orig_file, acs_file)
+    fits.setval(acs_file, ext=0, keyword="IDCTAB", value=idctab)
+    fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
+    fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
+    updatewcs.updatewcs(acs_file)
+    d2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
+    d2imerr4 = fits.getval(acs_file, ext=4, keyword='D2IMERR1')
+    shutil.copyfile(d2imfile, newd2im)
+    with fits.open(newd2im, mode='update') as newf:
+        for ext in newf[1:]:
+            ext.data = ext.data * 100
+
+    fits.setval(acs_file, keyword="D2IMFILE", value=newd2im)
+    updatewcs.updatewcs(acs_file)
+    nd2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
+    nd2imerr4 = fits.getval(acs_file, ext=4, keyword='D2IMERR1')
+    assert np.isclose(d2imerr1 * 100, nd2imerr1)
+    assert np.isclose(d2imerr4 * 100, nd2imerr4)
+
+
+def test_apply_d2im():
+    from stwcs.updatewcs import apply_corrections as appc
+    acs_orig_file = get_filepath('j94f05bgq_flt.fits')
+    current_dir = os.path.abspath(os.path.curdir)
+    fname = get_filepath('j94f05bgq_flt.fits', current_dir)
+    d2imfile = get_filepath('new_wfc_d2i.fits')
+    try:
+        os.remove(fname)
+    except OSError:
+        pass
+    shutil.copyfile(acs_orig_file, fname)
+    fits.setval(fname, ext=0, keyword="D2IMFILE", value=d2imfile)
+    fits.setval(fname, ext=0, keyword="IDCTAB", value='N/A')
+    fits.setval(fname, ext=0, keyword="NPOLFILE", value='N/A')
+    # If D2IMEXT does not exist, the correction should be applied
+    assert appc.apply_d2im_correction(fname, d2imcorr=True)
+    updatewcs.updatewcs(fname)
+
+    # Test the case when D2IMFILE == D2IMEXT
+    assert not appc.apply_d2im_correction(fname, d2imcorr=True)
+    assert not appc.apply_d2im_correction(fname, d2imcorr=False)
+
+    fits.setval(fname, ext=0, keyword='D2IMFILE', value="N/A")
+    assert not appc.apply_d2im_correction(fname, d2imcorr=True)
+    # No D2IMFILE keyword in primary header
+    fits.delval(fname, ext=0, keyword='D2IMFILE')
+    assert not appc.apply_d2im_correction(fname, d2imcorr=True)
