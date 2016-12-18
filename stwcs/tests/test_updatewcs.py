@@ -322,11 +322,10 @@ def test_update_d2im_distortion():
     d2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
     d2imerr4 = fits.getval(acs_file, ext=4, keyword='D2IMERR1')
     shutil.copyfile(d2imfile, newd2im)
-    newf = fits.open(newd2im, mode='update')
-    for ext in newf[1:]:
-        ext.data = ext.data * 100
-    newf.flush()
-    newf.close()
+    with fits.open(newd2im, mode='update') as newf:
+        for ext in newf[1:]:
+            ext.data = ext.data * 100
+
     fits.setval(acs_file, keyword="D2IMFILE", value=newd2im)
     updatewcs.updatewcs(acs_file)
     nd2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
