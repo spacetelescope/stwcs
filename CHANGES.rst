@@ -1,4 +1,4 @@
-1.3 (Unreleased)
+1.2.5 (2016-12-20)
 ----------------
 
 - updatewcs() now reads all extension immediately after opening a file
