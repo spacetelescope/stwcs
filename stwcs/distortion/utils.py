@@ -128,7 +128,7 @@ def make_orthogonal_cd(wcs):
             scale = np.sqrt(np.abs(det))  # find as sqrt(pixel area)
 
         # find Y-axis orientation:
-        if hasattr(wcs, 'orientat') and not ignoreHST:
+        if hasattr(wcs, 'orientat'):
             rot = np.deg2rad(wcs.orientat)  # use HST ORIENTAT
         else:
             rot = np.arctan2(wcs.wcs.cd[0, 1], wcs.wcs.cd[1, 1])  # angle of the Y-axis
