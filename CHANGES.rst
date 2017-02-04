@@ -1,6 +1,9 @@
 1.3 (Unreleased)
 ----------------
 
+- The ``clobber`` parameter in `Headerlet.tofile()`` was replaced with
+  ``overwrite``. [#24]
+
 1.2.5 (2016-12-20)
 ----------------
 
