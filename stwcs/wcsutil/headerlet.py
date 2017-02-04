@@ -20,6 +20,7 @@ import copy
 import time
 
 import numpy as np
+import astropy
 from astropy.io import fits
 from astropy import wcs as pywcs
 from astropy.utils import lazyproperty
@@ -34,11 +35,17 @@ from . import wcscorr
 from .hstwcs import HSTWCS
 from .mappings import basic_wcs
 
+"""
+``clobber`` parameter in `astropy.io.fits.writeto()`` was renamed to
+``overwrite`` in astropy v1.3.
+"""
+from astropy.utils import minversion
+ASTROPY_13_MIN = minversion(astropy, "1.3")
+
 from astropy import log
 default_log_level = log.getEffectiveLevel()
 
 # Logging support functions
-
 
 class FuncNameLoggingFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None):
@@ -2413,7 +2420,10 @@ class Headerlet(fits.HDUList):
         """
         if not destim or not hdrname:
             self.hverify()
-        self.writeto(fname, clobber=clobber)
+        if ASTROPY_13_MIN:
+            self.writeto(fname, overwrite=clobber)
+        else:
+            self.writeto(fname, clobber=clobber)
 
     def _del_dest_WCS(self, dest, ext=None):
         """
