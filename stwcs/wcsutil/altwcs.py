@@ -432,7 +432,22 @@ def _restore(fobj, ukey, fromextnum,
     hdr = _getheader(fobj, fromextension)
     # keep a copy of the ctype because of the "-SIP" suffix.
     ctype = hdr['ctype*']
-    w = pywcs.WCS(hdr, fobj, key=ukey)
+
+    # remove SIP before reading a non-SIP WCS to surpress warning message,
+    # see https://github.com/spacetelescope/stwcs/issues/25 :
+    ctype1_kwd = 'CTYPE1' + ukey
+    ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
+    if not ctype1.endswith('-SIP'):
+        hdrc = hdr.copy()
+        if 'A_ORDER' in hdrc:
+            del hdrc['A_ORDER']
+        if 'B_ORDER' in hdrc:
+            del hdrc['B_ORDER']
+    else:
+        hdrc = hdr
+
+    w = pywcs.WCS(hdrc, fobj, key=ukey)
+
     log.setLevel('WARNING')
     hwcs = w.to_header()
     log.setLevel(default_log_level)
@@ -510,7 +525,18 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     if isinstance(fobj, str):
         fobj = fits.open(fobj)
 
-    hdr = _getheader(fobj, ext)
+    hdr = _getheader(fobj, ext).copy()
+
+    # remove SIP before reading a non-SIP WCS to surpress warning message,
+    # see https://github.com/spacetelescope/stwcs/issues/25 :
+    ctype1_kwd = 'CTYPE1' + wcskey
+    ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
+    if not ctype1.endswith('-SIP'):
+        if 'A_ORDER' in hdr:
+            del hdr['A_ORDER']
+        if 'B_ORDER' in hdr:
+            del hdr['B_ORDER']
+
     try:
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
@@ -518,6 +544,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
+
     log.setLevel('WARNING')
     hwcs = nwcs.to_header()
     log.setLevel(default_log_level)
