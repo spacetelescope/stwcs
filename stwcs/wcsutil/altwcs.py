@@ -448,9 +448,7 @@ def _restore(fobj, ukey, fromextnum,
 
     w = pywcs.WCS(hdrc, fobj, key=ukey)
 
-    log.setLevel('WARNING')
     hwcs = w.to_header()
-    log.setLevel(default_log_level)
     if hwcs is None:
         return
 
@@ -545,9 +543,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
 
-    log.setLevel('WARNING')
     hwcs = nwcs.to_header()
-    log.setLevel(default_log_level)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
