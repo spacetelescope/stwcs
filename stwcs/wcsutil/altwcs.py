@@ -432,23 +432,12 @@ def _restore(fobj, ukey, fromextnum,
     hdr = _getheader(fobj, fromextension)
     # keep a copy of the ctype because of the "-SIP" suffix.
     ctype = hdr['ctype*']
-
-    # remove SIP before reading a non-SIP WCS to surpress warning message,
-    # see https://github.com/spacetelescope/stwcs/issues/25 :
-    u_key = ukey.strip().upper()
-    ctype1_kwd = 'CTYPE1' + u_key
-    ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
-    hdrc = hdr
-    if u_key == 'O' and not ctype1.endswith('-SIP'):
-        hdrc = hdr.copy()
-        if 'A_ORDER' in hdrc:
-            del hdrc['A_ORDER']
-        if 'B_ORDER' in hdrc:
-            del hdrc['B_ORDER']
+    hdrc = _filtered_SIP_header(hdr=hdr, key=ukey)
 
     w = pywcs.WCS(hdrc, fobj, key=ukey)
 
     hwcs = w.to_header()
+
     if hwcs is None:
         return
 
@@ -478,6 +467,28 @@ def _restore(fobj, ukey, fromextnum,
 
 
 # header operations
+
+def _filtered_SIP_header(hdr, key):
+    # remove SIP before reading a non-SIP WCS to surpress warning message,
+    # see https://github.com/spacetelescope/stwcs/issues/25 :
+    u_key = key.strip().upper()
+    hdrc = hdr
+    if u_key == 'O':
+        ctype1_kwd = 'CTYPE1' + u_key
+        ctype1_has_sip = (ctype1_kwd in hdr and
+                          hdr[ctype1_kwd].strip().upper().endswith('-SIP'))
+        ctype2_kwd = 'CTYPE2' + u_key
+        ctype2_has_sip = (ctype2_kwd in hdr and
+                          hdr[ctype2_kwd].strip().upper().endswith('-SIP'))
+
+        if ctype1_has_sip and ctype2_has_sip:
+            hdrc = hdr.copy()
+            if 'A_ORDER' in hdrc:
+                del hdrc['A_ORDER']
+            if 'B_ORDER' in hdrc:
+                del hdrc['B_ORDER']
+
+    return hdrc
 
 
 def _check_headerpars(fobj, ext):
@@ -523,21 +534,11 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     if isinstance(fobj, str):
         fobj = fits.open(fobj)
 
-    hdr = _getheader(fobj, ext).copy()
-
-    # remove SIP before reading a non-SIP WCS to surpress warning message,
-    # see https://github.com/spacetelescope/stwcs/issues/25 :
-    u_key = wcskey.strip().upper()
-    ctype1_kwd = 'CTYPE1' + u_key
-    ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
-    if u_key == 'O' and not ctype1.endswith('-SIP'):
-        if 'A_ORDER' in hdr:
-            del hdr['A_ORDER']
-        if 'B_ORDER' in hdr:
-            del hdr['B_ORDER']
+    hdr = _getheader(fobj, ext)
+    hdrc = _filtered_SIP_header(hdr=hdr, key=wcskey)
 
     try:
-        nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
+        nwcs = pywcs.WCS(hdrc, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
