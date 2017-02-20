@@ -435,10 +435,11 @@ def _restore(fobj, ukey, fromextnum,
 
     # remove SIP before reading a non-SIP WCS to surpress warning message,
     # see https://github.com/spacetelescope/stwcs/issues/25 :
-    ctype1_kwd = 'CTYPE1' + ukey.strip()
+    u_key = ukey.strip().upper()
+    ctype1_kwd = 'CTYPE1' + u_key
     ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
     hdrc = hdr
-    if ukey.strip() == 'O' and not ctype1.endswith('-SIP'):
+    if u_key == 'O' and not ctype1.endswith('-SIP'):
         hdrc = hdr.copy()
         if 'A_ORDER' in hdrc:
             del hdrc['A_ORDER']
@@ -526,9 +527,10 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
 
     # remove SIP before reading a non-SIP WCS to surpress warning message,
     # see https://github.com/spacetelescope/stwcs/issues/25 :
-    ctype1_kwd = 'CTYPE1' + wcskey.strip()
+    u_key = wcskey.strip().upper()
+    ctype1_kwd = 'CTYPE1' + u_key
     ctype1 = hdr[ctype1_kwd].strip().upper() if ctype1_kwd in hdr else '-SIP'
-    if wcskey.strip() == 'O' and not ctype1.endswith('-SIP'):
+    if u_key == 'O' and not ctype1.endswith('-SIP'):
         if 'A_ORDER' in hdr:
             del hdr['A_ORDER']
         if 'B_ORDER' in hdr:
