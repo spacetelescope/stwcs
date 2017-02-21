@@ -385,13 +385,14 @@ class HSTWCS(WCS):
         sip2hdr : bool
             If True - include SIP coefficients
         """
-        if not relax and not sip2hdr:
-            log.setLevel('WARNING')
+        if relax is None:
+            relax = False
+
         h = self.to_header(key=wcskey, relax=relax)
-        log.setLevel(default_log_level)
 
         if not wcskey:
             wcskey = self.wcs.alt
+
         if self.wcs.has_cd():
             h = pc2cd(h, key=wcskey)
 

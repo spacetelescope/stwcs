@@ -213,9 +213,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    log.setLevel('WARNING')
-    hwcs = w.to_header()
-    log.setLevel(default_log_level)
+    hwcs = w.to_header(relax=False)
 
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)

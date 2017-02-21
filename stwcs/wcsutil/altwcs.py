@@ -123,11 +123,11 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
-    log.setLevel('WARNING')
+
     for e in ext:
         hdr = _getheader(f, e)
         w = pywcs.WCS(hdr, f)
-        hwcs = w.to_header()
+        hwcs = w.to_header(relax=False)
 
         if hwcs is None:
             continue
@@ -150,7 +150,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
-    log.setLevel(default_log_level)
+
     closefobj(fname, f)
 
 
@@ -545,7 +545,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
 
-    hwcs = nwcs.to_header()
+    hwcs = nwcs.to_header(relax=False)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
