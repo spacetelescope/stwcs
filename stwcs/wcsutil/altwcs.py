@@ -436,7 +436,7 @@ def _restore(fobj, ukey, fromextnum,
 
     w = pywcs.WCS(hdrc, fobj, key=ukey)
 
-    hwcs = w.to_header()
+    hwcs = w.to_header(relax=False)
 
     if hwcs is None:
         return
