@@ -481,7 +481,7 @@ def _filtered_SIP_header(hdr, key):
         ctype2_has_sip = (ctype2_kwd in hdr and
                           hdr[ctype2_kwd].strip().upper().endswith('-SIP'))
 
-        if ctype1_has_sip and ctype2_has_sip:
+        if not (ctype1_has_sip and ctype2_has_sip):
             hdrc = hdr.copy()
             if 'A_ORDER' in hdrc:
                 del hdrc['A_ORDER']
