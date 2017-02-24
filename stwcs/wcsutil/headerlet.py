@@ -1968,7 +1968,7 @@ class Headerlet(fits.HDUList):
                             priwcs_name = 'UNKNOWN'
                 nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
                 altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=priwcs_name)
+                                  wcsname=priwcs_name, basic=True)
             else:
 
                 for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
@@ -2567,7 +2567,7 @@ class Headerlet(fits.HDUList):
         logger.debug("Removing alternate WCSs with keys %s from %s"
                      % (dkeys, dest.filename()))
         for k in dkeys:
-            altwcs.deleteWCS(dest, ext=ext, wcskey=k)
+            altwcs.deleteWCS(dest, ext=ext, wcskey=k, basic=False)
 
     def _remove_primary_WCS(self, ext):
         """

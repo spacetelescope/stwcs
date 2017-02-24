@@ -89,7 +89,7 @@ class TestAltWCS(object):
 
     def test_restore_wcs(self):
         # test restore on a file
-        altwcs.restoreWCS(self.acs_file, ext=1, wcskey='O')
+        altwcs.restoreWCS(self.acs_file, ext=1, wcskey='O', basic=True)
         w1o = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='O')
         w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
         compare_wcs(w1, w1o, exclude_keywords=['ctype'])

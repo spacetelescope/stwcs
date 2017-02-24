@@ -99,7 +99,8 @@ def init_wcscorr(input, force=False):
         # if so, get its values directly, otherwise, archive the PRIMARY WCS
         # as the OPUS values in the WCSCORR table
         if 'O' not in used_wcskeys:
-            altwcs.archiveWCS(fimg, ('SCI', extver), wcskey='O', wcsname='OPUS')
+            altwcs.archiveWCS(fimg, ('SCI', extver), wcskey='O',
+                              wcsname='OPUS', basic=True)
         wkey = 'O'
 
         wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver), wcskey=wkey)
