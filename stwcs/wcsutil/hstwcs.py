@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import warnings
 from astropy.wcs import WCS
 from astropy.io import fits
 from ..distortion import models, coeff_converter
@@ -17,6 +18,7 @@ default_log_level = log.getEffectiveLevel()
 
 __all__ = ['HSTWCS']
 
+warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs.wcs")
 
 def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
@@ -385,10 +387,8 @@ class HSTWCS(WCS):
         sip2hdr : bool
             If True - include SIP coefficients
         """
-        if not relax and not sip2hdr:
-            log.setLevel('WARNING')
+        warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
         h = self.to_header(key=wcskey, relax=relax)
-        log.setLevel(default_log_level)
 
         if not wcskey:
             wcskey = self.wcs.alt

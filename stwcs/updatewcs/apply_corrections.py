@@ -249,7 +249,7 @@ def apply_d2im_correction(fname, d2imcorr):
         return False
     fd2im0 = fileutil.osfn(fd2im0)
     if not fileutil.findFile(fd2im0):
-        message = "D2IMFILE {0} not found.".format(fname)
+        message = "D2IMFILE {0} not found.".format(fd2im0)
         logger.critical(message)
         raise IOError(message)
     try:

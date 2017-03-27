@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
 import atexit
+import warnings
+
 from astropy.io import fits
 from .. import wcsutil
 #from ..wcsutil.hwstwcs import HSTWCS
@@ -25,6 +27,7 @@ atexit.register(logging.shutdown)
 
 # Note: The order of corrections is important
 
+warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               checkfiles=True, verbose=False):
@@ -119,7 +122,10 @@ def makecorr(fname, allowed_corr):
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
+
+    log.setLevel("WARNING")
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
+    log.setLevel(default_log_level)
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
@@ -134,14 +140,18 @@ def makecorr(fname, allowed_corr):
         if 'extname' in extn.header:
             extname = extn.header['extname'].lower()
             if extname == 'sci':
+                log.setLevel("WARNING")
                 wcsutil.restoreWCS(f, ext=i, wcskey='O')
+                log.setLevel(default_log_level)
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
+                # perhaps archive only if it doesn't exist???
                 wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
+
                 ext_wcs.readModel(update=True, header=hdr)
                 for c in allowed_corr:
                     if c != 'NPOLCorr' and c != 'DET2IMCorr':
@@ -213,10 +223,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    log.setLevel('WARNING')
     hwcs = w.to_header()
-    log.setLevel(default_log_level)
-
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
