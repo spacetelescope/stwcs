@@ -119,7 +119,9 @@ def makecorr(fname, allowed_corr):
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
+    log.setLevel("WARNING")
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
+    log.setLevel(default_log_level)
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
@@ -134,7 +136,9 @@ def makecorr(fname, allowed_corr):
         if 'extname' in extn.header:
             extname = extn.header['extname'].lower()
             if extname == 'sci':
+                log.setLevel('WARNING')
                 wcsutil.restoreWCS(f, ext=i, wcskey='O')
+                log.setLevel(default_log_level)
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
