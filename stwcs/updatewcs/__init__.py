@@ -149,7 +149,6 @@ def makecorr(fname, allowed_corr):
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
-                # perhaps archive only if it doesn't exist???
                 wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
 
                 ext_wcs.readModel(update=True, header=hdr)

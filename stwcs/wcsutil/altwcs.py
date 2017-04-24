@@ -159,7 +159,6 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
     log.setLevel(default_log_level)
-    warnings.resetwarnings()
     closefobj(fname, f)
 
 
