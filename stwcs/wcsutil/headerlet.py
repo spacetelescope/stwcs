@@ -1968,7 +1968,7 @@ class Headerlet(fits.HDUList):
                             priwcs_name = 'UNKNOWN'
                 nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
                 altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=priwcs_name)
+                                  wcsname=priwcs_name, basic=True)
             else:
 
                 for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
@@ -2155,14 +2155,13 @@ class Headerlet(fits.HDUList):
                 raise ValueError(mess)
         numsip = countExtn(self, 'SIPWCS')
 
-        log.setLevel('WARNING')
         for idx in range(1, numsip + 1):
             siphdr = self[('SIPWCS', idx)].header
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
 
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
-            hwcs_header = hwcs.to_header(key=wkey)
+            hwcs_header = hwcs.to_header(key=wkey, relax=False)
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():
                 hwcs_header = altwcs.pc2cd(hwcs_header, key=wkey)
@@ -2177,7 +2176,6 @@ class Headerlet(fits.HDUList):
                 #                              self[0].header[kw]))
                 fhdr.append(fits.Card(kw + wkey, self[0].header[kw]))
 
-        log.setLevel(default_log_level)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2569,7 +2567,7 @@ class Headerlet(fits.HDUList):
         logger.debug("Removing alternate WCSs with keys %s from %s"
                      % (dkeys, dest.filename()))
         for k in dkeys:
-            altwcs.deleteWCS(dest, ext=ext, wcskey=k)
+            altwcs.deleteWCS(dest, ext=ext, wcskey=k, basic=False)
 
     def _remove_primary_WCS(self, ext):
         """

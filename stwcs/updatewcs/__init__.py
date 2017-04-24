@@ -119,7 +119,7 @@ def makecorr(fname, allowed_corr):
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
-    wcsutil.restoreWCS(f, nrefext, wcskey='O')
+    wcsutil.restoreWCS(f, nrefext, wcskey='O', basic=True)
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
@@ -134,14 +134,15 @@ def makecorr(fname, allowed_corr):
         if 'extname' in extn.header:
             extname = extn.header['extname'].lower()
             if extname == 'sci':
-                wcsutil.restoreWCS(f, ext=i, wcskey='O')
+                wcsutil.restoreWCS(f, ext=i, wcskey='O', basic=True)
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
-                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
+                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS",
+                                   reusekey=True, basic=True)
                 ext_wcs.readModel(update=True, header=hdr)
                 for c in allowed_corr:
                     if c != 'NPOLCorr' and c != 'DET2IMCorr':
@@ -213,9 +214,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    log.setLevel('WARNING')
-    hwcs = w.to_header()
-    log.setLevel(default_log_level)
+    hwcs = w.to_header(relax=False)
 
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
@@ -373,8 +372,10 @@ def cleanWCS(fname):
         pass
     fext = list(range(1, len(f)))
     for key in keys:
+        if key == 'O':
+            continue
         try:
-            wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
+            wcsutil.deleteWCS(fname, ext=fext, wcskey=key, basic=False)
         except KeyError:
             # Some extensions don't have the alternate (or any) WCS keywords
             continue

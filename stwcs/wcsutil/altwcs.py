@@ -16,7 +16,7 @@ altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 # file operations
 
 
-def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
+def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False, basic=False):
     """
     Copy the primary WCS to the header as an alternate WCS
     with wcskey and name WCSNAME. It loops over all extensions in 'ext'
@@ -73,15 +73,17 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     if wcsname.strip() == "":
         try:
-            wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
+            wcsname = readAltWCS(f, ext[0], wcskey=" ", basic=False)['WCSNAME']
         except KeyError:
             pass
+
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
         raise KeyError("Wcskey %s is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
         Alternatively choose another wcskey with altwcs.available_wcskeys()." % wcskey)
+
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
         if wcsname.strip() in wcsnames(f[wcsext].header).values():
@@ -89,28 +91,37 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
                 wname = wcsname
+
                 if wkey == ' ':
                     wkey = next_wcskey(f[wcsext].header)
+
                 elif wkey is None:
                     closefobj(fname, f)
                     raise KeyError("Could not get a valid wcskey from wcsname %s" % wcsname)
+
             else:
                 closefobj(fname, f)
                 raise KeyError("Wcsname %s is aready used. \
                 Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
                 Alternatively choose another wcskey with altwcs.available_wcskeys() or\
                 choose another wcsname." % wcsname)
+
         else:
             wkey = next_wcskey(f[wcsext].header)
+
             if wcsname.strip():
                 wname = wcsname
+
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
                 wnames = wcsnames(f[wcsext].header)
-                if 'O' in wnames: del wnames['O']  # we don't want OPUS/original
+                if 'O' in wnames:
+                    del wnames['O']  # we don't want OPUS/original
+
                 if len(wnames) > 0:
                     if ' ' in wnames:
                         wname = wnames[' ']
+
                     else:
                         akeys = string.ascii_uppercase
                         wname = "DEFAULT"
@@ -118,16 +129,20 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                             if key in wnames:
                                 wname = wnames
                                 break
+
                 else:
                     wname = "DEFAULT"
+
     else:
         wkey = wcskey
         wname = wcsname
-    log.setLevel('WARNING')
+
     for e in ext:
         hdr = _getheader(f, e)
+        if basic:
+            hdr = _filtered_SIP_header(hdr, key=' ')
         w = pywcs.WCS(hdr, f)
-        hwcs = w.to_header()
+        hwcs = w.to_header(relax=False)
 
         if hwcs is None:
             continue
@@ -150,11 +165,11 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
-    log.setLevel(default_log_level)
+
     closefobj(fname, f)
 
 
-def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
+def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" ", basic=False):
     """
     Copy an alternate WCS from one extension as a primary WCS of another extension
 
@@ -229,14 +244,17 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     else:
         for i in range(1, countext + 1):
             for toe in toext:
-                _restore(fobj, fromextnum=i, fromextnam=fromext, toextnum=i, toextnam=toe, ukey=wkey)
+                _restore(
+                    fobj, fromextnum=i, fromextnam=fromext, toextnum=i,
+                    toextnam=toe, ukey=wkey, basic=basic
+                )
 
     if fobj.filename() is not None:
         # fobj.writeto(name)
         closefobj(f, fobj)
 
 
-def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
+def restoreWCS(f, ext, wcskey=" ", wcsname=" ", basic=False):
     """
     Copy a WCS with key "WCSKEY" to the primary WCS
 
@@ -296,13 +314,13 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
         if wcskey not in wcskeys(fobj, ext=e):
             continue
         else:
-            _restore(fobj, wcskey, fromextnum=e, verbose=False)
+            _restore(fobj, wcskey, fromextnum=e, verbose=False, basic=basic)
 
     if fobj.filename() is not None:
         closefobj(f, fobj)
 
 
-def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
+def deleteWCS(fname, ext, wcskey=" ", wcsname=" ", basic=False):
     """
     Delete an alternate WCS defined with wcskey.
     If wcskey is " " try to get a key from WCSNAME.
@@ -356,7 +374,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        hwcs = readAltWCS(fobj, i, wcskey=wkey)
+        hwcs = readAltWCS(fobj, i, wcskey=wkey, basic=basic)
         if hwcs is None:
             continue
         for k in hwcs[::-1]:
@@ -401,8 +419,8 @@ def _buildExtlist(fobj, ext):
     return ext
 
 
-def _restore(fobj, ukey, fromextnum,
-             toextnum=None, fromextnam=None, toextnam=None, verbose=True):
+def _restore(fobj, ukey, fromextnum, toextnum=None, fromextnam=None,
+             toextnam=None, verbose=True, basic=False):
     """
     fobj: string of HDUList
     ukey: string 'A'-'Z'
@@ -432,10 +450,14 @@ def _restore(fobj, ukey, fromextnum,
     hdr = _getheader(fobj, fromextension)
     # keep a copy of the ctype because of the "-SIP" suffix.
     ctype = hdr['ctype*']
+
+    if basic:
+        hdr = _filtered_SIP_header(hdr=hdr, key=ukey)
+
     w = pywcs.WCS(hdr, fobj, key=ukey)
-    log.setLevel('WARNING')
-    hwcs = w.to_header()
-    log.setLevel(default_log_level)
+
+    hwcs = w.to_header(relax=False)
+
     if hwcs is None:
         return
 
@@ -455,9 +477,11 @@ def _restore(fobj, ukey, fromextnum,
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
+
     if 'ORIENTAT' in fobj[toextension].header:
         norient = np.rad2deg(np.arctan2(hwcs['CD1_2' + '%s' % ukey], hwcs['CD2_2' + '%s' % ukey]))
         fobj[toextension].header['ORIENTAT'] = norient
+
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
     for kw in ['TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']:
         if kw in fobj[toextension].header:
@@ -465,6 +489,32 @@ def _restore(fobj, ukey, fromextnum,
 
 
 # header operations
+
+def _filtered_SIP_header(hdr, key):
+    # remove SIP before reading a non-SIP WCS to surpress warning message,
+    # see https://github.com/spacetelescope/stwcs/issues/25 :
+    u_key = key.strip().upper()
+
+    ctype1_kwd = 'CTYPE1' + u_key
+    ctype1_has_sip = (ctype1_kwd in hdr and
+                      hdr[ctype1_kwd].strip().upper().endswith('-SIP'))
+
+    ctype2_kwd = 'CTYPE2' + u_key
+    ctype2_has_sip = (ctype2_kwd in hdr and
+                      hdr[ctype2_kwd].strip().upper().endswith('-SIP'))
+
+    if not (ctype1_has_sip and ctype2_has_sip):
+        hdrc = hdr.copy()
+
+        if 'A_ORDER' in hdrc:
+            del hdrc['A_ORDER']
+
+        if 'B_ORDER' in hdrc:
+            del hdrc['B_ORDER']
+
+        return hdrc
+
+    return hdr
 
 
 def _check_headerpars(fobj, ext):
@@ -487,7 +537,7 @@ def _getheader(fobj, ext):
     return hdr
 
 
-def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
+def readAltWCS(fobj, ext, wcskey=' ', verbose=False, basic=False):
     """
     Reads in alternate primary WCS from specified extension.
 
@@ -511,6 +561,10 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
         fobj = fits.open(fobj)
 
     hdr = _getheader(fobj, ext)
+
+    if basic:
+        hdr = _filtered_SIP_header(hdr=hdr, key=wcskey)
+
     try:
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
@@ -518,9 +572,8 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
-    log.setLevel('WARNING')
-    hwcs = nwcs.to_header()
-    log.setLevel(default_log_level)
+
+    hwcs = nwcs.to_header(relax=False)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
@@ -528,7 +581,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     return hwcs
 
 
-def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
+def convertAltWCS(fobj, ext, oldkey=" ", newkey=' ', verbose=False, basic=False):
     """
     Translates the alternate/primary WCS with one key to an alternate/primary WCS with
     another key.
@@ -552,9 +605,10 @@ def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
     hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
-    hdr = readAltWCS(fobj, ext, wcskey=oldkey)
+    hdr = readAltWCS(fobj, ext, wcskey=oldkey, verbose=verbose, basic=basic)
     if hdr is None:
         return None
+
     # Converting WCS to new key
     for card in hdr:
         if oldkey == ' ' or oldkey == '':

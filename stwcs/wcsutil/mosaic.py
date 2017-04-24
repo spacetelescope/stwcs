@@ -89,20 +89,24 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
 def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     hdr = fits.getheader(fname, ext=ext)
     all_keys = list(string.ascii_uppercase)
+
     if wkey.upper() not in all_keys:
         raise KeyError("wkey must be one character: A-Z")
+
     if wkey not in altwcs.available_wcskeys(hdr):
         if not clobber:
             raise ValueError("wkey {0} is already in use."
                              "Use clobber=True to overwrite it or"
                              "specify a different key.".format(wkey))
         else:
-            altwcs.deleteWCS(fname, ext=ext, wcskey='V')
+            altwcs.deleteWCS(fname, ext=ext, wcskey='V', basic=False)
+
     f = fits.open(fname, mode='update')
 
     hwcs = wcs2header(wcsobj)
     wcsnamekey = 'WCSNAME' + wkey
     f[ext].header[wcsnamekey] = wcsname
+
     for k in hwcs:
         f[ext].header[k[: 7] + wkey] = hwcs[k]
 
