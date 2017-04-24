@@ -112,7 +112,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                     if ' ' in wnames:
                         wname = wnames[' ']
                     else:
-                        akeys = string.uppercase
+                        akeys = string.ascii_uppercase
                         wname = "DEFAULT"
                         for key in akeys[-1::]:
                             if key in wnames:
