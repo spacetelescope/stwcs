@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import string
+import warnings
 import numpy as np
 from astropy import wcs as pywcs
 from astropy.io import fits
@@ -8,6 +9,13 @@ from stsci.tools import fileutil as fu
 
 from astropy import log
 default_log_level = log.getEffectiveLevel()
+
+warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs.wcs")
+
+
+__all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
+           "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames"]
+
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
@@ -432,10 +440,9 @@ def _restore(fobj, ukey, fromextnum,
     hdr = _getheader(fobj, fromextension)
     # keep a copy of the ctype because of the "-SIP" suffix.
     ctype = hdr['ctype*']
+
     w = pywcs.WCS(hdr, fobj, key=ukey)
-    log.setLevel('WARNING')
     hwcs = w.to_header()
-    log.setLevel(default_log_level)
     if hwcs is None:
         return
 
@@ -518,9 +525,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
-    log.setLevel('WARNING')
     hwcs = nwcs.to_header()
-    log.setLevel(default_log_level)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
