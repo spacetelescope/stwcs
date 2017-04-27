@@ -1,10 +1,13 @@
-1.3 (Unreleased)
-----------------
+1.3.1 (Unreleased)
+------------------
 
 - The ``clobber`` parameter in `Headerlet.tofile()`` was replaced with
   ``overwrite``. [#24]
+
 - Fixed a python compatibility bug. [#30]
--
+
+- Warning messages from astropy.wcs are filtered out when they are not relevant. [#31]
+
 
 1.2.5 (2016-12-20)
 ----------------
@@ -14,8 +17,6 @@
 
 - Fixed a bug in updating the D2IM correction in a science file when the
   a new distortion file was supplied through D2IMFILE keyword. [#22]
-
-- Warning messages from astropy.wcs are filtered out when they are not relevant. [#31]
 
 1.2.4 (2016-10-27)
 ------------------
