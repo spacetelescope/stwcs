@@ -14,9 +14,7 @@ env:
         - PIP_DEPENDENCIES=""
 
     matrix:
-        - PYTHON_VERSION=2.7 SETUP_CMD='install'
         - PYTHON_VERSION=3.5 SETUP_CMD='install'
-        - PYTHON_VERSION=2.7 SETUP_CMD='test'
         - PYTHON_VERSION=3.5 SETUP_CMD='test'
 
 install:
