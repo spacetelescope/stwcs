@@ -18,6 +18,7 @@ from . import utils, corrections
 from . import npol, det2im
 from stsci.tools import parseinput, fileutil
 from . import apply_corrections
+from . import astrometry_utils
 
 import time
 import logging
@@ -93,6 +94,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             print('No valid input, quitting ...\n')
             return
 
+    # Establish any available connection to  
+    #  an accessible astrometry web-service
+    astrometry = astrometry_utils.AstrometryDB()
+
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,
                                                  npolcorr=npolcorr, d2imcorr=d2imcorr)
@@ -101,9 +106,12 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             cleanWCS(f)
 
         makecorr(f, acorr)
-
+        
+        # Add any new astrometry solutions available from 
+        #  an accessible astrometry web-service
+        astrometry.updateObs(f)        
+        
     return files
-
 
 def makecorr(fname, allowed_corr):
     """
