@@ -1,4 +1,4 @@
-"""Interface for Astrometry database service
+"""Interface for Astrometry database service.
 
 This module contains interface functions for the AstrometryDB Restful service
 based on interfaces/code provided by B. McLean 11-Oct-2017.
@@ -157,10 +157,12 @@ class AstrometryDB(object):
 
         try:
             r = requests.get(serviceEndPoint, headers=self.headers)
+
             if r.status_code == requests.codes.ok:
                 logger.info('AstrometryDB service available...')
-                self.avaiable_code['code'] = r.status_code
+                self.available_code['code'] = r.status_code
                 self.available_code['text'] = 'Available'
+                self.available = True
             else:
                 logger.warning('WARNING : AstrometryDB service unavailable!')
                 logger.warning('          AstrometryDB status: {}'.format(
@@ -170,11 +172,12 @@ class AstrometryDB(object):
                 self.available_code['code'] = r.status_code
                 self.available_code['text'] = r.text
                 self.available = False
-        except Exception:
+        except Exception as err:
             logger.warning('WARNING : AstrometryDB service inaccessible!')
             logger.warning('    AstrometryDB status: {}'.format(r.status_code))
             self.available_code['code'] = r.status_code
             self.available = False
+            logger.warning('   Exception returned as: \n{}'.format(err))
 
 
 def apply_astrometric_updates(obsnames, **pars):
