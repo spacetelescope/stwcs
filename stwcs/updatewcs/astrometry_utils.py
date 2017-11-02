@@ -108,6 +108,8 @@ class AstrometryDB(object):
         observationID = fu.getRootname(obsroot)
 
         headerlets = self.getObservation(observationID)
+        if headerlets is None:
+            return
         #
         # apply to file...
         fileobj = pf.open(obsname, mode='update')
