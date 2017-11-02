@@ -200,7 +200,6 @@ class AstrometryDB(object):
             logger.warning('    AstrometryDB status: {}'.format(r.status_code))
             self.available_code['code'] = r.status_code
             self.available = False
-            logger.warning('   Exception returned as: \n{}'.format(err))
 
 
 def apply_astrometric_updates(obsnames, **pars):
