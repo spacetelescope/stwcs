@@ -109,6 +109,8 @@ class AstrometryDB(object):
 
         headerlets = self.getObservation(observationID)
         if headerlets is None:
+            logger.warning(" NO Updates performed for {}".format(
+                           observationID))
             return
         #
         # apply to file...
