@@ -143,7 +143,6 @@ class AstrometryDB(object):
             else:
                 logger.warning(" AstrometryDB service call failed")
                 logger.warning("    Status: {}".format(r.status_code))
-                logger.warning("    Error:  {}".format(r.text))
                 return None
         except Exception:
             logger.warning('AstrometryDB service call failed')
