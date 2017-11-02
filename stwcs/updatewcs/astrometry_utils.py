@@ -11,6 +11,13 @@ RAISE_PIPELINE_ERRORS - boolean to specify whether to raise exceptions
                         gracefully.  If not set, default behavior will be
                         to log errors and quit gracefully.
 
+ASTROMETRY_SERVICE_URL - URL pointing to user-specified web service that
+                        will provide updated astrometry solutions for
+                        observations being processed.  This will replace
+                        the built-in URL included in the base class.  This
+                        value will also be replaced by any URL provided by
+                        the user as an input parameter `url`.
+
 """
 import os
 import requests
@@ -24,6 +31,9 @@ from stwcs.wcsutil import headerlet
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
+
+astrometry_db_envvar = "ASTROMETRY_SERVICE_URL"
+pipeline_error_envvar = "RAISE_PIPELINE_ERRORS"
 
 
 class AstrometryDB(object):
@@ -42,7 +52,11 @@ class AstrometryDB(object):
         ==========
         url : str
             User-provided URL for astrometry dB web-service to replaced
-            default web-service
+            default web-service.  Any URL specified here will override
+            any URL specified as the environment variable
+            `ASTROMETRY_SERVICE_URL`.  This parameter value, if specified,
+            and the environmental variable will replace the built-in default
+            URL included in this class.
 
         raise_errors : bool, optional
              User can specify whether or not to turn off raising exceptions
@@ -51,6 +65,11 @@ class AstrometryDB(object):
              'RAISE_PIPELINE_ERRORS' if set.
 
         """
+        # check to see whether any URL has been specified as an
+        # environmental variable.
+        if astrometry_db_envvar in os.environ:
+            self.serviceLocation = os.environ[astrometry_db_envvar]
+
         if url is not None:
             self.serviceLocation = url
 
@@ -64,8 +83,8 @@ class AstrometryDB(object):
         #
         if raise_errors is not None:
             self.raise_errors = raise_errors
-        elif 'RAISE_PIPELINE_ERRORS' in os.environ:
-            self.raise_errors = os.environ['RAISE_PIPELINE_ERRORS']
+        elif pipeline_error_envvar in os.environ:
+            self.raise_errors = os.environ[pipeline_error_envvar]
         else:
             self.raise_errors = False
 
