@@ -184,6 +184,8 @@ class AstrometryDB(object):
                 self.available = True
             else:
                 logger.warning('WARNING : AstrometryDB service unavailable!')
+                logger.warning('          AstrometryDB called: {}'.format(
+                                self.serviceLocation))
                 logger.warning('          AstrometryDB status: {}'.format(
                                r.status_code))
                 logger.warning('          AstrometryDB text: {}'.format(
@@ -193,6 +195,8 @@ class AstrometryDB(object):
                 self.available = False
         except Exception as err:
             logger.warning('WARNING : AstrometryDB service inaccessible!')
+            logger.warning('    AstrometryDB called: {}'.format(
+                                self.serviceLocation))
             logger.warning('    AstrometryDB status: {}'.format(r.status_code))
             self.available_code['code'] = r.status_code
             self.available = False
