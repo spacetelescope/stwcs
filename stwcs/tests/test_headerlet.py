@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import shutil
 import os
+import io
 from astropy.io import fits
 from .. import updatewcs
 from ..wcsutil import headerlet, wcsdiff
@@ -29,10 +30,15 @@ class TestCreateHeaderlet(object):
         comp_file = get_filepath('comp.fits', current_dir)
         self.headerlet_name = get_filepath('acs_hlet.fits', current_dir)
 
+        bytes_file_orig = get_filepath('ia1d23dmq_test_hlet.txt')
+        self.bytes_file = get_filepath('ia1d23dmq_test_hlet.txt', current_dir)
+        self.bytes_hlet_file = get_filepath('ia1d23dmq_flt_hlet.fits')
+
         try:
             os.remove(acs_file)
             os.remove('comp.fits')
             os.remove(simple_file)
+            os.remove(self.bytes_file)
         except OSError:
             pass
         idctab = get_filepath('postsm4_idc.fits')
@@ -50,6 +56,8 @@ class TestCreateHeaderlet(object):
         shutil.copyfile(acs_file, comp_file)
         self.comp_file = comp_file
         self.simple_file = simple_file
+
+        shutil.copyfile(bytes_file_orig, self.bytes_file)
 
     def testAllExt(self):
         """
@@ -123,6 +131,22 @@ class TestCreateHeaderlet(object):
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [4], [1], verbose=True)[0])
 
+    def testHletFromString(self):
+        """Test creating a headerlet from a BytesIO object."""
+        # read in test BytesIO object from test file
+        hlet_comp = headerlet.Headerlet()
+        hlet_comp = hlet_comp.fromfile(open(self.bytes_hlet_file, 'rb'))
+
+        with open(self.bytes_file, 'rb') as f:
+            hlet_bytes = io.BytesIO(f.read()).getvalue()
+
+        hlet = headerlet.Headerlet(file=hlet_bytes)
+        hlet = hlet.fromstring(hlet_bytes)  # fixed with PR#39
+
+        assert(hlet_comp[0].header == hlet[0].header)
+        assert(hlet_comp[0].data == hlet[0].data)
+        assert(hlet_comp[1].header == hlet[1].header)
+        assert(hlet_comp[1].data == hlet[1].data)
 
 class TestApplyHeaderlet:
 
