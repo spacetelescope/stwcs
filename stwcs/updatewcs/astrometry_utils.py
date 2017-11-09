@@ -26,7 +26,6 @@ from lxml import etree
 
 from astropy.io import fits as pf
 
-from stsci.tools import fileutil as fu
 from stwcs.wcsutil import headerlet
 
 import logging
@@ -72,9 +71,6 @@ class AstrometryDB(object):
 
         if url is not None:
             self.serviceLocation = url
-
-        self.isAvailable()  # determine whether service is available
-
         #
         # Implement control over behavior for error conditions
         # User provided input will always take precedent
@@ -87,6 +83,8 @@ class AstrometryDB(object):
             self.raise_errors = os.environ[pipeline_error_envvar]
         else:
             self.raise_errors = False
+
+        self.isAvailable()  # determine whether service is available
 
     def updateObs(self, obsname):
         """Update observation with any available solutions.
@@ -105,7 +103,7 @@ class AstrometryDB(object):
         obspath, obsroot = os.path.split(obsname)
         # use `obspath` for location of output files,
         #    if anything gets written out
-        observationID = fu.getRootname(obsroot)
+        observationID = obsroot.split('_')[:1][0]
 
         headerlets = self.getObservation(observationID)
         if headerlets is None:
@@ -115,8 +113,13 @@ class AstrometryDB(object):
         #
         # apply to file...
         fileobj = pf.open(obsname, mode='update')
-        for h in headerlets.keys():
-            h.apply_as_alternate(fileobj, wcsname=h, attach=True)
+        for h in headerlets:
+            # Add solution as an alternate WCS
+            try:
+                headerlets[h].apply_as_alternate(fileobj, wcsname=h,
+                                                 attach=True)
+            except ValueError:
+                pass
 
         fileobj.close()
 
@@ -147,11 +150,17 @@ class AstrometryDB(object):
             else:
                 logger.warning(" AstrometryDB service call failed")
                 logger.warning("    Status: {}".format(r.status_code))
-                return None
+                if self.raise_errors:
+                    raise ConnectionError
+                else:
+                    return None
         except Exception:
             logger.warning('AstrometryDB service call failed')
             logger.warning("    Status: {}".format(r.status_code))
-            return None
+            if self.raise_errors:
+                raise ConnectionError
+            else:
+                return None
 
         # Now, interpret return value for observation into separate headerlets
         # to be appended to observation
@@ -168,9 +177,10 @@ class AstrometryDB(object):
                 'observation/read/' + observationID + '?wcsname='+solutionID
             r_solution = requests.get(serviceEndPoint, headers=headers)
             if r_solution.status_code == requests.codes.ok:
-                headerlets[solutionID] = headerlet.Headerlet(
-                    BytesIO(r_solution.content).getvalue())
-
+                hlet_bytes = BytesIO(r_solution.content).getvalue()
+                hlet = headerlet.Headerlet(file=hlet_bytes)
+                hlet = hlet.fromstring(hlet_bytes)
+                headerlets[solutionID] = hlet
         return headerlets
 
     def isAvailable(self):
@@ -196,6 +206,9 @@ class AstrometryDB(object):
                 self.available_code['code'] = r.status_code
                 self.available_code['text'] = r.text
                 self.available = False
+                if self.raise_errors:
+                    raise ConnectionRefusedError
+
         except Exception as err:
             logger.warning('WARNING : AstrometryDB service inaccessible!')
             logger.warning('    AstrometryDB called: {}'.format(
@@ -203,6 +216,8 @@ class AstrometryDB(object):
             logger.warning('    AstrometryDB status: {}'.format(r.status_code))
             self.available_code['code'] = r.status_code
             self.available = False
+            if self.raise_errors:
+                raise ValueError from err
 
 
 def apply_astrometric_updates(obsnames, **pars):
