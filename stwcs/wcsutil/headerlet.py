@@ -1860,6 +1860,8 @@ class Headerlet(fits.HDUList):
     @classmethod
     def fromstring(cls, data, **kwargs):
         hlet = super(cls, cls).fromstring(data, **kwargs)
+        hlet.init_attrs()
+        logmode = kwargs.get('logmode', 'w')
         hlet.logging = logging
         init_logging('class Headerlet', level=logging, mode=logmode)
         return hlet
