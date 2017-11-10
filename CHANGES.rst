@@ -1,5 +1,11 @@
-1.3.1 (Unreleased)
-------------------
+1.4.0(Unreleased)
+-----------------
+
+- Fix a bug in creating headerlets from a I/O stream. [#39]
+
+
+1.3.2 (20017-07-05)
+-------------------
 
 - The ``clobber`` parameter in `Headerlet.tofile()`` was replaced with
   ``overwrite``. [#24]
