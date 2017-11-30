@@ -80,7 +80,7 @@ class AstrometryDB(object):
         if raise_errors is not None:
             self.raise_errors = raise_errors
         elif pipeline_error_envvar in os.environ:
-            self.raise_errors = os.environ[pipeline_error_envvar]
+            self.raise_errors = True
         else:
             self.raise_errors = False
 
@@ -92,7 +92,7 @@ class AstrometryDB(object):
         Parameters
         ==========
         obsname : str
-           Filename (without path?) for observation to be updated
+           Filename for observation to be updated
 
         """
         if not self.available:
@@ -107,6 +107,7 @@ class AstrometryDB(object):
 
         headerlets = self.getObservation(observationID)
         if headerlets is None:
+            logger.warning(" No new solution found in AstrometryDB.")
             logger.warning(" NO Updates performed for {}".format(
                            observationID))
             return
@@ -116,8 +117,7 @@ class AstrometryDB(object):
         for h in headerlets:
             # Add solution as an alternate WCS
             try:
-                headerlets[h].apply_as_alternate(fileobj, wcsname=h,
-                                                 attach=True)
+                headerlets[h].attach_to_file(fileobj)
             except ValueError:
                 pass
 
@@ -131,6 +131,12 @@ class AstrometryDB(object):
         observationID : str
             base rootname for observation to be updated (eg., `iab001a1q`)
 
+        Return
+        ======
+        headerlets : dict
+            Dictionary containing all solutions found for exposure in the
+            form of headerlets labelled by the name given to the solution in
+            the database. 
         """
         if not self.available:
             logger.warning("AstrometryDB not available.")
@@ -179,7 +185,7 @@ class AstrometryDB(object):
             if r_solution.status_code == requests.codes.ok:
                 hlet_bytes = BytesIO(r_solution.content).getvalue()
                 hlet = headerlet.Headerlet(file=hlet_bytes)
-                hlet = hlet.fromstring(hlet_bytes)
+                hlet.init_attrs()
                 headerlets[solutionID] = hlet
         return headerlets
 
@@ -244,7 +250,7 @@ def apply_astrometric_updates(obsnames, **pars):
         otherwise, it will default to 'False'.
 
     """
-    if isinstance(obsnames, type([])):
+    if not isinstance(obsnames, list):
         obsnames = [obsnames]
 
     url = pars.get('url', None)
