@@ -95,10 +95,6 @@ class AstrometryDB(object):
            Filename for observation to be updated
 
         """
-        if not self.available:
-            logger.warning("AstrometryDB not available.")
-            logger.warning(" NO Updates performed for {}".format(obsname))
-            return
 
         obspath, obsroot = os.path.split(obsname)
         # use `obspath` for location of output files,
@@ -106,11 +102,14 @@ class AstrometryDB(object):
         observationID = obsroot.split('_')[:1][0]
 
         headerlets = self.getObservation(observationID)
-        if headerlets is None:
+        if headerlets is None or len(headerlets) == 0:
             logger.warning(" No new solution found in AstrometryDB.")
             logger.warning(" NO Updates performed for {}".format(
                            observationID))
-            return
+            if self.raise_errors:
+                raise ValueError("No new solution found in AstrometryDB.")
+            else:
+                return
         #
         # apply to file...
         fileobj = pf.open(obsname, mode='update')
@@ -140,9 +139,11 @@ class AstrometryDB(object):
         """
         if not self.available:
             logger.warning("AstrometryDB not available.")
-            logger.warning(" NO Updates performed for {}".format(
-                           observationID))
-            return None
+            logger.warning(" NO Updates performed for {}".format(obsname))
+            if self.raise_errors:
+                raise ConnectionError("AstrometryDB not accessible.")
+            else:
+                return None
 
         serviceEndPoint = self.serviceLocation + \
             'observation/read/' + observationID
@@ -157,14 +158,17 @@ class AstrometryDB(object):
                 logger.warning(" AstrometryDB service call failed")
                 logger.warning("    Status: {}".format(r.status_code))
                 if self.raise_errors:
-                    raise ConnectionError
+                    e = "AstrometryDB service call failed"
+                    raise ConnectionError(e)
                 else:
                     return None
         except Exception:
             logger.warning('AstrometryDB service call failed')
             logger.warning("    Status: {}".format(r.status_code))
             if self.raise_errors:
-                raise ConnectionError
+                l = "AstrometryDB service call failed with status={}".\
+                    format(r.status_code)
+                raise ConnectionError(l)
             else:
                 return None
 
@@ -186,7 +190,8 @@ class AstrometryDB(object):
                 hlet_bytes = BytesIO(r_solution.content).getvalue()
                 hlet = headerlet.Headerlet(file=hlet_bytes)
                 hlet.init_attrs()
-                headerlets[solutionID] = hlet
+                if hlet[0].header['hdrname'] != 'OPUS':
+                    headerlets[solutionID] = hlet
         return headerlets
 
     def isAvailable(self):
@@ -213,7 +218,8 @@ class AstrometryDB(object):
                 self.available_code['text'] = r.text
                 self.available = False
                 if self.raise_errors:
-                    raise ConnectionRefusedError
+                    e = "AstrometryDB service unavailable!"
+                    raise ConnectionRefusedErrore(e)
 
         except Exception as err:
             logger.warning('WARNING : AstrometryDB service inaccessible!')
@@ -223,7 +229,7 @@ class AstrometryDB(object):
             self.available_code['code'] = r.status_code
             self.available = False
             if self.raise_errors:
-                raise ValueError from err
+                raise ConnectionError from err
 
 
 def apply_astrometric_updates(obsnames, **pars):
