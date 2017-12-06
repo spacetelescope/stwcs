@@ -171,7 +171,7 @@ class AstrometryDB(object):
                 logger.warning("    {}".format(r.reason))
                 if self.raise_errors:
                     e = "AstrometryDB service could not be connected!"
-                    raise ConnectionError(e)
+                    raise requests.RequestException(e)
                 else:
                     return None
         except Exception:
@@ -182,7 +182,8 @@ class AstrometryDB(object):
             if self.raise_errors:
                 l = 'AstrometryDB service call failed with reason:\n\t"{}"'.\
                     format(r.reason)
-                raise ConnectionError(l)
+                l += '\n\tStatus code = {}'.format(r.status_code)
+                raise requests.RequestException(l)
             else:
                 return None
 
