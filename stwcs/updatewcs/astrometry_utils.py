@@ -113,7 +113,18 @@ class AstrometryDB(object):
         #
         # apply to file...
         fileobj = pf.open(obsname, mode='update')
+
+        # take inventory of what hdrlets are already appended to this file
+        hdrlet_hdus = headerlet.find_headerlet_HDUs(fileobj, strict=False)
+        hdrnames = []
+        for h in hdrlet_hdus:
+            hdrnames.append(fileobj[h].header['hdrname'])
+
+        # Now, attach unique hdrlets to file...
         for h in headerlets:
+            newhdrname = headerlets[h][0].header['hdrname']
+            if newhdrname in hdrnames:
+                continue  # do not add duplicate hdrlets
             # Add solution as an alternate WCS
             try:
                 headerlets[h].attach_to_file(fileobj)
@@ -135,11 +146,11 @@ class AstrometryDB(object):
         headerlets : dict
             Dictionary containing all solutions found for exposure in the
             form of headerlets labelled by the name given to the solution in
-            the database. 
+            the database.
         """
         if not self.available:
             logger.warning("AstrometryDB not available.")
-            logger.warning(" NO Updates performed for {}".format(obsname))
+            logger.warning("NO Updates performed for {}".format(observationID))
             if self.raise_errors:
                 raise ConnectionError("AstrometryDB not accessible.")
             else:
@@ -157,17 +168,20 @@ class AstrometryDB(object):
             else:
                 logger.warning(" AstrometryDB service call failed")
                 logger.warning("    Status: {}".format(r.status_code))
+                logger.warning("    {}".format(r.reason))
                 if self.raise_errors:
-                    e = "AstrometryDB service call failed"
+                    e = "AstrometryDB service could not be connected!"
                     raise ConnectionError(e)
                 else:
                     return None
         except Exception:
             logger.warning('AstrometryDB service call failed')
             logger.warning("    Status: {}".format(r.status_code))
+            logger.warning("    {}".format(r.reason))
+
             if self.raise_errors:
-                l = "AstrometryDB service call failed with status={}".\
-                    format(r.status_code)
+                l = 'AstrometryDB service call failed with reason:\n\t"{}"'.\
+                    format(r.reason)
                 raise ConnectionError(l)
             else:
                 return None
@@ -190,8 +204,10 @@ class AstrometryDB(object):
                 hlet_bytes = BytesIO(r_solution.content).getvalue()
                 hlet = headerlet.Headerlet(file=hlet_bytes)
                 hlet.init_attrs()
-                if hlet[0].header['hdrname'] != 'OPUS':
-                    headerlets[solutionID] = hlet
+                if hlet[0].header['hdrname'] == 'OPUS':
+                    hdrdate = hlet[0].header['date'].split('T')[0]
+                    hlet[0].header['hdrname'] += hdrdate
+                headerlets[solutionID] = hlet
         return headerlets
 
     def isAvailable(self):
@@ -219,14 +235,16 @@ class AstrometryDB(object):
                 self.available = False
                 if self.raise_errors:
                     e = "AstrometryDB service unavailable!"
-                    raise ConnectionRefusedErrore(e)
+                    raise ConnectionRefusedError(e)
 
         except Exception as err:
             logger.warning('WARNING : AstrometryDB service inaccessible!')
             logger.warning('    AstrometryDB called: {}'.format(
                                 self.serviceLocation))
-            logger.warning('    AstrometryDB status: {}'.format(r.status_code))
+            logger.warning('    Status: {}'.format(r.status))
+            logger.warning('    Reason:\n\t"{}"'.format(r.reason))
             self.available_code['code'] = r.status_code
+            self.available_code['text'] = r.reason
             self.available = False
             if self.raise_errors:
                 raise ConnectionError from err
