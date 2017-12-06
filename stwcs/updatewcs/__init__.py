@@ -31,7 +31,7 @@ atexit.register(logging.shutdown)
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, verbose=False):
+              checkfiles=True, verbose=False, use_db=True):
     """
 
     Updates HST science files with the best available calibration information.
@@ -52,6 +52,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     `stsci.tools`
     `astropy.io.fits`
     `astropy.wcs`
+    `requests` (optional)
+    `lxml`     (optional)
 
     Parameters
     ----------
@@ -69,6 +71,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
+    use_db: boolean
+              If True, attempt to add astrometric solutions from the
+              MAST astrometry database.
+              Default value is True.
     """
     if not verbose:
         logger.setLevel(100)
@@ -94,9 +100,10 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             print('No valid input, quitting ...\n')
             return
 
-    # Establish any available connection to  
-    #  an accessible astrometry web-service
-    astrometry = astrometry_utils.AstrometryDB()
+    if use_db:
+        # Establish any available connection to
+        #  an accessible astrometry web-service
+        astrometry = astrometry_utils.AstrometryDB()
 
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,
@@ -106,11 +113,12 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             cleanWCS(f)
 
         makecorr(f, acorr)
-        
-        # Add any new astrometry solutions available from 
-        #  an accessible astrometry web-service
-        astrometry.updateObs(f)        
-        
+
+        if use_db:
+            # Add any new astrometry solutions available from
+            #  an accessible astrometry web-service
+            astrometry.updateObs(f)
+
     return files
 
 def makecorr(fname, allowed_corr):

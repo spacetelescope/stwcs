@@ -116,12 +116,10 @@ class AstrometryDB(object):
 
         # take inventory of what hdrlets are already appended to this file
         hdrnames = []
-        try:
+        if 'hdrlet' in fileobj:
             hdrlet_hdus = headerlet.find_headerlet_HDUs(fileobj, strict=False)
             for h in hdrlet_hdus:
                 hdrnames.append(fileobj[h].header['hdrname'])
-        except ValueError:
-            pass
 
         # Now, attach unique hdrlets to file...
         for h in headerlets:
