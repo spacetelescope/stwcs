@@ -77,8 +77,7 @@ class TestAstrometryDB(object):
         new_obsname = self.obsname.replace('j94', 'a94')
         shutil.copyfile(self.acs_file, new_obsname)
         adb = astrometry_utils.AstrometryDB()
-        with pytest.raises(requests.RequestException):
-            adb.updateObs(new_obsname)
+        adb.updateObs(new_obsname)
 
         os.remove(new_obsname)  # remove intermediate test file
         del adb

@@ -52,13 +52,14 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     `stsci.tools`
     `astropy.io.fits`
     `astropy.wcs`
-    `requests` (optional)
-    `lxml`     (optional)
+    `requests`
+    `lxml`
 
     Parameters
     ----------
-    input: a python list of file names or a string (wild card characters allowed)
-             input files may be in fits, geis or waiver fits format
+    input: a python list of file names or a string (wild card
+             characters allowed) input files may be in fits, geis or
+             waiver fits format
     vacorr: boolean
               If True, vecocity aberration correction will be applied
     tddcorr: boolean
@@ -79,7 +80,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     if not verbose:
         logger.setLevel(100)
     else:
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        formatter = logging.Formatter(fmt)
         log_filename = 'stwcs.log'
         fh = logging.FileHandler(log_filename, mode='w')
         fh.setLevel(logging.DEBUG)
