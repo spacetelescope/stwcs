@@ -66,4 +66,5 @@ where
    updatewcs_ui
    wcs_corrections
    utils
+   astrometry_utils
 
