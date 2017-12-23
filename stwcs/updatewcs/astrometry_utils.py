@@ -129,12 +129,12 @@ class AstrometryDB(object):
         # Environment variable will also be recognized if no user-variable set
         # otherwise, it will turn off raising Exceptions
         #
+        self.raise_errors = False
         if raise_errors is not None:
             self.raise_errors = raise_errors
-        elif pipeline_error_envvar in os.environ:
+            logger.info("Setting `raise_errors` to {}".format(raise_errors))
+        if pipeline_error_envvar in os.environ:
             self.raise_errors = True
-        else:
-            self.raise_errors = False
 
         self.isAvailable()  # determine whether service is available
 
