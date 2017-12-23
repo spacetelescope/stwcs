@@ -84,23 +84,19 @@ class AstrometryDB(object):
             Default: False
 
         """
-        self.perform_step = True
-        if not perform_step:
-            self.perform_step = False
-            return
-        else:
-            # Check to see whether an environment variable has been set
-            if astrometry_control_envvar in os.environ:
-                val = os.environ[astrometry_control_envvar].lower()
-                if val == 'off':
-                    self.perform_step = False
-                elif val == 'on':
-                    self.perform_step = True
-                else:
-                    l = "Environment variable {} not set to valid value".\
-                        format(astrometry_control_envvar)
-                    l += "\t Valid values: on or off (case-insensitive)"
-                    raise ValueError(l)
+        self.perform_step = perform_step
+        # Check to see whether an environment variable has been set
+        if astrometry_control_envvar in os.environ:
+            val = os.environ[astrometry_control_envvar].lower()
+            if val == 'off':
+                self.perform_step = False
+            elif val == 'on':
+                self.perform_step = True
+            else:
+                l = "Environment variable {} not set to valid value".\
+                    format(astrometry_control_envvar)
+                l += "\t Valid values: on or off (case-insensitive)"
+                raise ValueError(l)
         if not self.perform_step:
             logger.info("Astrometry update step has been turned off")
             logger.info("\tNo updates will be performed!")
