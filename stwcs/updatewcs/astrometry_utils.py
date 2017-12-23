@@ -97,6 +97,8 @@ class AstrometryDB(object):
                     format(astrometry_control_envvar)
                 l += "\t Valid values: on or off (case-insensitive)"
                 raise ValueError(l)
+            logger.info("Astrometry step operation set to {}".
+                        format(self.perform_step))
         if not self.perform_step:
             logger.info("Astrometry update step has been turned off")
             logger.info("\tNo updates will be performed!")
