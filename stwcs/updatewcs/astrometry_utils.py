@@ -392,10 +392,6 @@ class AstrometryDB(object):
             logger.warning('WARNING : AstrometryDB service inaccessible!')
             logger.warning('    AstrometryDB called: {}'.format(
                                 self.serviceLocation))
-            logger.warning('    Status: {}'.format(r.status))
-            logger.warning('    Reason:\n\t"{}"'.format(r.reason))
-            self.available_code['code'] = r.status_code
-            self.available_code['text'] = r.reason
             self.available = False
             if self.raise_errors:
                 raise ConnectionError from err
