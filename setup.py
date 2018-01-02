@@ -24,7 +24,7 @@ else:
 
 version = relic.release.get_info()
 relic.release.write_template(version, 'stwcs')
- 
+
 try:
     from distutils.config import ConfigParser
 except ImportError:
@@ -33,7 +33,7 @@ except ImportError:
 conf = ConfigParser()
 conf.read(['setup.cfg'])
 
-# Get some config values                                                                   
+# Get some config values
 metadata = dict(conf.items('metadata'))
 PACKAGENAME = metadata.get('package_name', 'stwcs')
 DESCRIPTION = metadata.get('description', '')
@@ -47,7 +47,7 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        # import here, cause outside the eggs aren't loaded                                
+        # import here, cause outside the eggs aren't loaded
         import pytest
         errno = pytest.main(self.test_args)
         sys.exit(errno)
@@ -71,6 +71,8 @@ setup(
         'astropy',
         'numpy',
         'stsci.tools',
+        'requests',
+        'lxml'
     ],
     packages = find_packages(),
     tests_require = ['pytest'],

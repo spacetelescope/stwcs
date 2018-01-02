@@ -17,6 +17,7 @@ import pytest
 from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
+os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
 
 def get_filepath(filename, directory=data_path):
     return os.path.join(directory, filename)
