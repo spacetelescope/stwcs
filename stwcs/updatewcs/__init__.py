@@ -42,13 +42,13 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     Paper IV and the SIP convention) as well as new extensions are added to the science files.
 
 
-    Example
-    -------
-    >>>from stwcs import updatewcs
-    >>>updatewcs.updatewcs(filename)
+    Examples
+    --------
+    >>> from stwcs import updatewcs
+    >>> updatewcs.updatewcs(filename)
 
     Dependencies
-    ------------
+
     `stsci.tools`
     `astropy.io.fits`
     `astropy.wcs`

@@ -3,10 +3,10 @@
 TSR 2012-02: Definition of a Headerlet and Its Role in Updating WCS Information
 ===============================================================================
 
-.. abstract::
-   :author: Warren Hack, Nadezhda Dencheva
-   :date: 22 Oct 2012
-   
+   Abstract::
+   Authors: Warren Hack, Nadezhda Dencheva
+   Date: 22 Oct 2012
+
    A headerlet is a self-consistent representation of a single WCS solution for a single
    exposure complete with all distortion information. FITS is the data
    storage format currently supported. It has no observational data
@@ -20,17 +20,10 @@ TSR 2012-02: Definition of a Headerlet and Its Role in Updating WCS Information
    This report describes the format and contents of a headerlet
    along with the software implementation and methods for creating headerlets and using them
    to update the WCS of a science observation.
-   
-Contents: 
+
+Contents:
 
 .. toctree::
    :maxdepth: 2
-   
-   hdrlet_tsr 
-   
 
-Indices and tables
-==================
-
-* :ref:`search`
-
+   hdrlet_tsr
