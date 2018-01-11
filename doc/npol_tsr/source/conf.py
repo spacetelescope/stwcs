@@ -10,7 +10,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-from stsci.sphinxext.conf import *
+#from stsci.sphinxext.conf import *
 import sys, os
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -39,7 +39,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SSB'
-copyright = u'2012, Nadia Dencheva, Warren Hack'
+copyright = u'2012, STScI'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
