@@ -1,21 +1,49 @@
-language: c
+language: python
 
 os:
     - linux
-    - osx
+    #- osx
 
 sudo: false
 
+python:
+    - 3.5
+    - 3.6
+
 env:
     global:
+        # The following versions are the 'default' for tests, unless
+        # overidden underneath. They are defined here in order to save having
+        # to repeat them for all configurations.
+        - NUMPY_VERSION=stable
+        - ASTROPY_VERSION=development
         - MAIN_CMD='python setup.py'
         - CONDA_CHANNELS='http://ssb.stsci.edu/conda-dev'
-        - CONDA_DEPENDENCIES='pytest drizzlepac sphinx=1.3.5'
-        - PIP_DEPENDENCIES=""
+        - CONDA_DEPENDENCIES='pytest drizzlepac'
 
     matrix:
-        - PYTHON_VERSION=3.5 SETUP_CMD='install'
-        - PYTHON_VERSION=3.5 SETUP_CMD='test'
+        - SETUP_CMD='egg_info'
+        - SETUP_CMD='test'
+
+matrix:
+
+    # Don't wait for allowed failures
+    fast_finish: true
+
+    include:
+        # Do a PEP8 test with pycodestyle
+        - python: 3.5
+          env: MAIN_CMD='pycodestyle stwcs --count' SETUP_CMD=''
+
+        # build sphinx documentation with warnings
+        - python: 3.6
+          env: SETUP_CMD='build_sphinx'
+               PIP_DEPENDENCIES='sphinx-automodapi sphinx_rtd_theme'
+
+    allow_failures:
+        # Do a PEP8 test with pycodestyle
+        - python: 3.5
+          env: MAIN_CMD='pycodestyle stwcs --count' SETUP_CMD=''
 
 install:
     - git clone git://github.com/astropy/ci-helpers.git

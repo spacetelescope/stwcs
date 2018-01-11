@@ -1,13 +1,13 @@
 .. _updatewcs:
 
 **************************************
-UPDATEWCS
+updatewcs
 **************************************
 UPDATEWCS applies corrections to the WCS of an HST science file
-and adds reference information as header keywords and fits 
-file extensions so that a science file contains all necessary 
+and adds reference information as header keywords and fits
+file extensions so that a science file contains all necessary
 information to represent astrometrically precise positions.
-The order in which the corrections are applied is important 
+The order in which the corrections are applied is important
 and is as follows:
 
 - Detector to Image Correction
@@ -22,10 +22,10 @@ and is as follows:
 
 - Apply non-polynomial distortion
 
-Mathematically the entire transformation from detector to sky 
+Mathematically the entire transformation from detector to sky
 coordinates is described by:
 
-.. math:: (x',y') &= DET2IM(x,y) 
+.. math:: (x',y') &= DET2IM(x,y)
 
 .. math:: \binom{u'}{v'} &= \binom{x' - CRPIX1}{y' - CRPIX2}
 
@@ -36,16 +36,16 @@ coordinates is described by:
       \left( \begin{array}{ll}
       CRVAL1 \\
       CRVAL2\\
-      \end{array} \right) + 
+      \end{array} \right) +
       \left( \begin{array}{cc}
-      CD11 & CD12 \\ 
+      CD11 & CD12 \\
       CD21 & CD22\\
-      \end{array} \right) 
-      \left( \begin{array}{ll}
-      u' + f(u',v') + LT_x(x',y') \\ 
-      v' + g(u',v') + LT_y(x',y') \\ 
       \end{array} \right)
-    
+      \left( \begin{array}{ll}
+      u' + f(u',v') + LT_x(x',y') \\
+      v' + g(u',v') + LT_y(x',y') \\
+      \end{array} \right)
+
 where f(u',v') and g(u',v') represent the polynomial distortion correction specified as
 
 .. math:: f(u',v') = \sum_{p+q=2}^{AORDER} A_{pq} {u'}^{p} {v'}^{q}
@@ -62,7 +62,7 @@ where
 
 .. toctree::
    :maxdepth: 2
-   
+
    updatewcs_ui
    wcs_corrections
    utils
