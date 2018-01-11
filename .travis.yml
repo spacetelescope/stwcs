@@ -19,7 +19,7 @@ env:
         - ASTROPY_VERSION=development
         - MAIN_CMD='python setup.py'
         - CONDA_CHANNELS='http://ssb.stsci.edu/conda-dev'
-        - CONDA_DEPENDENCIES='pytest stsci.tools requests lxml'
+        - CONDA_DEPENDENCIES='pytest drizzlepac'
 
     matrix:
         - SETUP_CMD='egg_info'
