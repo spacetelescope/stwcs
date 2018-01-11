@@ -19,7 +19,7 @@ env:
         - ASTROPY_VERSION=development
         - MAIN_CMD='python setup.py'
         - CONDA_CHANNELS='http://ssb.stsci.edu/conda-dev'
-        - CONDA_DEPENDENCIES='pytest drizzlepac'
+        - CONDA_DEPENDENCIES='pytest stsci-tools requests lxml'
 
     matrix:
         - SETUP_CMD='egg_info'
@@ -37,7 +37,7 @@ matrix:
 
         # build sphinx documentation with warnings
         - python: 3.6
-          env: SETUP_CMD='build_sphinx -w'
+          env: SETUP_CMD='build_sphinx'
                PIP_DEPENDENCIES='sphinx-automodapi'
 
     allow_failures:
