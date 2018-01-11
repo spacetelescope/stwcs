@@ -38,7 +38,7 @@ matrix:
         # build sphinx documentation with warnings
         - python: 3.6
           env: SETUP_CMD='build_sphinx'
-               PIP_DEPENDENCIES='sphinx-automodapi'
+               PIP_DEPENDENCIES='sphinx-automodapi sphinx_rtd_theme'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
