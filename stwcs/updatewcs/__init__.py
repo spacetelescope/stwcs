@@ -18,6 +18,7 @@ from . import utils, corrections
 from . import npol, det2im
 from stsci.tools import parseinput, fileutil
 from . import apply_corrections
+from . import astrometry_utils
 
 import time
 import logging
@@ -30,7 +31,7 @@ atexit.register(logging.shutdown)
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, verbose=False):
+              checkfiles=True, verbose=False, use_db=True):
     """
 
     Updates HST science files with the best available calibration information.
@@ -41,21 +42,24 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     Paper IV and the SIP convention) as well as new extensions are added to the science files.
 
 
-    Example
-    -------
-    >>>from stwcs import updatewcs
-    >>>updatewcs.updatewcs(filename)
+    Examples
+    --------
+    >>> from stwcs import updatewcs
+    >>> updatewcs.updatewcs(filename)
 
     Dependencies
-    ------------
+
     `stsci.tools`
     `astropy.io.fits`
     `astropy.wcs`
+    `requests`
+    `lxml`
 
     Parameters
     ----------
-    input: a python list of file names or a string (wild card characters allowed)
-             input files may be in fits, geis or waiver fits format
+    input: a python list of file names or a string (wild card
+             characters allowed) input files may be in fits, geis or
+             waiver fits format
     vacorr: boolean
               If True, vecocity aberration correction will be applied
     tddcorr: boolean
@@ -68,11 +72,16 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
+    use_db: boolean
+              If True, attempt to add astrometric solutions from the
+              MAST astrometry database.
+              Default value is True.
     """
     if not verbose:
         logger.setLevel(100)
     else:
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        formatter = logging.Formatter(fmt)
         log_filename = 'stwcs.log'
         fh = logging.FileHandler(log_filename, mode='w')
         fh.setLevel(logging.DEBUG)
@@ -93,6 +102,11 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             print('No valid input, quitting ...\n')
             return
 
+    if use_db:
+        # Establish any available connection to
+        #  an accessible astrometry web-service
+        astrometry = astrometry_utils.AstrometryDB()
+
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,
                                                  npolcorr=npolcorr, d2imcorr=d2imcorr)
@@ -102,8 +116,12 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
         makecorr(f, acorr)
 
-    return files
+        if use_db:
+            # Add any new astrometry solutions available from
+            #  an accessible astrometry web-service
+            astrometry.updateObs(f)
 
+    return files
 
 def makecorr(fname, allowed_corr):
     """

@@ -1,5 +1,14 @@
-1.3.1 (Unreleased)
-------------------
+1.4.0(2018-01-22)
+-----------------
+
+- Fix a bug in creating headerlets from a I/O stream. [#39]
+
+- Added an interface to a new astrometry database which will
+  contain new astrometrically-accurate solutions for the pointing
+  for HST observations. [#40]
+
+1.3.2 (20017-07-05)
+-------------------
 
 - The ``clobber`` parameter in `Headerlet.tofile()`` was replaced with
   ``overwrite``. [#24]
