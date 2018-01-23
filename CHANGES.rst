@@ -1,4 +1,7 @@
-1.4.0(Unreleased)
+1.4.1(Unreleased)
+-----------------
+
+1.4.0(2018-01-22)
 -----------------
 
 - Fix a bug in creating headerlets from a I/O stream. [#39]
