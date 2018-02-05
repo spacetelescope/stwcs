@@ -1,4 +1,3 @@
-from __future__ import absolute_import, division, print_function
 import os
 from astropy.io import fits
 from stsci.tools import fileutil

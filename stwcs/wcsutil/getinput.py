@@ -1,8 +1,5 @@
-from __future__ import absolute_import, division, print_function
-
 from astropy.io import fits
 from stsci.tools import irafglob, fileutil, parseinput
-#from . import HSTWCS
 
 
 def parseSingleInput(f=None, ext=None):

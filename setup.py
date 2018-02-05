@@ -5,6 +5,20 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
+
+if sys.version_info < (3, 5):
+    error = """
+    STWCS 1.4+ does not support Python 2.x, 3.0, 3.1, 3.2, 3.3 or 3.4.
+    Beginning with STWCS 1.4.0, Python 3.5 and above is required.
+
+    This may be due to an out of date pip.
+
+    Make sure you have pip >= 9.0.1.
+
+    """
+    sys.exit(error)
+
+
 if os.path.exists('relic'):
     sys.path.insert(1, 'relic')
     import relic.release

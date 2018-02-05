@@ -1,5 +1,3 @@
-from __future__ import (absolute_import, unicode_literals, division, print_function)
-
 import numpy as np
 from astropy.io import fits
 from astropy import wcs as pywcs
