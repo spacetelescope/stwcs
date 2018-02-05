@@ -9,8 +9,6 @@ that would not require getting entirely new images from the archive
 when only the WCS information has been updated.
 
 """
-
-from __future__ import absolute_import, division, print_function
 import os
 import sys
 import functools

@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 from stsci.tools import fileutil
 import numpy as np
 import calendar

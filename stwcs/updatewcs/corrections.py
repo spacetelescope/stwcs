@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import copy
 import datetime
 import logging
@@ -166,7 +164,7 @@ class TDDCorr(object):
             hwcs.idcmodel.cy[1, 1] = new_beta
         logger.info("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1, 1],
                                                                       cy_alpha, cy_beta))
-        
+
         cx_beta = skew_coeffs['TDD_CX_BETA']
         cx_alpha = skew_coeffs['TDD_CX_ALPHA']
         if cx_alpha is not None:
