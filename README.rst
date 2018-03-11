@@ -5,7 +5,7 @@ STWCS
     :target: http://stwcs.readthedocs.io/en/master/?badge=master
     :alt: Documentation Status
 
-`STWCS <http://ssb.stsci.edu/doc/stsci_python_dev/stwcs.doc/html/index.html>`__ provides support for WCS distortion models and coordinate
+`STWCS <https://stwcs.readthedocs.io>`__ provides support for WCS distortion models and coordinate
 transformation for the imaging instruments on the Hubble Space Telescope (HST).
 
 Note
