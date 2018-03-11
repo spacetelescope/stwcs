@@ -1,6 +1,10 @@
 STWCS
 -----
 
+.. image:: https://travis-ci.org/spacetelescope/stwcs.svg?branch=master
+    :target: https://travis-ci.org/spacetelescope/stwcs
+    :alt: Travis CI Status
+    
 .. image:: https://readthedocs.org/projects/stwcs/badge/?version=master
     :target: http://stwcs.readthedocs.io/en/master/?badge=master
     :alt: Documentation Status
