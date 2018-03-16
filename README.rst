@@ -5,8 +5,8 @@ STWCS
     :target: https://travis-ci.org/spacetelescope/stwcs
     :alt: Travis CI Status
     
-.. image:: https://readthedocs.org/projects/stwcs/badge/?version=master
-    :target: http://stwcs.readthedocs.io/en/master/?badge=master
+.. image:: https://readthedocs.org/projects/stwcs/badge/?version=latest
+    :target: http://stwcs.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
 `STWCS <https://stwcs.readthedocs.io>`__ provides support for WCS distortion models and coordinate
