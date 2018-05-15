@@ -13,7 +13,7 @@ performs corrections to the basic WCS and inserts
 other distortion infomation in the science files as header keywords or file extensions.
 `wcsutil <wcsutil.html>`_ provides an `wcsutil.STWCS` object which extends
 astropy's `astropy.wcs.WCS` provides HST
-instrument specific information as well as methods for coordinate tarnsformaiton. `wcsutil <wcsutil.html>`_ also provides
+instrument specific information as well as methods for coordinate transformation. `wcsutil <wcsutil.html>`_ also provides
 functions for manipulating alternate WCS descriptions in the headers.
 `STWCS <https://github.com/spacetelescope/stwcs>`__ is based on
 `astropy.wcs <http://docs.astropy.org/en/stable/wcs/index.html>`_.
