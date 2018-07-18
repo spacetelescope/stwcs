@@ -309,7 +309,9 @@ class AstrometryDB(object):
             solutions = []
             # get names of solutions in database
             for _, element in etree.iterparse(tree, tag='solution'):
-                solutions.append(element[1].text)
+                s = element[1].text
+                if s:
+                    solutions.append(s)
             # get name of best solution specified by database
             tree.seek(0)
             best_solution_id = None
@@ -334,6 +336,11 @@ class AstrometryDB(object):
                         hdrdate = hlet[0].header['date'].split('T')[0]
                         hlet[0].header['hdrname'] += hdrdate
                     headerlets[solutionID] = hlet
+
+            if not solutions:
+                logger.warning("No new WCS's found for {}".format(observationID))
+                logger.warning("No updates performed...")
+                
             return headerlets, best_solution_id
 
     def addObservation(self, observationID, new_solution):
