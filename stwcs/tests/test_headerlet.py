@@ -256,6 +256,52 @@ class TestApplyHeaderlet:
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
                                         scikey='P', verbose=True)[0])
 
+class TestRestoreHeaderlet:
+
+    def setup_class(self):
+        acs_orig_file = get_filepath('j94f05bgq_flt.fits')
+        current_dir = os.path.abspath(os.path.curdir)
+        acs_file = get_filepath('j94f05bgq_flt.fits', current_dir)
+        self.headerlet_name = get_filepath('acs_hlet.fits', current_dir)
+
+        try:
+            os.remove(acs_file)
+            os.remove('comp.fits')
+        except OSError:
+            pass
+
+        idctab = get_filepath('postsm4_idc.fits')
+        npol_file = get_filepath('qbu16424j_npl.fits')
+        d2imfile = get_filepath('new_wfc_d2i.fits ')
+
+        shutil.copyfile(acs_orig_file, acs_file)
+        fits.setval(acs_file, ext=0, keyword="IDCTAB", value=idctab)
+        fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
+        fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
+
+        updatewcs.updatewcs(acs_file)
+        self.sci_file = acs_file
+        
+    def test_restore_headerlet(self):
+        hdrname = 'test1'
+        hlet = headerlet.create_headerlet(self.sci_file, hdrname='test1')
+        # modify hlet so that it is a unique solution
+        hlet['sipwcs',1].header['crval1'] += 1./3600.
+        hlet['sipwcs',1].header['crval2'] += 1./3600.
+        hlet['sipwcs',2].header['crval1'] += 1./3600.
+        hlet['sipwcs',2].header['crval2'] += 1./3600.
+        hlet.writeto(self.headerlet_name, clobber=True)
+        
+        headerlet.attach_headerlet(self.sci_file, self.headerlet_name)
+        hlet_extn = headerlet.find_headerlet_HDUs(self.sci_file, 
+                                                  hdrname=hdrname)[0]
+        headerlet.restore_from_headerlet(self.sci_file, hdrext=hlet_extn)
+        
+        assert(wcsdiff.is_wcs_identical(self.sci_file, self.headerlet_name,
+                                        [('SCI', 1), ('SCI', 2)],
+                                        [("SIPWCS", 1), ("SIPWCS", 2)],
+                                        scikey=' ', verbose=True)[0])
+
 
 class TestLegacyFiles:
 
