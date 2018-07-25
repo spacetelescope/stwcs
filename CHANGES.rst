@@ -1,5 +1,9 @@
 1.4.1(Unreleased)
 -----------------
+- Fix a bug in restoring headerlets from a HeaderletHDU to a SCI extension [#60]
+
+- Fix logic to gracefully handle lack of any WCS solutions from the
+  astrometry database for an exposure.  [#62]
 
 1.4.0(2018-01-22)
 -----------------
