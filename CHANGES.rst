@@ -1,4 +1,7 @@
-1.4.1(Unreleased)
+1.4.2(Unreleased)
+-----------------
+
+1.4.1(2018-08-06)
 -----------------
 - Fix a bug in restoring headerlets from a HeaderletHDU to a SCI extension [#60]
 
