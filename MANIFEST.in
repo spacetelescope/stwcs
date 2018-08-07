@@ -1,1 +1,2 @@
 include RELIC-INFO
+exclude stwcs/version.py
