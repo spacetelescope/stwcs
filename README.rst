@@ -1,9 +1,20 @@
 STWCS
 -----
 
-`STWCS <http://ssb.stsci.edu/doc/stsci_python_dev/stwcs.doc/html/index.html>`__ provides support for WCS distortion models and coordinate
+.. image:: https://travis-ci.org/spacetelescope/stwcs.svg?branch=master
+    :target: https://travis-ci.org/spacetelescope/stwcs
+    :alt: Travis CI Status
+    
+.. image:: https://readthedocs.org/projects/stwcs/badge/?version=latest
+    :target: http://stwcs.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+`STWCS <https://stwcs.readthedocs.io>`__ provides support for WCS distortion models and coordinate
 transformation for the imaging instruments on the Hubble Space Telescope (HST).
 
+Note
+----
+Starting with version 1.4, STWCS requires Python 3.5 and above.
 
 Installation
 ------------

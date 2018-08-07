@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from astropy import wcs as pywcs
 from collections import OrderedDict
 from astropy.io import fits

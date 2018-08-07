@@ -13,7 +13,6 @@ transformation. wcsutil also provides functions for manipulating alternate WCS
 descriptions in the headers.
 
 """
-from __future__ import absolute_import, print_function # confidence high
 import os
 
 from . import distortion

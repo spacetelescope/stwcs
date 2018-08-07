@@ -1,7 +1,6 @@
 """ wfpc2_dgeo - Functions to convert WFPC2 DGEOFILE into D2IMFILE
 
 """
-from __future__ import absolute_import, division, print_function
 import os
 import datetime
 

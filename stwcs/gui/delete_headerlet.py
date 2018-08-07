@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import os
 from stsci.tools import teal
 from stsci.tools import parseinput

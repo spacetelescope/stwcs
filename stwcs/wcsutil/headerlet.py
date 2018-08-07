@@ -9,8 +9,6 @@ that would not require getting entirely new images from the archive
 when only the WCS information has been updated.
 
 """
-
-from __future__ import absolute_import, division, print_function
 import os
 import sys
 import functools
@@ -1477,7 +1475,8 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
 
     # read headerlet from HeaderletHDU into memory
     if hasattr(fobj[hdrlet_ind[0]], 'hdulist'):
-        hdrlet = fobj[hdrlet_indx].hdulist
+        hdrlet = Headerlet(fobj[hdrlet_indx].hdulist)
+        hdrlet.init_attrs()
     else:
         hdrlet = fobj[hdrlet_indx].headerlet  # older convention in PyFITS
 
@@ -1486,7 +1485,13 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     for ext in hdrlet:
         if 'extname' in ext.header and ext.header['extname'] == 'SIPWCS':
             # convert from string to tuple or int
-            sciext = eval(ext.header['sciext'])
+            if 'sciext' in ext.header:
+                sciext = eval(ext.header['sciext'])
+            elif 'tg_ename' in ext.header:
+                sciext = (ext.header['tg_ename'],ext.header['tg_ever'])
+            else:
+                # Assume EXTNAME='sci' with matching EXTVER values
+                sciext = ('sci',ext.header['extver'])
             extlist.append(fobj[sciext])
     # determine whether distortion is the same
     current_distname = hdrlet[0].header['distname']

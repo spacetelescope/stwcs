@@ -4,10 +4,8 @@ This package defines the TEAL interfaces for public, file-based operations
 provided by the STWCS package.
 
 """
-from __future__ import absolute_import # confidence high
-__docformat__ = 'restructuredtext'
 
-# import modules which define the TEAL interfaces 
+# import modules which define the TEAL interfaces
 from . import write_headerlet
 from . import extract_headerlet
 from . import attach_headerlet
