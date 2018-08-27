@@ -33,6 +33,7 @@ from lxml import etree
 from astropy.io import fits as pf
 
 from stwcs.wcsutil import headerlet
+from stwcs.updatewcs import utils
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
@@ -151,15 +152,22 @@ class AstrometryDB(object):
         if not self.perform_step:
             return
 
-        # Parse observation name
-        obspath, obsroot = os.path.split(obsname)
+        if isinstance(obsname, utils.FITSObject):
+            obsroot = obsname.name
+            fileobj = obsname.open(mode='update')
+            close_hdu = obsname.close_hdu
+        else:
+            # Parse observation name
+            obspath, obsroot = os.path.split(obsname)
+            #
+            # apply to file...
+            fileobj = pf.open(obsname, mode='update')
+            close_hdu = True
+
         # use `obspath` for location of output files,
         #    if anything gets written out
         observationID = obsroot.split('_')[:1][0]
         logger.info("Updating astrometry for {}".format(observationID))
-        #
-        # apply to file...
-        fileobj = pf.open(obsname, mode='update')
 
         # take inventory of what hdrlets are already appended to this file
         hdrnames = headerlet.get_headerlet_kw_names(fileobj, 'hdrname')
@@ -210,8 +218,8 @@ class AstrometryDB(object):
                         headerlets[h].attach_to_file(fileobj)
                 except ValueError:
                     pass
-
-        fileobj.close()
+        if close_hdu:
+            fileobj.close()
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for

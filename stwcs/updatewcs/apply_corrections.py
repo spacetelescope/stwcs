@@ -35,7 +35,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     based on user input paramters and allowed corrections
     for the instrument.
     """
-    instrument = fits.getval(fname, 'INSTRUME')
+    instrument = fname.getval('INSTRUME')
     # make a copy of this list
     acorr = allowed_corrections[instrument][:]
 
@@ -87,7 +87,7 @@ def foundIDCTAB(fname):
     """
 
     try:
-        idctab = fits.getval(fname, 'IDCTAB').strip()
+        idctab = fname.getval('IDCTAB').strip()
         if idctab == 'N/A' or idctab == "":
             return False
     except KeyError:
@@ -108,7 +108,7 @@ def applyTDDCorr(fname, utddcorr):
     - the idc table specified in the primary header is available.
     """
 
-    phdr = fits.getheader(fname)
+    phdr = fname.getheader()
     instrument = phdr['INSTRUME']
     try:
         detector = phdr['DETECTOR']
@@ -149,7 +149,7 @@ def applyNpolCorr(fname, unpolcorr):
     applyNPOLCorr = True
     try:
         # get NPOLFILE kw from primary header
-        fnpol0 = fits.getval(fname, 'NPOLFILE')
+        fnpol0 = fname.getval('NPOLFILE')
         if fnpol0 == 'N/A':
             utils.remove_distortion(fname, "NPOLFILE")
             return False
@@ -161,7 +161,7 @@ def applyNpolCorr(fname, unpolcorr):
             raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
             # get NPOLEXT kw from first extension header
-            fnpol1 = fits.getval(fname, 'NPOLEXT', ext=1)
+            fnpol1 = fname.getval('NPOLEXT', ext=1)
             fnpol1 = fileutil.osfn(fnpol1)
             if fnpol1 and fileutil.findFile(fnpol1):
                 if fnpol0 != fnpol1:
@@ -194,7 +194,7 @@ def isOldStyleDGEO(fname, dgname):
     # checks if the file defined in a NPOLFILE kw is a full size
     # (old style) image
 
-    sci_hdr = fits.getheader(fname, ext=1)
+    sci_hdr = fname.getheader(ext=1)
     dgeo_hdr = fits.getheader(dgname, ext=1)
     sci_naxis1 = sci_hdr['NAXIS1']
     sci_naxis2 = sci_hdr['NAXIS2']
@@ -238,7 +238,7 @@ def apply_d2im_correction(fname, d2imcorr):
         return False
     # get D2IMFILE kw from primary header
     try:
-        fd2im0 = fits.getval(fname, 'D2IMFILE')
+        fd2im0 = fname.getval('D2IMFILE')
     except KeyError:
         logger.info("D2IMFILE keyword is missing - D2IM correction will not be applied.")
         return False
@@ -252,7 +252,7 @@ def apply_d2im_correction(fname, d2imcorr):
         raise IOError(message)
     try:
         # get D2IMEXT kw from first extension header
-        fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
+        fd2imext = fname.getval('D2IMEXT', ext=1)
 
     except KeyError:
         # the case of D2IMFILE kw present in primary header but D2IMEXT missing

@@ -5,6 +5,99 @@ from stsci.tools import fileutil
 import logging
 logger = logging.getLogger("stwcs.updatewcs.utils")
 
+def get_file(input):
+    """Return FITSObject object for input file which matches user input"""
+    if isinstance(input, str):
+        obj = FileObject(input)
+    elif isinstance(input, fits.HDUList):
+        obj = HDUObject(input)
+    else:
+        msg = "Unrecognized input type: {}".format(type(input))
+        raise ValueError(msg)
+    return obj
+
+class FITSObject:
+    """Abstract class to isolate file operations from files or in-memory objects"""
+    def __init__(self, input):
+        pass
+
+    def open(self):
+        """Return HDUList object"""
+        pass
+
+    def getval(self, kw, **kwargs):
+        """Return keyword value for specified keyword"""
+        pass
+
+    def getheader(self):
+        """Return requested header from file/object"""
+        pass
+
+class FileObject(FITSObject):
+    def __init__(self, input):
+        FITSObject.__init__(self, input)
+        self.name = input
+        self.close_hdu = True
+
+    def open(self, mode='readonly', memmap=None, save_backup=False, cache=True, lazy_load_hdus=None, **kwargs):
+        """Pass-through interface for fits.open"""
+        self.hdulist = fits.open(self.name, mode=mode, memmap=memmap,
+                            save_backup=save_backup, cache=cache,
+                            lazy_load_hdus=lazy_load_hdus, **kwargs)
+        return self.hdulist
+
+    def close(self):
+        self.hdulist.close()
+
+    def getval(self,kw, *args, **kwargs):
+        val = fits.getval(self.name, kw, *args, **kwargs)
+        return val
+
+    def getheader(self, *args, **kwargs):
+        hdr = fits.getheader(self.name, *args, **kwargs)
+        return hdr
+
+class HDUObject(FITSObject):
+    def __init__(self, input):
+        FITSObject.__init__(self, input)
+        try:
+            assert isinstance(input, fits.HDUList)
+        except AssertionError:
+            msg = "HDUObject can only be initialized using a FITS.HDUList object"
+            raise ValueError(msg)
+        self.hdulist = input
+
+        # Set 'filename' for object
+        if 'rootname' in self.hdulist[0].header:
+            self.name = self.hdulist[0].header['rootname']
+        else:
+            self.name = None
+
+        self.close_hdu = False
+
+
+    def open(self, *args, **kwargs):
+        mode = kwargs.get('mode', 'update')
+        try:
+            assert (mode == self.hdulist._file.mode)
+        except AssertionError:
+            msg = 'Input HDUList not opened in "update" mode!'
+            raise ValueError(msg)
+        return self.hdulist
+
+    def close(self):
+        pass
+
+    def getval(self, kw, *args, **kwargs):
+        extn = kwargs.get('ext', 0)
+        val = self.hdulist[extn].header[kw]
+        return val
+
+    def getheader(self, *args, **kwargs):
+        extn = kwargs.get('ext', 0)
+        hdr = self.hdulist[extn].header
+        return hdr
+
 
 def diff_angles(a, b):
     """
@@ -256,7 +349,11 @@ def remove_distortion(fname, dist_keyword):
         raise AttributeError("Unrecognized distortion keyword "
                              "{0} when attempting to remove distortion".format(dist_keyword))
     ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, "SCI").values()
-    f = fits.open(fname, mode="update")
+    if isinstance(fname, FITSObject):
+        f = fname.open(mode='update')
+    else:
+        f = fits.open(fname, mode="update")
+
     for hdu in ext_mapping:
         for kw in keywords:
             try:
