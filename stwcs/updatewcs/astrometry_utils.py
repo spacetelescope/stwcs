@@ -306,18 +306,15 @@ class AstrometryDB(object):
             # headerlets to be appended to observation
             headerlets = {}
             tree = BytesIO(r.content)
-            solutions = []
+
             # get names of solutions in database
-            for _, element in etree.iterparse(tree, tag='solution'):
-                s = element[1].text
-                if s:
-                    solutions.append(s)
+            solutions = [e[1].text for _, e in
+                         etree.iterparse(tree, tag='solution') if e[1].text]
+
             # get name of best solution specified by database
             tree.seek(0)
-            best_solution_id = None
-            for _, element in etree.iterparse(tree, tag='bestsolutionid'):
-                best_solution_id = element
-                break
+            _, best_solution_id = next(
+                etree.iterparse(tree, tag='bestsolutionid'), (None, None))
             if best_solution_id == '':
                 best_solution_id = None
 
