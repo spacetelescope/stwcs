@@ -324,9 +324,8 @@ class AstrometryDB(object):
             # Now use these names to get the actual updated solutions
             headers = {'Content-Type': 'application/fits'}
             for solutionID in solutions:
-                serviceEndPoint = self.serviceLocation + \
-                    'observation/read/' + observationID + \
-                    '?wcsname='+solutionID
+                serviceEndPoint = '{}observation/read/{}?wcsname={}'.format(
+                    self.serviceLocation, observationID, solutionID)
                 r_solution = requests.get(serviceEndPoint, headers=headers)
                 if r_solution.status_code == requests.codes.ok:
                     hlet_bytes = BytesIO(r_solution.content).getvalue()
@@ -340,7 +339,7 @@ class AstrometryDB(object):
             if not solutions:
                 logger.warning("No new WCS's found for {}".format(observationID))
                 logger.warning("No updates performed...")
-                
+
             return headerlets, best_solution_id
 
     def addObservation(self, observationID, new_solution):
