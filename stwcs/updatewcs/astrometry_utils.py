@@ -33,6 +33,7 @@ from lxml import etree
 from astropy.io import fits as pf
 
 from stwcs.wcsutil import headerlet
+from stwcs.updatewcs import utils
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
@@ -48,7 +49,7 @@ astrometry_control_envvar = "ASTROMETRY_STEP_CONTROL"
 class AstrometryDB(object):
     """Base class for astrometry database interface."""
 
-    serviceLocation = 'https://mastdev.stsci.edu/portal/astrometryDB/'
+    serviceLocation = 'https://masttest.stsci.edu/portal/astrometryDB/'
     headers = {'Content-Type': 'text/xml'}
 
     available = True
@@ -303,26 +304,33 @@ class AstrometryDB(object):
             # headerlets to be appended to observation
             headerlets = {}
             tree = BytesIO(r.content)
+            root = etree.parse(tree)
+
+            # Convert returned solutions specified in XML into dictionaries
             solutions = []
-            # get names of solutions in database
-            for _, element in etree.iterparse(tree, tag='solution'):
-                s = element[1].text
-                if s:
-                    solutions.append(s)
-            # get name of best solution specified by database
-            tree.seek(0)
-            best_solution_id = None
-            for _, element in etree.iterparse(tree, tag='bestsolutionid'):
-                best_solution_id = element
-                break
-            if best_solution_id == '':
-                best_solution_id = None
+            for solution in root.iter('solution'):
+                sinfo = {}
+                for field in solution.iter():
+                    if field.tag != 'solution':
+                        sinfo[field.tag] = field.text
+                solutions.append(sinfo)
+
+            # interpret bestSolutionID from tree
+            for bestID in root.iter('bestSolutionID'):
+                best_solution_id = bestID.text
 
             # Now use these names to get the actual updated solutions
             headers = {'Content-Type': 'application/fits'}
-            for solutionID in solutions:
-                serviceEndPoint = '{}observation/read/{}?wcsname={}'.format(
-                    self.serviceLocation, observationID, solutionID)
+            for solution_info in solutions:
+                solutionID = solution_info['solutionID']
+                wcsName = solution_info['wcsName']
+                # Translate bestSolutionID into wcsName, if one is specified
+                if best_solution_id and best_solution_id == solutionID:
+                    best_solution_id = wcsName
+                serviceEndPoint = self.serviceLocation + \
+                    'observation/read/' + observationID + \
+                    '?wcsname='+wcsName
+                print('Retrieving astrometrically-updated WCS "{}" for observation "{}"'.format(wcsName, observationID))
                 r_solution = requests.get(serviceEndPoint, headers=headers)
                 if r_solution.status_code == requests.codes.ok:
                     hlet_bytes = BytesIO(r_solution.content).getvalue()
