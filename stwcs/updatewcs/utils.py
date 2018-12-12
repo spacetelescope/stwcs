@@ -7,6 +7,9 @@ logger = logging.getLogger("stwcs.updatewcs.utils")
 
 def get_file(input):
     """Return FITSObject object for input file which matches user input"""
+    if isinstance(input, FITSObject):
+        return input
+
     if isinstance(input, str):
         obj = FileObject(input)
     elif isinstance(input, fits.HDUList):
@@ -348,11 +351,11 @@ def remove_distortion(fname, dist_keyword):
     else:
         raise AttributeError("Unrecognized distortion keyword "
                              "{0} when attempting to remove distortion".format(dist_keyword))
-    ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, "SCI").values()
     if isinstance(fname, FITSObject):
         f = fname.open(mode='update')
     else:
         f = fits.open(fname, mode="update")
+    ext_mapping = altwcs.mapFitsExt2HDUListInd(f, "SCI").values()
 
     for hdu in ext_mapping:
         for kw in keywords:
@@ -360,7 +363,7 @@ def remove_distortion(fname, dist_keyword):
                 del f[hdu].header[kw]
             except KeyError:
                 pass
-    ext_mapping = list(altwcs.mapFitsExt2HDUListInd(fname, extname).values())
+    ext_mapping = list(altwcs.mapFitsExt2HDUListInd(f, extname).values())
     ext_mapping.sort()
     for hdu in ext_mapping[::-1]:
         del f[hdu]

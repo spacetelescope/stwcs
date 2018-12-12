@@ -35,6 +35,9 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     based on user input paramters and allowed corrections
     for the instrument.
     """
+    # Insure input is the correct type
+    fname = utils.get_file(fname)
+
     instrument = fname.getval('INSTRUME')
     # make a copy of this list
     acorr = allowed_corrections[instrument][:]
@@ -215,8 +218,8 @@ def apply_d2im_correction(fname, d2imcorr):
 
     Parameters
     ----------
-    fname : str
-        Science file name.
+    fname : str or obj
+        Science file name or ``updatewcs.utils.FITSObject`` or FITS HDUList.
     d2imcorr : bool
         Flag indicating if D2IM is should be enabled if allowed.
 
@@ -236,6 +239,9 @@ def apply_d2im_correction(fname, d2imcorr):
     if not d2imcorr:
         logger.info("D2IM correction not requested - not applying it.")
         return False
+    # Insure input is in the proper format
+    fname = utils.get_file(fname)
+
     # get D2IMFILE kw from primary header
     try:
         fd2im0 = fname.getval('D2IMFILE')
