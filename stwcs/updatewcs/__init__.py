@@ -411,7 +411,7 @@ def cleanWCS(fname):
     fext = list(range(1, len(f)))
     for key in keys:
         try:
-            wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
+            wcsutil.deleteWCS(fname.hdulist, ext=fext, wcskey=key)
         except KeyError:
             # Some extensions don't have the alternate (or any) WCS keywords
             continue
