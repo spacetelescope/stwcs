@@ -7,6 +7,9 @@
 
 - Allow ``updatewcs`` to be called with ``HDUList`` objects as input. [#80]
 
+- Update the XML parser for the astrometry database and switch the default to use
+  the MAST TEST server which is publicly accessible. [#74]
+
 
 1.4.2(2018-08-07)
 -----------------
