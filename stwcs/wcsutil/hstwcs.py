@@ -167,19 +167,21 @@ class HSTWCS(WCS):
 
     @property
     def naxis1(self):
-        return self._naxis1
+        return self.pixel_shape[0]
 
     @naxis1.setter
     def naxis1(self, value):
-        self._naxis1 = value
+        val1 = self.pixel_shape[1] if self.pixel_shape is not None else 0
+        self.pixel_shape = (value, val1)
 
     @property
     def naxis2(self):
-        return self._naxis2
+        return self.pixel_shape[1]
 
     @naxis2.setter
     def naxis2(self, value):
-        self._naxis2 = value
+        val0 = self.pixel_shape[0] if self.pixel_shape is not None else 0
+        self.pixel_shape = (val0, value)
 
     def readIDCCoeffs(self, header):
         """
