@@ -2427,10 +2427,7 @@ class Headerlet(fits.HDUList):
         """
         if not destim or not hdrname:
             self.hverify()
-        if ASTROPY_13_MIN:
-            self.writeto(fname, overwrite=clobber)
-        else:
-            self.writeto(fname, clobber=clobber)
+        self.writeto(fname, overwrite=clobber)
 
     def _del_dest_WCS(self, dest, ext=None):
         """
