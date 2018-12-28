@@ -151,18 +151,15 @@ class AstrometryDB(object):
         if not self.perform_step:
             return
 
-        # Parse observation name
-        obspath, obsroot = os.path.split(obsname)
-        # use `obspath` for location of output files,
-        #    if anything gets written out
+        obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
         logger.info("Updating astrometry for {}".format(observationID))
         #
         # apply to file...
-        fileobj = pf.open(obsname, mode='update')
+        #fileobj = pf.open(obsname, mode='update')
 
         # take inventory of what hdrlets are already appended to this file
-        hdrnames = headerlet.get_headerlet_kw_names(fileobj, 'hdrname')
+        hdrnames = headerlet.get_headerlet_kw_names(obsname, 'hdrname')
 
         headerlets, best_solution_id = self.getObservation(observationID)
         if headerlets is None:
@@ -180,7 +177,7 @@ class AstrometryDB(object):
             logger.warning(" Updating database with initial WCS {}".
                            format(observationID))
             hlet_buffer = BytesIO()
-            hlet_new = headerlet.create_headerlet(fileobj)
+            hlet_new = headerlet.create_headerlet(obsname)
             newhdrname = hlet_new[0].header['hdrname']
             hlet_new.writeto(hlet_buffer)
 
@@ -200,18 +197,18 @@ class AstrometryDB(object):
                 try:
                     if best_solution_id and newhdrname == best_solution_id:
                         # replace primary WCS with this solution
-                        headerlets[h].apply_as_primary(fileobj)
+                        headerlets[h].apply_as_primary(obsname)
                         logger.info('Replacing primary WCS with')
                         logger.info('\tHeaderlet with HDRNAME={}'.format(
                                      newhdrname))
                     else:
                         logger.info("\tHeaderlet with HDRNAME={}".format(
                                     newhdrname))
-                        headerlets[h].attach_to_file(fileobj)
+                        headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
 
-        fileobj.close()
+        #fileobj.close()
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for

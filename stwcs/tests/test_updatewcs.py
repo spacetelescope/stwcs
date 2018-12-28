@@ -344,7 +344,8 @@ def test_apply_d2im():
     fits.setval(fname, ext=0, keyword="IDCTAB", value='N/A')
     fits.setval(fname, ext=0, keyword="NPOLFILE", value='N/A')
     # If D2IMEXT does not exist, the correction should be applied
-    assert appc.apply_d2im_correction(fname, d2imcorr=True)
+    fileobj = fits.open(fname, mode='update')
+    assert appc.apply_d2im_correction(fileobj, d2imcorr=True)
     updatewcs.updatewcs(fname)
 
     # Test the case when D2IMFILE == D2IMEXT

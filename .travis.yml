@@ -19,7 +19,10 @@ env:
         - ASTROPY_VERSION=development
         - MAIN_CMD='python setup.py'
         - CONDA_CHANNELS='http://ssb.stsci.edu/conda-dev'
-        - CONDA_DEPENDENCIES='pytest drizzlepac'
+        - CONDA_DEPENDENCIES='pytest'
+        - TOOLS_GIT='git+https://github.com/spacetelescope/stsci.tools.git'
+        - PIP_DEPENDENCIES="$TOOLS_GIT"
+
 
     matrix:
         - SETUP_CMD='egg_info'
@@ -38,7 +41,7 @@ matrix:
         # build sphinx documentation with warnings
         - python: 3.6
           env: SETUP_CMD='build_sphinx'
-               PIP_DEPENDENCIES='sphinx-automodapi sphinx_rtd_theme'
+               PIP_DEPENDENCIES='sphinx-automodapi sphinx_rtd_theme git+https://github.com/spacetelescope/stsci.tools.git'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle

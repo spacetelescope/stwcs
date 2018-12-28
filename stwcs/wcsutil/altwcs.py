@@ -1,5 +1,5 @@
 import string
-import warnings
+
 import numpy as np
 from astropy import wcs as pywcs
 from astropy.io import fits
@@ -7,8 +7,6 @@ from stsci.tools import fileutil as fu
 
 from astropy import log
 default_log_level = log.getEffectiveLevel()
-
-warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs.wcs")
 
 
 __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
@@ -692,11 +690,11 @@ def getKeyFromName(header, wcsname):
 
 def pc2cd(hdr, key=' '):
     """
-    Convert a CD matrix to a CD matrix.
+    Convert a PC matrix to a CD matrix.
 
     WCSLIB (and PyWCS) recognizes CD keywords as input
     but converts them and works internally with the PC matrix.
-    to_header() returns the PC matrix even if the i nput was a
+    to_header() returns the PC matrix even if the input was a
     CD matrix. To keep input and output consistent we check
     for has_cd and convert the PC back to CD.
 

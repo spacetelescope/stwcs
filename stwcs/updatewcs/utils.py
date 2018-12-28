@@ -244,7 +244,8 @@ def build_d2imname(fobj, d2imfile=None):
 
 
 def remove_distortion(fname, dist_keyword):
-    logger.info("Removing distortion {0} from file {0}".format(dist_keyword, fname))
+    logger.info("Removing distortion {0} from file {0}".format(dist_keyword,
+                                                               fname[0].header['rootname']))
     from ..wcsutil import altwcs
     if dist_keyword == "NPOLFILE":
         extname = "WCSDVARR"
@@ -256,15 +257,15 @@ def remove_distortion(fname, dist_keyword):
         raise AttributeError("Unrecognized distortion keyword "
                              "{0} when attempting to remove distortion".format(dist_keyword))
     ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, "SCI").values()
-    f = fits.open(fname, mode="update")
+    #f = fits.open(fname, mode="update")
     for hdu in ext_mapping:
         for kw in keywords:
             try:
-                del f[hdu].header[kw]
+                del fname[hdu].header[kw]
             except KeyError:
                 pass
     ext_mapping = list(altwcs.mapFitsExt2HDUListInd(fname, extname).values())
     ext_mapping.sort()
     for hdu in ext_mapping[::-1]:
-        del f[hdu]
-    f.close()
+        del fname[hdu]
+    #f.close()

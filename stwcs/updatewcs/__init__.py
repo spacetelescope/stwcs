@@ -91,9 +91,31 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
          str(d2imcorr), str(checkfiles))
     logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
 
-    files = parseinput.parseinput(input)[0]
-    logger.info("\n\tInput files: %s, " % [i for i in files])
+    toclose = True
+
+    if isinstance(input, fits.HDUList):
+        input = [input]
+
+    if isinstance(input, list) and isinstance(input[0], fits.HDUList):
+        files = input
+        file_names = [inp.filename() for inp in files]
+        toclose = False
+    else:
+        file_names = parseinput.parseinput(input)[0]
+
+        files = []
+        for item in file_names:
+            files.append(fits.open(item, mode='update'))
+
+    if checkfiles:
+        files = checkFiles(files)
+        if not files:
+            print('No valid input, quitting ...\n')
+            return
+    logger.info("\n\tInput files: {}".format(file_names))
     logger.info("\n\tInput arguments: %s" % args)
+
+    print('names', file_names)
     if checkfiles:
         files = checkFiles(files)
         if not files:
@@ -119,9 +141,12 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             #  an accessible astrometry web-service
             astrometry.updateObs(f)
 
-    return files
+        if toclose:
+            f.close()
+    return file_names
 
-def makecorr(fname, allowed_corr):
+
+def makecorr(f, allowed_corr):
     """
     Purpose
     =======
@@ -134,7 +159,7 @@ def makecorr(fname, allowed_corr):
              list of corrections to be applied
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
-    f = fits.open(fname, mode='update')
+    #f = fits.open(fname, mode='update')
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
@@ -228,7 +253,7 @@ def makecorr(fname, allowed_corr):
     f[0].header['SIPNAME'] = distdict['SIPNAME']
     # Make sure NEXTEND keyword remains accurate
     f[0].header['NEXTEND'] = len(f) - 1
-    f.close()
+    #f.close()
 
 
 def copyWCS(w, ehdr):
@@ -311,7 +336,6 @@ def getNrefchip(fobj):
             if extname is not None and extname.lower == 'sci':
                 nrefext = i
                 break
-
     return nrefchip, nrefext
 
 
@@ -370,11 +394,11 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     # When this is called we know there's a kw IDCTAB in the header
-    hdul = fits.open(fname)
-    idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
+    #hdul = fits.open(fname)
+    idctab = fileutil.osfn(fname[0].header['IDCTAB'])
     try:
         # check for the presence of IDCTAB in the first extension
-        oldidctab = fileutil.osfn(hdul[1].header['IDCTAB'])
+        oldidctab = fileutil.osfn(fname[1].header['IDCTAB'])
     except KeyError:
         return False
     if idctab == oldidctab:
@@ -386,8 +410,8 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.
-    f = fits.open(fname, mode='update')
-    keys = wcsutil.wcskeys(f[1].header)
+    #f = fits.open(fname, mode='update')
+    keys = wcsutil.wcskeys(fname[1].header)
     # Remove the primary WCS from the list
     try:
         keys.remove(' ')
