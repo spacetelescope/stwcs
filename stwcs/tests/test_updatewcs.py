@@ -119,8 +119,7 @@ class TestStwcs(object):
             outwcs.wcs.cd,
             np.array([[1.2787045268089949e-05, 5.4215042082174661e-06],
                       [5.4215042082174661e-06, -1.2787045268089949e-05]]))
-        assert(outwcs._naxis1 == 4214)
-        assert(outwcs._naxis2 == 4237)
+        assert outwcs.pixel_shape == (4214, 4237)
 
     def test_repeate(self):
         # make sure repeated runs of updatewcs do not change the WCS.

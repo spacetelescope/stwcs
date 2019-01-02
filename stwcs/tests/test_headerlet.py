@@ -63,7 +63,7 @@ class TestCreateHeaderlet(object):
         extensions in the science file
         """
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='hdr1')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [1, 4], [("SIPWCS", 1), ("SIPWCS", 2)],
                                         verbose=True)[0])
@@ -76,7 +76,7 @@ class TestCreateHeaderlet(object):
         hlet = headerlet.create_headerlet(self.comp_file,
                                           sciext=[('SCI', 1), ('SCI', 2)],
                                           hdrname='hdr1')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [1, 4], [("SIPWCS", 1), ("SIPWCS", 2)],
                                         verbose=True)[0])
@@ -89,7 +89,7 @@ class TestCreateHeaderlet(object):
         hlet = headerlet.create_headerlet(self.comp_file,
                                           sciext=[1, 4],
                                           hdrname='hdr1')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [1, 4], [("SIPWCS", 1), ("SIPWCS", 2)],
                                         verbose=True)[0])
@@ -102,7 +102,7 @@ class TestCreateHeaderlet(object):
         hlet = headerlet.create_headerlet(self.simple_file,
                                           sciext=0,
                                           hdrname='hdr1')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.simple_file, self.headerlet_name,
                                         [0], [1], verbose=True)[0])
 
@@ -125,7 +125,7 @@ class TestCreateHeaderlet(object):
         hlet = headerlet.create_headerlet(self.comp_file,
                                           sciext=4,
                                           hdrname='hdr1')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [4], [1], verbose=True)[0])
 
@@ -224,7 +224,7 @@ class TestApplyHeaderlet:
         hlet['SIPWCS', 2].header['CRPIX1'] = 2
         hlet['SIPWCS', 2].header['CRPIX2'] = 2
         hlet.apply_as_primary(self.comp_file)
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
@@ -242,7 +242,7 @@ class TestApplyHeaderlet:
     def test_apply_as_alternate_method(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1')
         hlet.apply_as_alternate(self.comp_file, wcskey='K', wcsname='KK')
-        hlet.writeto(self.headerlet_name, clobber=True)
+        hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
@@ -279,7 +279,7 @@ class TestRestoreHeaderlet:
 
         updatewcs.updatewcs(acs_file)
         self.sci_file = acs_file
-        
+
     def test_restore_headerlet(self):
         hdrname = 'test1'
         hlet = headerlet.create_headerlet(self.sci_file, hdrname='test1')
@@ -288,13 +288,13 @@ class TestRestoreHeaderlet:
         hlet['sipwcs',1].header['crval2'] += 1./3600.
         hlet['sipwcs',2].header['crval1'] += 1./3600.
         hlet['sipwcs',2].header['crval2'] += 1./3600.
-        hlet.writeto(self.headerlet_name, clobber=True)
-        
+        hlet.writeto(self.headerlet_name, overwrite=True)
+
         headerlet.attach_headerlet(self.sci_file, self.headerlet_name)
-        hlet_extn = headerlet.find_headerlet_HDUs(self.sci_file, 
+        hlet_extn = headerlet.find_headerlet_HDUs(self.sci_file,
                                                   hdrname=hdrname)[0]
         headerlet.restore_from_headerlet(self.sci_file, hdrext=hlet_extn)
-        
+
         assert(wcsdiff.is_wcs_identical(self.sci_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
