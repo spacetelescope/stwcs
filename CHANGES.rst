@@ -1,6 +1,10 @@
 1.4.3(Unreleased)
 ----------------
 
+- Fixed a bug in converting a ``PC`` to a ``CD`` matrix. [#77]
+
+- Filter out expected warnings from tests. [#78]
+
 1.4.2(2018-08-07)
 -----------------
 
