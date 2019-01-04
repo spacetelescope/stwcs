@@ -465,9 +465,8 @@ class HSTWCS(WCS):
         return cards
 
     def pc2cd(self):
-        if not self.wcs.has_pc():
-            self.wcs.pc = self.wcs.get_pc()
-        self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
+        if self.wcs.has_pc():
+            self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
 
     def all_world2pix(self, *args, **kwargs):
         """
