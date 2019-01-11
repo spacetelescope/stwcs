@@ -58,7 +58,7 @@ class NoConvergence(Exception):
     """
     An error class used to report non-convergence and/or divergence of
     numerical methods. It is used to report errors in the iterative solution
-    used by the :py:meth:`~stwcs.hstwcs.HSTWCS.all_world2pix`\ .
+    used by the :py:meth:`~stwcs.hstwcs.HSTWCS.all_world2pix`.
 
     Attributes
     ----------
@@ -67,11 +67,11 @@ class NoConvergence(Exception):
         Best solution achieved by the method.
 
     accuracy : float
-        Accuracy of the :py:attr:`best_solution`\ .
+        Accuracy of the :py:attr:`best_solution`.
 
     niter : int
         Number of iterations performed by the numerical method to compute
-        :py:attr:`best_solution`\ .
+        :py:attr:`best_solution`.
 
     divergent : None, numpy.array
         Indices of the points in :py:attr:`best_solution` array for which the
@@ -470,8 +470,8 @@ class HSTWCS(WCS):
 
     def all_world2pix(self, *args, **kwargs):
         """
-        all_world2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False, \
-detect_divergence=True, quiet=False)
+        all_world2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False,
+        detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
@@ -481,7 +481,7 @@ detect_divergence=True, quiet=False)
         accuracy : float, optional (Default = 1.0e-4)
             Required accuracy of the solution. Iteration terminates when the
             correction to the solution found during the previous iteration
-            is smaller (in the sence of the L2 norm) than `accuracy`\ .
+            is smaller (in the sence of the L2 norm) than `accuracy` .
 
         maxiter : int, optional (Default = 20)
             Maximum number of iterations allowed to reach the solution.
@@ -503,21 +503,21 @@ detect_divergence=True, quiet=False)
                additional iterations may be needed (this depends mostly on the
                characteristics of the geometric distortions for a given
                instrument). In this situation it may be
-               advantageous to set `adaptive` = `True`\ in which
+               advantageous to set `adaptive` = `True` in which
                case :py:meth:`all_world2pix` will continue iterating *only* over
                the points that have not yet converged to the required
                accuracy. However, for the HST's ACS/WFC detector, which has
                the strongest distortions of all HST instruments, testing has
-               shown that enabling this option would lead to a about 10-30\%
+               shown that enabling this option would lead to a about 10-30 %
                penalty in computational time (depending on specifics of the
                image, geometric distortions, and number of input points to be
                converted). Therefore, for HST instruments,
-               it is recommended to set `adaptive` = `False`\ . The only
+               it is recommended to set `adaptive` = `False` . The only
                danger in getting this setting wrong will be a performance
                penalty.
 
             .. note::
-               When `detect_divergence` is `True`\ , :py:meth:`all_world2pix` \
+               When `detect_divergence` is `True` , :py:meth:`all_world2pix`
                will automatically switch to the adaptive algorithm once
                divergence has been detected.
 
@@ -533,7 +533,7 @@ detect_divergence=True, quiet=False)
             solution will diverge regardless of the `tolerance` or `maxiter`
             settings.
 
-            When `detect_divergence` is `False`\ , these divergent points
+            When `detect_divergence` is `False` , these divergent points
             will be detected as not having achieved the required accuracy
             (without further details). In addition, if `adaptive` is `False`
             then the algorithm will not know that the solution (for specific
@@ -541,33 +541,33 @@ detect_divergence=True, quiet=False)
             "improve" diverging solutions. This may result in NaN or Inf
             values in the return results (in addition to a performance
             penalties). Even when `detect_divergence` is
-            `False`\ , :py:meth:`all_world2pix`\ , at the end of the iterative
+            `False` , :py:meth:`all_world2pix` , at the end of the iterative
             process, will identify invalid results (NaN or Inf) as "diverging"
             solutions and will raise :py:class:`NoConvergence` unless
-            the `quiet` parameter is set to `True`\ .
+            the `quiet` parameter is set to `True` .
 
-            When `detect_divergence` is `True`\ , :py:meth:`all_world2pix` will
+            When `detect_divergence` is `True`, :py:meth:`all_world2pix` will
             detect points for
             which current correction to the coordinates is larger than
             the correction applied during the previous iteration **if** the
-            requested accuracy **has not yet been achieved**\ . In this case,
+            requested accuracy **has not yet been achieved**. In this case,
             if `adaptive` is `True`, these points will be excluded from
             further iterations and if `adaptive`
-            is `False`\ , :py:meth:`all_world2pix` will automatically
+            is `False`, :py:meth:`all_world2pix` will automatically
             switch to the adaptive algorithm.
 
             .. note::
                When accuracy has been achieved, small increases in
                current corrections may be possible due to rounding errors
-               (when `adaptive` is `False`\ ) and such increases
+               (when `adaptive` is `False` ) and such increases
                will be ignored.
 
             .. note::
-               Setting `detect_divergence` to `True` will incurr about 5-10\%
+               Setting `detect_divergence` to `True` will incurr about 5-10%
                performance penalty (in our testing on ACS/WFC images).
                Because the benefits of enabling this feature outweigh
                the small performance penalty, it is recommended to set
-               `detect_divergence` to `True`\ , unless extensive testing
+               `detect_divergence` to `True`, unless extensive testing
                of the distortion models for images from specific
                instruments show a good stability of the numerical method
                for a wide range of coordinates (even outside the image
@@ -605,7 +605,7 @@ detect_divergence=True, quiet=False)
         of the method of consecutive approximations and therefore it is
         highly efficient (>30x) when *all* data points that need to be
         converted from sky coordinates to image coordinates are passed at
-        *once*\ . Therefore, it is advisable, whenever possible, to pass
+        *once*. Therefore, it is advisable, whenever possible, to pass
         as input a long array of all points that need to be converted
         to :py:meth:`all_world2pix` instead of calling :py:meth:`all_world2pix`
         for each data point. Also see the note to the `adaptive` parameter.
@@ -635,21 +635,21 @@ detect_divergence=True, quiet=False)
         [[ 1.00000233  0.99999997]
          [ 2.00000232  0.99999997]
          [ 3.00000233  0.99999998]]
-        >>> xy = w.all_world2pix(radec,1, maxiter=3, accuracy=1.0e-10, \
+        >>> xy = w.all_world2pix(radec,1, maxiter=3, accuracy=1.0e-10,
 quiet=False)
-        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested \
+        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested
 accuracy after 3 iterations.
 
         >>>
         Now try to use some diverging data:
-        >>> divradec = w.all_pix2world([[1.0,1.0],[10000.0,50000.0],\
+        >>> divradec = w.all_pix2world([[1.0,1.0],[10000.0,50000.0],
 [3.0,1.0]],1); print(divradec)
         [[  5.52645241 -72.05171776]
          [  7.15979392 -70.81405561]
          [  5.52653313 -72.05170814]]
 
         >>> try:
-        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4,
 adaptive=False, detect_divergence=True, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
@@ -675,8 +675,8 @@ adaptive=False, detect_divergence=True, quiet=False)
         After 5 iterations, the solution is diverging at least for one input point.
 
         >>> try:
-        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4, \
-adaptive=False, detect_divergence=False, quiet=False)
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4,
+              adaptive=False, detect_divergence=False, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
         >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))

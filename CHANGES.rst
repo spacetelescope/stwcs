@@ -5,6 +5,9 @@
 
 - Filter out expected warnings from tests. [#78]
 
+- Allow ``updatewcs`` to be called with ``HDUList`` objects as input. [#80]
+
+
 1.4.2(2018-08-07)
 -----------------
 
