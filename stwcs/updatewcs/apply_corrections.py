@@ -1,4 +1,5 @@
 import os.path
+
 from astropy.io import fits
 from stsci.tools import fileutil
 from . import utils
@@ -34,8 +35,24 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     Creates a list of corrections to be applied to a file
     based on user input paramters and allowed corrections
     for the instrument.
+
+    Parameters
+    ----------
+    fname : str or `~astropy.io.fits.HDUList`
+        Input file object or file name
+    vacorr : bool
+        Boolean flag indicating whether velocity aberration correction is requested.
+    tddcorr : bool
+        Boolean flag indicating whether time dependent distortion correction is requested.
+    npolcorr : bool
+        Boolean flag indicating whether time non-polynomial distortion correction is requested.
+    d2imcorr : bool
+        Boolean flag indicating whether d2im correction is requested.
     """
-    instrument = fits.getval(fname, 'INSTRUME')
+    fname, toclose = _toclose(fname)
+
+    instrument = fname[0].header['INSTRUME']
+
     # make a copy of this list
     acorr = allowed_corrections[instrument][:]
 
@@ -68,12 +85,19 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
         if not d2imcorr:
             acorr.remove('DET2IMCorr')
     logger.info("Corrections to be applied to {0} {1}".format(fname, acorr))
+    if toclose:
+        fname.close()
     return acorr
 
 
 def foundIDCTAB(fname):
     """
     This functions looks for an "IDCTAB" keyword in the primary header.
+
+    Parameters
+    ----------
+    fname : `~astropy.io.fits.HDUList`
+        Input FITS file object.
 
     Returns
     -------
@@ -87,7 +111,7 @@ def foundIDCTAB(fname):
     """
 
     try:
-        idctab = fits.getval(fname, 'IDCTAB').strip()
+        idctab = fname[0].header['IDCTAB'].strip()
         if idctab == 'N/A' or idctab == "":
             return False
     except KeyError:
@@ -106,9 +130,15 @@ def applyTDDCorr(fname, utddcorr):
     - the user did not turn it off on the command line
     - the detector is WFC
     - the idc table specified in the primary header is available.
+
+    Parameters
+    ----------
+    fname : `~astropy.io.fits.HDUList`
+        Input FITS file object.
+
     """
 
-    phdr = fits.getheader(fname)
+    phdr = fname[0].header
     instrument = phdr['INSTRUME']
     try:
         detector = phdr['DETECTOR']
@@ -145,11 +175,17 @@ def applyNpolCorr(fname, unpolcorr):
     If 'NPOLFILE' in the primary header is different from 'NPOLEXT' in the
     extension header and the file exists on disk and is a 'new type' npolfile,
     then the lookup tables will be updated as 'WCSDVARR' extensions.
+
+    Parameters
+    ----------
+    fname : `~astropy.io.fits.HDUList`
+        Input FITS file object.
+
     """
     applyNPOLCorr = True
     try:
         # get NPOLFILE kw from primary header
-        fnpol0 = fits.getval(fname, 'NPOLFILE')
+        fnpol0 = fname[0].header['NPOLFILE']
         if fnpol0 == 'N/A':
             utils.remove_distortion(fname, "NPOLFILE")
             return False
@@ -161,7 +197,7 @@ def applyNpolCorr(fname, unpolcorr):
             raise IOError("NPOLFILE {0} not found".format(fnpol0))
         try:
             # get NPOLEXT kw from first extension header
-            fnpol1 = fits.getval(fname, 'NPOLEXT', ext=1)
+            fnpol1 = fname[1].header['NPOLEXT']
             fnpol1 = fileutil.osfn(fnpol1)
             if fnpol1 and fileutil.findFile(fnpol1):
                 if fnpol0 != fnpol1:
@@ -191,10 +227,19 @@ def applyNpolCorr(fname, unpolcorr):
 
 
 def isOldStyleDGEO(fname, dgname):
-    # checks if the file defined in a NPOLFILE kw is a full size
-    # (old style) image
+    """
+    Checks if the file defined in a NPOLFILE kw is a full size
+    (old style) image.
 
-    sci_hdr = fits.getheader(fname, ext=1)
+    Parameters
+    ----------
+    fname : `~astropy.io.fits.HDUList`
+        Input FITS file object.
+    dgname : str
+        Name of NPOL file.
+    """
+
+    sci_hdr = fname[1].header
     dgeo_hdr = fits.getheader(dgname, ext=1)
     sci_naxis1 = sci_hdr['NAXIS1']
     sci_naxis2 = sci_hdr['NAXIS2']
@@ -215,8 +260,8 @@ def apply_d2im_correction(fname, d2imcorr):
 
     Parameters
     ----------
-    fname : str
-        Science file name.
+    fname : `~astropy.io.fits.HDUList` or str
+        Input FITS science file object.
     d2imcorr : bool
         Flag indicating if D2IM is should be enabled if allowed.
 
@@ -232,13 +277,15 @@ def apply_d2im_correction(fname, d2imcorr):
     file is saved in the ``D2IMEXT`` keyword in the 1st extension header.
 
     """
+    fname, toclose = _toclose(fname)
+
     applyD2IMCorr = True
     if not d2imcorr:
         logger.info("D2IM correction not requested - not applying it.")
         return False
     # get D2IMFILE kw from primary header
     try:
-        fd2im0 = fits.getval(fname, 'D2IMFILE')
+        fd2im0 = fname[0].header['D2IMFILE']
     except KeyError:
         logger.info("D2IMFILE keyword is missing - D2IM correction will not be applied.")
         return False
@@ -252,7 +299,7 @@ def apply_d2im_correction(fname, d2imcorr):
         raise IOError(message)
     try:
         # get D2IMEXT kw from first extension header
-        fd2imext = fits.getval(fname, 'D2IMEXT', ext=1)
+        fd2imext = fname[1].header['D2IMEXT']
 
     except KeyError:
         # the case of D2IMFILE kw present in primary header but D2IMEXT missing
@@ -269,4 +316,14 @@ def apply_d2im_correction(fname, d2imcorr):
         # but if a valid kw exists in the primary header,
         # detector to image correction should be applied.
         applyD2IMCorr = True
+    if toclose:
+        fname.close()
     return applyD2IMCorr
+
+
+def _toclose(input, mode='readonly'):
+    toclose = False
+    if isinstance(input, str):
+        toclose = True
+        input = fits.open(input, mode=mode)
+    return input, toclose

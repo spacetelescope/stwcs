@@ -168,6 +168,35 @@ def test_remove_npol_distortion():
     assert w4.cpdis2 is None
 
 
+def test_remove_npol_distortion_hdulist():
+    acs_orig_file = get_filepath('j94f05bgq_flt.fits')
+    current_dir = os.path.abspath(os.path.curdir)
+    acs_file = get_filepath('j94f05bgq_flt.fits', current_dir)
+    idctab = get_filepath('postsm4_idc.fits')
+    npol_file = get_filepath('qbu16424j_npl.fits')
+    d2imfile = get_filepath('new_wfc_d2i.fits ')
+
+    try:
+        os.remove(acs_file)
+    except OSError:
+        pass
+
+    shutil.copyfile(acs_orig_file, acs_file)
+    hdul = fits.open(acs_file, mode='update')
+    hdul[0].header["IDCTAB"] = idctab
+    hdul[0].header["NPOLFILE"] = npol_file
+    hdul[0].header["D2IMFILE"] = d2imfile
+
+    updatewcs.updatewcs(hdul)
+    hdul[0].header["NPOLFILE"] = "N/A"
+    updatewcs.updatewcs(hdul)
+    w1 = HSTWCS(hdul, ext=("SCI", 1))
+    w4 = HSTWCS(hdul, ext=("SCI", 2))
+    assert w1.cpdis1 is None
+    assert w4.cpdis2 is None
+    hdul.close()
+
+
 def test_remove_d2im_distortion():
     acs_orig_file = get_filepath('j94f05bgq_flt.fits')
     current_dir = os.path.abspath(os.path.curdir)
@@ -211,6 +240,10 @@ def test_missing_idctab():
     with pytest.raises(IOError):
         updatewcs.updatewcs(acs_file)
 
+    fobj = fits.open(acs_file)
+    with pytest.raises(IOError):
+        updatewcs.updatewcs(fobj)
+
 
 def test_missing_npolfile():
     """ Tests that an IOError is raised if an NPOLFILE file is not found on disk."""
@@ -229,6 +262,10 @@ def test_missing_npolfile():
     with pytest.raises(IOError):
         updatewcs.updatewcs(acs_file)
 
+    fobj = fits.open(acs_file)
+    with pytest.raises(IOError):
+        updatewcs.updatewcs(fobj)
+
 
 def test_missing_d2imfile():
     """ Tests that an IOError is raised if a D2IMFILE file is not found on disk."""
@@ -246,6 +283,10 @@ def test_missing_d2imfile():
     fits.setval(acs_file, keyword="D2IMFILE", value="missing_d2i.fits")
     with pytest.raises(IOError):
         updatewcs.updatewcs(acs_file)
+
+    fobj = fits.open(acs_file)
+    with pytest.raises(IOError):
+        updatewcs.updatewcs(fobj)
 
 
 def test_found_idctab():
@@ -266,6 +307,12 @@ def test_found_idctab():
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
     fits.setval(acs_file, keyword="IDCTAB", value="N/A")
     corrections = apply_corrections.setCorrections(acs_file)
+    assert('MakeWCS' not in corrections)
+    assert('TDDCor' not in corrections)
+    assert('CompSIP' not in corrections)
+
+    fobj = fits.open(acs_file)
+    corrections = apply_corrections.setCorrections(fobj)
     assert('MakeWCS' not in corrections)
     assert('TDDCor' not in corrections)
     assert('CompSIP' not in corrections)
@@ -344,7 +391,8 @@ def test_apply_d2im():
     fits.setval(fname, ext=0, keyword="IDCTAB", value='N/A')
     fits.setval(fname, ext=0, keyword="NPOLFILE", value='N/A')
     # If D2IMEXT does not exist, the correction should be applied
-    assert appc.apply_d2im_correction(fname, d2imcorr=True)
+    fileobj = fits.open(fname, mode='update')
+    assert appc.apply_d2im_correction(fileobj, d2imcorr=True)
     updatewcs.updatewcs(fname)
 
     # Test the case when D2IMFILE == D2IMEXT
