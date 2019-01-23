@@ -30,8 +30,6 @@ import requests
 from io import BytesIO
 from lxml import etree
 
-from astropy.io import fits as pf
-
 from stwcs.wcsutil import headerlet
 from stwcs.updatewcs import utils
 
@@ -155,9 +153,6 @@ class AstrometryDB(object):
         obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
         logger.info("Updating astrometry for {}".format(observationID))
-        #
-        # apply to file...
-        #fileobj = pf.open(obsname, mode='update')
 
         # take inventory of what hdrlets are already appended to this file
         hdrnames = headerlet.get_headerlet_kw_names(obsname, 'hdrname')
@@ -172,22 +167,8 @@ class AstrometryDB(object):
             else:
                 return
 
-        # If no headerlet found in database, update database with this WCS
-        if self.new_observation:
-            logger.warning(" No new solution found in AstrometryDB.")
-            logger.warning(" Updating database with initial WCS {}".
-                           format(observationID))
-            hlet_buffer = BytesIO()
-            hlet_new = headerlet.create_headerlet(obsname)
-            newhdrname = hlet_new[0].header['hdrname']
-            hlet_new.writeto(hlet_buffer)
-
-            logger.info("Updating AstrometryDB with entry for {}".format(
-                        observationID))
-            logger.info("\t using WCS with HDRNAME={}".format(newhdrname))
-            # Add WCS solution from this observation to the database
-            self.addObservation(observationID, hlet_buffer)
-        else:
+        # If headerlet found in database, update file with all new WCS solutions
+        if not self.new_observation:
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
             for h in headerlets:
@@ -209,7 +190,6 @@ class AstrometryDB(object):
                 except ValueError:
                     pass
 
-        #fileobj.close()
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for
@@ -346,6 +326,34 @@ class AstrometryDB(object):
                 logger.warning("No updates performed...")
 
             return headerlets, best_solution_id
+
+    def updateDatabase(self, obsname):
+        """Add WCS from observation to database as a new entry"""
+        if not self.perform_step:
+            return
+        # Only perform this for observations which are NOT already in the dB
+        if not self.new_observation:
+            return
+
+        obsroot = obsname[0].header.get('rootname', None)
+        observationID = obsroot.split('_')[:1][0]
+
+        logger.warning(" No new solution found in AstrometryDB.")
+        logger.warning(" Updating database with initial WCS {}".
+                       format(observationID))
+        hlet_buffer = BytesIO()
+        hlet_new = headerlet.create_headerlet(obsname)
+        newhdrname = hlet_new[0].header['hdrname']
+        hlet_new.writeto(hlet_buffer)
+
+        logger.info("Updating AstrometryDB with entry for {}".format(
+                    observationID))
+        logger.info("\t using WCS with HDRNAME={}".format(newhdrname))
+        # Add WCS solution from this observation to the database
+        self.addObservation(observationID, hlet_buffer)
+
+        # Reset attribute since it has already been added to the database
+        self.new_observation = False
 
     def addObservation(self, observationID, new_solution):
         """Add WCS from current observation to database"""
