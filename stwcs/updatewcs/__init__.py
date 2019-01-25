@@ -29,7 +29,7 @@ atexit.register(logging.shutdown)
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, verbose=False, use_db=True):
+              checkfiles=True, verbose=False, use_db=True, update_db=False):
     """
 
     Updates HST science files with the best available calibration information.
@@ -55,25 +55,28 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
     Parameters
     ----------
-    input: a python list of file names or a string (wild card
+    input : a python list of file names or a string (wild card
              characters allowed) input files may be in fits, geis or
              waiver fits format
-    vacorr: boolean
+    vacorr : boolean
               If True, vecocity aberration correction will be applied
-    tddcorr: boolean
+    tddcorr : boolean
              If True, time dependent distortion correction will be applied
-    npolcorr: boolean
+    npolcorr : boolean
               If True, a Lookup table distortion will be applied
-    d2imcorr: boolean
+    d2imcorr : boolean
               If True, detector to image correction will be applied
-    checkfiles: boolean
+    checkfiles : boolean
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
-    use_db: boolean
+    use_db : boolean
               If True, attempt to add astrometric solutions from the
               MAST astrometry database.
               Default value is True.
+    update_db : boolean
+              If True, attempt to write solution to astrometry database
+              Default value is False
     """
     if not verbose:
         logger.setLevel(100)
@@ -140,6 +143,9 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             # Add any new astrometry solutions available from
             #  an accessible astrometry web-service
             astrometry.updateObs(f)
+            if update_db:
+                # This method will be a no-op if the observation is already in the dB
+                astrometry.updateDatabase(f)
 
         if toclose:
             f.close()
