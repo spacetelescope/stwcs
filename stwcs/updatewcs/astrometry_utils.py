@@ -172,7 +172,7 @@ class AstrometryDB(object):
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
             for h in headerlets:
-                newhdrname = headerlets[h][0].header['wcsname']
+                newhdrname = headerlets[h][0].header['hdrname']
                 if newhdrname in hdrnames:
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
