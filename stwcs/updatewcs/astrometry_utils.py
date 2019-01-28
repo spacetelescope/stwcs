@@ -47,7 +47,7 @@ astrometry_control_envvar = "ASTROMETRY_STEP_CONTROL"
 class AstrometryDB(object):
     """Base class for astrometry database interface."""
 
-    serviceLocation = 'https://masttest.stsci.edu/portal/astrometryDB/'
+    serviceLocation = 'https://mast.stsci.edu/portal/astrometryDB/'
     headers = {'Content-Type': 'text/xml'}
 
     available = True
@@ -326,54 +326,6 @@ class AstrometryDB(object):
                 logger.warning("No updates performed...")
 
             return headerlets, best_solution_id
-
-    def updateDatabase(self, obsname):
-        """Add WCS from observation to database as a new entry"""
-        if not self.perform_step:
-            return
-        # Only perform this for observations which are NOT already in the dB
-        if not self.new_observation:
-            return
-
-        obsroot = obsname[0].header.get('rootname', None)
-        observationID = obsroot.split('_')[:1][0]
-
-        logger.warning(" No new solution found in AstrometryDB.")
-        logger.warning(" Updating database with initial WCS {}".
-                       format(observationID))
-        hlet_buffer = BytesIO()
-        hlet_new = headerlet.create_headerlet(obsname)
-        newhdrname = hlet_new[0].header['hdrname']
-        hlet_new.writeto(hlet_buffer)
-
-        logger.info("Updating AstrometryDB with entry for {}".format(
-                    observationID))
-        logger.info("\t using WCS with HDRNAME={}".format(newhdrname))
-        # Add WCS solution from this observation to the database
-        self.addObservation(observationID, hlet_buffer)
-
-        # Reset attribute since it has already been added to the database
-        self.new_observation = False
-
-    def addObservation(self, observationID, new_solution):
-        """Add WCS from current observation to database"""
-        if not self.perform_step:
-            return
-
-        serviceEndPoint = self.serviceLocation+'observation/create'
-        headers = {'Content-Type': 'application/octet-stream'}
-
-        r = requests.post(serviceEndPoint, data=new_solution, headers=headers)
-        if r.status_code == requests.codes.ok:
-            logger.info("AstrometryDB service updated with new entry for {}".
-                        format(observationID))
-        else:
-            l = "Problem encountered when adding {} to database".\
-                           format(observationID)
-            if self.raise_errors:
-                raise Exception(l)
-            else:
-                logger.warning(l)
 
     def isAvailable(self):
         """Test availability of astrometryDB web-service."""
