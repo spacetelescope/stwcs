@@ -10,6 +10,9 @@
 - Update the XML parser for the astrometry database and switch the default to use
   the MAST TEST server which is publicly accessible. [#74]
 
+- Gracefully ignore when the astrometry database returns an empty result for
+  an image. [#84] 
+
 
 1.4.2(2018-08-07)
 -----------------

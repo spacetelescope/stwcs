@@ -276,9 +276,10 @@ class AstrometryDB(object):
                 return None, None
 
         r = self.findObservation(observationID)
+        best_solution_id = None
 
         if r is None or self.new_observation:
-            return r, None
+            return r, best_solution_id
         else:
             # Now, interpret return value for observation into separate
             # headerlets to be appended to observation
@@ -304,6 +305,8 @@ class AstrometryDB(object):
             for solution_info in solutions:
                 solutionID = solution_info['solutionID']
                 wcsName = solution_info['wcsName']
+                if solutionID is None:
+                    continue
                 # Translate bestSolutionID into wcsName, if one is specified
                 if best_solution_id and best_solution_id == solutionID:
                     best_solution_id = wcsName
