@@ -109,17 +109,13 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         for item in file_names:
             files.append(fits.open(item, mode='update'))
 
-    if checkfiles:
-        files = checkFiles(files)
-        if not files:
-            print('No valid input, quitting ...\n')
-            return
     logger.info("\n\tInput files: {}".format(file_names))
     logger.info("\n\tInput arguments: %s" % args)
 
-    print('names', file_names)
+    print('file_names', file_names)
     if checkfiles:
         files = checkFiles(files)
+        file_names = [inp.filename() for inp in files]
         if not files:
             print('No valid input, quitting ...\n')
             return
@@ -135,7 +131,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if 'MakeWCS' in acorr and newIDCTAB(f):
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
-
         makecorr(f, acorr)
 
         if use_db:
@@ -145,6 +140,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
         if toclose:
             f.close()
+
     return file_names
 
 
@@ -355,7 +351,7 @@ def checkFiles(input):
 
     for file in input:
         try:
-                imgfits, imgtype = fileutil.isFits(file)
+            imgfits, imgtype = fileutil.isFits(file)
         except IOError:
             logger.warning("File {0} could not be found, removing it from the"
                            "input list.".format(file))
