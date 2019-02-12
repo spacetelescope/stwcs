@@ -404,3 +404,28 @@ def test_apply_d2im():
     # No D2IMFILE keyword in primary header
     fits.delval(fname, ext=0, keyword='D2IMFILE')
     assert not appc.apply_d2im_correction(fname, d2imcorr=True)
+    
+def test_update_waiver_wfpc2():
+    wfpc2_orig_file = get_filepath('u40x010hm_c0f.fits')
+    current_dir = os.path.abspath(os.path.curdir)
+    fname = get_filepath('u40x010hm_c0f.fits', current_dir)
+    fname_c1f = fname.replace('c0f','c1f')
+    fname_d2im = fname.replace('c0f','c0h_d2im')
+    fname_output = fname.replace('c0f','c0h')
+    fname_c1h = fname.replace('c1f','c1h')
+    try:
+        os.remove(fname)
+        os.remove(fname_c1f)
+        os.remove(fname_d2im)
+        os.remove(fname_output)
+        os.remove(fname_c1h)
+    except OSError:
+        pass
+    shutil.copyfile(wfpc2_orig_file, fname)
+    shutil.copyfile(wfpc2_orig_file.replace('c0f','c1f'), fname_c1f)
+
+    updated_file = updatewcs.updatewcs(fname)
+    fileobj = fits.open(updated_file[0])
+    assert len(fileobj) == 6  # Converted to MEF file with D2IMARR ext
+    assert 'wcsname' in fileobj[1].header # New WCS written out with WCSNAME
+

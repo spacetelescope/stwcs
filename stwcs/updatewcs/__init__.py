@@ -112,7 +112,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     logger.info("\n\tInput files: {}".format(file_names))
     logger.info("\n\tInput arguments: %s" % args)
 
-    print('file_names', file_names)
     if checkfiles:
         files = checkFiles(files)
         file_names = [inp.filename() for inp in files]
