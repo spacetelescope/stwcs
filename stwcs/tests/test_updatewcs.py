@@ -404,7 +404,7 @@ def test_apply_d2im():
     # No D2IMFILE keyword in primary header
     fits.delval(fname, ext=0, keyword='D2IMFILE')
     assert not appc.apply_d2im_correction(fname, d2imcorr=True)
-    
+
 def test_update_waiver_wfpc2():
     wfpc2_orig_file = get_filepath('u40x010hm_c0f.fits')
     current_dir = os.path.abspath(os.path.curdir)
@@ -429,3 +429,29 @@ def test_update_waiver_wfpc2():
     assert len(fileobj) == 6  # Converted to MEF file with D2IMARR ext
     assert 'wcsname' in fileobj[1].header # New WCS written out with WCSNAME
 
+
+def test_update_stis_asn():
+    stis_asn_orig_file = get_filepath('o4k19a010_flt.fits')
+    current_dir = os.path.abspath(os.path.curdir)
+    fname = get_filepath('o4k19a010_flt.fits', current_dir)
+    fname_expname1 = fname.replace('a010', 'ac3q')
+    fname_expname2 = fname.replace('a010', 'ac4q')
+
+    try:
+        os.remove(fname)
+        os.remove(fname_expname1)
+        os.remove(fname_expname2)
+    except OSError:
+        pass
+
+    shutil.copyfile(stis_asn_orig_file, fname)
+
+    expnames = updatewcs.updatewcs(fname)
+
+    assert expnames[0] == os.path.basename(fname_expname1)
+    assert expnames[1] == os.path.basename(fname_expname2)
+    assert os.path.exists(fname_expname1)
+    assert os.path.exists(fname_expname2)
+
+    wcsname_exp1 = fits.getval('o4k19ac3q_flt.fits','wcsname',ext=('sci',1))
+    assert wcsname_exp1.startswith('IDC_')
