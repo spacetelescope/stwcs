@@ -407,8 +407,10 @@ def test_apply_d2im():
 
 def test_update_waiver_wfpc2():
     wfpc2_orig_file = get_filepath('u40x010hm_c0f.fits')
+    dgeo_orig_file = get_filepath('s8f1222cu_dxy.fits')
     current_dir = os.path.abspath(os.path.curdir)
     fname = get_filepath('u40x010hm_c0f.fits', current_dir)
+    dgeofile = get_filepath('s8f1222cu_dxy.fits', current_dir)
     fname_c1f = fname.replace('c0f','c1f')
     fname_d2im = fname.replace('c0f','c0h_d2im')
     fname_output = fname.replace('c0f','c0h')
@@ -419,9 +421,11 @@ def test_update_waiver_wfpc2():
         os.remove(fname_d2im)
         os.remove(fname_output)
         os.remove(fname_c1h)
+        os.remove(dgeofile)
     except OSError:
         pass
     shutil.copyfile(wfpc2_orig_file, fname)
+    shutil.copyfile(dgeo_orig_file, dgeofile)
     shutil.copyfile(wfpc2_orig_file.replace('c0f','c1f'), fname_c1f)
 
     updated_file = updatewcs.updatewcs(fname)
