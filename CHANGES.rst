@@ -13,6 +13,7 @@
 - Gracefully ignore when the astrometry database returns an empty result for
   an image. [#84] 
 
+- Insure updatewcs works with WFPC2 data while supporting HDUList inputs. [#85]
 
 1.4.2(2018-08-07)
 -----------------
