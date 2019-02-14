@@ -408,9 +408,14 @@ def test_apply_d2im():
 def test_update_waiver_wfpc2():
     wfpc2_orig_file = get_filepath('u40x010hm_c0f.fits')
     dgeo_orig_file = get_filepath('s8f1222cu_dxy.fits')
+    idc_orig_file = get_filepath('sad1946fu_idc.fits')
+    off_orig_file = get_filepath('s9518396u_off.fits')
     current_dir = os.path.abspath(os.path.curdir)
+    os.environ['uref'] = current_dir+'/'
     fname = get_filepath('u40x010hm_c0f.fits', current_dir)
     dgeofile = get_filepath('s8f1222cu_dxy.fits', current_dir)
+    idctab = get_filepath('sad1946fu_idc.fits', current_dir)
+    offtab = get_filepath('s9518396u_off.fits', current_dir)
     fname_c1f = fname.replace('c0f','c1f')
     fname_d2im = fname.replace('c0f','c0h_d2im')
     fname_output = fname.replace('c0f','c0h')
@@ -422,10 +427,14 @@ def test_update_waiver_wfpc2():
         os.remove(fname_output)
         os.remove(fname_c1h)
         os.remove(dgeofile)
+        os.remove(idctab)
+        os.remove(offtab)
     except OSError:
         pass
     shutil.copyfile(wfpc2_orig_file, fname)
     shutil.copyfile(dgeo_orig_file, dgeofile)
+    shutil.copyfile(idc_orig_file, idctab)
+    shutil.copyfile(off_orig_file, offtab)
     shutil.copyfile(wfpc2_orig_file.replace('c0f','c1f'), fname_c1f)
 
     updated_file = updatewcs.updatewcs(fname)
@@ -436,7 +445,10 @@ def test_update_waiver_wfpc2():
 
 def test_update_stis_asn():
     stis_asn_orig_file = get_filepath('o4k19a010_flt.fits')
+    idc_orig_file = get_filepath('o8g1508do_idc.fits')
     current_dir = os.path.abspath(os.path.curdir)
+    os.environ['oref'] = current_dir+'/'
+    idctab = get_filepath('o8g1508do_idc.fits', current_dir)
     fname = get_filepath('o4k19a010_flt.fits', current_dir)
     fname_expname1 = fname.replace('a010', 'ac3q')
     fname_expname2 = fname.replace('a010', 'ac4q')
@@ -445,10 +457,12 @@ def test_update_stis_asn():
         os.remove(fname)
         os.remove(fname_expname1)
         os.remove(fname_expname2)
+        os.remove(idctab)
     except OSError:
         pass
 
     shutil.copyfile(stis_asn_orig_file, fname)
+    shutil.copyfile(idc_orig_file, idctab)
 
     expnames = updatewcs.updatewcs(fname)
 
