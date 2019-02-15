@@ -55,28 +55,29 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
     Parameters
     ----------
-    input: a python list of file names or a string (wild card
+    input : a python list of file names or a string (wild card
              characters allowed) input files may be in fits, geis or
              waiver fits format
-    vacorr: boolean
+    vacorr : boolean
               If True, vecocity aberration correction will be applied
-    tddcorr: boolean
+    tddcorr : boolean
              If True, time dependent distortion correction will be applied
-    npolcorr: boolean
+    npolcorr : boolean
               If True, a Lookup table distortion will be applied
-    d2imcorr: boolean
+    d2imcorr : boolean
               If True, detector to image correction will be applied
-    checkfiles: boolean
+    checkfiles : boolean
               If True, the format of the input files will be checked,
               geis and waiver fits files will be converted to MEF format.
               Default value is True for standalone mode.
-    use_db: boolean
+    use_db : boolean
               If True, attempt to add astrometric solutions from the
               MAST astrometry database.
               Default value is True.
     """
     if not verbose:
         logger.setLevel(100)
+        write_db_log = False
     else:
         fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         formatter = logging.Formatter(fmt)
@@ -86,16 +87,34 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         fh.setFormatter(formatter)
         logger.addHandler(fh)
         logger.setLevel(verbose)
+        write_db_log = True
     args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
     " % (str(vacorr), str(tddcorr), str(npolcorr),
          str(d2imcorr), str(checkfiles))
     logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
 
-    files = parseinput.parseinput(input)[0]
-    logger.info("\n\tInput files: %s, " % [i for i in files])
+    toclose = True
+
+    if isinstance(input, fits.HDUList):
+        input = [input]
+
+    if isinstance(input, list) and isinstance(input[0], fits.HDUList):
+        files = input
+        file_names = [inp.filename() for inp in files]
+        toclose = False
+    else:
+        file_names = parseinput.parseinput(input)[0]
+
+        files = []
+        for item in file_names:
+            files.append(fits.open(item, mode='update'))
+
+    logger.info("\n\tInput files: {}".format(file_names))
     logger.info("\n\tInput arguments: %s" % args)
+
     if checkfiles:
         files = checkFiles(files)
+        file_names = [inp.filename() for inp in files]
         if not files:
             print('No valid input, quitting ...\n')
             return
@@ -103,7 +122,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     if use_db:
         # Establish any available connection to
         #  an accessible astrometry web-service
-        astrometry = astrometry_utils.AstrometryDB()
+        astrometry = astrometry_utils.AstrometryDB(write_log=write_db_log)
 
     for f in files:
         acorr = apply_corrections.setCorrections(f, vacorr=vacorr, tddcorr=tddcorr,
@@ -111,7 +130,6 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if 'MakeWCS' in acorr and newIDCTAB(f):
             logger.warning("\n\tNew IDCTAB file detected. All current WCSs will be deleted")
             cleanWCS(f)
-
         makecorr(f, acorr)
 
         if use_db:
@@ -119,9 +137,13 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
             #  an accessible astrometry web-service
             astrometry.updateObs(f)
 
-    return files
+        if toclose:
+            f.close()
 
-def makecorr(fname, allowed_corr):
+    return file_names
+
+
+def makecorr(f, allowed_corr):
     """
     Purpose
     =======
@@ -134,7 +156,7 @@ def makecorr(fname, allowed_corr):
              list of corrections to be applied
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
-    f = fits.open(fname, mode='update')
+    #f = fits.open(fname, mode='update')
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
@@ -228,7 +250,7 @@ def makecorr(fname, allowed_corr):
     f[0].header['SIPNAME'] = distdict['SIPNAME']
     # Make sure NEXTEND keyword remains accurate
     f[0].header['NEXTEND'] = len(f) - 1
-    f.close()
+    #f.close()
 
 
 def copyWCS(w, ehdr):
@@ -311,7 +333,6 @@ def getNrefchip(fobj):
             if extname is not None and extname.lower == 'sci':
                 nrefext = i
                 break
-
     return nrefchip, nrefext
 
 
@@ -329,7 +350,7 @@ def checkFiles(input):
 
     for file in input:
         try:
-                imgfits, imgtype = fileutil.isFits(file)
+            imgfits, imgtype = fileutil.isFits(file)
         except IOError:
             logger.warning("File {0} could not be found, removing it from the"
                            "input list.".format(file))
@@ -370,11 +391,11 @@ def checkFiles(input):
 
 def newIDCTAB(fname):
     # When this is called we know there's a kw IDCTAB in the header
-    hdul = fits.open(fname)
-    idctab = fileutil.osfn(hdul[0].header['IDCTAB'])
+    #hdul = fits.open(fname)
+    idctab = fileutil.osfn(fname[0].header['IDCTAB'])
     try:
         # check for the presence of IDCTAB in the first extension
-        oldidctab = fileutil.osfn(hdul[1].header['IDCTAB'])
+        oldidctab = fileutil.osfn(fname[1].header['IDCTAB'])
     except KeyError:
         return False
     if idctab == oldidctab:
@@ -386,8 +407,8 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.
-    f = fits.open(fname, mode='update')
-    keys = wcsutil.wcskeys(f[1].header)
+    #f = fits.open(fname, mode='update')
+    keys = wcsutil.wcskeys(fname[1].header)
     # Remove the primary WCS from the list
     try:
         keys.remove(' ')

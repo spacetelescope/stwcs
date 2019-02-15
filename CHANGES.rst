@@ -1,3 +1,20 @@
+1.5.0(2019/02/15)
+----------------
+
+- Fixed a bug in converting a ``PC`` to a ``CD`` matrix. [#77]
+
+- Filter out expected warnings from tests. [#78]
+
+- Allow ``updatewcs`` to be called with ``HDUList`` objects as input. [#80]
+
+- Update the XML parser for the astrometry database and switch the default to use
+  the MAST TEST server which is publicly accessible. [#74]
+
+- Gracefully ignore when the astrometry database returns an empty result for
+  an image. [#84] 
+
+- Insure updatewcs works with WFPC2 data while supporting HDUList inputs. [#85]
+
 1.4.2(2018-08-07)
 -----------------
 

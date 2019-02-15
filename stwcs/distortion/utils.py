@@ -53,9 +53,10 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
 
     tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']
 
-    outwcs._naxis1 = int(np.ceil(tanpix[:, 0].max() - tanpix[:, 0].min()))
-    outwcs._naxis2 = int(np.ceil(tanpix[:, 1].max() - tanpix[:, 1].min()))
-    crpix = np.array([outwcs._naxis1 / 2., outwcs._naxis2 / 2.], dtype=np.float64)
+    _naxis1 = int(np.ceil(tanpix[:, 0].max() - tanpix[:, 0].min()))
+    _naxis2 = int(np.ceil(tanpix[:, 1].max() - tanpix[:, 1].min()))
+    outwcs.pixel_shape = (_naxis1, _naxis2)
+    crpix = np.array([_naxis1 / 2., _naxis2 / 2.], dtype=np.float64)
     outwcs.wcs.crpix = crpix
     outwcs.wcs.set()
     tanpix = outwcs.wcs.s2p(fra_dec, 0)['pixcrd']

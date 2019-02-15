@@ -30,9 +30,8 @@ import requests
 from io import BytesIO
 from lxml import etree
 
-from astropy.io import fits as pf
-
 from stwcs.wcsutil import headerlet
+from stwcs.updatewcs import utils
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
@@ -48,7 +47,7 @@ astrometry_control_envvar = "ASTROMETRY_STEP_CONTROL"
 class AstrometryDB(object):
     """Base class for astrometry database interface."""
 
-    serviceLocation = 'https://mastdev.stsci.edu/portal/astrometryDB/'
+    serviceLocation = 'https://mast.stsci.edu/portal/astrometryDB/'
     headers = {'Content-Type': 'text/xml'}
 
     available = True
@@ -151,18 +150,12 @@ class AstrometryDB(object):
         if not self.perform_step:
             return
 
-        # Parse observation name
-        obspath, obsroot = os.path.split(obsname)
-        # use `obspath` for location of output files,
-        #    if anything gets written out
+        obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
         logger.info("Updating astrometry for {}".format(observationID))
-        #
-        # apply to file...
-        fileobj = pf.open(obsname, mode='update')
 
         # take inventory of what hdrlets are already appended to this file
-        hdrnames = headerlet.get_headerlet_kw_names(fileobj, 'hdrname')
+        hdrnames = headerlet.get_headerlet_kw_names(obsname, 'hdrname')
 
         headerlets, best_solution_id = self.getObservation(observationID)
         if headerlets is None:
@@ -174,22 +167,8 @@ class AstrometryDB(object):
             else:
                 return
 
-        # If no headerlet found in database, update database with this WCS
-        if self.new_observation:
-            logger.warning(" No new solution found in AstrometryDB.")
-            logger.warning(" Updating database with initial WCS {}".
-                           format(observationID))
-            hlet_buffer = BytesIO()
-            hlet_new = headerlet.create_headerlet(fileobj)
-            newhdrname = hlet_new[0].header['hdrname']
-            hlet_new.writeto(hlet_buffer)
-
-            logger.info("Updating AstrometryDB with entry for {}".format(
-                        observationID))
-            logger.info("\t using WCS with HDRNAME={}".format(newhdrname))
-            # Add WCS solution from this observation to the database
-            self.addObservation(observationID, hlet_buffer)
-        else:
+        # If headerlet found in database, update file with all new WCS solutions
+        if not self.new_observation:
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
             for h in headerlets:
@@ -200,18 +179,17 @@ class AstrometryDB(object):
                 try:
                     if best_solution_id and newhdrname == best_solution_id:
                         # replace primary WCS with this solution
-                        headerlets[h].apply_as_primary(fileobj)
+                        headerlets[h].apply_as_primary(obsname)
                         logger.info('Replacing primary WCS with')
                         logger.info('\tHeaderlet with HDRNAME={}'.format(
                                      newhdrname))
                     else:
                         logger.info("\tHeaderlet with HDRNAME={}".format(
                                     newhdrname))
-                        headerlets[h].attach_to_file(fileobj)
+                        headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
 
-        fileobj.close()
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for
@@ -298,35 +276,44 @@ class AstrometryDB(object):
                 return None, None
 
         r = self.findObservation(observationID)
+        best_solution_id = None
 
         if r is None or self.new_observation:
-            return r, None
+            return r, best_solution_id
         else:
             # Now, interpret return value for observation into separate
             # headerlets to be appended to observation
             headerlets = {}
             tree = BytesIO(r.content)
+            root = etree.parse(tree)
+
+            # Convert returned solutions specified in XML into dictionaries
             solutions = []
-            # get names of solutions in database
-            for _, element in etree.iterparse(tree, tag='solution'):
-                s = element[1].text
-                if s:
-                    solutions.append(s)
-            # get name of best solution specified by database
-            tree.seek(0)
-            best_solution_id = None
-            for _, element in etree.iterparse(tree, tag='bestsolutionid'):
-                best_solution_id = element
-                break
-            if best_solution_id == '':
-                best_solution_id = None
+            for solution in root.iter('solution'):
+                sinfo = {}
+                for field in solution.iter():
+                    if field.tag != 'solution':
+                        sinfo[field.tag] = field.text
+                solutions.append(sinfo)
+
+            # interpret bestSolutionID from tree
+            for bestID in root.iter('bestSolutionID'):
+                best_solution_id = bestID.text
 
             # Now use these names to get the actual updated solutions
             headers = {'Content-Type': 'application/fits'}
-            for solutionID in solutions:
+            for solution_info in solutions:
+                solutionID = solution_info['solutionID']
+                wcsName = solution_info['wcsName']
+                if solutionID is None:
+                    continue
+                # Translate bestSolutionID into wcsName, if one is specified
+                if best_solution_id and best_solution_id == solutionID:
+                    best_solution_id = wcsName
                 serviceEndPoint = self.serviceLocation + \
                     'observation/read/' + observationID + \
-                    '?wcsname='+solutionID
+                    '?wcsname='+wcsName
+                print('Retrieving astrometrically-updated WCS "{}" for observation "{}"'.format(wcsName, observationID))
                 r_solution = requests.get(serviceEndPoint, headers=headers)
                 if r_solution.status_code == requests.codes.ok:
                     hlet_bytes = BytesIO(r_solution.content).getvalue()
@@ -340,28 +327,8 @@ class AstrometryDB(object):
             if not solutions:
                 logger.warning("No new WCS's found for {}".format(observationID))
                 logger.warning("No updates performed...")
-                
+
             return headerlets, best_solution_id
-
-    def addObservation(self, observationID, new_solution):
-        """Add WCS from current observation to database"""
-        if not self.perform_step:
-            return
-
-        serviceEndPoint = self.serviceLocation+'observation/create'
-        headers = {'Content-Type': 'application/octet-stream'}
-
-        r = requests.post(serviceEndPoint, data=new_solution, headers=headers)
-        if r.status_code == requests.codes.ok:
-            logger.info("AstrometryDB service updated with new entry for {}".
-                        format(observationID))
-        else:
-            l = "Problem encountered when adding {} to database".\
-                           format(observationID)
-            if self.raise_errors:
-                raise Exception(l)
-            else:
-                logger.warning(l)
 
     def isAvailable(self):
         """Test availability of astrometryDB web-service."""
