@@ -7,8 +7,8 @@ os:
 sudo: false
 
 python:
-    - 3.5
     - 3.6
+    - 3.7
 
 env:
     global:
@@ -16,7 +16,7 @@ env:
         # overidden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
         - NUMPY_VERSION=stable
-        - ASTROPY_VERSION=development
+        - ASTROPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - CONDA_CHANNELS='http://ssb.stsci.edu/conda-dev'
         - CONDA_DEPENDENCIES='pytest'
@@ -34,14 +34,34 @@ matrix:
     fast_finish: true
 
     include:
-        # Do a PEP8 test with pycodestyle
+        # Numpy
         - python: 3.5
+          env: NUMPY_VERSION=1.15 SETUP_CMD="test"
+
+        # Do a PEP8 test with pycodestyle
+        - python: 3.6
           env: MAIN_CMD='pycodestyle stwcs --count' SETUP_CMD=''
 
         # build sphinx documentation with warnings
         - python: 3.6
           env: SETUP_CMD='build_sphinx'
                PIP_DEPENDENCIES='sphinx-automodapi sphinx_rtd_theme git+https://github.com/spacetelescope/stsci.tools.git'
+
+        - python: 3.6
+          env: NUMPY_VERSION=dev SETUP_CMD='test'
+               #EVENT_TYPE='cron'
+
+        - python: 3.6
+          env: ASTROPY_VERSION=development SETUP_CMD='test'
+               #EVENT_TYPE='cron'
+
+        - python: 3.7
+          env: NUMPY_VERSION=dev SETUP_CMD='test'
+               #EVENT_TYPE='cron'
+
+        - python: 3.7
+          env: ASTROPY_VERSION=development SETUP_CMD='test'
+               #EVENT_TYPE='cron'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
