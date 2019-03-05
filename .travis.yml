@@ -1,4 +1,4 @@
-language: python
+language: c
 
 os:
     - linux
@@ -8,7 +8,7 @@ sudo: false
 
 python:
     - 3.6
-    - 3.7
+    #- 3.7
 
 env:
     global:
@@ -38,6 +38,10 @@ matrix:
         - python: 3.5
           env: NUMPY_VERSION=1.15 SETUP_CMD="test"
 
+        # Numpy
+        - python: 3.6
+          env: NUMPY_VERSION=1.15 SETUP_CMD="test"
+
         # Do a PEP8 test with pycodestyle
         - python: 3.6
           env: MAIN_CMD='pycodestyle stwcs --count' SETUP_CMD=''
@@ -55,17 +59,17 @@ matrix:
           env: ASTROPY_VERSION=development SETUP_CMD='test'
                #EVENT_TYPE='cron'
 
-        - python: 3.7
-          env: NUMPY_VERSION=dev SETUP_CMD='test'
+        #- python: 3.7
+        #  env: NUMPY_VERSION=dev SETUP_CMD='test'
                #EVENT_TYPE='cron'
 
-        - python: 3.7
-          env: ASTROPY_VERSION=development SETUP_CMD='test'
+        #- python: 3.7
+        #  env: ASTROPY_VERSION=development SETUP_CMD='test'
                #EVENT_TYPE='cron'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
-        - python: 3.5
+        - python: 3.6
           env: MAIN_CMD='pycodestyle stwcs --count' SETUP_CMD=''
 
 install:
