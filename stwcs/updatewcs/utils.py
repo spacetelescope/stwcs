@@ -1,5 +1,4 @@
 import os
-from astropy.io import fits
 from stsci.tools import fileutil
 
 import logging
@@ -11,24 +10,14 @@ def diff_angles(a, b):
     Perform angle subtraction a-b taking into account
     small-angle differences across 360degree line.
     """
-
-    diff = a - b
-
-    if diff > 180.0:
-        diff -= 360.0
-
-    if diff < -180.0:
-        diff += 360.0
-
-    return diff
+    return (a - b - 180.0) % 360.0 - 180.0
 
 
 def getBinning(fobj, extver=1):
     # Return the binning factor
-    binned = 1
     if fobj[0].header['INSTRUME'] == 'WFPC2':
         mode = fobj[0].header.get('MODE', "")
-        if mode == 'AREA': binned = 2
+        binned = 2 if mode == 'AREA' else 1
     else:
         binned = fobj['SCI', extver].header.get('BINAXIS', 1)
     return binned
@@ -51,19 +40,19 @@ def updateNEXTENDKw(fobj):
 def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
 
-        If a non-valid value (any of ['','N/A','NONE','INDEF',None]) is input,
-            simply return a string value of 'NONE'
+    If a non-valid value (any of ['','N/A','NONE','INDEF']) is input,
+        simply return a string value of 'NONE'
 
-        This function will also replace any 'suffix' specified with a blank.
+    This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
-    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF', None]:
+    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF']:
         return 'NONE'  # no valid value, so return 'NONE'
 
     # for a valid kwvalue, parse out the rootname
     # strip off any environment variable from input filename, if any are given
     if '$' in kwvalue:
-        fullval = kwvalue[kwvalue.find('$') + 1: ]
+        fullval = kwvalue[kwvalue.find('$') + 1:]
     else:
         fullval = kwvalue
     # Extract filename without path from kwvalue
@@ -152,7 +141,7 @@ def build_sipname(fobj, fname=None, sipname=None):
     if not fname:
         try:
             fname = fobj.filename()
-        except:
+        except Exception:
             fname = " "
     if not sipname:
         try:
@@ -240,12 +229,13 @@ def build_d2imname(fobj, d2imfile=None):
         d2imname = extract_rootname(d2imfile, suffix='_d2i')
         if d2imname == 'NONE':
             d2imname = 'NOMODEL'
+
     return d2imname, d2imfile
 
 
 def remove_distortion(fname, dist_keyword):
-    logger.info("Removing distortion {0} from file {0}".format(dist_keyword,
-                                                               fname[0].header['rootname']))
+    logger.info("Removing distortion {0} from file {0}"
+                .format(dist_keyword, fname[0].header['rootname']))
     from ..wcsutil import altwcs
     if dist_keyword == "NPOLFILE":
         extname = "WCSDVARR"
@@ -254,10 +244,12 @@ def remove_distortion(fname, dist_keyword):
         extname = "D2IMARR"
         keywords = ["D2IMERR*", "D2IM1.*", "D2IM2.*", "D2IMDIS*", "D2IMEXT"]
     else:
-        raise AttributeError("Unrecognized distortion keyword "
-                             "{0} when attempting to remove distortion".format(dist_keyword))
+        raise AttributeError(
+            "Unrecognized distortion keyword {} when attempting to remove "
+            "distortion".format(dist_keyword)
+        )
     ext_mapping = altwcs.mapFitsExt2HDUListInd(fname, "SCI").values()
-    #f = fits.open(fname, mode="update")
+
     for hdu in ext_mapping:
         for kw in keywords:
             try:
@@ -268,4 +260,3 @@ def remove_distortion(fname, dist_keyword):
     ext_mapping.sort()
     for hdu in ext_mapping[::-1]:
         del fname[hdu]
-    #f.close()
