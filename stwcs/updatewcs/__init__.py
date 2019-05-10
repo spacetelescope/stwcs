@@ -10,7 +10,6 @@ from .. import __version__
 from astropy import wcs as pywcs
 import astropy
 from astropy import log
-default_log_level = log.getEffectiveLevel()
 
 from . import utils, corrections
 from . import npol, det2im
@@ -161,9 +160,10 @@ def makecorr(f, allowed_corr):
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
 
-    log.setLevel("WARNING")
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
-    log.setLevel(default_log_level)
+    fc = wcsutil.altwcs._del_SIP_kwd(
+        f.copy()[nrefext].header, ' ', inplace=True
+    )
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
@@ -178,12 +178,13 @@ def makecorr(f, allowed_corr):
         if 'extname' in extn.header:
             extname = extn.header['extname'].lower()
             if extname == 'sci':
-                log.setLevel("WARNING")
                 wcsutil.restoreWCS(f, ext=i, wcskey='O')
-                log.setLevel(default_log_level)
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
+                wcsutil.altwcs._del_SIP_kwd(
+                    f.copy()[i].header, ' ', inplace=True
+                )
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
@@ -199,10 +200,12 @@ def makecorr(f, allowed_corr):
                 # give the primary WCS a WCSNAME value
                 idcname = f[0].header.get('IDCTAB', " ")
                 if idcname.strip() and 'idc.fits' in idcname:
-                    wname = ''.join(['IDC_',
-                                     utils.extract_rootname(idcname, suffix='_idc')])
-                else: wname = " "
-                hdr['WCSNAME'] = wname
+                    hdr['WCSNAME'] = ''.join(
+                        ['IDC_',
+                         utils.extract_rootname(idcname, suffix='_idc')]
+                    )
+                else:
+                    hdr['WCSNAME'] = " "
 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -260,7 +263,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    hwcs = w.to_header()
+    hwcs = w.to_header(relax=False)
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
@@ -416,6 +419,9 @@ def cleanWCS(fname):
         pass
     fext = list(range(1, len(f)))
     for key in keys:
+        if key == 'O':
+            continue
+
         try:
             wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
         except KeyError:

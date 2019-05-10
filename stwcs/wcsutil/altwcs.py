@@ -5,19 +5,39 @@ from astropy import wcs as pywcs
 from astropy.io import fits
 from stsci.tools import fileutil as fu
 
-from astropy import log
-default_log_level = log.getEffectiveLevel()
 
-
-__all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
-           "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames"]
+__all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS",
+           "next_wcskey", "pc2cd", "readAltWCS", "restoreWCS", "wcskeys",
+           "wcsnames"]
 
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
 altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
-# file operations
+
+def _del_SIP_kwd(hdr, key, inplace=False):
+    # remove SIP before reading a non-SIP WCS to surpress warning message,
+    # see https://github.com/spacetelescope/stwcs/issues/25 :
+    u_key = key.strip().upper()
+    sip_in_ctype = all(
+        hdr.get('CTYPE{:1d}{:1s}'.format(k, u_key), '')
+        .strip().upper().endswith('-SIP') for k in (1, 2)
+    )
+
+    if sip_in_ctype:
+        return hdr  # no need to make a copy when header is not modified
+
+    else:
+        hdrc = hdr if inplace else hdr.copy()
+
+        if 'A_ORDER' in hdrc:
+            del hdrc['A_ORDER']
+
+        if 'B_ORDER' in hdrc:
+            del hdrc['B_ORDER']
+
+        return hdrc
 
 
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
@@ -59,7 +79,6 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
 
     """
-
     if isinstance(fname, str):
         f = fits.open(fname, mode='update')
     else:
@@ -111,7 +130,9 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
                 wnames = wcsnames(f[wcsext].header)
-                if 'O' in wnames: del wnames['O']  # we don't want OPUS/original
+                if 'O' in wnames:
+                    del wnames['O']  # we don't want OPUS/original
+
                 if len(wnames) > 0:
                     if ' ' in wnames:
                         wname = wnames[' ']
@@ -127,18 +148,17 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
-    log.setLevel('WARNING')
+
     for e in ext:
-        hdr = _getheader(f, e)
+        hdr = _del_SIP_kwd(_getheader(f, e), key=' ')
         w = pywcs.WCS(hdr, f)
-        hwcs = w.to_header()
 
-        if hwcs is None:
-            continue
+        hwcs_relaxed = w.to_header(relax=True)
+        hwcs = w.to_header(relax=False)
 
-        if w.sip is not None:
-            for i in range(1, w.naxis + 1):
-                hwcs['CTYPE{0}'.format(i)] = hwcs['CTYPE{0}'.format(i)] + '-SIP'
+        for i in range(1, w.naxis + 1):
+            ctypei = 'CTYPE{0}'.format(i)
+            hwcs[ctypei] = hwcs_relaxed[ctypei]
 
         if w.wcs.has_cd():
             hwcs = pc2cd(hwcs, key=" ")
@@ -146,15 +166,13 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         wcsnamekey = 'WCSNAME' + wkey
         f[e].header[wcsnamekey] = wname
 
-        try:
-            old_wcsname = hwcs.pop('WCSNAME')
-        except:
-            pass
+        if 'WCSNAME' in hwcs:
+            del hwcs['WCSNAME']
 
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
-    log.setLevel(default_log_level)
+
     closefobj(fname, f)
 
 
@@ -208,11 +226,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     # if fobj.filename() is not None:
     #        name = fobj.filename()
 
-    simplefits = fu.isFits(fobj)[1] is 'simple'
-    if simplefits:
-        wcskeyext = 0
-    else:
-        wcskeyext = 1
+    wcskeyext = int(fu.isFits(fobj)[1] != 'simple')
 
     if wcskey == " ":
         if wcsname.strip():
@@ -282,12 +296,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
     ext = _buildExtlist(fobj, ext)
 
     # the case of an HDUList object in memory without an associated file
-
-    simplefits = fu.isFits(fobj)[1] is 'simple'
-    if simplefits:
-        wcskeyext = 0
-    else:
-        wcskeyext = 1
+    wcskeyext = int(fu.isFits(fobj)[1] != 'simple')
 
     if wcskey == " ":
         if wcsname.strip():
@@ -297,9 +306,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
                 raise KeyError("Could not get a key from wcsname %s ." % wcsname)
 
     for e in ext:
-        if wcskey not in wcskeys(fobj, ext=e):
-            continue
-        else:
+        if wcskey in wcskeys(fobj, ext=e):
             _restore(fobj, wcskey, fromextnum=e, verbose=False)
 
     if fobj.filename() is not None:
@@ -433,27 +440,25 @@ def _restore(fobj, ukey, fromextnum,
     else:
         toextension = fromextension
 
-    hdr = _getheader(fobj, fromextension)
-    # keep a copy of the ctype because of the "-SIP" suffix.
-    ctype = hdr['ctype*']
+    ukey = ukey.strip().upper()
 
+    hdr = _getheader(fobj, fromextension)
+    hdr = _del_SIP_kwd(hdr=hdr, key=ukey)
     w = pywcs.WCS(hdr, fobj, key=ukey)
-    hwcs = w.to_header()
-    if hwcs is None:
-        return
+    hwcs_relaxed = w.to_header(relax=True)
+    hwcs = w.to_header(relax=False)
+
+    for i in range(1, w.naxis + 1):
+        ctypei = 'CTYPE{:1d}{:1s}'.format(i, ukey)
+        hwcs[ctypei] = hwcs_relaxed[ctypei]
 
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=ukey)
-
-    for i in range(1, w.naxis + 1):
-        hwcs['CTYPE{0}{1}'.format(i, ukey)] = ctype['CTYPE{0}'.format(i)]
 
     for k in hwcs.keys():
         key = k[:-1]
         if key in fobj[toextension].header:
             fobj[toextension].header[key] = hwcs[k]
-        else:
-            continue
 
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
@@ -513,7 +518,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     if isinstance(fobj, str):
         fobj = fits.open(fobj)
 
-    hdr = _getheader(fobj, ext)
+    hdr = _del_SIP_kwd(hdr=_getheader(fobj, ext), key=wcskey)
     try:
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
@@ -521,7 +526,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
             print('readAltWCS: Could not read WCS with key %s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
-    hwcs = nwcs.to_header()
+    hwcs = nwcs.to_header(relax=False)
 
     if nwcs.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=wcskey)
@@ -781,9 +786,7 @@ def closefobj(fname, f):
 
 
 def mapFitsExt2HDUListInd(fname, extname):
-    """
-    Map FITS extensions with 'EXTNAME' to HDUList indexes.
-    """
+    """ Map FITS extensions with 'EXTNAME' to HDUList indexes. """
 
     if not isinstance(fname, fits.HDUList):
         f = fits.open(fname)

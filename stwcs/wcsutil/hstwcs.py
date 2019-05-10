@@ -10,13 +10,16 @@ from . import pc2cd
 from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
+from .altwcs import _del_SIP_kwd
 
-from astropy import log
-default_log_level = log.getEffectiveLevel()
 
 __all__ = ['HSTWCS']
 
-warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs.wcs")
+warnings.filterwarnings(
+    "ignore",
+    message="^Some non-standard WCS keywords were excluded:",
+    module="astropy.wcs.wcs"
+)
 
 def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
@@ -27,15 +30,13 @@ def extract_rootname(kwvalue, suffix=""):
         This function will also replace any 'suffix' specified with a blank.
     """
     # check to see whether a valid kwvalue has been provided as input
-    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF', None]:
+    if kwvalue.strip() in ['', 'N/A', 'NONE', 'INDEF']:
         return 'NONE'  # no valid value, so return 'NONE'
 
     # for a valid kwvalue, parse out the rootname
     # strip off any environment variable from input filename, if any are given
-    if '$' in kwvalue:
-        fullval = kwvalue[kwvalue.find('$') + 1:]
-    else:
-        fullval = kwvalue
+    fullval = kwvalue[kwvalue.find('$') + 1:]
+
     # Extract filename without path from kwvalue
     fname = os.path.basename(fullval).strip()
 
@@ -48,7 +49,6 @@ def extract_rootname(kwvalue, suffix=""):
 
 
 def build_default_wcsname(idctab):
-
     idcname = extract_rootname(idctab, suffix='_idc')
     wcsname = 'IDC_' + idcname
     return wcsname
@@ -134,17 +134,17 @@ class HSTWCS(WCS):
                                                                    ext=ext)
             self.filename = filename
             instrument_name = hdr0.get('INSTRUME', 'DEFAULT')
-            if instrument_name == 'DEFAULT' or instrument_name not in list(inst_mappings.keys()):
-                self.instrument = 'DEFAULT'
-            else:
+            if instrument_name in list(inst_mappings.keys()):
                 self.instrument = instrument_name
+            else:
+                self.instrument = 'DEFAULT'
             # Set the correct reference frame
             refframe = determine_refframe(hdr0)
             if refframe is not None:
                 ehdr['RADESYS'] = refframe
 
-            WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
-                         key=self.wcskey)
+            ehdr = _del_SIP_kwd(ehdr, wcskey)
+            WCS.__init__(self, ehdr, fobj=phdu, minerr=minerr, key=wcskey)
             if self.instrument == 'DEFAULT':
                 self.pc2cd()
             # If input was a `astropy.io.fits.HDUList` object, it's the user's
@@ -220,8 +220,6 @@ class HSTWCS(WCS):
                     # were already set, (e.g. 'DETECTOR'), the code below is a check for that case.
                     if not self.__getattribute__(key):
                         raise
-                    else:
-                        pass
 
         else:
             raise KeyError("Unsupported instrument - %s" % self.instrument)
@@ -387,6 +385,9 @@ class HSTWCS(WCS):
         sip2hdr : bool
             If True - include SIP coefficients
         """
+        if relax is None:
+            relax = False
+
         warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
         h = self.to_header(key=wcskey, relax=relax)
 
