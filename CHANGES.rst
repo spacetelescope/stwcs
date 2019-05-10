@@ -4,6 +4,8 @@
 - Improve Travis test matrices to include testing with public and dev
   versions of dependencies. [#87]
 
+- Fix an issue of ``updatewcs()`` appending ``-SIP`` to OPUS WCS. [#90]
+
 1.5.0(Unreleased)
 -----------------
 
