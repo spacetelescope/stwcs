@@ -161,9 +161,6 @@ def makecorr(f, allowed_corr):
     nrefchip, nrefext = getNrefchip(f)
 
     wcsutil.restoreWCS(f, nrefext, wcskey='O')
-    fc = wcsutil.altwcs._del_SIP_kwd(
-        f.copy()[nrefext].header, ' ', inplace=True
-    )
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)
 
@@ -182,9 +179,6 @@ def makecorr(f, allowed_corr):
                 sciextver = extn.header['extver']
                 ref_wcs = rwcs.deepcopy()
                 hdr = extn.header
-                wcsutil.altwcs._del_SIP_kwd(
-                    f.copy()[i].header, ' ', inplace=True
-                )
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
