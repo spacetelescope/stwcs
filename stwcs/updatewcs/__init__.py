@@ -156,7 +156,7 @@ def makecorr(f, allowed_corr):
              list of corrections to be applied
     """
     logger.info("Allowed corrections: {0}".format(allowed_corr))
-    #f = fits.open(fname, mode='update')
+    # f = fits.open(fname, mode='update')
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
     nrefchip, nrefext = getNrefchip(f)
