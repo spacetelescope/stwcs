@@ -3,7 +3,7 @@ import warnings
 
 from astropy.io import fits
 from .. import wcsutil
-#from ..wcsutil.hwstwcs import HSTWCS
+#from ..wcsutil.hstwcs import HSTWCS
 
 from .. import __version__
 
@@ -162,7 +162,8 @@ def makecorr(f, allowed_corr):
     nrefchip, nrefext = getNrefchip(f)
 
     log.setLevel("WARNING")
-    wcsutil.restoreWCS(f, nrefext, wcskey='O')
+    wcsutil.resetPrimaryWCS(f)
+    #wcsutil.restoreWCS(f, nrefext, wcskey='O')
     log.setLevel(default_log_level)
     rwcs = wcsutil.HSTWCS(fobj=f, ext=nrefext)
     rwcs.readModel(update=True, header=f[nrefext].header)

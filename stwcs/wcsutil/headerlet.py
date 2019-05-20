@@ -1775,7 +1775,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
         hlt_hdu = HeaderletHDU.fromheaderlet(hdrletobj)
 
         if destim is not None:
-            hlt_hdu[0].header['destim'] = destim
+            hlt_hdu.header['destim'] = destim
 
         fobj.append(hlt_hdu)
 
@@ -2497,68 +2497,19 @@ class Headerlet(fits.HDUList):
         """
         Remove the SIP distortion of a FITS extension
         """
+        remove_sip(ext)
 
-        logger.debug("Removing SIP distortion from (%s, %s)"
-                     % (ext.name, ext.ver))
-        for prefix in ['A', 'B', 'AP', 'BP']:
-            try:
-                order = ext.header[prefix + '_ORDER']
-                del ext.header[prefix + '_ORDER']
-            except KeyError:
-                continue
-            for i in range(order + 1):
-                for j in range(order + 1):
-                    key = prefix + '_%d_%d' % (i, j)
-                    try:
-                        del ext.header[key]
-                    except KeyError:
-                        pass
-        try:
-            del ext.header['IDCTAB']
-        except KeyError:
-            pass
-
-    def _remove_lut(self, ext):
+    def _remove_lut(ext):
         """
         Remove the Lookup Table distortion of a FITS extension
         """
-
-        logger.debug("Removing LUT distortion from (%s, %s)"
-                     % (ext.name, ext.ver))
-        try:
-            cpdis = ext.header['CPDIS*']
-        except KeyError:
-            return
-        try:
-            for c in range(1, len(cpdis) + 1):
-                del ext.header['DP%s*...' % c]
-                del ext.header[cpdis.cards[c - 1].keyword]
-            del ext.header['CPERR*']
-            del ext.header['NPOLFILE']
-            del ext.header['NPOLEXT']
-        except KeyError:
-            pass
-
+        remove_lut(ext)
+    
     def _remove_d2im(self, ext):
         """
         Remove the Detector to Image correction of a FITS extension
         """
-
-        logger.debug("Removing D2IM correction from (%s, %s)"
-                     % (ext.name, ext.ver))
-        try:
-            d2imdis = ext.header['D2IMDIS*']
-        except KeyError:
-            return
-        try:
-            for c in range(1, len(d2imdis) + 1):
-                del ext.header['D2IM%s*...' % c]
-                del ext.header[d2imdis.cards[c - 1].keyword]
-            del ext.header['D2IMERR*']
-            del ext.header['D2IMFILE']
-            del ext.header['D2IMEXT']
-        except KeyError:
-            pass
+        remove_d2im(self, ext)
 
     def _remove_alt_WCS(self, dest, ext):
         """
@@ -2611,6 +2562,77 @@ class Headerlet(fits.HDUList):
                 del ext.header[k]
             except KeyError:
                 pass
+
+@with_logging
+def remove_sip(ext):
+    """
+    Remove the SIP distortion of a FITS extension
+    """
+
+    logger.debug("Removing SIP distortion from (%s, %s)"
+                 % (ext.name, ext.ver))
+    for prefix in ['A', 'B', 'AP', 'BP']:
+        try:
+            order = ext.header[prefix + '_ORDER']
+            del ext.header[prefix + '_ORDER']
+        except KeyError:
+            continue
+        for i in range(order + 1):
+            for j in range(order + 1):
+                key = prefix + '_%d_%d' % (i, j)
+                try:
+                    del ext.header[key]
+                except KeyError:
+                    pass
+    try:
+        del ext.header['IDCTAB']
+    except KeyError:
+        pass
+
+
+@with_logging
+def remove_lut(ext):
+    """
+    Remove the Lookup Table distortion of a FITS extension
+    """
+
+    logger.debug("Removing LUT distortion from (%s, %s)"
+                 % (ext.name, ext.ver))
+    try:
+        cpdis = ext.header['CPDIS*']
+    except KeyError:
+        return
+    try:
+        for c in range(1, len(cpdis) + 1):
+            del ext.header['DP%s*...' % c]
+            del ext.header[cpdis.cards[c - 1].keyword]
+        del ext.header['CPERR*']
+        del ext.header['NPOLFILE']
+        del ext.header['NPOLEXT']
+    except KeyError:
+        pass
+
+@with_logging
+def remove_d2im(ext):
+    """
+    Remove the Detector to Image correction of a FITS extension
+    """
+
+    logger.debug("Removing D2IM correction from (%s, %s)"
+                 % (ext.name, ext.ver))
+    try:
+        d2imdis = ext.header['D2IMDIS*']
+    except KeyError:
+        return
+    try:
+        for c in range(1, len(d2imdis) + 1):
+            del ext.header['D2IM%s*...' % c]
+            del ext.header[d2imdis.cards[c - 1].keyword]
+        del ext.header['D2IMERR*']
+        del ext.header['D2IMFILE']
+        del ext.header['D2IMEXT']
+    except KeyError:
+        pass
 
 
 @with_logging
