@@ -77,6 +77,9 @@ DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
 COLUMN_DICT = {'vals': [], 'width': []}
 COLUMN_FMT = '{:<{width}}'
 
+# headerlet HDRNAME convention used for all a priori solutions
+STANDARD_HDRNAME = "{}_{}-hlet.fits"
+
 
 def init_logging(funcname=None, level=100, mode='w', **kwargs):
     """
@@ -1423,7 +1426,7 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
 
 @with_logging
 def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
-                           force=False, logging=False, logmode='w'):
+                           force=False, logging=False, update_refs=True, logmode='w'):
     """
     Restores a headerlet as a primary WCS
 
@@ -1448,6 +1451,9 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
         is False, this flag forces an update of the primary.
     logging: boolean
            enable file logging
+    update_refs : boolean
+        This flag controls whether to update reference file names in header with reference
+        filenames from the headerlet.
     logmode: 'a' or 'w'
     """
 
@@ -1538,7 +1544,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     #
     # copy hdrlet as a primary
     #
-    hdrlet.apply_as_primary(fobj, attach=False, archive=archive, force=force)
+    hdrlet.apply_as_primary(fobj, attach=False, archive=archive, force=force, update_refs=update_refs)
 
     utils.updateNEXTENDKw(fobj)
     fobj.flush()
@@ -1871,7 +1877,8 @@ class Headerlet(fits.HDUList):
         init_logging('class Headerlet', level=logging, mode=logmode)
         return hlet
 
-    def apply_as_primary(self, fobj, attach=True, archive=True, force=False):
+    def apply_as_primary(self, fobj, attach=True, archive=True, force=False,
+                         update_refs=True):
         """
         Copy this headerlet as a primary WCS to fobj
 
@@ -1895,6 +1902,9 @@ class Headerlet(fits.HDUList):
               When the distortion models of the headerlet and the primary do
               not match, and archive is False this flag forces an update
               of the primary
+        update_refs : boolean
+              This flag determines whether to overwrite the reference files in the
+              PRIMARY header with the ones specified in the headerlet.
         """
         self.hverify()
         fobj, fname, close_dest = parse_filename(fobj, mode='update')
@@ -1978,11 +1988,11 @@ class Headerlet(fits.HDUList):
                                   wcsname=priwcs_name)
             else:
 
-                for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
+                for hkey, hname in altwcs.wcsnames(fobj, ext=target_ext).items():
                     if hname != 'OPUS' and hname not in hdrlet_extnames:
                         # get HeaderletHDU for alternate WCS as well
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
-                                                    wcsname=hname, wcskey=wcskey,
+                                                    wcsname=hname, wcskey=hkey,
                                                     hdrname=hname, sipname=None,
                                                     npolfile=None, d2imfile=None,
                                                     author=None, descrip=None, history=None,
@@ -1996,7 +2006,7 @@ class Headerlet(fits.HDUList):
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
             target_ext = sciext_list[i - 1]
-            self._del_dest_WCS(fobj, target_ext)
+            self._del_dest_WCS(fobj, target_ext, update_refs=update_refs)
             sipwcs = HSTWCS(self, ('SIPWCS', i))
             idckw = sipwcs._idc2hdr()
             priwcs = sipwcs.to_fits(relax=True)
@@ -2005,12 +2015,12 @@ class Headerlet(fits.HDUList):
             if sipwcs.wcs.has_cd():
                 priwcs[0].header = altwcs.pc2cd(priwcs[0].header)
             priwcs[0].header.extend(idckw)
+
             if 'crder1' in sipheader:
                 for card in sipheader['crder*'].cards:
                     priwcs[0].header.set(card.keyword, card.value, card.comment,
                                          after='WCSNAME')
             # Update WCS with HDRNAME as well
-
             for kw in ['SIMPLE', 'BITPIX', 'NAXIS', 'EXTEND']:
                 if kw in priwcs[0].header:
                     priwcs[0].header.remove(kw)
@@ -2076,7 +2086,8 @@ class Headerlet(fits.HDUList):
                 fobj.append(whdu)
 
         update_versions(self[0].header, fobj[0].header)
-        refs = update_ref_files(self[0].header, fobj[0].header)
+        if update_refs:
+            refs = update_ref_files(self[0].header, fobj[0].header)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2429,7 +2440,7 @@ class Headerlet(fits.HDUList):
             self.hverify()
         self.writeto(fname, overwrite=clobber)
 
-    def _del_dest_WCS(self, dest, ext=None):
+    def _del_dest_WCS(self, dest, ext=None, update_refs=True):
         """
         Delete the WCS of a science file extension
         """
@@ -2455,7 +2466,8 @@ class Headerlet(fits.HDUList):
                     self._remove_primary_WCS(dest[idx])
                     self._remove_idc_coeffs(dest[idx])
                     self._remove_fit_values(dest[idx])
-        self._remove_ref_files(dest[0])
+        if update_refs:
+            self._remove_ref_files(dest[0])
 
     def _del_dest_WCS_ext(self, dest):
         numwdvarr = countExtn(dest, 'WCSDVARR')
@@ -2499,17 +2511,17 @@ class Headerlet(fits.HDUList):
         """
         remove_sip(ext)
 
-    def _remove_lut(ext):
+    def _remove_lut(self, ext):
         """
         Remove the Lookup Table distortion of a FITS extension
         """
         remove_lut(ext)
-    
+
     def _remove_d2im(self, ext):
         """
         Remove the Detector to Image correction of a FITS extension
         """
-        remove_d2im(self, ext)
+        remove_d2im(ext)
 
     def _remove_alt_WCS(self, dest, ext):
         """

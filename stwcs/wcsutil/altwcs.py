@@ -17,8 +17,10 @@ __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "nex
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
 altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
-# DISTNAME ='NOMODEL-NOMODEL-NOMODEL' for 'OPUS' solutions
+
+# define DISTNAME ='NOMODEL-NOMODEL-NOMODEL' for 'OPUS' solutions
 opus_distname = 'NOMODEL-NOMODEL-NOMODEL'
+
 
 # file operations
 
@@ -61,22 +63,33 @@ def resetPrimaryWCS(fname, ext=None):
         ext = 'SCI'
 
     # Interpret input 'ext' value to get list of extensions to process
-    ext = _buildExtlist(f, ext)
-    wcsext = ext[0]
+    extlist = _buildExtlist(f, ext)
+    wcsext = extlist[0]
 
     if not _parpasscheck(f, ext, ' ', 'OPUS'):
         closefobj(fname, f)
         raise ValueError("Input parameters problem")
 
-
-
     # build information for headerlet creation
     user_filename = f.filename()
     rootname = user_filename.strip('.fits')
+    # Standardize the HDRNAME values that will be created
+    opus_hdrname = headerlet.STANDARD_HDRNAME.format(rootname.replace('flc', 'flt'), 'OPUS')
 
     # Find all current alternate WCS solutions
     wcs_dict = wcsnames(f, ext=wcsext)
 
+    if ' ' not in wcs_dict:
+        # No alternate WCSs at all.  Simply archive WCS and return
+        # Archive OPUS WCS as headerlet replacing any previously
+        # headerlet extension
+        for ext in extlist:
+            f[ext].header['wcsname'] = 'OPUS'
+        headerlet.archive_as_headerlet(f, opus_hdrname, sciext='SCI', wcskey="PRIMARY",
+                                        wcsname='OPUS', sipname='NOMODEL',
+                                        npolfile='NOMODEL', d2imfile='NOMODEL',
+                                        descrip="Default Pipeline WCS")
+        return
     # Archive active WCS if not the OPUS solution
     if wcs_dict[' '] != 'OPUS':
         hname = "{}_{}-hlet.fits".format(rootname, wcs_dict[' '])
@@ -86,24 +99,63 @@ def resetPrimaryWCS(fname, ext=None):
     if 'O' in wcs_dict:
         del wcs_dict['O']
 
-    opus_hdrname = '{}_{}-hlet.fits'.format(rootname, 'OPUS')
-
+    # Find any headerlet extensions which have already been appended to the file
     hdrlet_extns = headerlet.get_headerlet_kw_names(f, kw='wcsname')
     hdrlet_hdrnames = headerlet.get_headerlet_kw_names(f)
 
+    if not hdrlet_extns:
+        # No headerlet extensions have been written...
+        # Check for any alternate WCS solutions that may need to be archived.
+        wnames = wcsnames(f, wcsext)
+        if not wnames:
+            # No alternate WCSs at all.  Simply archive WCS and return
+            # Archive OPUS WCS as headerlet replacing any previously
+            # headerlet extension
+            headerlet.archive_as_headerlet(f, opus_hdrname, sciext='SCI', wcskey="PRIMARY",
+                                            wcsname='OPUS', sipname='NOMODEL',
+                                            npolfile='NOMODEL', d2imfile='NOMODEL',
+                                            descrip="Default Pipeline WCS")
+        else:
+            # Alternate WCSs have been defined, but not archived.
+            # Archive all WCSs as headerlet extensions, then restore OPUS solution...
+            for wcskey, wcsname in wnames.items():
+                if wcsname == 'OPUS':
+                    headerlet.archive_as_headerlet(f, opus_hdrname, sciext='SCI',
+                                            wcskey=wcskey,
+                                            wcsname=wcsname, sipname='NOMODEL',
+                                            npolfile='NOMODEL', d2imfile='NOMODEL',
+                                            descrip="Default Pipeline WCS")
+                else:
+                    rootname = rootname.replace('flc', 'flt')
+                    alt_hdrname = headerlet.STANDARD_HDRNAME.format(rootname, wcsname)
+                    headerlet.archive_as_headerlet(f, alt_hdrname, sciext='SCI',
+                                            wcskey=wcskey,
+                                            wcsname=wcsname,
+                                            descrip="Distortion-corrected WCS")
+            # Now restore OPUS solution...
+            _restore_alternate_OPUS(f, extlist)
+
+        # Completed dealing with the OPUS and
+        #  any previously defined alternate WCS solutions
+        return
+
+    # At this point, we know we have headerlet extensions to restore/replace.
     # Start by restoring any previously archived OPUS headerlet,
     # then deleting it to be replaed by newly defined OPUS headerlet
     # Use of 'archive=True' insures all previous solutions are archived.
     if 'OPUS' in hdrlet_extns:
         old_opus_hdrname = hdrlet_hdrnames[hdrlet_extns.index('OPUS')]
         headerlet.restore_from_headerlet(f, hdrname=old_opus_hdrname,
-                                         archive=True, force=True)
+                                         archive=True, force=True, update_refs=False)
+        # Insure CTYPE keywords for OPUS active/primary WCS
+        #  does NOT contain -SIP
+        for extn in extlist:
+            for kw in ['ctype1', 'ctype2']:
+                f[extn].header[kw] = f[extn].header[kw].strip('-SIP')
 
-        # Now, remove it so that it can be replaced by a newly defined OPUS WCS
+        # Now, remove extension so that it can be replaced by a newly defined OPUS WCS
         opus_hdrlet_extn = headerlet.find_headerlet_HDUs(f, hdrname=old_opus_hdrname)[0]
-        print("OPUS_DISTNAME: {}".format(f[opus_hdrlet_extn].header['distname']))
         if f[opus_hdrlet_extn].header['distname'] != opus_distname:
-            print("deleting old OPUS HDRLET extension...")
             del f[opus_hdrlet_extn]
 
     # Delete all other alternate WCS solutions from SCI header
@@ -112,30 +164,39 @@ def resetPrimaryWCS(fname, ext=None):
     # distortion.
     del wcs_dict[' ']
     for wname in wcs_dict:
-        for extn in ext:
+        for extn in extlist:
             deleteWCS(f, extn, wname)
 
-    for extn in ext:
+    # Deliberately and thoroughly remove any distortion keywords
+    #  that may have been used for other WCS solutions
+    for extn in extlist:
         headerlet.remove_sip(f[extn])
         headerlet.remove_lut(f[extn])
         headerlet.remove_d2im(f[extn])
 
-    if f[wcsext].header['wcsname'] != 'OPUS':
+    # If no WCS solutions were appended as extensions and restored,
+    #  make sure primary WCS is OPUS solution and not something else...
+    if 'wcsname' in f[wcsext].header and f[wcsext].header['wcsname'] != 'OPUS':
         # Replace active WCS with 'alternate' OPUS WCS
-        for extn in ext:
-            restoreWCS(f, extn, wcsname="OPUS")
-            for kw in ['ctype1', 'ctype2']:
-                f[extn].header[kw] = f[extn].header[kw].strip('-SIP')
+        _restore_alternate_OPUS(f, extlist)
 
-    # Archive OPUS WCS as headerlet replacing any previously
+    # The header should now have the original OPUS solution as the active WCS
+    # Archive the active OPUS WCS as a headerlet replacing any previously
     # headerlet extension
     headerlet.archive_as_headerlet(f, opus_hdrname, sciext='SCI', wcskey="PRIMARY",
                                     wcsname='OPUS', sipname='NOMODEL',
                                     npolfile='NOMODEL', d2imfile='NOMODEL',
                                     descrip="Default Pipeline WCS")
-
     if closefits:
         f.close()
+
+def _restore_alternate_OPUS(fobj, extlist):
+    """Internal function to restore alternate OPUS WCS as active WCS"""
+    for extn in extlist:
+        restoreWCS(fobj, extn, wcsname="OPUS")
+        for kw in ['ctype1', 'ctype2']:
+            fobj[extn].header[kw] = fobj[extn].header[kw].strip('-SIP')
+
 
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     """
