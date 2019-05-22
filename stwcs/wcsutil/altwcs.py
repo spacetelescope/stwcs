@@ -1,6 +1,4 @@
 import string
-import os
-import pwd
 
 import numpy as np
 from astropy import wcs as pywcs
@@ -73,13 +71,12 @@ def resetPrimaryWCS(fname, ext=None):
 
 
     # build information for headerlet creation
-    user_id = pwd.getpwuid(os.getuid())[0]
     user_filename = f.filename()
     rootname = user_filename.strip('.fits')
 
     # Find all current alternate WCS solutions
     wcs_dict = wcsnames(f, ext=wcsext)
-    
+
     # Archive active WCS if not the OPUS solution
     if wcs_dict[' '] != 'OPUS':
         hname = "{}_{}-hlet.fits".format(rootname, wcs_dict[' '])
@@ -122,12 +119,12 @@ def resetPrimaryWCS(fname, ext=None):
         headerlet.remove_sip(f[extn])
         headerlet.remove_lut(f[extn])
         headerlet.remove_d2im(f[extn])
-    
+
     if f[wcsext].header['wcsname'] != 'OPUS':
         # Replace active WCS with 'alternate' OPUS WCS
         for extn in ext:
             restoreWCS(f, extn, wcsname="OPUS")
-            for kw in ['ctype1','ctype2']:
+            for kw in ['ctype1', 'ctype2']:
                 f[extn].header[kw] = f[extn].header[kw].strip('-SIP')
 
     # Archive OPUS WCS as headerlet replacing any previously
