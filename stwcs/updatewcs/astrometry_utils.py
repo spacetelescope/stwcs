@@ -177,9 +177,7 @@ class AstrometryDB(object):
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
                 try:
-                    rootname = "_".join(newhdrname.split("_")[:2]).replace('flc', 'flt')
-                    best_hdrname = headerlet.STANDARD_HDRNAME.format(rootname, best_solution_id)
-                    if best_solution_id and newhdrname == best_hdrname:
+                    if best_solution_id and newhdrname == best_solution_id:
                         # replace primary WCS with this solution
                         headerlets[h].apply_as_primary(obsname)
                         logger.info('Replacing primary WCS with')
