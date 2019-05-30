@@ -155,7 +155,7 @@ class AstrometryDB(object):
         logger.info("Updating astrometry for {}".format(observationID))
 
         # take inventory of what hdrlets are already appended to this file
-        hdrnames = headerlet.get_headerlet_kw_names(obsname, 'hdrname')
+        wcsnames = headerlet.get_headerlet_kw_names(obsname, 'wcsname')
 
         headerlets, best_solution_id = self.getObservation(observationID)
         if headerlets is None:
@@ -172,20 +172,21 @@ class AstrometryDB(object):
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
             for h in headerlets:
-                newhdrname = headerlets[h][0].header['hdrname']
-                if newhdrname in hdrnames:
+                newname = headerlets[h][0].header['wcsname']
+                if newname in wcsnames:
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
                 try:
-                    if best_solution_id and newhdrname == best_solution_id:
+                    if best_solution_id and newname == best_solution_id:
                         # replace primary WCS with this solution
                         headerlets[h].apply_as_primary(obsname)
                         logger.info('Replacing primary WCS with')
-                        logger.info('\tHeaderlet with HDRNAME={}'.format(
-                                     newhdrname))
+                        logger.info('\tHeaderlet with WCSNAME={}'.format(
+                                     newname))
+                        break
                     else:
-                        logger.info("\tHeaderlet with HDRNAME={}".format(
-                                    newhdrname))
+                        logger.info("\tHeaderlet with WCSNAME={}".format(
+                                    newname))
                         headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
