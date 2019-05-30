@@ -183,6 +183,7 @@ class AstrometryDB(object):
                         logger.info('Replacing primary WCS with')
                         logger.info('\tHeaderlet with WCSNAME={}'.format(
                                      newname))
+                        break
                     else:
                         logger.info("\tHeaderlet with WCSNAME={}".format(
                                     newname))
