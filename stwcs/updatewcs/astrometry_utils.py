@@ -184,6 +184,8 @@ class AstrometryDB(object):
                     pass
         # Once all the new headerlet solutions have been added as new extensions
         # Apply the best solution, if one was specified, as primary WCS
+        # This needs to be separate logic in order to work with images which have already
+        # been updated with solutions from the database, and we are simply resetting.
         if best_solution_id:
             for h in headerlets:
                 wcsname = headerlets[h][0].header['wcsname']
