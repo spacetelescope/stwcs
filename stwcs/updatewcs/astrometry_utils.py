@@ -187,11 +187,16 @@ class AstrometryDB(object):
         # This needs to be separate logic in order to work with images which have already
         # been updated with solutions from the database, and we are simply resetting.
         if best_solution_id:
-            for h in headerlets:
-                wcsname = headerlets[h][0].header['wcsname']
+            # get full list of all headerlet extensions now in the file
+            hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
+
+            for h in hdrlet_extns:
+                hdrlet = obsname[h].headerlet
+                wcsname = hdrlet[0].header['wcsname']
                 if wcsname == best_solution_id:
                     # replace primary WCS with this solution
-                    headerlets[h].apply_as_primary(obsname)
+                    hdrlet.init_attrs()
+                    hdrlet.apply_as_primary(obsname, attach=False)
                     logger.info('Replacing primary WCS with')
                     logger.info('\tHeaderlet with WCSNAME={}'.format(
                                  newname))
