@@ -177,20 +177,23 @@ class AstrometryDB(object):
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
                 try:
-                    if best_solution_id and newname == best_solution_id:
-                        # replace primary WCS with this solution
-                        headerlets[h].apply_as_primary(obsname)
-                        logger.info('Replacing primary WCS with')
-                        logger.info('\tHeaderlet with WCSNAME={}'.format(
-                                     newname))
-                        break
-                    else:
-                        logger.info("\tHeaderlet with WCSNAME={}".format(
-                                    newname))
-                        headerlets[h].attach_to_file(obsname)
+                    logger.info("\tHeaderlet with WCSNAME={}".format(
+                                newname))
+                    headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
-
+        # Once all the new headerlet solutions have been added as new extensions
+        # Apply the best solution, if one was specified, as primary WCS
+        if best_solution_id:
+            for h in headerlets:
+                wcsname = headerlets[h][0].header['wcsname']
+                if wcsname == best_solution_id:
+                    # replace primary WCS with this solution
+                    headerlets[h].apply_as_primary(obsname)
+                    logger.info('Replacing primary WCS with')
+                    logger.info('\tHeaderlet with WCSNAME={}'.format(
+                                 newname))
+                    break
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for
