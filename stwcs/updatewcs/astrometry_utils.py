@@ -158,6 +158,10 @@ class AstrometryDB(object):
         wcsnames = headerlet.get_headerlet_kw_names(obsname, 'wcsname')
 
         headerlets, best_solution_id = self.getObservation(observationID)
+        # Determine whether best_solution_id is simply the pipeline default solution
+        if len(best_solution_id.split('-')) == 1: 
+            best_solution_id = None
+        
         if headerlets is None:
             logger.warning("Problems getting solutions from database")
             logger.warning(" NO Updates performed for {}".format(
