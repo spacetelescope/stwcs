@@ -1,6 +1,8 @@
 1.5.1 (Unreleased)
 ------------------
 
+- Do not apply pipeline-default WCSs from astrometry database as new WCS. [#96]
+
 - Improve Travis test matrices to include testing with public and dev
   versions of dependencies. [#87]
 
