@@ -1,4 +1,4 @@
-1.5.1 (Unreleased)
+1.5.1 (2019-07-03)
 ------------------
 
 - Improve Travis test matrices to include testing with public and dev
