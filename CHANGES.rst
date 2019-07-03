@@ -4,9 +4,6 @@
 - Improve Travis test matrices to include testing with public and dev
   versions of dependencies. [#87]
 
-1.5.0(Unreleased)
------------------
-
 - Fixed a bug in converting a ``PC`` to a ``CD`` matrix. [#77]
 
 - Filter out expected warnings from tests. [#78]
