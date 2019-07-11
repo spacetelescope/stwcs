@@ -131,11 +131,11 @@ class TDDCorr(object):
         delta_date = rday - skew_coeffs['TDD_DATE']
 
         if skew_coeffs['TDD_CXB'] is not None:
-            hwcs.idcmodel.cx[1, 1] += skew_coeffs['TDD_CXB'] * delta_date
+            hwcs.idcmodel.cx[1, 1] -= skew_coeffs['TDD_CXB'] * delta_date
         if skew_coeffs['TDD_CTB'] is not None:
-            hwcs.idcmodel.cy[1, 1] += skew_coeffs['TDD_CTB'] * delta_date
+            hwcs.idcmodel.cy[1, 1] -= skew_coeffs['TDD_CTB'] * delta_date
         if skew_coeffs['TDD_CYB'] is not None:
-            hwcs.idcmodel.cy[1, 0] += skew_coeffs['TDD_CYB'] * delta_date
+            hwcs.idcmodel.cy[1, 0] -= skew_coeffs['TDD_CYB'] * delta_date
 
     apply_tdd2idc2015 = classmethod(apply_tdd2idc2015)
 

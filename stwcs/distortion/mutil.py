@@ -273,7 +273,8 @@ def read_tdd_coeffs(phdr, chip=1):
         # We have the 2015-calibrated TDD correction to apply
         # This correction is based on correcting the skew in the linear terms
         # not just set polynomial terms
-        print("Using 2015-calibrated VAFACTOR-corrected TDD correction...")
+        # This correction was applied with the wrong sign until July 2019
+        print("Using 2019-calibrated VAFACTOR-corrected TDD correction...")
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         for s in skew_terms:
             skew_coeffs[s] = phdr.get('{0}{1}'.format(s, ic), None)
