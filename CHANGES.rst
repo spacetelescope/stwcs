@@ -1,11 +1,14 @@
-1.5.1 (Unreleased)
+1.5.2 (Unreleased)
+------------------
+
+- Correct a problem where best WCS solutions were not applied
+  with repeated reruns of ``updatewcs``. [#95]
+
+1.5.1 (2019-07-03)
 ------------------
 
 - Improve Travis test matrices to include testing with public and dev
   versions of dependencies. [#87]
-
-1.5.0(Unreleased)
------------------
 
 - Fixed a bug in converting a ``PC`` to a ``CD`` matrix. [#77]
 
