@@ -86,7 +86,7 @@ setup(
     install_requires = [
         'astropy',
         'numpy',
-        'stsci.tools',
+        'stsci.tools>=3.6',
         'requests',
         'lxml'
     ],
