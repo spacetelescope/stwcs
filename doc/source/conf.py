@@ -53,7 +53,7 @@ copyright = u'2018, STScI'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-
+package = importlib.import_module('stwcs')
 try:
     # The short X.Y version.
     version = package.__version__.split('-', 1)[0]
