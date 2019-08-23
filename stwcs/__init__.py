@@ -19,7 +19,13 @@ from . import distortion
 from stsci.tools import fileutil
 from stsci.tools import teal
 
-from .version import *
+from pkg_resources import get_distribution, DistributionNotFound
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    # package is not installed
+    pass
 
 try:
     from . import gui
