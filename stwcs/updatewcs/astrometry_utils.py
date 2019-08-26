@@ -177,20 +177,30 @@ class AstrometryDB(object):
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
                 try:
-                    if best_solution_id and newname == best_solution_id:
-                        # replace primary WCS with this solution
-                        headerlets[h].apply_as_primary(obsname)
-                        logger.info('Replacing primary WCS with')
-                        logger.info('\tHeaderlet with WCSNAME={}'.format(
-                                     newname))
-                        break
-                    else:
-                        logger.info("\tHeaderlet with WCSNAME={}".format(
-                                    newname))
-                        headerlets[h].attach_to_file(obsname)
+                    logger.info("\tHeaderlet with WCSNAME={}".format(
+                                newname))
+                    headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
+        # Once all the new headerlet solutions have been added as new extensions
+        # Apply the best solution, if one was specified, as primary WCS
+        # This needs to be separate logic in order to work with images which have already
+        # been updated with solutions from the database, and we are simply resetting.
+        if best_solution_id:
+            # get full list of all headerlet extensions now in the file
+            hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
 
+            for h in hdrlet_extns:
+                hdrlet = obsname[h].headerlet
+                wcsname = hdrlet[0].header['wcsname']
+                if wcsname == best_solution_id:
+                    # replace primary WCS with this solution
+                    hdrlet.init_attrs()
+                    hdrlet.apply_as_primary(obsname, attach=False)
+                    logger.info('Replacing primary WCS with')
+                    logger.info('\tHeaderlet with WCSNAME={}'.format(
+                                 newname))
+                    break
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for

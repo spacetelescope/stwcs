@@ -1,3 +1,9 @@
+1.5.2 (2019-08-26)
+------------------
+
+- Correct a problem where best WCS solutions were not applied
+  with repeated reruns of ``updatewcs``. [#95]
+
 1.5.1 (2019-07-03)
 ------------------
 
