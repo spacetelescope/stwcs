@@ -1,4 +1,4 @@
-1.5.2 (Unreleased)
+1.5.2 (2019-08-26)
 ------------------
 
 - Correct a problem where best WCS solutions were not applied
