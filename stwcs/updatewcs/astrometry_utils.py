@@ -23,6 +23,7 @@ ASTROMETRY_STEP_CONTROL - String specifying whether or not to perform the
                           Valid Values: "ON", "On", "on", "OFF", "Off", "off"
                           If not set, default value is "ON".
 """
+import sys
 import os
 import atexit
 
@@ -35,6 +36,7 @@ from stwcs.updatewcs import utils
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 atexit.register(logging.shutdown)
 
