@@ -32,11 +32,18 @@ from io import BytesIO
 from lxml import etree
 
 from stwcs.wcsutil import headerlet
-from stwcs.updatewcs import utils
 
 import logging
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
-logger.addHandler(logging.StreamHandler(sys.stdout))
+if len(logger.handlers) > 0:
+    for handler in logger.handlers:
+          # add the handlers to the logger
+          # makes sure no duplicate handlers are added
+        if not isinstance(handler, logging.StreamHandler):
+            logger.addHandler(logging.StreamHandler(sys.stdout))
+else:
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 atexit.register(logging.shutdown)
 
