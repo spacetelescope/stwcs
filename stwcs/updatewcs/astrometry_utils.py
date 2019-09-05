@@ -38,8 +38,10 @@ logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
 if len(logger.handlers) > 0:
     for handler in logger.handlers:
           # add the handlers to the logger
-          # makes sure no duplicate handlers are added
-        if not isinstance(handler, logging.StreamHandler):
+          # makes sure no duplicate stdout handlers are added
+        if not isinstance(handler, logging.StreamHandler) or \
+            (isinstance(handler, logging.StreamHandler) and \
+             handler.stream is not sys.stdout):
             logger.addHandler(logging.StreamHandler(sys.stdout))
 else:
     logger.addHandler(logging.StreamHandler(sys.stdout))
