@@ -203,7 +203,7 @@ class AstrometryDB(object):
                 if wcsname == best_solution_id:
                     # replace primary WCS with this solution
                     hdrlet.init_attrs()
-                    hdrlet.apply_as_primary(obsname, attach=False)
+                    hdrlet.apply_as_primary(obsname, attach=False, force=True)
                     logger.info('Replacing primary WCS with')
                     logger.info('\tHeaderlet with WCSNAME={}'.format(
                                  newname))
