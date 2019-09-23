@@ -1,3 +1,12 @@
+1.5.3 (2019-09-23)
+------------------
+
+- Add ``stdout`` to logging handlers. [#108]
+
+- Correct the logic for replacing headerlets with one which has a different 
+  distortion model. [#109]
+
+
 1.5.2 (2019-08-26)
 ------------------
 

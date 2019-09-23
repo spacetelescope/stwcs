@@ -24,6 +24,7 @@ ASTROMETRY_STEP_CONTROL - String specifying whether or not to perform the
                           If not set, default value is "ON".
 """
 import os
+import sys
 import atexit
 
 import requests
@@ -34,8 +35,14 @@ from stwcs.wcsutil import headerlet
 from stwcs.updatewcs import utils
 
 import logging
-logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
 
+
+logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
+for h in logger.handlers:
+    if isinstance(h, logging.StreamHandler) and h.stream is sys.stdout:
+        break
+else:
+    logger.handlers.append(logging.StreamHandler(sys.stdout))
 atexit.register(logging.shutdown)
 
 # Definitions of environment variables used by this step
@@ -196,7 +203,7 @@ class AstrometryDB(object):
                 if wcsname == best_solution_id:
                     # replace primary WCS with this solution
                     hdrlet.init_attrs()
-                    hdrlet.apply_as_primary(obsname, attach=False)
+                    hdrlet.apply_as_primary(obsname, attach=False, force=True)
                     logger.info('Replacing primary WCS with')
                     logger.info('\tHeaderlet with WCSNAME={}'.format(
                                  newname))
