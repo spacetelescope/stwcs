@@ -1,4 +1,4 @@
-1.5.3 (Unreleased)
+1.5.3 (2019-09-23)
 ------------------
 
 - Add ``stdout`` to logging handlers. [#108]
