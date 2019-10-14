@@ -188,11 +188,13 @@ class AstrometryDB(object):
                     headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
+        # Obtain the current primary WCS name
+        current_wcsname = obsname[('sci', 1)].header['wcsname']
         # Once all the new headerlet solutions have been added as new extensions
         # Apply the best solution, if one was specified, as primary WCS
         # This needs to be separate logic in order to work with images which have already
         # been updated with solutions from the database, and we are simply resetting.
-        if best_solution_id:
+        if best_solution_id and best_solution_id != current_wcsname:
             # get full list of all headerlet extensions now in the file
             hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
 
