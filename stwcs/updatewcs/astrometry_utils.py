@@ -32,7 +32,6 @@ from io import BytesIO
 from lxml import etree
 
 from stwcs.wcsutil import headerlet
-from stwcs.updatewcs import utils
 
 import logging
 

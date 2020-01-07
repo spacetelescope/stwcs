@@ -135,7 +135,7 @@ class TestAltWCS(object):
         w5 = wcsutil.HSTWCS(self.acs_file, ext=('ERR', 2))
         compare_wcs(w5, w4o, exclude_keywords=['ctype'])
         w6 = wcsutil.HSTWCS(self.acs_file, ext=('DQ', 2))
-        compare_wcs(w3, w1o, exclude_keywords=['ctype'])
+        compare_wcs(w6, w4o, exclude_keywords=['ctype'])
 
     def test_delete_wcs(self):
         altwcs.deleteWCS(self.acs_file, ext=1, wcskey='Z')

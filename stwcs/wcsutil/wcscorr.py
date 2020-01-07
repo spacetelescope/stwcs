@@ -294,7 +294,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     for colname in wcscorr_cols:
         if colname not in old_table.data.columns.names:
             print("WARNING:    Replacing outdated WCSCORR table...")
-            outdated_table = old_table.copy()
+            #outdated_table = old_table.copy()
             del dest['WCSCORR']
             init_wcscorr(dest)
             old_table = dest['WCSCORR']

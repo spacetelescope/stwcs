@@ -56,10 +56,10 @@ class TestStwcs(object):
         crpix = np.array([0., 0.])
         cdelt = np.array([1., 1.])
         pc = np.array([[1., 0], [0., 1.]])
-        ctype = np.array(['', ''])
-        utils.assert_almost_equal(self.w.wcs.crval, crval)
-        utils.assert_almost_equal(self.w.wcs.crpix, crpix)
-        utils.assert_almost_equal(self.w.wcs.pc, pc)
+        utils.assert_equal(self.w.wcs.crval, crval)
+        utils.assert_equal(self.w.wcs.crpix, crpix)
+        utils.assert_equal(self.w.wcs.pc, pc)
+        utils.assert_equal(self.w.wcs.cdelt, cdelt)
         assert((self.w.wcs.ctype == np.array(['', ''])).all())
 
     def test_simple_sci1(self):

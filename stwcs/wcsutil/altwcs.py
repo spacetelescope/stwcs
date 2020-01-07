@@ -146,11 +146,6 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         wcsnamekey = 'WCSNAME' + wkey
         f[e].header[wcsnamekey] = wname
 
-        try:
-            old_wcsname = hwcs.pop('WCSNAME')
-        except:
-            pass
-
         for k in hwcs.keys():
             key = k[: 7] + wkey
             f[e].header[key] = hwcs[k]
@@ -208,7 +203,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     # if fobj.filename() is not None:
     #        name = fobj.filename()
 
-    simplefits = fu.isFits(fobj)[1] is 'simple'
+    simplefits = fu.isFits(fobj)[1] == 'simple'
     if simplefits:
         wcskeyext = 0
     else:
@@ -283,7 +278,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     # the case of an HDUList object in memory without an associated file
 
-    simplefits = fu.isFits(fobj)[1] is 'simple'
+    simplefits = fu.isFits(fobj)[1] == 'simple'
     if simplefits:
         wcskeyext = 0
     else:
@@ -743,7 +738,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         pass
     else:
         # an HDUList object with associated file
-        if fobj.fileinfo(0)['filemode'] is not 'update':
+        if fobj.fileinfo(0)['filemode'] == 'update':
             print("First parameter must be a file name or a file object opened in 'update' mode.")
             return False
 
