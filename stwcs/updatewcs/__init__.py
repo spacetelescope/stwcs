@@ -407,14 +407,13 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.
-    #f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(fname[1].header)
     # Remove the primary WCS from the list
     try:
         keys.remove(' ')
     except ValueError:
         pass
-    fext = list(range(1, len(f)))
+    fext = list(range(1, len(fname)))
     for key in keys:
         try:
             wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
