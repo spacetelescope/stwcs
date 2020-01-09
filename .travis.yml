@@ -42,6 +42,10 @@ matrix:
           env: PIP_DEPENDENCIES="$ASTROPY_GIT $TOOLS_GIT .[test]"
                #EVENT_TYPE='cron'
 
+        - python: 3.6
+          env: TEST_COMMAND='flake8 stwcs --count'
+               PIP_DEPENDENCIES='flake8'
+
     allow_failures:
         # Do a PEP8 test with pycodestyle
         - python: 3.8

@@ -738,7 +738,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         pass
     else:
         # an HDUList object with associated file
-        if fobj.fileinfo(0)['filemode'] == 'update':
+        if fobj.fileinfo(0)['filemode'] != 'update':
             print("First parameter must be a file name or a file object opened in 'update' mode.")
             return False
 
