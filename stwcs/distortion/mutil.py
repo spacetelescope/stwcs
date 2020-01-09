@@ -312,7 +312,7 @@ def read_tdd_coeffs(phdr, chip=1):
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
         if (a == 0).all() and (b == 0).all():
             print('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
-                   but TDDORDER is %d.' % TDDORDER)
+                   but TDDORDER is %d.' % n)
 
         skew_coeffs['TDDORDER'] = n
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
