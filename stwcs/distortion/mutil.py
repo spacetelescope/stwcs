@@ -263,11 +263,21 @@ def read_tdd_coeffs(phdr, chip=1):
     skew_coeffs['TDD_CY_ALPHA'] = None
     skew_coeffs['TDD_CX_BETA'] = None
     skew_coeffs['TDD_CX_ALPHA'] = None
+    skew_coeffs['TDD_CX_QUAD'] = None
+    skew_coeffs['TDD_CY_QUAD'] = None
 
     # Skew-based TDD coefficients
     skew_terms = ['TDD_CTB', 'TDD_CTA', 'TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']
     for s in skew_terms:
         skew_coeffs[s] = None
+
+    if "TDD_QXB2" in phdr:
+        # We have the 2020-calibrated quadratic terms to apply
+        # This correction will be applied to the CX22 and CY22 coefficients
+        # in addition to the linear terms
+        print("Applying the 2020-calibrated quadratic TDD corrections...")
+        skew_coeffs['TDD_CX_QUAD'] = phdr.get('TDD_QXB2', None)
+        skew_coeffs['TDD_CY_QUAD'] = phdr.get('TDD_QYB1', None)
 
     if "TDD_CTB1" in phdr:
         # We have the 2015-calibrated TDD correction to apply

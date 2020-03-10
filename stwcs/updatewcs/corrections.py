@@ -77,8 +77,20 @@ class TDDCorr(object):
                  'OCY11': ext_wcs.idcmodel.ocy[1, 1],
                  'TDD_CTA': None, 'TDD_CTB': None,
                  'TDD_CYA': None, 'TDD_CYB': None,
-                 'TDD_CXA': None, 'TDD_CXB': None
+                 'TDD_CXA': None, 'TDD_CXB': None,
+                 'TDD_CXQ': None, 'TDD_CYQ': None
                  }
+
+        if ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
+                ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_QUAD'] is not None:
+            cls.apply_tddquad2020(ref_wcs)
+            cls.apply_tddquad2020(ext_wcs)
+
+            newkw.update({'TDD_CYQ': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_QUAD'],
+                          'TDD_CXQ': ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CX_QUAD']
+                          })
+
+
 
         if ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
                 ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CTB'] is not None:
@@ -115,6 +127,26 @@ class TDDCorr(object):
 
         return newkw
     updateWCS = classmethod(updateWCS)
+
+    def apply_tddquad2020(cls, hwcs):
+        """Applies the 2020-calibrated quadratic TDD corrections """
+
+        if not isinstance(hwcs.date_obs, float):
+            year, month, day = hwcs.date_obs.split('-')
+            rdate = datetime.datetime(int(year), int(month), int(day))
+            rday = float(rdate.strftime("%j")) / 365.25 + rdate.year
+        else:
+            rday = hwcs.date_obs
+
+        skew_coeffs = hwcs.idcmodel.refpix['skew_coeffs']
+        delta_date = rday - skew_coeffs['TDD_DATE']
+
+        if skew_coeffs['TDD_CX_QUAD'] is not None:
+            hwcs.idcmodel.cx[2, 2] += skew_coeffs['TDD_CX_QUAD'] * delta_date
+        if skew_coeffs['TDD_CY_QUAD'] is not None:
+            hwcs.idcmodel.cy[2, 2] += skew_coeffs['TDD_CY_QUAD'] * delta_date
+
+    apply_tddquad2020 = classmethod(apply_tddquad2020)
 
     def apply_tdd2idc2015(cls, hwcs):
         """ Applies 2015-calibrated TDD correction to a couple of IDCTAB
