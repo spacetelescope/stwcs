@@ -1161,6 +1161,7 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
     for fname, h in zip(filename, hdrlet):
         print("Applying {0} as Primary WCS to {1}".format(h, fname))
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
+        print("HDRNAME: {}".format(hlet.hdrname))
         hlet.apply_as_primary(fname, attach=attach, archive=archive,
                               force=force)
 
@@ -1904,7 +1905,7 @@ class Headerlet(fits.HDUList):
             raise ValueError("Destination name does not match headerlet"
                              "Observation {0} cannot be updated with"
                              "headerlet {1}".format((fname, self.hdrname)))
-
+        
         # Check to see whether the distortion model in the destination
         # matches the distortion model in the headerlet being applied
 
@@ -2061,7 +2062,7 @@ class Headerlet(fits.HDUList):
                     priwcs[('WCSDVARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
                     numnpol = 2
 
-            fobj[target_ext].header.extend(priwcs[0].header)
+            fobj[target_ext].header.update(priwcs[0].header)
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
                 whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
