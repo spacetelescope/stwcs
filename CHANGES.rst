@@ -1,6 +1,9 @@
 1.5.4 (Unreleased)
 ------------------
 
+- Revise how headerlets are applied as primary WCS [#122]
+
+
 1.5.3 (2019-09-23)
 ------------------
 

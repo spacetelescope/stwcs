@@ -1161,7 +1161,6 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
     for fname, h in zip(filename, hdrlet):
         print("Applying {0} as Primary WCS to {1}".format(h, fname))
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
-        print("HDRNAME: {}".format(hlet.hdrname))
         hlet.apply_as_primary(fname, attach=attach, archive=archive,
                               force=force)
 
