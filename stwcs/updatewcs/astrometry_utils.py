@@ -163,6 +163,10 @@ class AstrometryDB(object):
         # take inventory of what hdrlets are already appended to this file
         wcsnames = headerlet.get_headerlet_kw_names(obsname, 'wcsname')
 
+        # Get all the WCS solutions available from the astrometry database
+        # for this observation, along with what was flagged as the 'best'
+        # solution.  The 'best' solution should be the one that aligns the
+        # observation closest to the GAIA frame.
         headerlets, best_solution_id = self.getObservation(observationID)
         if headerlets is None:
             logger.warning("Problems getting solutions from database")
@@ -282,6 +286,13 @@ class AstrometryDB(object):
             Dictionary containing all solutions found for exposure in the
             form of headerlets labelled by the name given to the solution in
             the database.
+            
+        best_solution_id : str
+            WCSNAME of the WCS solution flagged as 'best' in the astrometry
+            database for the observation.  The 'best' solution should be the 
+            one that aligns the observation as close to the GAIA frame as 
+            possible.
+            
         """
         if not self.perform_step:
             return None, None
