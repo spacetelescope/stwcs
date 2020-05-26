@@ -43,6 +43,7 @@ setup(
     ],
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
+    python_requires='>=3.6',
     install_requires = [
         'astropy',
         'numpy',
