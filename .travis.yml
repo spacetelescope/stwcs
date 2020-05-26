@@ -5,15 +5,12 @@ os:
 
 sudo: false
 
-python:
-    - 3.6
-    - 3.7
 
 env:
     global:
         # The following versions are the 'default' for tests, unless
         # overidden underneath.
-        - NUMPY_VERSION=1.16
+        - NUMPY_VERSION=1.17
         - TEST_COMMAND="pytest"
         - PIP_DEPENDENCIES=".[all]"
         - ASTROPY_GIT='git+https://github.com/astropy/astropy.git#egg=astropy'
@@ -25,35 +22,34 @@ matrix:
     fast_finish: true
 
     include:
-        - python: 3.5
-          env:
-            - NUMPY_VERSION=1.15
-            - PIP_DEPENDENCIES='.[test]'
 
-        - python: 3.6
+        - python: 3.8
+          env: NUMPY_VERSION=1.18
+
+        - python: 3.7
           env: NUMPY_VERSION=1.17
 
         # Do a PEP8 test with pycodestyle
-        - python: 3.6
+        - python: 3.8
           env: TEST_COMMAND='flake8 stwcs --count'
                PIP_DEPENDENCIES='flake8'
 
         # build sphinx documentation with warnings
-        - python: 3.6
+        - python: 3.8
           env: TEST_COMMAND="make --directory=doc html"
                PIP_DEPENDENCIES='.[docs]'
 
-        - python: 3.6
+        - python: 3.8
           env: PIP_DEPENDENCIES="$ASTROPY_GIT $TOOLS_GIT .[test]"
                #EVENT_TYPE='cron'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
-        - python: 3.6
+        - python: 3.8
           env: TEST_COMMAND='flake8 stwcs --count'
                PIP_DEPENDENCIES='flake8'
 
-        - python: 3.6
+        - python: 3.8
           env: PIP_DEPENDENCIES="$ASTROPY_GIT $TOOLS_GIT .[test]"
 
 install:
