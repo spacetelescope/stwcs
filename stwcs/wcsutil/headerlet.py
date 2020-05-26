@@ -1904,7 +1904,7 @@ class Headerlet(fits.HDUList):
             raise ValueError("Destination name does not match headerlet"
                              "Observation {0} cannot be updated with"
                              "headerlet {1}".format((fname, self.hdrname)))
-
+        
         # Check to see whether the distortion model in the destination
         # matches the distortion model in the headerlet being applied
 
@@ -2061,7 +2061,7 @@ class Headerlet(fits.HDUList):
                     priwcs[('WCSDVARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
                     numnpol = 2
 
-            fobj[target_ext].header.extend(priwcs[0].header)
+            fobj[target_ext].header.update(priwcs[0].header)
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
                 whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
