@@ -45,7 +45,7 @@ setup(
     setup_requires=['setuptools_scm'],
     python_requires='>=3.6',
     install_requires = [
-        'astropy',
+        'astropy==4.1rc1',
         'numpy',
         'stsci.tools>=3.6',
         'requests',
