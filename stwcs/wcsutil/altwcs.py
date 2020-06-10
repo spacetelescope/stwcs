@@ -151,15 +151,19 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
         if w.sip is not None:
             for i in range(1, w.naxis + 1):
-                hwcs[f'CTYPE{i:d}'] = hwcs[f'CTYPE{i:d}'] + '-SIP'
+                hwcs[f'CTYPE{i:d}'] += '-SIP'
 
         if w.wcs.has_cd():
             hwcs = pc2cd(hwcs, key=" ")
 
         f[e].header[f'WCSNAME{wkey:.1s}'] = wname
 
-        for k in hwcs.keys():
-            f[e].header[k[:7] + wkey] = hwcs[k]
+        if 'WCSNAME' in hwcs:
+            old_wcsname = hwcs.pop('WCSNAME')
+
+        for k, v, c in hwcs.cards:
+            key = k[: 7] + wkey
+            f[e].header[key] = v, c
 
     log.setLevel(default_log_level)
     closefobj(fname, f)
@@ -442,10 +446,10 @@ def _restore(fobj, ukey, fromextnum,
     for i in range(1, w.naxis + 1):
         hwcs[f'CTYPE{i:d}{ukey:.1s}'] = ctype[f'CTYPE{i:d}']
 
-    for k in hwcs.keys():
+    for k, v, c in hwcs.cards:
         key = k[:-1]
         if key in fobj[toextension].header:
-            fobj[toextension].header[key] = hwcs[k]
+            fobj[toextension].header[key] = hwcs[k], c
         else:
             continue
 
@@ -687,13 +691,16 @@ def pc2cd(hdr, key=' '):
 
     """
     key = key.strip()
-    for c in ['1_1', '1_2', '2_1', '2_2']:
-        try:
-            val = hdr[f'PC{c:s}{key:.1s}']
-            del hdr[f'PC{c:s}{key:.1s}']
-        except KeyError:
-            val = 1 if c == '1_1' or c == '2_2' else 0
-        hdr[f'CD{c:s}{key:.1s}'] = val
+    cdelt1 = hdr.pop(f'CDELT1{key:.1s}', 1)
+    cdelt2 = hdr.pop(f'CDELT2{key:.1s}', 1)
+    hdr[f'CD1_1{key:.1s}'] = (cdelt1 * hdr.pop(f'PC1_1{key:.1s}', 1),
+                              'partial of first axis coordinate w.r.t. x')
+    hdr[f'CD1_2{key:.1s}'] = (cdelt1 * hdr.pop(f'PC1_2{key:.1s}', 0),
+                              'partial of first axis coordinate w.r.t. y')
+    hdr[f'CD2_1{key:.1s}'] = (cdelt2 * hdr.pop(f'PC2_1{key:.1s}', 0),
+                              'partial of second axis coordinate w.r.t. x')
+    hdr[f'CD2_2{key:.1s}'] = (cdelt2 * hdr.pop(f'PC2_2{key:.1s}', 1),
+                              'partial of second axis coordinate w.r.t. y')
     return hdr
 
 

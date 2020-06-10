@@ -248,62 +248,40 @@ class NPOLCorr(object):
                 nplextver = ext.header['EXTVER']
             except KeyError:
                 continue
+
             nplccdchip = cls.get_ccdchip(npl, extname=nplextname, extver=nplextver)
             if nplextname == npl_extname and nplccdchip == ccdchip:
                 npol_header = ext.header
                 break
-            else:
-                continue
+
         npl.close()
 
         naxis = npl[1].header['NAXIS']
         ccdchip = nplextname  # npol_header['CCDCHIP']
 
-        kw = {'NAXIS': 'Size of the axis',
-              'CDELT': 'Coordinate increment along axis',
-              'CRPIX': 'Coordinate system reference pixel',
-              'CRVAL': 'Coordinate system value at reference pixel',
-              }
-
-        kw_comm1 = {}
-        kw_val1 = {}
-        for key in kw.keys():
-            for i in range(1, naxis + 1):
-                si = str(i)
-                kw_comm1[key + si] = kw[key]
+        cdl = [
+            ('XTENSION', 'IMAGE', 'Image extension'),
+            ('BITPIX', -32, 'number of bits per data pixel'),
+            ('NAXIS', naxis, 'Number of data axes'),
+            ('EXTNAME', 'WCSDVARR', 'WCS distortion array'),
+            ('EXTVER', wdvarr_ver, 'Distortion array version number'),
+            ('PCOUNT', 0, 'number of parameters'),
+            ('GCOUNT', 1, 'number of groups'),
+            ('CCDCHIP', ccdchip),
+        ]
 
         for i in range(1, naxis + 1):
-            si = str(i)
-            kw_val1['NAXIS' + si] = npol_header.get('NAXIS' + si)
-            kw_val1['CDELT' + si] = npol_header.get('CDELT' + si, 1.0) * \
-                sciheader.get('LTM' + si + '_' + si, 1)
-            kw_val1['CRPIX' + si] = npol_header.get('CRPIX' + si, 0.0)
-            kw_val1['CRVAL' + si] = (npol_header.get('CRVAL' + si, 0.0) -
-                                     sciheader.get('LTV' + str(i), 0))
+            cdl.append((f'NAXIS{i:d}', npol_header.get(f'NAXIS{i:d}'),
+                        f"length of data axis {i:d}"))
+            cdl.append((f'CDELT{i:d}', npol_header.get(f'CDELT{i:d}', 1.0) *
+                        sciheader.get(f'LTM{i:d}_{i:d}', 1),
+                        "Coordinate increment at reference point"))
+            cdl.append((f'CRPIX{i:d}', npol_header.get(f'CRPIX{i:d}', 0.0),
+                        "Pixel coordinate of reference point"))
+            cdl.append((f'CRVAL{i:d}', npol_header.get(f'CRVAL{i:d}', 0.0) -
+                        sciheader.get(f'LTV{i:d}', 0),
+                        "Coordinate value at reference point"))
 
-        kw_comm0 = {'XTENSION': 'Image extension',
-                    'BITPIX': 'IEEE floating point',
-                    'NAXIS': 'Number of axes',
-                    'EXTNAME': 'WCS distortion array',
-                    'EXTVER': 'Distortion array version number',
-                    'PCOUNT': 'Special data area of size 0',
-                    'GCOUNT': 'One data group',
-                    }
-
-        kw_val0 = {'XTENSION': 'IMAGE',
-                   'BITPIX': -32,
-                   'NAXIS': naxis,
-                   'EXTNAME': 'WCSDVARR',
-                   'EXTVER': wdvarr_ver,
-                   'PCOUNT': 0,
-                   'GCOUNT': 1,
-                   'CCDCHIP': ccdchip,
-                   }
-        cdl = []
-        for key in kw_comm0.keys():
-            cdl.append((key, kw_val0[key], kw_comm0[key]))
-        for key in kw_comm1.keys():
-            cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header
         start_indx = -1
