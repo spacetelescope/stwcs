@@ -4,10 +4,6 @@ import os
 from astropy.io import fits
 from .. import updatewcs
 from ..updatewcs import astrometry_utils
-import requests
-
-import pytest
-
 
 from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]

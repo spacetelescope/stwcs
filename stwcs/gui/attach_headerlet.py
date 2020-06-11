@@ -1,12 +1,12 @@
 import os
 
 from stsci.tools import teal
-from .. import __version
 from ..wcsutil import headerlet
+import stwcs
 
 __taskname__ = __name__.split('.')[-1]  # needed for help string
 __package__ = headerlet.__name__
-#__version__ = stwcs.__version__
+__version__ = stwcs.__version__
 #
 #### Interfaces used by TEAL
 #

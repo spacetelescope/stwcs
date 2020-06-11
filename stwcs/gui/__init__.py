@@ -6,12 +6,12 @@ provided by the STWCS package.
 """
 
 # import modules which define the TEAL interfaces
-from . import write_headerlet
-from . import extract_headerlet
-from . import attach_headerlet
-from . import delete_headerlet
-from . import headerlet_summary
-from . import archive_headerlet
-from . import restore_headerlet
-from . import apply_headerlet
-from . import updatewcs
+from . import write_headerlet  # noqa
+from . import extract_headerlet  # noqa
+from . import attach_headerlet  # noqa
+from . import delete_headerlet  # noqa
+from . import headerlet_summary  # noqa
+from . import archive_headerlet  # noqa
+from . import restore_headerlet  # noqa
+from . import apply_headerlet  # noqa
+from . import updatewcs  # noqa

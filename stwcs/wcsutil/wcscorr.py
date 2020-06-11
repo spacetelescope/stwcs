@@ -294,7 +294,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     for colname in wcscorr_cols:
         if colname not in old_table.data.columns.names:
             print("WARNING:    Replacing outdated WCSCORR table...")
-            outdated_table = old_table.copy()
+            #outdated_table = old_table.copy()
             del dest['WCSCORR']
             init_wcscorr(dest)
             old_table = dest['WCSCORR']
@@ -507,8 +507,8 @@ def create_wcscorr(descrip=False, numrows=1, padding=0):
                  ('NPOLNAME', def_str24_col), ('D2IMNAME', def_str24_col),
                  ('CRVAL1', def_float_col), ('CRVAL2', def_float_col),
                  ('CRPIX1', def_float_col), ('CRPIX2', def_float_col),
-                 ('CD1_1', def_float_col), ('CD1_2', def_float_col),
-                 ('CD2_1', def_float_col), ('CD2_2', def_float_col),
+                 ('CD1_1', def_float1_col), ('CD1_2', def_float_col),
+                 ('CD2_1', def_float_col), ('CD2_2', def_float1_col),
                  ('CTYPE1', def_str24_col), ('CTYPE2', def_str24_col),
                  ('ORIENTAT', def_float_col), ('PA_V3', def_float_col),
                  ('RMS_RA', def_float_col), ('RMS_Dec', def_float_col),

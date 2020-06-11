@@ -60,7 +60,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
     # converted on-the-fly into a proper D2IMFILE here...
     if instrument == 'WFPC2':
         # check for DGEOFILE, and convert it to D2IMFILE if found
-        d2imfile = wfpc2_dgeo.update_wfpc2_d2geofile(fname)
+        _ = wfpc2_dgeo.update_wfpc2_d2geofile(fname)
     # Check if idctab is present on disk
     # If kw IDCTAB is present in the header but the file is
     # not found on disk, do not run TDDCorr, MakeCWS and CompSIP

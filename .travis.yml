@@ -5,7 +5,6 @@ os:
 
 sudo: false
 
-
 env:
     global:
         # The following versions are the 'default' for tests, unless
@@ -42,6 +41,7 @@ matrix:
         - python: 3.8
           env: PIP_DEPENDENCIES="$ASTROPY_GIT $TOOLS_GIT .[test]"
                #EVENT_TYPE='cron'
+
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
