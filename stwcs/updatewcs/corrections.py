@@ -70,7 +70,7 @@ class TDDCorr(object):
         ext_wcs.idcmodel.ocx = copy.deepcopy(ext_wcs.idcmodel.cx)
         ext_wcs.idcmodel.ocy = copy.deepcopy(ext_wcs.idcmodel.cy)
 
-        ocxy_comment = "linear term without scale from IDCTAB file"
+        ocxy_comment = "original linear term from IDCTAB"
 
         newkw = {'TDDALPHA': None,
                  'TDDBETA': None,

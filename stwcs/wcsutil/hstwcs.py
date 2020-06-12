@@ -454,10 +454,10 @@ class HSTWCS(WCS):
     def _idc2hdr(self):
         # save some of the idc coefficients
         coeffs = [
-            ('ocx10', 'linear term without scale from IDCTAB file'),
-            ('ocx11', 'linear term without scale from IDCTAB file'),
-            ('ocy10', 'linear term without scale from IDCTAB file'),
-            ('ocy11', 'linear term without scale from IDCTAB file'),
+            ('ocx10', 'original linear term from IDCTAB'),
+            ('ocx11', 'original linear term from IDCTAB'),
+            ('ocy10', 'original linear term from IDCTAB'),
+            ('ocy11', 'original linear term from IDCTAB'),
             ('idcscale', 'pixel scale from the IDCTAB reference file'),
         ]
         cards = []
@@ -945,7 +945,7 @@ adaptive=False, detect_divergence=True, quiet=False)
     def _updatehdr(self, ext_hdr):
         # kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
-        ocx_comment = "linear term without scale from IDCTAB file"
+        ocx_comment = "original linear term from IDCTAB"
         ext_hdr['OCX10'] = self.idcmodel.cx[1, 0], ocx_comment
         ext_hdr['OCX11'] = self.idcmodel.cx[1, 1], ocx_comment
         ext_hdr['OCY10'] = self.idcmodel.cy[1, 0], ocx_comment
