@@ -80,7 +80,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     if wcskey == ' ' and wcsname == ' ':
         raise KeyError("Either wcskey or wcsname should be specified")
 
-    if not wcsname:
+    if wcsname == ' ':
         try:
             wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
         except KeyError:
