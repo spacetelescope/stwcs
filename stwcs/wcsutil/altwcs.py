@@ -34,7 +34,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         If a string is provided, it should specify the EXTNAME of extensions
         with WCSs to be archived
     wcskey : string "A"-"Z" or " "
-        if " ": get next available key if wcsname is also " " or try
+        if ``' '``: get next available key if wcsname is also ``' '`` or try
         to get a key from WCSNAME value
     wcsname : string
         Name of alternate WCS description
@@ -59,6 +59,11 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
 
     """
+    if wcskey == '':
+        wcskey = ' '
+
+    if wcsname.strip() == '':
+        wcsname = ' '
 
     if isinstance(fname, str):
         f = fits.open(fname, mode='update')
@@ -72,23 +77,25 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     # Interpret input 'ext' value to get list of extensions to process
     ext = _buildExtlist(f, ext)
 
-    if not wcskey and not wcsname:
+    if wcskey == ' ' and wcsname == ' ':
         raise KeyError("Either wcskey or wcsname should be specified")
 
-    if wcsname.strip() == "":
+    if not wcsname:
         try:
             wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
         except KeyError:
             pass
+
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
         raise KeyError("Wcskey %s is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
         Alternatively choose another wcskey with altwcs.available_wcskeys()." % wcskey)
+
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
-        if wcsname.strip() in wcsnames(f[wcsext].header).values():
+        if wcsname in wcsnames(f[wcsext].header).values():
             if reusekey:
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
@@ -106,12 +113,14 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                 choose another wcsname." % wcsname)
         else:
             wkey = next_wcskey(f[wcsext].header)
-            if wcsname.strip():
+            if wcsname != ' ':
                 wname = wcsname
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
                 wnames = wcsnames(f[wcsext].header)
-                if 'O' in wnames: del wnames['O']  # we don't want OPUS/original
+                if 'O' in wnames:
+                    del wnames['O']  # we don't want OPUS/original
+
                 if len(wnames) > 0:
                     if ' ' in wnames:
                         wname = wnames[' ']
@@ -127,9 +136,11 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     else:
         wkey = wcskey
         wname = wcsname
+
     log.setLevel('WARNING')
 
     wkey = wkey.strip()
+
     for e in ext:
         hdr = _getheader(f, e)
         w = pywcs.WCS(hdr, f)
@@ -140,17 +151,16 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
         if w.sip is not None:
             for i in range(1, w.naxis + 1):
-                hwcs['CTYPE{0}'.format(i)] = hwcs['CTYPE{0}'.format(i)] + '-SIP'
+                hwcs['CTYPE{:d}'.format(i)] = hwcs['CTYPE{:d}'.format(i)] + '-SIP'
 
         if w.wcs.has_cd():
             hwcs = pc2cd(hwcs, key=" ")
 
-        wcsnamekey = 'WCSNAME' + wkey
-        f[e].header[wcsnamekey] = wname
+        f[e].header['WCSNAME' + wkey] = wname
 
         for k in hwcs.keys():
-            key = k[: 7] + wkey
-            f[e].header[key] = hwcs[k]
+            f[e].header[k[:7] + wkey] = hwcs[k]
+
     log.setLevel(default_log_level)
     closefobj(fname, f)
 
@@ -219,7 +229,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
                 raise KeyError("Could not get a key from wcsname %s ." % wcsname)
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            print("Could not find alternate WCS with key %s in this file" % wcskey)
+            print("Could not find alternate WCS with key '%s' in this file" % wcskey)
             closefobj(f, fobj)
             return
         wkey = wcskey
@@ -458,7 +468,8 @@ def _restore(fobj, ukey, fromextnum,
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
     if 'ORIENTAT' in fobj[toextension].header:
-        norient = np.rad2deg(np.arctan2(hwcs['CD1_2' + '%s' % ukey], hwcs['CD2_2' + '%s' % ukey]))
+        norient = np.rad2deg(np.arctan2(hwcs['CD1_2' + '%.1s' % ukey],
+                                        hwcs['CD2_2' + '%.1s' % ukey]))
         fobj[toextension].header['ORIENTAT'] = norient
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
     for kw in ['TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']:
@@ -517,7 +528,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
-            print('readAltWCS: Could not read WCS with key %s' % wcskey)
+            print('readAltWCS: Could not read WCS with key %.1s' % wcskey)
             print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
         return None
     hwcs = nwcs.to_header()
@@ -528,7 +539,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     return hwcs
 
 
-def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
+def convertAltWCS(fobj, ext, oldkey='', newkey=''):
     """
     Translates the alternate/primary WCS with one key to an alternate/primary WCS with
     another key.
@@ -552,17 +563,20 @@ def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
     hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
-    newkey = newkey.strip()
+    if oldkey.strip() == '':
+        oldkey = ' '
+
     hdr = readAltWCS(fobj, ext, wcskey=oldkey)
     if hdr is None:
         return None
+
     # Converting WCS to new key
-    for card in hdr:
-        if oldkey == ' ' or oldkey == '':
-            cname = card
-        else:
-            cname = card.rstrip(oldkey)
-        hdr.rename_keyword(card, cname + newkey, force=True)
+    for kwd in hdr:
+        kwd = kwd.strip()
+        if oldkey != ' ' and kwd.endswith(oldkey):
+            kwd = kwd[:-1]
+
+        hdr.rename_keyword(kwd, kwd + newkey.strip(), force=True)
 
     return hdr
 
@@ -582,13 +596,9 @@ def wcskeys(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    names = hdr["WCSNAME*"]
-    d = []
-    for key in names:
-        wkey = key.replace('WCSNAME', '')
-        if wkey == '': wkey = ' '
-        d.append(wkey)
-    return d
+    wcsnames = hdr["WCSNAME*"]
+    wkeys = list(set([key.lstrip('WCSNAME').strip().upper().ljust(1, ' ') for key in wcsnames]))
+    return wkeys
 
 
 def wcsnames(fobj, ext=None):
@@ -610,7 +620,8 @@ def wcsnames(fobj, ext=None):
     d = {}
     for keyword, value in names.items():
         wkey = keyword.replace('WCSNAME', '')
-        if wkey == '': wkey = ' '
+        if wkey == '':
+            wkey = ' '
         d[wkey] = value
     return d
 
@@ -634,7 +645,7 @@ def available_wcskeys(fobj, ext=None):
     all_keys = list(string.ascii_uppercase)
     used_keys = wcskeys(hdr)
     try:
-        used_keys.remove(" ")
+        used_keys.remove(' ')
     except ValueError:
         pass
     [all_keys.remove(key) for key in used_keys]
@@ -764,7 +775,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         print("toext must be a string or a list of strings representing extname")
         return False
 
-    if len(wcskey) != 1:
+    if len(wcskey) > 1 or wcskey.strip() not in string.ascii_letters:
         print('Parameter wcskey must be a character - one of "A"-"Z" or " "')
         return False
 
