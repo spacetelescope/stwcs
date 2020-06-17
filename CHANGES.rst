@@ -1,6 +1,8 @@
 1.5.4 (Unreleased)
 ------------------
 
+- Prevent same WCS from being updated from astrometry database headerlet. [#111]
+
 - Revise how headerlets are applied as primary WCS [#122]
 
 
@@ -9,7 +11,7 @@
 
 - Add ``stdout`` to logging handlers. [#108]
 
-- Correct the logic for replacing headerlets with one which has a different 
+- Correct the logic for replacing headerlets with one which has a different
   distortion model. [#109]
 
 

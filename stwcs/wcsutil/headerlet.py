@@ -8,6 +8,18 @@ solutions for HST data and provide those solutions in a manner
 that would not require getting entirely new images from the archive
 when only the WCS information has been updated.
 
+NOTE ::
+  This module defines a FileHandler for the logging in the current
+  working directory for the user when this module first gets imported.
+  If that directory is removed later by the user, it will cause an
+  Exception when performing headerlet operations later.
+
+  The file handler can be identified using::
+
+    rl = logging.getLogger('stwcs.wcsutil.headerlet')
+    rl.handlers
+    del rl.handlers[-1]  # if FileHandler was the last one, remove it
+  
 """
 import os
 import sys
