@@ -338,6 +338,8 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
 
     idx = -1
     for wcs_key in wcs_keys:
+        wcs_key_hdr = wcs_key.strip()
+
         for extver in range(1, numext + 1):
             extn = (extname, extver)
             if 'SIPWCS' in extname and not active:
@@ -345,8 +347,9 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
             else:
                 tab_extver = extver
             hdr = source[extn].header
-            if 'WCSNAME' + wcs_key in hdr:
-                wcsname = hdr['WCSNAME' + wcs_key]
+            wcsname_kwd = 'WCSNAME' + wcs_key_hdr
+            if wcsname_kwd in hdr:
+                wcsname = hdr[wcsname_kwd]
             else:
                 wcsname = utils.build_default_wcsname(hdr['idctab'])
 
@@ -373,25 +376,27 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
 
             for key in wcs_keywords:
                 if key in new_table.data.names:
-                    new_table.data.field(key)[idx] = wcshdr[key + wcs_key]
+                    new_table.data.field(key)[idx] = wcshdr[key + wcs_key_hdr]
 
             for key in DEFAULT_PRI_KEYS:
                 if key in new_table.data.names and key in prihdr:
                     new_table.data.field(key)[idx] = prihdr[key]
+
             # Now look for additional, non-WCS-keyword table column data
-            for key in COL_FITSKW_DICT:
-                fitkw = COL_FITSKW_DICT[key]
+            for key, fitkw in COL_FITSKW_DICT.items():
                 # Interpret any 'pri.hdrname' or
                 # 'sci.crpix1' formatted keyword names
                 if '.' in fitkw:
                     srchdr, fitkw = fitkw.split('.')
-                    if 'pri' in srchdr.lower(): srchdr = prihdr
-                    else: srchdr = source[extn].header
+                    if 'pri' in srchdr.lower():
+                        srchdr = prihdr
+                    else:
+                        srchdr = source[extn].header
                 else:
                     srchdr = source[extn].header
 
-                if fitkw + wcs_key in srchdr:
-                    new_table.data.field(key)[idx] = srchdr[fitkw + wcs_key]
+                if fitkw + wcs_key_hdr in srchdr:
+                    new_table.data.field(key)[idx] = srchdr[fitkw + wcs_key_hdr]
 
     # If idx was never incremented, no rows were added, so there's nothing else
     # to do...
@@ -432,7 +437,7 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
     The default will be to restore the original OPUS-derived values to the Primary WCS.
     If wcskey is specified, the WCS with that key will be updated instead.
     """
-
+    wcskey = wcskey.strip()
     if not isinstance(image, fits.HDUList):
         fimg = fits.open(image, mode='update')
         close_image = True
@@ -465,7 +470,7 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
                 if wcskey == '':
                     pkey = key
                 else:
-                    pkey = key[: 7] + wcskey
+                    pkey = key[:7] + wcskey
                 fimg[0].header[pkey] = wcs_table.data.field(key)[erow]
 
     utils.updateNEXTENDKw(fimg)

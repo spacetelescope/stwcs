@@ -128,6 +128,8 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         wkey = wcskey
         wname = wcsname
     log.setLevel('WARNING')
+
+    wkey = wkey.strip()
     for e in ext:
         hdr = _getheader(f, e)
         w = pywcs.WCS(hdr, f)
@@ -440,6 +442,8 @@ def _restore(fobj, ukey, fromextnum,
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=ukey)
 
+    ukey = ukey.strip()
+
     for i in range(1, w.naxis + 1):
         hwcs['CTYPE{0}{1}'.format(i, ukey)] = ctype['CTYPE{0}'.format(i)]
 
@@ -548,6 +552,7 @@ def convertAltWCS(fobj, ext, oldkey=" ", newkey=' '):
     hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
+    newkey = newkey.strip()
     hdr = readAltWCS(fobj, ext, wcskey=oldkey)
     if hdr is None:
         return None
@@ -698,6 +703,7 @@ def pc2cd(hdr, key=' '):
     hdr: `astropy.io.fits.Header`
 
     """
+    key = key.strip()
     for c in ['1_1', '1_2', '2_1', '2_2']:
         try:
             val = hdr['PC{0}{1}'.format(c, key)]

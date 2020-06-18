@@ -5,6 +5,9 @@
 
 - Revise how headerlets are applied as primary WCS [#122]
 
+- Primary WCS keywords no longer contain trailing spaces which, in the past,
+  lead to duplicate keywords in image headers. [#131]
+
 
 1.5.3 (2019-09-23)
 ------------------
