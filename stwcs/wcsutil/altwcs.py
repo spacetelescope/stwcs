@@ -89,9 +89,9 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
         closefobj(fname, f)
-        raise KeyError("Wcskey %s is aready used. \
+        raise KeyError(f"Wcskey '{wcskey}' is aready used. \
         Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
-        Alternatively choose another wcskey with altwcs.available_wcskeys()." % wcskey)
+        Alternatively choose another wcskey with altwcs.available_wcskeys().")
 
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
@@ -104,13 +104,16 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                     wkey = next_wcskey(f[wcsext].header)
                 elif wkey is None:
                     closefobj(fname, f)
-                    raise KeyError("Could not get a valid wcskey from wcsname %s" % wcsname)
+                    raise KeyError(f"Could not get a valid wcskey from wcsname '{wcsname:s}'")
             else:
                 closefobj(fname, f)
-                raise KeyError("Wcsname %s is aready used. \
-                Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
-                Alternatively choose another wcskey with altwcs.available_wcskeys() or\
-                choose another wcsname." % wcsname)
+                raise KeyError(
+                    f"Wcsname '{wcsname}' is aready used. Run archiveWCS() "
+                    "with reusekey=True to overwrite this alternate WCS. "
+                    "Alternatively choose another wcskey with "
+                    "altwcs.available_wcskeys() or choose another wcsname."
+                )
+
         else:
             wkey = next_wcskey(f[wcsext].header)
             if wcsname != ' ':
@@ -151,12 +154,12 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
         if w.sip is not None:
             for i in range(1, w.naxis + 1):
-                hwcs['CTYPE{:d}'.format(i)] = hwcs['CTYPE{:d}'.format(i)] + '-SIP'
+                hwcs[f'CTYPE{i:d}'] = hwcs[f'CTYPE{i:d}'] + '-SIP'
 
         if w.wcs.has_cd():
             hwcs = pc2cd(hwcs, key=" ")
 
-        f[e].header['WCSNAME' + wkey] = wname
+        f[e].header[f'WCSNAME{wkey:.1s}'] = wname
 
         for k in hwcs.keys():
             f[e].header[k[:7] + wkey] = hwcs[k]
@@ -215,35 +218,31 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     # if fobj.filename() is not None:
     #        name = fobj.filename()
 
-    simplefits = fu.isFits(fobj)[1] == 'simple'
-    if simplefits:
-        wcskeyext = 0
-    else:
-        wcskeyext = 1
+    wcskeyext = 0 if fu.isFits(fobj)[1] == 'simple' else 1
 
     if wcskey == " ":
         if wcsname.strip():
             wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
             if not wkey:
                 closefobj(f, fobj)
-                raise KeyError("Could not get a key from wcsname %s ." % wcsname)
+                raise KeyError(f"Could not get a key from wcsname '{wcsname}'.")
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            print("Could not find alternate WCS with key '%s' in this file" % wcskey)
+            print(f"Could not find alternate WCS with key '{wcskey}' in this file")
             closefobj(f, fobj)
             return
         wkey = wcskey
 
     countext = fu.countExtn(fobj, fromext)
-    if not countext:
-        raise KeyError("File does not have extension with extname %s", fromext)
-    else:
+    if countext:
         for i in range(1, countext + 1):
             for toe in toext:
-                _restore(fobj, fromextnum=i, fromextnam=fromext, toextnum=i, toextnam=toe, ukey=wkey)
+                _restore(fobj, fromextnum=i, fromextnam=fromext, toextnum=i,
+                         toextnam=toe, ukey=wkey)
+    else:
+        raise KeyError(f"File does not have extension with extname {fromext:s}")
 
     if fobj.filename() is not None:
-        # fobj.writeto(name)
         closefobj(f, fobj)
 
 
@@ -290,23 +289,17 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     # the case of an HDUList object in memory without an associated file
 
-    simplefits = fu.isFits(fobj)[1] == 'simple'
-    if simplefits:
-        wcskeyext = 0
-    else:
-        wcskeyext = 1
+    wcskeyext = 0 if fu.isFits(fobj)[1] == 'simple' else 1
 
     if wcskey == " ":
         if wcsname.strip():
             wcskey = getKeyFromName(fobj[wcskeyext].header, wcsname)
             if not wcskey:
                 closefobj(f, fobj)
-                raise KeyError("Could not get a key from wcsname %s ." % wcsname)
+                raise KeyError(f"Could not get a key from wcsname '{wcsname}'.")
 
     for e in ext:
-        if wcskey not in wcskeys(fobj, ext=e):
-            continue
-        else:
+        if wcskey in wcskeys(fobj, ext=e):
             _restore(fobj, wcskey, fromextnum=e, verbose=False)
 
     if fobj.filename() is not None:
@@ -357,29 +350,26 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         wkey = getKeyFromName(fobj[wcskeyext].header, wcsname)
         if not wkey:
             closefobj(fname, fobj)
-            raise KeyError("Could not get a key: wcsname '%s' not found in header." % wcsname)
+            raise KeyError(f"Could not get a key: wcsname '{wcsname}' not found in header.")
     else:
         if wcskey not in wcskeys(fobj[wcskeyext].header):
             closefobj(fname, fobj)
-            raise KeyError("Could not find alternate WCS with key %s in this file" % wcskey)
+            raise KeyError(f"Could not find alternate WCS with key '{wcskey}' in this file")
         wkey = wcskey
 
     prexts = []
     for i in ext:
         hdr = fobj[i].header
         hwcs = readAltWCS(fobj, i, wcskey=wkey)
-        if hwcs is None:
-            continue
-        for k in hwcs[::-1]:
-            try:
-                del hdr[k]
-            except KeyError:
-                pass
-        prexts.append(i)
-    if prexts != []:
-        print('Deleted all instances of WCS with key %s in extensions' % wkey, prexts)
+        if hwcs:
+            for k in hwcs[::-1]:
+                if k in hdr:
+                    del hdr[k]
+            prexts.append(i)
+    if prexts:
+        print(f'Deleted all instances of WCS with key {wkey:s} in extensions {prexts}')
     else:
-        print("Did not find WCS with key %s in any of the extensions" % wkey)
+        print(f"Did not find WCS with key {wkey:s} in any of the extensions {prexts}")
     closefobj(fname, fobj)
 
 
@@ -446,8 +436,6 @@ def _restore(fobj, ukey, fromextnum,
 
     w = pywcs.WCS(hdr, fobj, key=ukey)
     hwcs = w.to_header()
-    if hwcs is None:
-        return
 
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=ukey)
@@ -455,7 +443,7 @@ def _restore(fobj, ukey, fromextnum,
     ukey = ukey.strip()
 
     for i in range(1, w.naxis + 1):
-        hwcs['CTYPE{0}{1}'.format(i, ukey)] = ctype['CTYPE{0}'.format(i)]
+        hwcs[f'CTYPE{i:d}{ukey:.1s}'] = ctype[f'CTYPE{i:d}']
 
     for k in hwcs.keys():
         key = k[:-1]
@@ -467,9 +455,10 @@ def _restore(fobj, ukey, fromextnum,
     if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
+
     if 'ORIENTAT' in fobj[toextension].header:
-        norient = np.rad2deg(np.arctan2(hwcs['CD1_2' + '%.1s' % ukey],
-                                        hwcs['CD2_2' + '%.1s' % ukey]))
+        norient = np.rad2deg(np.arctan2(hwcs[f'CD1_2{ukey:.1s}'],
+                                        hwcs[f'CD2_2{ukey:.1s}']))
         fobj[toextension].header['ORIENTAT'] = norient
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
     for kw in ['TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']:
@@ -528,8 +517,8 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
         nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
     except KeyError:
         if verbose:
-            print('readAltWCS: Could not read WCS with key %.1s' % wcskey)
-            print('            Skipping %s[%s]' % (fobj.filename(), str(ext)))
+            print(f'readAltWCS: Could not read WCS with key {wcskey:s}')
+            print(f'            Skipping {fobj.filename():s}[{ext:s}]')
         return None
     hwcs = nwcs.to_header()
 
@@ -597,8 +586,9 @@ def wcskeys(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     wcsnames = hdr["WCSNAME*"]
-    wkeys = list(set([key.lstrip('WCSNAME').strip().upper().ljust(1, ' ') for key in wcsnames]))
-    return wkeys
+    wkeys = list(set([key.replace('WCSNAME', '').strip().upper().ljust(1, ' ')
+                      for key in wcsnames]))
+    return list(wkeys)
 
 
 def wcsnames(fobj, ext=None):
@@ -617,13 +607,8 @@ def wcsnames(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     names = hdr["WCSNAME*"]
-    d = {}
-    for keyword, value in names.items():
-        wkey = keyword.replace('WCSNAME', '')
-        if wkey == '':
-            wkey = ' '
-        d[wkey] = value
-    return d
+    wnames = {keyword.replace('WCSNAME', '').strip().upper().ljust(1, ' '): value}
+    return wnames
 
 
 def available_wcskeys(fobj, ext=None):
@@ -642,14 +627,7 @@ def available_wcskeys(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    all_keys = list(string.ascii_uppercase)
-    used_keys = wcskeys(hdr)
-    try:
-        used_keys.remove(' ')
-    except ValueError:
-        pass
-    [all_keys.remove(key) for key in used_keys]
-    return all_keys
+    return sorted(set(string.ascii_uppercase).difference(wcskeys(hdr)))
 
 
 def next_wcskey(fobj, ext=None):
@@ -667,7 +645,7 @@ def next_wcskey(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     allkeys = available_wcskeys(hdr)
-    if allkeys != []:
+    if allkeys:
         return allkeys[0]
     else:
         return None
@@ -685,14 +663,10 @@ def getKeyFromName(header, wcsname):
     wcsname : str
         value of WCSNAME
     """
-    wkey = None
     names = wcsnames(header)
-    wkeys = []
-    for item in names.items():
-        if item[1].lower() == wcsname.lower():
-            wkeys.append(item[0])
-    wkeys.sort()
-    if len(wkeys) > 0:
+    wkeys = [key for key, name in names.items() if name.lower() == wcsname.lower()]
+    if wkeys:
+        wkeys.sort()
         wkey = wkeys[-1]
     else:
         wkey = None
@@ -717,14 +691,11 @@ def pc2cd(hdr, key=' '):
     key = key.strip()
     for c in ['1_1', '1_2', '2_1', '2_2']:
         try:
-            val = hdr['PC{0}{1}'.format(c, key)]
-            del hdr['PC{0}{1}'.format(c, key)]
+            val = hdr[f'PC{c:s}{key:.1s}']
+            del hdr[f'PC{c:s}{key:.1s}']
         except KeyError:
-            if c == '1_1' or c == '2_2':
-                val = 1.
-            else:
-                val = 0.
-        hdr['CD{0}{1}'.format(c, key)] = val
+            val = 1 if c == '1_1' or c == '2_2' else 0
+        hdr[f'CD{c:s}{key:.1s}'] = val
     return hdr
 
 
@@ -762,8 +733,9 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
         and not isinstance(ext, str) \
         and not isinstance(ext, list) and ext is not None:
-        print("Ext must be integer, tuple, string,a list of int extension numbers, \n\
-        or a list of tuples representing a fits extension, for example ('sci', 1).")
+        print("Ext must be integer, tuple, string,a list of int extension "
+              "numbers,\nor a list of tuples representing a fits extension, "
+              "for example ('sci', 1).")
         return False
 
     if not isinstance(fromext, str) and fromext is not None:
@@ -803,11 +775,13 @@ def mapFitsExt2HDUListInd(fname, extname):
     else:
         f = fname
         close_file = False
+
     d = {}
     for hdu in f:
         if 'EXTNAME' in hdu.header and hdu.header['EXTNAME'] == extname:
             extver = hdu.header['EXTVER']
             d[(extname, extver)] = f.index_of((extname, extver))
+
     if close_file:
         f.close()
     return d
