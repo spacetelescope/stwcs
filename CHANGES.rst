@@ -8,10 +8,6 @@
 - Primary WCS keywords no longer contain trailing spaces which, in the past,
   lead to duplicate keywords in image headers. [#131]
 
-- Running ``updatewcs`` with ``use_db=True`` multiple times no longer results
-  in archival of a wrong WCS and creation multiple copies of the
-  same WCS as alternative WCSes. [#132]
-
 
 1.5.3 (2019-09-23)
 ------------------
