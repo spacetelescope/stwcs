@@ -21,6 +21,10 @@ altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
 altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
+# List non-standard WCS keywords (such as those created, e.g., by TweakReg)
+# that need to be archived/restored with the rest of WCS here:
+STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME']
+
 # file operations
 
 
@@ -532,7 +536,20 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
     for k, ctype in enumerate(w.wcs.ctype):
         hwcs[f'CTYPE{k + 1:d}{to_key:.1s}'] = ctype
 
+    # include non-standard (i.e., tweakreg-specific) keywords
+    from_key_s = from_key.strip()
+    to_key_s = from_key.strip()
+    for kwd in STWCS_KWDS:
+        from_kwd = kwd + from_key_s
+        if from_kwd in hdr:
+            # preserves comments and empty/null str values
+            idx = hdr.index(from_kwd)
+            hdri = hdr[idx:idx+1]
+            hdri.rename_keyword(from_kwd, kwd + to_key_s, force=True)
+            hwcs.update(hdri)
+
     return hwcs
+
 
 @deprecated(since='1.5.4', message='', name='readAltWCS',
             alternative='wcs_from_key')

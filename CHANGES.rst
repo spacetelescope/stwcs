@@ -1,15 +1,18 @@
-1.5.4 (Unreleased)
+1.6.0 (Unreleased)
 ------------------
 
 - Prevent same WCS from being updated from astrometry database headerlet. [#111]
 
 - Revise how headerlets are applied as primary WCS [#122]
 
+- Add comments to WCS keywords for ``IDC*``, ``OCX``, ``OCY``, and alternate
+  WCS. [#127]
+
 - Primary WCS keywords no longer contain trailing spaces which, in the past,
   lead to duplicate keywords in image headers. [#131]
 
-- Add comments to WCS keywords for ``IDC*``, ``OCX``, ``OCY``, and alternate
-  WCS. [#127]
+- AltWCS: Non-standard WCS keywords defined by, e.g., ``TweakReg`` are now
+  archived, read, and restored together with standard WCS keywords. [#135]
 
 - WCS keywords that are not specific to an alternate WCS (such as ``MJDREF``)
   are no longer archived. [#141]
