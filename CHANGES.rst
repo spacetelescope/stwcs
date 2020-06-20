@@ -14,6 +14,8 @@
 - AltWCS: Non-standard WCS keywords defined by, e.g., ``TweakReg`` are now
   archived, read, and restored together with standard WCS keywords. [#135]
 
+- Fix a bug in choosing the name of the archived WCS under certain conditions. [#134]
+
 - WCS keywords that are not specific to an alternate WCS (such as ``MJDREF``)
   are no longer archived. [#141]
 
