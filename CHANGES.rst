@@ -5,13 +5,11 @@
 
 - Revise how headerlets are applied as primary WCS [#122]
 
-<<<<<<< HEAD
 - Primary WCS keywords no longer contain trailing spaces which, in the past,
   lead to duplicate keywords in image headers. [#131]
-=======
+
 - Add comments to WCS keywords for ``IDC*``, ``OCX``, ``OCY``, and alternate
   WCS. [#127]
->>>>>>> Add and preserve existing WCS comments
 
 
 1.5.3 (2019-09-23)
