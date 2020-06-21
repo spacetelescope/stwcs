@@ -77,9 +77,6 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     # Interpret input 'ext' value to get list of extensions to process
     ext = _buildExtlist(f, ext)
 
-    if wcskey == ' ' and wcsname == ' ':
-        raise KeyError("Either wcskey or wcsname should be specified")
-
     if wcsname == ' ':
         try:
             wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
