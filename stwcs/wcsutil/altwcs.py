@@ -607,7 +607,8 @@ def wcsnames(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
     names = hdr["WCSNAME*"]
-    wnames = {keyword.replace('WCSNAME', '').strip().upper().ljust(1, ' '): value}
+    wnames = {kwd.replace('WCSNAME', '').strip().upper().ljust(1, ' '): val
+              for kwd, val in names.items()}
     return wnames
 
 
