@@ -562,11 +562,15 @@ def convertAltWCS(fobj, ext, oldkey='', newkey=''):
 
     # Converting WCS to new key
     for kwd in hdr:
-        kwd = kwd.strip()
-        if oldkey != ' ' and kwd.endswith(oldkey):
-            kwd = kwd[:-1]
+        if oldkey == ' ':
+            kwd_new = kwd + newkey.strip()
+        elif kwd.endswith(oldkey):
+            kwd_new = kwd[:-1] + newkey.strip()
+        else:
+            # it is a keyword not specific to an alternative WCS. skip it:
+            continue
 
-        hdr.rename_keyword(kwd, kwd + newkey.strip(), force=True)
+        hdr.rename_keyword(kwd, kwd_new, force=True)
 
     return hdr
 
