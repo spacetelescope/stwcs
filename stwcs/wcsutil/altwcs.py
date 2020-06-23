@@ -567,9 +567,8 @@ def convertAltWCS(fobj, ext, oldkey='', newkey=''):
         elif kwd.endswith(oldkey):
             kwd_new = kwd[:-1] + newkey.strip()
         else:
-            # this should not happen: we expect all keywords loaded with
-            # readAltWCS to end in "old" key.
-            raise RuntimeError(f"Encountered a WCS keyword ('{kwd:s}') with unexpected key")
+            # it is a keyword not specific to an alternative WCS. skip it:
+            continue
 
         hdr.rename_keyword(kwd, kwd_new, force=True)
 
