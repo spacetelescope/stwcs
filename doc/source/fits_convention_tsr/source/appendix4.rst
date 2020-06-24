@@ -189,16 +189,16 @@ D2IMFILE corrections from the specific reference files used as examples in :ref:
  WCSNAME = 'IDC_v8q1444sj'
  CPERR1  =                  0.0 / Maximum error of NPOL correction for axis 1
  CPDIS1  = 'Lookup  '           / Prior distortion funcion type
- DP1     = 'EXTVER: 1' / Version number of WCSDVARR extension containing lookup d
- DP1     = 'NAXES: 2' / Number of independent variables in distortion function
- DP1     = 'AXIS.1: 1' / Axis number of the jth independent variable in a distort
- DP1     = 'AXIS.2: 2' / Axis number of the jth independent variable in a distort
+ DP1     = 'EXTVER: 1' / Version number of WCSDVARR extension
+ DP1     = 'NAXES: 2' / Number of independent variables in CPDIS function
+ DP1     = 'AXIS.1: 1' / Axis number of the jth variable in a CPDIS function
+ DP1     = 'AXIS.2: 2' / Axis number of the jth variable in a CPDIS function
  CPERR2  =                  0.0 / Maximum error of NPOL correction for axis 2
  CPDIS2  = 'Lookup  '           / Prior distortion funcion type
- DP2     = 'EXTVER: 2' / Version number of WCSDVARR extension containing lookup d
- DP2     = 'NAXES: 2' / Number of independent variables in distortion function
- DP2     = 'AXIS.1: 1' / Axis number of the jth independent variable in a distort
- DP2     = 'AXIS.2: 2' / Axis number of the jth independent variable in a distort
+ DP2     = 'EXTVER: 2' / Version number of WCSDVARR extension
+ DP2     = 'NAXES: 2' / Number of independent variables in CPDIS function
+ DP2     = 'AXIS.1: 1' / Axis number of the jth variable in a CPDIS function
+ DP2     = 'AXIS.2: 2' / Axis number of the jth variable in a CPDIS function
  NPOLEXT = 'jref$v971826aj_npl.fits'
 
 
