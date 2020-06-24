@@ -19,6 +19,8 @@
 
 - Increased reliability of detecting alternate WCS in image headers. [#141]
 
+- Add comments to ``WCSNAMEa`` header keywords. [#143]
+
 
 1.5.3 (2019-09-23)
 ------------------
