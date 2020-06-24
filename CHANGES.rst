@@ -1,4 +1,4 @@
-1.5.4 (Unreleased)
+1.6.0 (Unreleased)
 ------------------
 
 - Prevent same WCS from being updated from astrometry database headerlet. [#111]
@@ -18,6 +18,8 @@
   not reset to ``0.0`` when restoring wrom the ``'OPUS'`` WCS with key ``'O'``. [#141]
 
 - Increased reliability of detecting alternate WCS in image headers. [#141]
+
+- Abbreviated comments for ``D2IM``, ``CPDIS`` lookup table distortions. [#142]
 
 - Add comments to ``WCSNAMEa`` header keywords. [#143]
 
