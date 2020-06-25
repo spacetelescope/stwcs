@@ -490,8 +490,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
         When ``to_key`` is `None`, the returned header describes a WCS with the
         same key as the one read in using ``from_key``. A space character or
         a single ASCII letter indicates the key to be used for the returned
-        WCS (see ``from_key`` for details) and it **must** be different from
-        ``from_key`` parameter.
+        WCS (see ``from_key`` for details).
 
     Returns
     -------
@@ -511,11 +510,6 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
     elif len(to_key) != 1 or to_key.strip() not in string.ascii_uppercase:
         raise ValueError(
             "Parameter 'to_key' must be a character - one of 'A'-'Z' or ' '."
-        )
-
-    elif to_key == from_key:
-        raise ValueError(
-            "When parameter 'to_key' is not None, it must be different from 'from_key'."
         )
 
     if isinstance(fobj, str):
