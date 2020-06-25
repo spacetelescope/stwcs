@@ -6,11 +6,15 @@ from astropy.io import fits
 from stsci.tools import fileutil as fu
 
 from astropy import log
+from astropy.utils.decorators import deprecated
+
+
 default_log_level = log.getEffectiveLevel()
 
 
 __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
-           "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames"]
+           "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames",
+           "wcs_from_key"]
 
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
@@ -59,11 +63,13 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
 
     """
-    if wcskey == '':
-        wcskey = ' '
-
     if wcsname.strip() == '':
         wcsname = ' '
+
+    if len(wcskey) != 1 or wcskey.strip() not in string.ascii_letters:
+        raise ValueError(
+            "Parameter 'wcskey' must be a character - one of 'A'-'Z' or ' '."
+        )
 
     if isinstance(fname, str):
         f = fits.open(fname, mode='update')
@@ -79,7 +85,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     if wcsname == ' ':
         try:
-            wcsname = readAltWCS(f, ext[0], wcskey=" ")['WCSNAME']
+            wcsname = wcs_from_key(f, ext[0])['WCSNAME']
         except KeyError:
             pass
 
@@ -139,31 +145,15 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     log.setLevel('WARNING')
 
-    wkey = wkey.strip()
-
     for e in ext:
-        hdr = _getheader(f, e)
-        w = pywcs.WCS(hdr, f)
-        hwcs = w.to_header()
+        hwcs = wcs_from_key(f, e, from_key=' ', to_key=wkey)
 
         if hwcs is None:
             continue
 
-        if w.sip is not None:
-            for i in range(1, w.naxis + 1):
-                hwcs[f'CTYPE{i:d}'] += '-SIP'
+        hwcs.set(f'WCSNAME{wkey:.1s}', wname, 'Coordinate system title', before=0)
 
-        if w.wcs.has_cd():
-            hwcs = pc2cd(hwcs, key=" ")
-
-        f[e].header[f'WCSNAME{wkey:.1s}'] = wname
-
-        if 'WCSNAME' in hwcs:
-            old_wcsname = hwcs.pop('WCSNAME')
-
-        for k, v, c in hwcs.cards:
-            key = k[: 7] + wkey
-            f[e].header[key] = v, c
+        f[e].header.update(hwcs)
 
     log.setLevel(default_log_level)
     closefobj(fname, f)
@@ -361,12 +351,13 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        hwcs = readAltWCS(fobj, i, wcskey=wkey)
-        if hwcs:
+        hwcs = wcs_from_key(fobj, i, from_key=wkey)
+        if hwcs is not None:
             for k in hwcs[::-1]:
                 if k in hdr:
                     del hdr[k]
             prexts.append(i)
+
     if prexts:
         print(f'Deleted all instances of WCS with key {wkey:s} in extensions {prexts}')
     else:
@@ -419,10 +410,8 @@ def _restore(fobj, ukey, fromextnum,
               extname of extension to which to copy WCS
     """
     # create an extension tuple, e.g. ('SCI', 2)
-    if fromextnam:
-        fromextension = (fromextnam, fromextnum)
-    else:
-        fromextension = fromextnum
+    fromextension = (fromextnam, fromextnum) if fromextnam else fromextnum
+
     if toextnum:
         if toextnam:
             toextension = (toextnam, toextnum)
@@ -431,36 +420,17 @@ def _restore(fobj, ukey, fromextnum,
     else:
         toextension = fromextension
 
-    hdr = _getheader(fobj, fromextension)
-    # keep a copy of the ctype because of the "-SIP" suffix.
-    ctype = hdr['ctype*']
+    hwcs = wcs_from_key(fobj, fromextension, from_key=ukey, to_key=' ')
+    fobj[toextension].header.update(hwcs)
 
-    w = pywcs.WCS(hdr, fobj, key=ukey)
-    hwcs = w.to_header()
-
-    if w.wcs.has_cd():
-        hwcs = pc2cd(hwcs, key=ukey)
-
-    ukey = ukey.strip()
-
-    for i in range(1, w.naxis + 1):
-        hwcs[f'CTYPE{i:d}{ukey:.1s}'] = ctype[f'CTYPE{i:d}']
-
-    for k, v, c in hwcs.cards:
-        key = k[:-1]
-        if key in fobj[toextension].header:
-            fobj[toextension].header[key] = hwcs[k], c
-        else:
-            continue
-
-    if key == 'O' and 'TDDALPHA' in fobj[toextension].header:
+    if ukey == 'O' and 'TDDALPHA' in fobj[toextension].header:
         fobj[toextension].header['TDDALPHA'] = 0.0
         fobj[toextension].header['TDDBETA'] = 0.0
 
     if 'ORIENTAT' in fobj[toextension].header:
-        norient = np.rad2deg(np.arctan2(hwcs[f'CD1_2{ukey:.1s}'],
-                                        hwcs[f'CD2_2{ukey:.1s}']))
+        norient = np.rad2deg(np.arctan2(hwcs[f'CD1_2'], hwcs[f'CD2_2']))
         fobj[toextension].header['ORIENTAT'] = norient
+
     # Reset 2014 TDD keywords prior to computing new values (if any are computed)
     for kw in ['TDD_CYA', 'TDD_CYB', 'TDD_CXA', 'TDD_CXB']:
         if kw in fobj[toextension].header:
@@ -490,6 +460,82 @@ def _getheader(fobj, ext):
     return hdr
 
 
+def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
+    """
+    Read in WCS with a given ``from_key`` from the specified extension of
+    the input file object and return a FITS header representing this WCS
+    using desired WCS key specified by ``to_key``.
+
+    Parameters
+    ----------
+    fobj : str, `astropy.io.fits.HDUList`
+        FITS filename or `astropy.io.fits.HDUList` object containing
+        a header with an alternate/primary WCS to be read.
+
+    ext : int, str or tuple of (str, int)
+        Extension specification identifying image HDU from which WCS should be
+        loaded. If ``ext`` is a tuple, it is of the form ``(extname, extver)``
+        where ``extname`` is a `str` extension name and ``extver`` is
+        an integer extension version.
+        An integer ``ext`` indicates "extension number". Finally, a single
+        `str` extension name is interpretted as ``(ext, 1)``.
+
+    from_key : {' ', 'A'-'Z'}
+        A 1 character string that is either a space character indicating the
+        primary WCS, or one of the 26 ASCII letters (``'A'``-``'Z'``)
+        indicating alternate WCS to be loaded from specified header.
+
+    to_key : {None, ' ', 'A'-'Z'}
+        The key of the primary/alternate WCS to be used in the returned header.
+        When ``to_key`` is `None`, the returned header describes a WCS with the
+        same key as the one read in using ``from_key``. A space character or
+        a single ASCII letter indicates the key to be used for the returned
+        WCS (see ``from_key`` for details).
+
+    Returns
+    -------
+    hdr: astropy.io.fits.Header
+        Header object with FITS representation for specified primary or
+        alternate WCS.
+
+    """
+    if len(from_key) != 1 or from_key.strip() not in string.ascii_uppercase:
+        raise ValueError(
+            "Parameter 'from_key' must be a character - one of 'A'-'Z' or ' '."
+        )
+
+    if to_key is None:
+        to_key = from_key
+
+    elif len(to_key) != 1 or to_key.strip() not in string.ascii_uppercase:
+        raise ValueError(
+            "Parameter 'to_key' must be a character - one of 'A'-'Z' or ' '."
+        )
+
+    if isinstance(fobj, str):
+        fobj = fits.open(fobj)
+
+    hdr = _getheader(fobj, ext)
+
+    try:
+        w = pywcs.WCS(hdr, fobj=fobj, key=from_key)
+    except KeyError:
+        log.warning(f'wcs_from_key: Could not read WCS with key {from_key:s}')
+        log.warning(f'              Skipping {fobj.filename():s}[{ext}]')
+
+    hwcs = w.to_header(key=to_key)
+
+    if w.wcs.has_cd():
+        hwcs = pc2cd(hwcs, key=to_key)
+
+    # preserve CTYPE values:
+    for k, ctype in enumerate(w.wcs.ctype):
+        hwcs[f'CTYPE{k + 1:d}{to_key:.1s}'] = ctype
+
+    return hwcs
+
+@deprecated(since='1.5.4', message='', name='readAltWCS',
+            alternative='wcs_from_key')
 def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     """
     Reads in alternate primary WCS from specified extension.
@@ -510,26 +556,12 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     hdr: fits.Header
         header object with ONLY the keywords for specified alternate WCS
     """
-    if isinstance(fobj, str):
-        fobj = fits.open(fobj)
-
-    hdr = _getheader(fobj, ext)
-    try:
-        nwcs = pywcs.WCS(hdr, fobj=fobj, key=wcskey)
-    except KeyError:
-        if verbose:
-            print(f'readAltWCS: Could not read WCS with key {wcskey:s}')
-            print(f'            Skipping {fobj.filename():s}[{ext:s}]')
-        return None
-    hwcs = nwcs.to_header()
-
-    if nwcs.wcs.has_cd():
-        hwcs = pc2cd(hwcs, key=wcskey)
-
-    return hwcs
+    return wcs_from_key(fobj, ext, from_key=wcskey)
 
 
-def convertAltWCS(fobj, ext, oldkey='', newkey=''):
+@deprecated(since='1.5.4', message='', name='convertAltWCS',
+            alternative='wcs_from_key')
+def convertAltWCS(fobj, ext, oldkey=' ', newkey=' '):
     """
     Translates the alternate/primary WCS with one key to an alternate/primary WCS with
     another key.
@@ -553,26 +585,7 @@ def convertAltWCS(fobj, ext, oldkey='', newkey=''):
     hdr: `astropy.io.fits.Header`
         header object with keywords renamed from oldkey to newkey
     """
-    if oldkey.strip() == '':
-        oldkey = ' '
-
-    hdr = readAltWCS(fobj, ext, wcskey=oldkey)
-    if hdr is None:
-        return None
-
-    # Converting WCS to new key
-    for kwd in hdr:
-        if oldkey == ' ':
-            kwd_new = kwd + newkey.strip()
-        elif kwd.endswith(oldkey):
-            kwd_new = kwd[:-1] + newkey.strip()
-        else:
-            # it is a keyword not specific to an alternative WCS. skip it:
-            continue
-
-        hdr.rename_keyword(kwd, kwd_new, force=True)
-
-    return hdr
+    return wcs_from_key(fobj, ext, from_key=wcskey, to_key=newkey)
 
 
 def wcskeys(fobj, ext=None):
@@ -590,10 +603,14 @@ def wcskeys(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    wcsnames = hdr["WCSNAME*"]
-    wkeys = list(set([key.replace('WCSNAME', '').strip().upper().ljust(1, ' ')
-                      for key in wcsnames]))
-    return list(wkeys)
+
+    wkeys = set()
+    for kwd in ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS', 'LONPOLE']:
+        alt_kwd = hdr[kwd + '*']
+        wkeys.update([key.replace(kwd, '').strip().upper().ljust(1, ' ')
+                      for key in alt_kwd])
+
+    return sorted(wkeys)
 
 
 def wcsnames(fobj, ext=None):

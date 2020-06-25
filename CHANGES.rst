@@ -11,6 +11,14 @@
 - Add comments to WCS keywords for ``IDC*``, ``OCX``, ``OCY``, and alternate
   WCS. [#127]
 
+- WCS keywords that are not specific to an alternate WCS (such as ``MJDREF``)
+  are no longer archived. [#141]
+
+- Fix a bug in ``_restore()`` due to which ``TDDALPHA`` and ``TDDBETA`` were
+  not reset to ``0.0`` when restoring wrom the ``'OPUS'`` WCS with key ``'O'``. [#141]
+
+- Increased reliability of detecting alternate WCS in image headers. [#141]
+
 
 1.5.3 (2019-09-23)
 ------------------
