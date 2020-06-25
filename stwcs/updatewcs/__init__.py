@@ -202,7 +202,7 @@ def makecorr(f, allowed_corr):
                     wname = ''.join(['IDC_',
                                      utils.extract_rootname(idcname, suffix='_idc')])
                 else: wname = " "
-                hdr['WCSNAME'] = wname
+                hdr['WCSNAME'] = wname, 'Coordinate system title'
 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']

@@ -400,7 +400,7 @@ class HSTWCS(WCS):
                 wname = build_default_wcsname(self.idctab)
             else:
                 wname = 'DEFAULT'
-            h['wcsname{0}'.format(wcskey)] = wname
+            h['wcsname{0}'.format(wcskey)] = wname, 'Coordinate system title'
 
         if idc2hdr:
             for card in self._idc2hdr():

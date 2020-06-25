@@ -19,7 +19,7 @@ NOTE ::
     rl = logging.getLogger('stwcs.wcsutil.headerlet')
     rl.handlers
     del rl.handlers[-1]  # if FileHandler was the last one, remove it
-  
+
 """
 import os
 import sys
@@ -508,7 +508,7 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
     phdu.header['HDRNAME'] = (hdrname, 'Headerlet name')
     fmt = "%Y-%m-%dT%H:%M:%S"
     phdu.header['DATE'] = (time.strftime(fmt), 'Date FITS file was generated')
-    phdu.header['WCSNAME'] = (wcsname, 'WCS name')
+    phdu.header['WCSNAME'] = (wcsname, 'Coordinate system title')
     phdu.header['DISTNAME'] = (distname, 'Distortion model name')
     phdu.header['SIPNAME'] = (sipname,
                               'origin of SIP polynomial distortion model')
@@ -1532,7 +1532,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
             else:
                 priwcs_hdrname = 'UNKNOWN'
             priwcs_name = priwcs_hdrname
-            scihdr['WCSNAME'] = priwcs_name
+            scihdr['WCSNAME'] = priwcs_name, 'Coordinate system title'
 
     priwcs_unique = verify_hdrname_is_unique(fobj, priwcs_hdrname)
     if archive and priwcs_unique:
@@ -1900,7 +1900,7 @@ class Headerlet(fits.HDUList):
             raise ValueError("Destination name does not match headerlet"
                              "Observation {0} cannot be updated with"
                              "headerlet {1}".format((fname, self.hdrname)))
-        
+
         # Check to see whether the distortion model in the destination
         # matches the distortion model in the headerlet being applied
 
@@ -2015,7 +2015,7 @@ class Headerlet(fits.HDUList):
                 if kw in priwcs[0].header:
                     priwcs[0].header.remove(kw)
 
-            priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "")
+            priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "Coordinate system title")
             priwcs[0].header.set('WCSAXES', self[('SIPWCS', i)].header['WCSAXES'], "")
             priwcs[0].header.set('HDRNAME', self[0].header['HDRNAME'], "")
             if sipwcs.det2im1 or sipwcs.det2im2:
