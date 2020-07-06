@@ -24,6 +24,8 @@
 
 - Add comments to ``WCSNAMEa`` header keywords. [#143]
 
+- ``makecorr`` should include STWCS-specific keywords when copying a WCS. [#150]
+
 
 1.5.3 (2019-09-23)
 ------------------

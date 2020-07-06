@@ -10,6 +10,8 @@ from .. import __version__
 from astropy import wcs as pywcs
 import astropy
 from astropy import log
+from astropy.utils.decorators import deprecated
+
 default_log_level = log.getEffectiveLevel()
 
 from . import utils, corrections
@@ -17,6 +19,7 @@ from . import npol, det2im
 from stsci.tools import parseinput, fileutil
 from . import apply_corrections
 from . import astrometry_utils
+from ..wcsutil.altwcs import wcs_from_key
 
 import time
 import logging
@@ -207,9 +210,8 @@ def makecorr(f, allowed_corr):
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
                 if cextver == sciextver:
-                    hdr = f[('SCI', sciextver)].header
-                    w = pywcs.WCS(hdr, f)
-                    copyWCS(w, extn.header)
+                    hwcs = wcs_from_key(f, ('SCI', sciextver))
+                    extn.header.update(hwcs)
 
             else:
                 continue
@@ -253,6 +255,8 @@ def makecorr(f, allowed_corr):
     #f.close()
 
 
+@deprecated(since='1.6.0', message='', name='copyWCS',
+            alternative='stwcs.wcsutil.altwcs.wcs_from_key')
 def copyWCS(w, ehdr):
     """
     This is a convenience function to copy a WCS object
