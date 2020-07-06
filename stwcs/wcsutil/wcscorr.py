@@ -309,7 +309,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     # apply logic for only updating WCSCORR table with specified keywords
     # corresponding to the WCS with WCSNAME=wcs_id
     if wcs_id is not None:
-        wnames = altwcs.wcsnames(source[(extname, 1)].header)
+        wnames = altwcs._alt_wcs_names(source[(extname, 1)].header)
         wkeys = []
         for letter in wnames:
             if wnames[letter] == wcs_id:
@@ -319,9 +319,6 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         wcs_keys = wkeys
     wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = list(wcshdr.keys())
-
-    if 'O' in wcs_keys:
-        wcs_keys.remove('O')  # 'O' is reserved for original OPUS WCS
 
     # create new table for hdr and populate it with the newly updated values
     new_table = create_wcscorr(descrip=True, numrows=0, padding=len(wcs_keys) * numext)
