@@ -181,7 +181,6 @@ def parse_filename(fname, mode='readonly'):
         the higher level interface close the object.
 
     """
-    close_fobj = False
     if isinstance(fname, str):
         fname = fu.osfn(fname)
         fobj = fits.open(fname, mode=mode)
@@ -192,6 +191,7 @@ def parse_filename(fname, mode='readonly'):
             fname = fobj.filename()
         else:
             fname = ''
+        close_fobj = False
     else:
         raise ValueError(f"parse_filename expects a file name or HDUList, got {type(fname)}")
     return fobj, fname, close_fobj
@@ -992,7 +992,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             message += "    'wcskey' = %s and 'wcsname' = %s. \n" % (wcskey, wcsname)
             message += "Actual value of %s found to be %s. \n" % (wcsnamekw, wname)
             logger.critical(message)
-            raise KeyError
+            raise KeyError(message)
     wkeys = altwcs.wcskeys(fobj, ext=wcsext)
     if wcskey != ' ':
         if wcskey not in wkeys:
@@ -1959,6 +1959,7 @@ class Headerlet(fits.HDUList):
                 scihdr = fobj[target_ext].header
                 if 'hdrname' in scihdr:
                     priwcs_name = scihdr['hdrname']
+                    archive_wcs = hdrname == priwcs_name
                 else:
                     if 'wcsname' in scihdr:
                         priwcs_name = scihdr['wcsname']
@@ -1969,10 +1970,12 @@ class Headerlet(fits.HDUList):
                                                                           suffix='_idc')])
                         else:
                             priwcs_name = 'UNKNOWN'
-                nextkey = altwcs._next_wcskey(fobj[target_ext].header)
-                altwcs.archive_wcs(fobj, ext=sciext_list, wcskey=nextkey,
-                                   wcsname=priwcs_name)
+                    archive_wcs = True
 
+                if archive_wcs:
+                    nextkey = altwcs._next_wcskey(fobj[target_ext].header)
+                    altwcs.archive_wcs(fobj, ext=sciext_list, wcskey=nextkey,
+                                       wcsname=priwcs_name)
             else:
                 for hname in altwcs._alt_wcs_names(fobj[target_ext].header).values():
                     if hname not in hdrlet_extnames:

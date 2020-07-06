@@ -26,6 +26,10 @@
 
 - Add comments to ``WCSNAMEa`` header keywords. [#143]
 
+- Do not archive primary WCS when applying headerlet as primary when existing
+  primary WCS was created from the same headerlet that is being applied, based
+  on the value of ``'HDRNAME'`` keyword. [#147]
+
 - Added ``archive_wcs()`` function with more advanced control over how to
   archive primary WCS and with more capabilities, such as auto-renaming. [#153]
 
