@@ -357,7 +357,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         hdr = fobj[i].header
         hwcs = wcs_from_key(fobj, i, from_key=wkey)
         if hwcs is not None:
-            for k in hwcs[::-1]:
+            for k in hwcs:
                 if k in hdr:
                     del hdr[k]
             prexts.append(i)
@@ -518,6 +518,9 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
 
     if isinstance(fobj, str):
         fobj = fits.open(fobj)
+        close_fobj = True
+    else:
+        close_fobj = False
 
     hdr = _getheader(fobj, ext)
 
@@ -526,6 +529,10 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
     except KeyError:
         log.warning(f'wcs_from_key: Could not read WCS with key {from_key:s}')
         log.warning(f'              Skipping {fobj.filename():s}[{ext}]')
+        return fits.Header()
+    finally:
+        if close_fobj:
+            fobj.close()
 
     hwcs = w.to_header(key=to_key)
 
@@ -538,7 +545,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
 
     # include non-standard (i.e., tweakreg-specific) keywords
     from_key_s = from_key.strip()
-    to_key_s = from_key.strip()
+    to_key_s = to_key.strip()
     for kwd in STWCS_KWDS:
         from_kwd = kwd + from_key_s
         if from_kwd in hdr:
