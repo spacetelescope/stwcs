@@ -88,10 +88,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     ext = _buildExtlist(f, ext)
 
     if wcsname == ' ':
-        try:
-            wcsname = wcs_from_key(f, ext[0])['WCSNAME']
-        except KeyError:
-            pass
+        wcsname = wcs_from_key(f, ext[0]).get('WCSNAME', ' ')
 
     wcsext = ext[0]
     if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
@@ -152,7 +149,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     for e in ext:
         hwcs = wcs_from_key(f, e, from_key=' ', to_key=wkey)
 
-        if hwcs is None:
+        if not hwcs:
             continue
 
         hwcs.set(f'WCSNAME{wkey:.1s}', wname, 'Coordinate system title', before=0)
@@ -356,7 +353,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     for i in ext:
         hdr = fobj[i].header
         hwcs = wcs_from_key(fobj, i, from_key=wkey)
-        if hwcs is not None:
+        if hwcs:
             for k in hwcs:
                 if k in hdr:
                     del hdr[k]
@@ -528,7 +525,12 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
         w = pywcs.WCS(hdr, fobj=fobj, key=from_key)
     except KeyError:
         log.warning(f'wcs_from_key: Could not read WCS with key {from_key:s}')
-        log.warning(f'              Skipping {fobj.filename():s}[{ext}]')
+        fname = fobj.filename()
+        ftype = 'file'
+        if fname is None:
+            fname = f'{repr(fobj)}'
+            ftype = 'in-memory file'
+        log.warning(f"              Skipping {ftype} '{fname:s}[{ext}]'")
         return fits.Header()
     finally:
         if close_fobj:
