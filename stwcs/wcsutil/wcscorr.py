@@ -327,10 +327,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     sipname, idctab = utils.build_sipname(source, fname, "None")
     npolname, npolfile = utils.build_npolname(source, None)
     d2imname, d2imfile = utils.build_d2imname(source, None)
-    if 'hdrname' in prihdr:
-        hdrname = prihdr['hdrname']
-    else:
-        hdrname = ''
+    hdrname = prihdr.get('hdrname', '')
 
     idx = -1
     for wcs_key in wcs_keys:
