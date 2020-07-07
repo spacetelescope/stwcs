@@ -304,16 +304,15 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     # extension version; if this should not be assumed then this can be
     # modified...
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
-    wcs_keys = [kk for kk in wcs_keys if kk]
+    if 'O' in wcs_keys:
+        del wcs_keys['O']  # 'O' is reserved for original OPUS WCS
     if ' ' not in wcs_keys: wcs_keys.append(' ')  # Insure that primary WCS gets used
     # apply logic for only updating WCSCORR table with specified keywords
     # corresponding to the WCS with WCSNAME=wcs_id
     if wcs_id is not None:
+        wcs_id_up = wcs_id.upper()
         wnames = altwcs._alt_wcs_names(source[(extname, 1)].header)
-        wkeys = []
-        for letter in wnames:
-            if wnames[letter] == wcs_id:
-                wkeys.append(letter)
+        wkeys = [key for key, name in wnames.items() if name.upper() == wcs_id_up]
         if len(wkeys) > 1 and ' ' in wkeys:
             wkeys.remove(' ')
         wcs_keys = wkeys

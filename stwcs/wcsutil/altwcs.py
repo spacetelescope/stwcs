@@ -645,11 +645,11 @@ def wcskeys(fobj, ext=None):
     return sorted(wkeys)
 
 
-def _alt_wcs_names(hdr):
+def _alt_wcs_names(hdr, del_opus=True):
     """ Return a dictionary of all alternate WCS keys with names except OPUS """
     names = hdr["WCSNAME?"]
 
-    if 'WCSNAMEO' in names and names['WCSNAMEO'] == 'OPUS':
+    if del_opus and 'WCSNAMEO' in names and names['WCSNAMEO'] == 'OPUS':
         # remove OPUS name
         del names['WCSNAMEO']
 
@@ -674,7 +674,7 @@ def wcsnames(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    return _alt_wcs_names(hdr)
+    return _alt_wcs_names(hdr, del_opus=False)
 
 
 def available_wcskeys(fobj, ext=None):
