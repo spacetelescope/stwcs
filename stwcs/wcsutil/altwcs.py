@@ -523,7 +523,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
 
     try:
         w = pywcs.WCS(hdr, fobj=fobj, key=from_key)
-    except KeyError:
+    except KeyError as e:
         log.warning(f'wcs_from_key: Could not read WCS with key {from_key:s}')
         fname = fobj.filename()
         ftype = 'file'
@@ -531,6 +531,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
             fname = f'{repr(fobj)}'
             ftype = 'in-memory file'
         log.warning(f"              Skipping {ftype} '{fname:s}[{ext}]'")
+        log.warning(f"              {e.args[0]}")
         return fits.Header()
     finally:
         if close_fobj:
@@ -582,7 +583,8 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     hdr: fits.Header
         header object with ONLY the keywords for specified alternate WCS
     """
-    return wcs_from_key(fobj, ext, from_key=wcskey)
+    hwcs = wcs_from_key(fobj, ext, from_key=wcskey)
+    return hwcs if hwcs else None
 
 
 @deprecated(since='1.5.4', message='', name='convertAltWCS',
