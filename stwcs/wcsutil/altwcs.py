@@ -646,7 +646,23 @@ def wcskeys(fobj, ext=None):
 
 
 def _alt_wcs_names(hdr, del_opus=True):
-    """ Return a dictionary of all alternate WCS keys with names except OPUS """
+    """ Return a dictionary of all alternate WCS keys with names except ``OPUS``
+
+    Parameters
+    ----------
+    hdr : astropy.io.fits.Header
+        An image header.
+
+    del_opus : bool
+        Indicates whether to remove ``OPUS`` entry (WCS key ``'O'``) from
+        returned key-name dictionary.
+
+    Returns
+    -------
+    wnames : dict
+        A dictionary of **Alt** WCS keys and names (as values):
+
+    """
     names = hdr["WCSNAME?"]
 
     if del_opus and 'WCSNAMEO' in names and names['WCSNAMEO'] == 'OPUS':
