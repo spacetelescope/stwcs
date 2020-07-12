@@ -5,7 +5,7 @@ from ..wcsutil import altwcs
 from .. import updatewcs
 from .. import wcsutil
 import numpy as np
-from numpy.testing import utils
+from numpy import testing
 import pytest
 
 from . import data
@@ -39,11 +39,11 @@ def compare_wcs(w1, w2, exclude_keywords=None):
     for kw in keywords:
         kw1 = getattr(w1.wcs, kw)
         kw2 = getattr(w2.wcs, kw)
-        utils.assert_allclose(kw1, kw2, 1e-10)
-    #utils.assert_allclose(w1.wcs.crpix, w2.wcs.crpix, 1e-10)
-    #utils.assert_allclose(w1.wcs.cd, w2.wcs.cd, 1e-10)
+        testing.assert_allclose(kw1, kw2, 1e-10)
+    # testing.assert_allclose(w1.wcs.crpix, w2.wcs.crpix, 1e-10)
+    # testing.assert_allclose(w1.wcs.cd, w2.wcs.cd, 1e-10)
     if not exclude_ctype:
-        utils.assert_array_equal(np.array(w1.wcs.ctype), np.array(w2.wcs.ctype))
+        testing.assert_array_equal(np.array(w1.wcs.ctype), np.array(w2.wcs.ctype))
 
 class TestAltWCS(object):
 
@@ -75,13 +75,15 @@ class TestAltWCS(object):
         self.ww = wcsutil.HSTWCS(self.acs_file, ext=1)
 
     def test_archive(self):
-        altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST', reusekey=False)
+        altwcs.archive_wcs(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST',
+                           mode=altwcs.ArchiveMode.OVERWRITE_KEY)
         w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
         w1z = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
         compare_wcs(w1, w1z)
 
     def test_archive_clobber(self):
-        altwcs.archiveWCS(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST', reusekey=True)
+        altwcs.archive_wcs(self.acs_file, ext=1, wcskey='Z', wcsname='ZTEST',
+                           mode=altwcs.ArchiveMode.OVERWRITE_KEY)
         w1 = wcsutil.HSTWCS(self.acs_file, ext=1)
         w1z = wcsutil.HSTWCS(self.acs_file, ext=1, wcskey='Z')
         compare_wcs(w1, w1z)
@@ -95,7 +97,7 @@ class TestAltWCS(object):
 
     def test_restore_wcs_mem(self):
         # test restore on an HDUList object
-        altwcs.archiveWCS(self.acs_file, ext=[('SCI', 1), ('SCI', 2)], wcskey='T')
+        altwcs.archive_wcs(self.acs_file, ext=[('SCI', 1), ('SCI', 2)], wcskey='T')
         pyfits.setval(self.acs_file, ext=('SCI', 1), keyword='CRVAL1', value=1)
         pyfits.setval(self.acs_file, ext=('SCI', 2), keyword='CRVAL1', value=1)
         f = pyfits.open(self.acs_file, mode='update')
@@ -107,7 +109,7 @@ class TestAltWCS(object):
 
     def test_restore_simple(self):
         # test restore on simple fits format
-        altwcs.archiveWCS(self.simplefits, ext=0, wcskey='R')
+        altwcs.archive_wcs(self.simplefits, ext=0, wcskey='R')
         pyfits.setval(self.simplefits, ext=0, keyword='CRVAL1R', value=1)
         altwcs.restoreWCS(self.simplefits, ext=0, wcskey='R')
         wo = wcsutil.HSTWCS(self.simplefits, ext=0, wcskey='R')

@@ -8,7 +8,7 @@ from ..updatewcs import apply_corrections
 from ..distortion import utils as dutils
 from ..wcsutil import HSTWCS
 import numpy as np
-from numpy.testing import utils
+from numpy import testing
 import pytest
 
 
@@ -56,10 +56,10 @@ class TestStwcs(object):
         crpix = np.array([0., 0.])
         cdelt = np.array([1., 1.])
         pc = np.array([[1., 0], [0., 1.]])
-        utils.assert_equal(self.w.wcs.crval, crval)
-        utils.assert_equal(self.w.wcs.crpix, crpix)
-        utils.assert_equal(self.w.wcs.pc, pc)
-        utils.assert_equal(self.w.wcs.cdelt, cdelt)
+        testing.assert_equal(self.w.wcs.crval, crval)
+        testing.assert_equal(self.w.wcs.crpix, crpix)
+        testing.assert_equal(self.w.wcs.pc, pc)
+        testing.assert_equal(self.w.wcs.cdelt, cdelt)
         assert((self.w.wcs.ctype == np.array(['', ''])).all())
 
     def test_simple_sci1(self):
@@ -89,7 +89,7 @@ class TestStwcs(object):
         fpx1 = dpx1 + (self.w1.sip_pix2foc(dpx1, 1)-dpx1+self.w1.wcs.crpix) + \
             (self.w1.p4_pix2foc(dpx1, 1)-dpx1)
         pipelinepx1 = self.w1.wcs_pix2world(fpx1, 1)
-        utils.assert_almost_equal(pipelinepx1, sky1)
+        testing.assert_almost_equal(pipelinepx1, sky1)
 
     def test_pipeline_sci2(self):
         """
@@ -101,7 +101,7 @@ class TestStwcs(object):
         fpx4 = dpx4 + (self.w4.sip_pix2foc(dpx4, 1)-dpx4 + self.w4.wcs.crpix) + \
             (self.w4.p4_pix2foc(dpx4, 1)-dpx4)
         pipelinepx4 = self.w4.wcs_pix2world(fpx4, 1)
-        utils.assert_almost_equal(pipelinepx4, sky4)
+        testing.assert_almost_equal(pipelinepx4, sky4)
 
     def test_outwcs(self):
         """
@@ -110,11 +110,11 @@ class TestStwcs(object):
         outwcs = dutils.output_wcs([self.w1, self.w4])
 
         #print('outwcs.wcs.crval = {0}'.format(outwcs.wcs.crval))
-        utils.assert_allclose(
+        testing.assert_allclose(
             outwcs.wcs.crval, np.array([5.65109952, -72.0674181]), atol=1e-7)
 
-        utils.assert_almost_equal(outwcs.wcs.crpix, np.array([2107.0, 2118.5]))
-        utils.assert_almost_equal(
+        testing.assert_almost_equal(outwcs.wcs.crpix, np.array([2107.0, 2118.5]))
+        testing.assert_almost_equal(
             outwcs.wcs.cd,
             np.array([[1.2787045268089949e-05, 5.4215042082174661e-06],
                       [5.4215042082174661e-06, -1.2787045268089949e-05]]))
@@ -127,18 +127,18 @@ class TestStwcs(object):
         w4 = HSTWCS(self.acs_file, ext=('SCI', 2))
         w1r = HSTWCS(self.ref_file, ext=('SCI', 1))
         w4r = HSTWCS(self.ref_file, ext=('SCI', 2))
-        utils.assert_almost_equal(w1.wcs.crval, w1r.wcs.crval)
-        utils.assert_almost_equal(w1.wcs.crpix, w1r.wcs.crpix)
-        utils.assert_almost_equal(w1.wcs.cd, w1r.wcs.cd)
+        testing.assert_almost_equal(w1.wcs.crval, w1r.wcs.crval)
+        testing.assert_almost_equal(w1.wcs.crpix, w1r.wcs.crpix)
+        testing.assert_almost_equal(w1.wcs.cd, w1r.wcs.cd)
         assert((np.array(w1.wcs.ctype) == np.array(w1r.wcs.ctype)).all())
-        utils.assert_almost_equal(w1.sip.a, w1r.sip.a)
-        utils.assert_almost_equal(w1.sip.b, w1r.sip.b)
-        utils.assert_almost_equal(w4.wcs.crval, w4r.wcs.crval)
-        utils.assert_almost_equal(w4.wcs.crpix, w4r.wcs.crpix)
-        utils.assert_almost_equal(w4.wcs.cd, w4r.wcs.cd)
+        testing.assert_almost_equal(w1.sip.a, w1r.sip.a)
+        testing.assert_almost_equal(w1.sip.b, w1r.sip.b)
+        testing.assert_almost_equal(w4.wcs.crval, w4r.wcs.crval)
+        testing.assert_almost_equal(w4.wcs.crpix, w4r.wcs.crpix)
+        testing.assert_almost_equal(w4.wcs.cd, w4r.wcs.cd)
         assert((np.array(self.w4.wcs.ctype) == np.array(w4r.wcs.ctype)).all())
-        utils.assert_almost_equal(w4.sip.a, w4r.sip.a)
-        utils.assert_almost_equal(w4.sip.b, w4r.sip.b)
+        testing.assert_almost_equal(w4.sip.a, w4r.sip.a)
+        testing.assert_almost_equal(w4.sip.b, w4r.sip.b)
 
 
 def test_remove_npol_distortion():

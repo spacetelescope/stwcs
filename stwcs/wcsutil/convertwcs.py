@@ -46,7 +46,7 @@ def archive_prefix_OPUS_WCS(fobj, extname='SCI'):
     # Insure that the 'O' alternate WCS is present
     if 'O' not in wcsutil.wcskeys(hdr):
         # if not, archive the Primary WCS as the default OPUS WCS
-        wcsutil.archiveWCS(fobj, extlist, wcskey='O', wcsname='OPUS')
+        wcsutil.archive_wcs(fobj, extlist, wcskey='O', wcsname='OPUS')
 
     # find out how many SCI extensions are in the image
     numextn = fileutil.countExtn(fobj, extname=extname)
