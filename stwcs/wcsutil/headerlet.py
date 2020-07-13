@@ -1969,13 +1969,13 @@ class Headerlet(fits.HDUList):
                                                                           suffix='_idc')])
                         else:
                             priwcs_name = 'UNKNOWN'
-                nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
+                nextkey = altwcs._next_wcskey(fobj[target_ext].header)
                 altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
                                   wcsname=priwcs_name)
             else:
-                for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
-                    if hname != 'OPUS' and hname not in hdrlet_extnames:
-                        nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
+                for hname in altwcs._alt_wcs_names(fobj[target_ext].header).values():
+                    if hname not in hdrlet_extnames:
+                        nextkey = altwcs._next_wcskey(fobj[target_ext].header)
                         # Archive original WCS as alternate WCS with its own key
                         altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
                                   wcsname=hname)
@@ -2149,7 +2149,7 @@ class Headerlet(fits.HDUList):
         tg_ever = self[('SIPWCS', 1)].header['TG_EVER']
         # determine what alternate WCS this headerlet will be assigned to
         if wcskey is None:
-            wkey = altwcs.next_wcskey(fobj[(tg_ename, tg_ever)].header)
+            wkey = altwcs._next_wcskey(fobj[(tg_ename, tg_ever)].header)
         else:
             wcskey = wcskey.upper()
             available_keys = altwcs.available_wcskeys(fobj[(tg_ename, tg_ever)].header)

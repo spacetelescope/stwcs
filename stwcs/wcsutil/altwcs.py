@@ -99,13 +99,13 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
 
     elif wcskey == " ":
         # wcsname exists, overwrite it if reuse is True or get the next key
-        if wcsname in wcsnames(f[wcsext].header).values():
+        if wcsname in _alt_wcs_names(f[wcsext].header).values():
             if reusekey:
                 # try getting the key from an existing WCS with WCSNAME
                 wkey = getKeyFromName(f[wcsext].header, wcsname)
                 wname = wcsname
                 if wkey == ' ':
-                    wkey = next_wcskey(f[wcsext].header)
+                    wkey = _next_wcskey(f[wcsext].header)
                 elif wkey is None:
                     closefobj(fname, f)
                     raise KeyError(f"Could not get a valid wcskey from wcsname '{wcsname:s}'")
@@ -119,14 +119,12 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
                 )
 
         else:
-            wkey = next_wcskey(f[wcsext].header)
+            wkey = _next_wcskey(f[wcsext].header)
             if wcsname != ' ':
                 wname = wcsname
             else:
                 # determine which WCSNAME needs to be replicated in archived WCS
-                wnames = wcsnames(f[wcsext].header)
-                if 'O' in wnames:
-                    del wnames['O']  # we don't want OPUS/original
+                wnames = _alt_wcs_names(f[wcsext].header)
 
                 if len(wnames) > 0:
                     if ' ' in wnames:
@@ -632,16 +630,56 @@ def wcskeys(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
 
+    wcs_kwd_list = ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS', 'LONPOLE']
+
     wkeys = set()
-    for kwd in ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS', 'LONPOLE']:
-        alt_kwd = hdr[kwd + '*']
-        wkeys.update([key.replace(kwd, '').strip().upper().ljust(1, ' ')
-                      for key in alt_kwd])
+
+    # check primary:
+    for kwd in wcs_kwd_list:
+        if kwd in hdr:
+            wkeys.add(' ')
+            break
+
+    # check Alt WCS:
+    for kwd in wcs_kwd_list:
+        alt_kwds = hdr[kwd + '?']
+        alt_keys = [key[-1].upper() for key in alt_kwds if key[-1] in string.ascii_letters]
+        wkeys.update(alt_keys)
 
     return sorted(wkeys)
 
 
-def wcsnames(fobj, ext=None):
+def _alt_wcs_names(hdr, del_opus=True):
+    """ Return a dictionary of all alternate WCS keys with names except ``OPUS``
+
+    Parameters
+    ----------
+    hdr : astropy.io.fits.Header
+        An image header.
+
+    del_opus : bool
+        Indicates whether to remove ``OPUS`` entry (WCS key ``'O'``) from
+        returned key-name dictionary.
+
+    Returns
+    -------
+    wnames : dict
+        A dictionary of **Alt** WCS keys and names (as values):
+
+    """
+    names = hdr["WCSNAME?"]
+
+    if del_opus and 'WCSNAMEO' in names and names['WCSNAMEO'] == 'OPUS':
+        # remove OPUS name
+        del names['WCSNAMEO']
+
+    wnames = {kwd[-1].upper(): val for kwd, val in names.items()
+              if kwd[-1] in string.ascii_letters}
+
+    return wnames
+
+
+def wcsnames(fobj, ext=None, include_primary=True):
     """
     Returns a dictionary of wcskey: WCSNAME pairs
 
@@ -656,10 +694,10 @@ def wcsnames(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    names = hdr["WCSNAME*"]
-    wnames = {kwd.replace('WCSNAME', '').strip().upper().ljust(1, ' '): val
-              for kwd, val in names.items()}
-    return wnames
+    names = _alt_wcs_names(hdr, del_opus=False)
+    if include_primary and 'WCSNAME' in hdr:
+        names[' '] = hdr['WCSNAME']
+    return names
 
 
 def available_wcskeys(fobj, ext=None):
@@ -695,11 +733,28 @@ def next_wcskey(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    allkeys = available_wcskeys(hdr)
-    if allkeys:
-        return allkeys[0]
-    else:
-        return None
+    return _next_wcskey(hdr)
+
+
+def _next_wcskey(hdr):
+    """
+    Returns next available character to be used for an alternate WCS
+
+    Parameters
+    ----------
+    hdr : `astropy.io.fits.Header`
+        FITS header.
+
+    Returns
+    -------
+    key : str, None
+        Next available character to be used as an alternate WCS key or `None`
+        if none is available.
+
+    """
+    all_keys = available_wcskeys(hdr)
+    key = all_keys[0] if all_keys else None
+    return key
 
 
 def getKeyFromName(header, wcsname):
@@ -717,8 +772,7 @@ def getKeyFromName(header, wcsname):
     names = wcsnames(header)
     wkeys = [key for key, name in names.items() if name.lower() == wcsname.lower()]
     if wkeys:
-        wkeys.sort()
-        wkey = wkeys[-1]
+        wkey = max(wkeys)
     else:
         wkey = None
     return wkey
