@@ -675,7 +675,7 @@ def _alt_wcs_names(hdr, del_opus=True):
     return wnames
 
 
-def wcsnames(fobj, ext=None):
+def wcsnames(fobj, ext=None, include_primary=True):
     """
     Returns a dictionary of wcskey: WCSNAME pairs
 
@@ -690,7 +690,10 @@ def wcsnames(fobj, ext=None):
     """
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
-    return _alt_wcs_names(hdr, del_opus=False)
+    names = _alt_wcs_names(hdr, del_opus=False)
+    if include_primary and 'WCSNAME' in hdr:
+        names[' '] = hdr['WCSNAME']
+    return names
 
 
 def available_wcskeys(fobj, ext=None):
