@@ -23,7 +23,7 @@ altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
 # List non-standard WCS keywords (such as those created, e.g., by TweakReg)
 # that need to be archived/restored with the rest of WCS here:
-STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME']
+STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME', 'HDRNAME', 'ORIENTAT']
 
 # file operations
 
