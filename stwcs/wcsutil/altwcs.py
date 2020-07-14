@@ -1,4 +1,5 @@
 import string
+from enum import IntFlag
 
 import numpy as np
 from astropy import wcs as pywcs
@@ -14,7 +15,7 @@ default_log_level = log.getEffectiveLevel()
 
 __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
            "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames",
-           "wcs_from_key"]
+           "wcs_from_key", "archive_wcs", "ArchiveMode"]
 
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
@@ -25,9 +26,22 @@ altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 # that need to be archived/restored with the rest of WCS here:
 STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME', 'HDRNAME', 'ORIENTAT']
 
+_DEFAULT_WCSNAME = 'ARCHIVED_WCS'
+
 # file operations
 
 
+class ArchiveMode(IntFlag):
+    NO_CONFLICT = 0  # Fail if WCS key or name already exists (unless identical WCS)
+    AUTO_RENAME = 1  # rename primary WCS if same name is already used by an Alt WCS (to keep Alt WCS names unique)
+    OVERWRITE_KEY = 2  # overwrite an existing Alt WCS
+    QUIET_ABORT = 4  # quit if conflicts without raising exceptions
+
+AM = ArchiveMode
+
+
+@deprecated(since='1.6.0', message='', name='archiveWCS',
+            alternative='archive_wcs')
 def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     """
     Copy the primary WCS to the header as an alternate WCS
@@ -67,95 +81,354 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
     wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
 
     """
-    if wcsname.strip() == '':
-        wcsname = ' '
+    mode = AM.OVERWRITE_KEY if reusekey else AM.NO_CONFLICT
+    archive_wcs(fname, ext, wcskey=wcskey, wcsname=wcsname, mode=mode)
 
-    if len(wcskey) != 1 or wcskey.strip() not in string.ascii_letters:
+
+def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFLICT):
+    """
+    Copy the primary WCS to the header as an alternate WCS
+    with the specified ``wcskey`` and name ``wcsname``.
+    It loops over all extensions in 'ext'.
+
+    Parameters
+    ----------
+    fname :  string or `astropy.io.fits.HDUList`
+        File name or a `astropy.io.fits.HDUList` whose primary WCS need to be
+        archived.
+
+    ext : int, tuple, str, or list of integers or tuples (e.g.('sci',1))
+        Specifies FITS extensions whose primary WCS should be archived.
+
+        If a string is provided, it should specify the EXTNAME of extensions
+        with WCSs to be archived
+
+    wcskey : {'A'-'Z'}, None, optional
+        When ``wcskey`` is `None`, and ``wcsname`` is not `None` and an
+        alternate WCS exist with the same name as ``wcsname``, the key of
+        this alernate WCS will be used for ``wcskey``. If ``wcsname`` is unique,
+        the next available key will be used. If ``wcskey`` is a letter ``'A'-'Z'``,
+        the primary WCS will be archived to the indicated key. If an
+        alternate WCS with the specified key already exist an exception will be
+        raisen unless mode includes either flag ``ArchiveMode.OVERWRITE_KEY`` or
+        ``ArchiveMode.QUIET_ABORT``.
+
+    wcsname : str, None, optional
+        Name of alternate WCS description. If `None`, the WCS name will be
+        initially set to the name of the primary WCS if available. If primary
+        WCS does not have ``'WCSNAME'`` set and provided ``wcskey`` is not
+        `None` and a WCS with this key already exists in the header, the name
+        of this alternate WCS will be used. I this alternate WCS does not have
+        ``'WCSNAME'`` set and provided, a default WCS name will be used.
+
+        .. note::
+            An exception will be raisen if an alternate WCS with provided
+            name already exists in image's headers unless ``mode`` includes
+            ``ArchiveMode.AUTO_RENAME`` flag in which case ``wcsname`` will be
+            automatically adjusted to be unique.
+
+    mode : int, optional
+        An integer mask containing one or more flags from ``ArchiveMode``:
+
+        - ``NO_CONFLICT``: Archive only when provided WCS key or name
+          do not conflict with existing alternate WCS or when existing
+          alternate WCS is identical to the primary WCS being archived.
+
+        - ``AUTO_RENAME``: Rename primary WCS if same name is already used
+          by an alternate WCS (in order to keep alternate WCS names unique).
+
+        - ``OVERWRITE_KEY``: Overwrite an existing alternate WCS with the
+          same key as ``wcskey``.
+
+        - ``QUIET_ABORT``: Stop archiving and quit if conflicts exists
+          without raising exceptions.
+
+    Returns
+    -------
+    wcs_id : tuple (str or None, str or None)
+        Returns effective WCS key and name used for the archived WCS.
+        If archival failed due to conflicts, and ``mode`` was set to
+        ``ArchiveMode.QUIET_ABORT`` a tuple of ``(None, None)`` will be returned.
+
+    """
+    if wcsname is not None and not isinstance(wcsname, str):
+        raise TypeError("'wcsname' must be a string")
+
+    if (wcskey is not None and
+            ((not isinstance(wcskey, str) or len(wcskey) != 1 or
+              wcskey.strip() not in string.ascii_uppercase))):
         raise ValueError(
             "Parameter 'wcskey' must be a character - one of 'A'-'Z' or ' '."
         )
 
     if isinstance(fname, str):
-        f = fits.open(fname, mode='update')
+        # open file:
+        h = fits.open(fname, mode='update')
+        close_hdulist = True
     else:
-        f = fname
+        h = fname
+        close_hdulist = False
 
-    if not _parpasscheck(f, ext, wcskey, wcsname):
-        closefobj(fname, f)
-        raise ValueError("Input parameters problem")
+        # validate file object and open mode:
+        if not isinstance(h, fits.HDUList):
+            if close_hdulist:
+                h.close()
+            raise TypeError("'fname' must be either a FITS file object or a string file name.")
 
-    # Interpret input 'ext' value to get list of extensions to process
-    ext = _buildExtlist(f, ext)
+        if h.fileinfo(0) is not None and h.fileinfo(0)['filemode'] != 'update':
+            if close_hdulist:
+                h.close()
+            raise ValueError("'fname' must be a file object opened in 'update' mode.")
 
-    if wcsname == ' ':
-        wcsname = wcs_from_key(f, ext[0]).get('WCSNAME', ' ')
+    # validate and interpret extension(s):
+    try:
+        if isinstance(ext, list):
+            map(_validate_ext, ext)
+        else:
+            _validate_ext(ext)
+            ext = [ext]
+
+    except ValueError as e:
+        if close_hdulist:
+            h.close()
+        raise e
 
     wcsext = ext[0]
-    if wcskey != " " and wcskey in wcskeys(f[wcsext].header) and not reusekey:
-        closefobj(fname, f)
-        raise KeyError(f"Wcskey '{wcskey}' is aready used. \
-        Run archiveWCS() with reusekey=True to overwrite this alternate WCS. \
-        Alternatively choose another wcskey with altwcs.available_wcskeys().")
+    hdr = h[wcsext].header
 
-    elif wcskey == " ":
-        # wcsname exists, overwrite it if reuse is True or get the next key
-        if wcsname in _alt_wcs_names(f[wcsext].header).values():
-            if reusekey:
-                # try getting the key from an existing WCS with WCSNAME
-                wkey = getKeyFromName(f[wcsext].header, wcsname)
-                wname = wcsname
-                if wkey == ' ':
-                    wkey = _next_wcskey(f[wcsext].header)
-                elif wkey is None:
-                    closefobj(fname, f)
-                    raise KeyError(f"Could not get a valid wcskey from wcsname '{wcsname:s}'")
-            else:
-                closefobj(fname, f)
-                raise KeyError(
-                    f"Wcsname '{wcsname}' is aready used. Run archiveWCS() "
-                    "with reusekey=True to overwrite this alternate WCS. "
-                    "Alternatively choose another wcskey with "
-                    "altwcs.available_wcskeys() or choose another wcsname."
-                )
+    wcs_names = _alt_wcs_names(hdr)
+    wcs_names_u = {k: v.upper() for k, v in wcs_names.items()}
+    wcsname_u = None if wcsname is None else wcsname.upper()
+    wcs_keys = wcskeys(h, wcsext)
+
+    # validate and process mode:
+    if mode & ~sum(AM):
+        raise ValueError("Unrecognized 'mode' flag.")
+    overwrite_key = bool(mode & AM.OVERWRITE_KEY)
+    auto_rename = bool(mode & AM.AUTO_RENAME)
+
+    wcs_id = (None, None)
+
+    # do not overwrite OPUS WCS if present regardless of 'mode':
+    if wcskey == 'O' and wcskey in wcs_keys:
+        if close_hdulist:
+            h.close()
+        log.debug("WCS name 'OPUS' already exists and cannot be overwritten.")
+        return wcs_id
+
+    elif wcsname == 'OPUS' and wcsname in wcs_names_u.values():
+        if close_hdulist:
+            h.close()
+        log.debug("WCS name 'OPUS' already exists and cannot be overwritten.")
+        return wcs_id
+
+    if wcsname is None:
+        if 'WCSNAME' in hdr:
+            # use WCS name of the primary WCS if available:
+            wcsname = hdr['WCSNAME']
+            if not wcsname.strip():
+                wcsname = _DEFAULT_WCSNAME
+                auto_rename = True
+
+        elif wcs_names:
+            # use the name of the Alt WCS with largest key:
+            wcsname = wcs_names[max(wcs_names.keys())]
+            auto_rename = True
 
         else:
-            wkey = _next_wcskey(f[wcsext].header)
-            if wcsname != ' ':
-                wname = wcsname
-            else:
-                # determine which WCSNAME needs to be replicated in archived WCS
-                wnames = _alt_wcs_names(f[wcsext].header)
+            # assign default name
+            wcsname = _DEFAULT_WCSNAME
+            auto_rename = True
 
-                if len(wnames) > 0:
-                    if ' ' in wnames:
-                        wname = wnames[' ']
-                    else:
-                        akeys = string.ascii_uppercase
-                        wname = "DEFAULT"
-                        for key in akeys[-1::]:
-                            if key in wnames:
-                                wname = wnames
-                                break
+    elif wcsname_u in wcs_names_u.values():
+        if (wcskey is not None and wcskey in wcs_names and
+                wcsname_u != wcs_names_u[wcskey] and not auto_rename):
+            msg = (
+                "'wcsname' must be unique in image header. Provided 'wcsname' "
+                "was already used for an alternate WCS with a different key "
+                "than the supplied 'wcskey'. Add ArchiveMode.AUTO_RENAME flag "
+                "to 'mode' in order to allow 'archive_wcs()' to modify "
+                "'wcsname' to be unique."
+            )
+
+            if AM.QUIET_ABORT:
+                log.warning(msg)
+                return wcs_id
+            else:
+                raise ValueError(msg)
+
+        elif wcskey is None:
+            # pick the key that corresponds to the provided WCS name:
+            key_match = sorted([k for k, v in wcs_names_u.items() if v == wcsname_u])[-1]
+
+            if _test_wcs_equal(h, wcsext, ' ', key_match) or overwrite_key:
+                wcskey = key_match
+
+            elif not auto_rename:
+                msg = (
+                    "'wcsname' must be unique in image header. Provided 'wcsname' "
+                    "was already used by an alternate WCS. Add either "
+                    "ArchiveMode.AUTO_RENAME flag to 'mode' in order to allow "
+                    "'archive_wcs()' to modify 'wcsname' to be unique or "
+                    "ArchiveMode.OVERWRITE_KEY flag in order to allow "
+                    "'archive_wcs()' to overwrite an existing WCS."
+                )
+                if AM.QUIET_ABORT:
+                    log.warning(msg)
+                    return wcs_id
                 else:
-                    wname = "DEFAULT"
+                    raise ValueError(msg)
+
+        else:
+            if wcskey in wcs_keys and not overwrite_key:
+                msg = (f"Alternate WCS with WCS key '{key_match}' is "
+                       "already present in header. To overwrite an "
+                       "existing WCS add ArchiveMode.OVERWRITE_KEY flag "
+                       "to 'mode'."
+                )
+                if AM.QUIET_ABORT:
+                    log.warning(msg)
+                    return wcs_id
+                else:
+                    raise ValueError(msg)
+
     else:
-        wkey = wcskey
-        wname = wcsname
+        auto_rename = False
+
+    if wcskey is None:
+        wcskey = _next_wcskey(hdr)
+
+    # check if name is present in Alt WCS and if renaming is allowed:
+    if auto_rename:
+        wcsname = _auto_increment_wcsname(wcsname, wcs_names.values())
 
     log.setLevel('WARNING')
 
-    for e in ext:
-        hwcs = wcs_from_key(f, e, from_key=' ', to_key=wkey)
+    wcs_id = (wcskey, wcsname)
 
-        if not hwcs:
+    for e in ext:
+        hwcs = wcs_from_key(h, e, from_key=' ', to_key=wcskey)
+
+        if hwcs is None:
             continue
 
-        hwcs.set(f'WCSNAME{wkey:.1s}', wname, 'Coordinate system title', before=0)
+        # remove old WCS if present:
+        if wcskey in wcs_keys:
+            hwcs = wcs_from_key(h, e, from_key=wcskey)
+            for k in hwcs:
+                if k in h[e].header:
+                    del h[e].header[k]
 
-        f[e].header.update(hwcs)
+        hwcs.set(f'WCSNAME{wcskey:.1s}', wcsname, 'Coordinate system title', before=0)
+
+        h[e].header.update(hwcs)
 
     log.setLevel(default_log_level)
-    closefobj(fname, f)
+    if close_hdulist:
+        h.close()
+
+    return wcs_id
+
+
+def _validate_ext(ext):
+    if not (isinstance(ext, int) or isinstance(ext, str) or
+            (isinstance(ext, tuple) and len(ext) == 2 and
+             isinstance(ext[0], str) and isinstance(ext[1], int))):
+        raise ValueError(
+            "'ext' must be int, str, or a tuple of the form (extname, extver), "
+            "where, extname is a string and extver is an integer number."
+        )
+
+
+def _auto_increment_wcsname(wcsname, alt_names):
+    """
+    Examples
+    --------
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A'])
+    'IDC'
+
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A', 'IDC'])
+    'IDC-1'
+
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
+
+    >>> altwcs._auto_increment_wcsname('IDC-1', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
+
+    >>> altwcs._auto_increment_wcsname('IDC-2', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
+
+    >>> altwcs._auto_increment_wcsname('IDC_A', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC_A-1'
+
+    """
+    separators = ['-', '_', ' ']  # in this order. First separator defines default
+    wcsname_u = wcsname.upper()
+    alt_names_u = [n.upper() for n in alt_names]
+    if wcsname_u not in alt_names_u:
+        return wcsname
+
+    def find_counters(wname_u):
+        num = {k: [] for k in separators}
+        wname_u_len = len(wname_u)
+        for name in alt_names_u:
+            if name.startswith(wname_u) and len(name) > wname_u_len:
+                for sep in separators:
+                    if name[wname_u_len] == sep:
+                        num_str = name[wname_u_len+1:]
+                        if '_' not in num_str:
+                            try:
+                                num[sep].append(int(num_str))
+                                break
+                            except:
+                                pass
+        return num
+
+    # figure out if wcsname ends in numbers:
+    idx = max(wcsname.rfind(sep) for sep in separators)
+
+    if idx >= 0:
+        try:
+            num_str = wcsname[idx + 1:].replace('_', '-')
+            wcs_num = int(num_str)
+            separator = wcsname[idx]
+            wcsname_root = wcsname[:idx]
+            wcsname_root_u = wcsname_root.upper()
+
+            num = find_counters(wcsname_root_u)
+            for sep in separators:
+                if num[sep]:
+                    max_num = max(num[sep]) + 1
+                    return f'{wcsname_root}{separator}{max_num:d}'
+            return f'{wcsname_root}{separator}{wcs_num + 1:d}'
+
+        except Exception as e:
+            pass
+
+    num = find_counters(wcsname_u)
+    for sep in separators:
+        if num[sep]:
+            max_num = max(num[sep]) + 1
+            return f'{wcsname}{sep}{max_num:d}'
+
+    return f'{wcsname:s}{separators[0]}1'
+
+
+def _test_wcs_equal(h, ext, wcskey1, wcskey2):
+    hwcs1 = wcs_from_key(h, ext, from_key=wcskey1, to_key=' ')
+    if 'WCSNAME' in hwcs1:
+        del hwcs1['WCSNAME']
+
+    hwcs2 = wcs_from_key(h, ext, from_key=wcskey2, to_key=' ')
+    if 'WCSNAME' in hwcs2:
+        del hwcs2['WCSNAME']
+
+    sdiff = set(c.image for c in hwcs1.cards).symmetric_difference(
+        c.image for c in hwcs2.cards
+    )
+
+    return not bool(sdiff)
 
 
 def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
@@ -559,7 +832,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
     return hwcs
 
 
-@deprecated(since='1.5.4', message='', name='readAltWCS',
+@deprecated(since='1.6.0', message='', name='readAltWCS',
             alternative='wcs_from_key')
 def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     """
@@ -585,7 +858,7 @@ def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
     return hwcs if hwcs else None
 
 
-@deprecated(since='1.5.4', message='', name='convertAltWCS',
+@deprecated(since='1.6.0', message='', name='convertAltWCS',
             alternative='wcs_from_key')
 def convertAltWCS(fobj, ext, oldkey=' ', newkey=' '):
     """

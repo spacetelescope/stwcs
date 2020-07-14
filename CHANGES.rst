@@ -24,6 +24,9 @@
 
 - Add comments to ``WCSNAMEa`` header keywords. [#143]
 
+- Added ``archive_wcs()`` function with more advanced control over how to
+  archive primary WCS and with more capabilities, such as auto-renaming. [#153]
+
 
 1.5.3 (2019-09-23)
 ------------------

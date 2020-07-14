@@ -1970,15 +1970,16 @@ class Headerlet(fits.HDUList):
                         else:
                             priwcs_name = 'UNKNOWN'
                 nextkey = altwcs._next_wcskey(fobj[target_ext].header)
-                altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=priwcs_name)
+                altwcs.archive_wcs(fobj, ext=sciext_list, wcskey=nextkey,
+                                   wcsname=priwcs_name)
+
             else:
                 for hname in altwcs._alt_wcs_names(fobj[target_ext].header).values():
                     if hname not in hdrlet_extnames:
                         nextkey = altwcs._next_wcskey(fobj[target_ext].header)
                         # Archive original WCS as alternate WCS with its own key
-                        altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=hname)
+                        altwcs.archive_wcs(fobj, ext=sciext_list,
+                                           wcskey=nextkey, wcsname=hname)
 
                         # create HeaderletHDU for alternate WCS now
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
