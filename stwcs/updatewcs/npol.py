@@ -130,13 +130,15 @@ class NPOLCorr(object):
         """
         j = 1 if npol_extname == 'DX' else 2
 
+        jth = {1: '1st', 2: '2nd', 3: '3rd'}.get(j, f'{j}th')
+
         npol = [
             (f'CPERR{j:1d}', error_val, f'Maximum error of NPOL correction for axis {j:d}'),
             (f'CPDIS{j:1d}', 'Lookup', 'Prior distortion function type'),
             (f'DP{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
             (f'DP{j:1d}.NAXES', 2, 'Number of independent variables in CPDIS function'),
-            (f'DP{j:1d}.AXIS.1', 1, 'Axis number of the jth variable in a CPDIS function'),
-            (f'DP{j:1d}.AXIS.2', 2, 'Axis number of the jth variable in a CPDIS function'),
+            (f'DP{j:1d}.AXIS.1', 1, 'Axis number of the {jth} variable in a CPDIS function'),
+            (f'DP{j:1d}.AXIS.2', 2, 'Axis number of the {jth} variable in a CPDIS function'),
         ]
 
         # Look for HISTORY keywords. If present, insert new keywords before them

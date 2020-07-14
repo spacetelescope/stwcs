@@ -117,13 +117,15 @@ class DET2IMCorr(object):
         """
         j = 1 if d2im_extname == 'DX' else 2
 
+        jth = {1: '1st', 2: '2nd', 3: '3rd'}.get(j, f'{j}th')
+
         d2im = [
             (f'D2IMERR{j:1d}', error_val, f'Maximum error of D2IM correction for axis {j:d}'),
             (f'D2IMDIS{j:1d}', 'Lookup', 'Detector to image correction type'),
             (f'D2IM{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
             (f'D2IM{j:1d}.NAXES', 2, 'Number of independent variables in D2IM function'),
-            (f'D2IM{j:1d}.AXIS.1', 1, 'Axis number of the jth variable in a D2IM function'),
-            (f'D2IM{j:1d}.AXIS.2', 2, 'Axis number of the jth variable in a D2IM function'),
+            (f'D2IM{j:1d}.AXIS.1', 1, 'Axis number of the {jth} variable in a D2IM function'),
+            (f'D2IM{j:1d}.AXIS.2', 2, 'Axis number of the {jth} variable in a D2IM function'),
         ]
 
         # Look for HISTORY keywords. If present, insert new keywords before them

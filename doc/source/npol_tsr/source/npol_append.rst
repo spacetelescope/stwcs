@@ -26,11 +26,11 @@ Sample science extension keywords defining a lookup table distortions::
     CPDIS1  = 'Lookup  '           / Prior distortion function type
     DP1     = 'EXTVER: 1.0'        / Version number of WCSDVARR extension
     DP1     = 'NAXES: 2.0'         / Number of independent variables in CPDIS function
-    DP1     = 'AXIS.1: 1.0'        / Axis number of the jth variable in a CPDIS function
-    DP1     = 'AXIS.2: 2.0'        / Axis number of the jth variable in a CPDIS function
+    DP1     = 'AXIS.1: 1.0'        / Axis number of the 1st variable in a CPDIS function
+    DP1     = 'AXIS.2: 2.0'        / Axis number of the 2nd variable in a CPDIS function
     CPERROR2=        0.072911568  / Maximum error of dgeo correction for axis 2
     CPDIS2  = 'Lookup  '           / Prior distortion function type
     DP2     = 'EXTVER: 2.0'        / Version number of WCSDVARR extension
     DP2     = 'NAXES: 2.0'         / Number of independent variables in CPDIS function
-    DP2     = 'AXIS.1: 1.0'        / Axis number of the jth variable in a CPDIS function
-    DP2     = 'AXIS.2: 2.0'        / Axis number of the jth variable in a CPDIS function
+    DP2     = 'AXIS.1: 1.0'        / Axis number of the 1st variable in a CPDIS function
+    DP2     = 'AXIS.2: 2.0'        / Axis number of the 2nd variable in a CPDIS function
