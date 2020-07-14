@@ -210,11 +210,16 @@ def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFL
     wcs_id = (None, None)
 
     # do not overwrite OPUS WCS if present regardless of 'mode':
-    if ((wcskey == 'O' and wcskey in wcs_keys) or
-            (wcsname == 'OPUS' and wcsname in wcs_names.values())):
+    if wcskey == 'O' and wcskey in wcs_keys:
         if close_hdulist:
             h.close()
-        log.debug("WCS key 'O' already exists and cannot be overwritten.")
+        log.debug("WCS name 'OPUS' already exists and cannot be overwritten.")
+        return wcs_id
+
+    elif wcsname == 'OPUS' and wcsname in wcs_names_u.values():
+        if close_hdulist:
+            h.close()
+        log.debug("WCS name 'OPUS' already exists and cannot be overwritten.")
         return wcs_id
 
     if wcsname is None:
@@ -339,88 +344,75 @@ def _auto_increment_wcsname(wcsname, alt_names):
     """
     Examples
     --------
-    >>> altwcs._auto_increment_wcsname('test', ['OLD_TEST'])
-    'test'
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A'])
+    'IDC'
 
-    >>> altwcs._auto_increment_wcsname('test', ['OLD_TEST', 'TEST'])
-    'test-1'
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A', 'IDC'])
+    'IDC-1'
 
-    >>> altwcs._auto_increment_wcsname('test', ['OLD_TEST', 'TEST-1'])
-    'test-2'
+    >>> altwcs._auto_increment_wcsname('IDC', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
 
-    >>> altwcs._auto_increment_wcsname('test', ['OLD_TEST', 'TEST_1'])
-    'test_2'
+    >>> altwcs._auto_increment_wcsname('IDC-1', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
 
-    >>> altwcs._auto_increment_wcsname('test_1_8', ['OLD_TEST', 'TEST_1_8'])
-    'test_1_9'
+    >>> altwcs._auto_increment_wcsname('IDC-2', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC-2'
 
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_1_8'])
-    'test_1_9'
-
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_1_8', 'Test_1'])
-    'test_1_9'
-
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_1'])
-    'test_2'
-
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_1', 'Test-2'])
-    'test_2'
-
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_1', 'Test_2'])
-    'test_3'
-
-    >>> altwcs._auto_increment_wcsname('test_1', ['OLD_TEST', 'TEST_2', 'Test-1'])
-    'test_3'
+    >>> altwcs._auto_increment_wcsname('IDC_A', ['IDC_A', 'IDC', 'IDC-1'])
+    'IDC_A-1'
 
     """
-    alt_names_u = [n.upper() for n in alt_names]
+    separators = ['-', '_', ' ']  # in this order. First separator defines default
     wcsname_u = wcsname.upper()
-    wcsnamelen = len(wcsname)
-    num = {' ': [], '-': [], '_': []}
-    for name in alt_names_u:
-        if name.startswith(wcsname_u) and len(name) > wcsnamelen:
-            for sep in ['-', '_', ' ']:  # in this order
-                if name[wcsnamelen] == sep:
-                    num_str = name[wcsnamelen + len(sep):]
-                    if '_' not in num_str:
-                        try:
-                            num[sep].append(int(num_str))
-                            break
-                        except:
-                            pass
+    alt_names_u = [n.upper() for n in alt_names]
+    if wcsname_u not in alt_names_u:
+        return wcsname
 
-    for sep in ['-', '_', ' ']:  # in this order
+    def find_counters(wname_u):
+        num = {k: [] for k in separators}
+        wname_u_len = len(wname_u)
+        for name in alt_names_u:
+            if name.startswith(wname_u) and len(name) > wname_u_len:
+                for sep in separators:
+                    if name[wname_u_len] == sep:
+                        num_str = name[wname_u_len+1:]
+                        if '_' not in num_str:
+                            try:
+                                num[sep].append(int(num_str))
+                                break
+                            except:
+                                pass
+        return num
+
+    # figure out if wcsname ends in numbers:
+    idx = max(wcsname.rfind(sep) for sep in separators)
+
+    if idx >= 0:
+        try:
+            num_str = wcsname[idx + 1:].replace('_', '-')
+            wcs_num = int(num_str)
+            separator = wcsname[idx]
+            wcsname_root = wcsname[:idx]
+            wcsname_root_u = wcsname_root.upper()
+
+            num = find_counters(wcsname_root_u)
+            for sep in separators:
+                if num[sep]:
+                    max_num = max(num[sep]) + 1
+                    return f'{wcsname_root}{separator}{max_num:d}'
+            return f'{wcsname_root}{separator}{wcs_num + 1:d}'
+
+        except Exception as e:
+            pass
+
+    num = find_counters(wcsname_u)
+    for sep in separators:
         if num[sep]:
             max_num = max(num[sep]) + 1
             return f'{wcsname}{sep}{max_num:d}'
 
-    # figure out if wcsname ends in numbers:
-    idx = max(wcsname.rfind(sep) for sep in num)
-    if idx < 0:
-        return f'{wcsname}-1' if wcsname_u in alt_names_u else wcsname
-
-    wcsname_root = wcsname[:idx + 1]
-    wcsname_root_u = wcsname_root.upper()
-    try:
-        num_str = wcsname[idx + 1:].replace('_', '-')
-        wcs_num = int(num_str)
-    except:
-        return f'{wcsname}-1' if wcsname_u in alt_names_u else wcsname
-
-    wname_len = len(wcsname_root)
-    num = []
-    for name in alt_names_u:
-        if not name.startswith(wcsname_root_u):
-            continue
-
-        num_str = name[wname_len:]
-        if num_str and '_' not in num_str:
-            try:
-                num.append(int(num_str))
-            except:
-                pass
-
-    return '{:s}{:d}'.format(wcsname_root, max(num) + 1 if num else wcs_num + 1)
+    return f'{wcsname:s}{separators[0]}1'
 
 
 def _test_wcs_equal(h, ext, wcskey1, wcskey2):
