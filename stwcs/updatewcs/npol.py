@@ -128,39 +128,25 @@ class NPOLCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if npol_extname == 'DX':
-            j = 1
-        else:
-            j = 2
+        j = 1 if npol_extname == 'DX' else 2
 
-        cperror = 'CPERR%s' % j
-        cpdis = 'CPDIS%s' % j
-        dpext = 'DP%s.' % j + 'EXTVER'
-        dpnaxes = 'DP%s.' % j + 'NAXES'
-        dpaxis1 = 'DP%s.' % j + 'AXIS.1'
-        dpaxis2 = 'DP%s.' % j + 'AXIS.2'
-        keys = [cperror, cpdis, dpext, dpnaxes, dpaxis1, dpaxis2]
-        values = {cperror: error_val,
-                  cpdis: 'Lookup',
-                  dpext: wdvarr_ver,
-                  dpnaxes: 2,
-                  dpaxis1: 1,
-                  dpaxis2: 2}
+        jth = {1: '1st', 2: '2nd', 3: '3rd'}.get(j, f'{j}th')
 
-        comments = {cperror: 'Maximum error of NPOL correction for axis %s' % j,
-                    cpdis: 'Prior distortion function type',
-                    dpext: 'Version number of WCSDVARR extension containing lookup distortion table',
-                    dpnaxes: 'Number of independent variables in distortion function',
-                    dpaxis1: 'Axis number of the jth independent variable in a distortion function',
-                    dpaxis2: 'Axis number of the jth independent variable in a distortion function'
-                    }
+        npol = [
+            (f'CPERR{j:1d}', error_val, f'Maximum error of NPOL correction for axis {j:d}'),
+            (f'CPDIS{j:1d}', 'Lookup', 'Prior distortion function type'),
+            (f'DP{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
+            (f'DP{j:1d}.NAXES', 2, 'Number of independent variables in CPDIS function'),
+            (f'DP{j:1d}.AXIS.1', 1, 'Axis number of the {jth} variable in a CPDIS function'),
+            (f'DP{j:1d}.AXIS.2', 2, 'Axis number of the {jth} variable in a CPDIS function'),
+        ]
+
         # Look for HISTORY keywords. If present, insert new keywords before them
-        before_key = 'HISTORY'
-        if before_key not in hdr:
-            before_key = None
+        before_key = 'HISTORY' if 'HISTORY' in hdr else None
 
-        for key in keys:
-            hdr.set(key, value=values[key], comment=comments[key], before=before_key)
+        for key, value, comment in npol:
+            hdr.set(key, value=value, comment=comment, before=before_key)
+
 
     addSciExtKw = classmethod(addSciExtKw)
 

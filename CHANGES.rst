@@ -22,6 +22,8 @@
 
 - Increased reliability of detecting alternate WCS in image headers. [#141]
 
+- Abbreviated comments for ``D2IM``, ``CPDIS`` lookup table distortions. [#142]
+
 - Add comments to ``WCSNAMEa`` header keywords. [#143]
 
 - Added ``archive_wcs()`` function with more advanced control over how to

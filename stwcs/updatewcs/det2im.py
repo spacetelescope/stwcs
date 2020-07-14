@@ -115,39 +115,25 @@ class DET2IMCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if d2im_extname == 'DX':
-            j = 1
-        else:
-            j = 2
+        j = 1 if d2im_extname == 'DX' else 2
 
-        d2imerror = 'D2IMERR%s' % j
-        d2imdis = 'D2IMDIS%s' % j
-        d2imext = 'D2IM%s.' % j + 'EXTVER'
-        d2imnaxes = 'D2IM%s.' % j + 'NAXES'
-        d2imaxis1 = 'D2IM%s.' % j + 'AXIS.1'
-        d2imaxis2 = 'D2IM%s.' % j + 'AXIS.2'
-        keys = [d2imerror, d2imdis, d2imext, d2imnaxes, d2imaxis1, d2imaxis2]
-        values = {d2imerror: error_val,
-                  d2imdis: 'Lookup',
-                  d2imext: wdvarr_ver,
-                  d2imnaxes: 2,
-                  d2imaxis1: 1,
-                  d2imaxis2: 2}
+        jth = {1: '1st', 2: '2nd', 3: '3rd'}.get(j, f'{j}th')
 
-        comments = {d2imerror: 'Maximum error of NPOL correction for axis %s' % j,
-                    d2imdis: 'Detector to image correction type',
-                    d2imext: 'Version number of WCSDVARR extension containing d2im lookup table',
-                    d2imnaxes: 'Number of independent variables in d2im function',
-                    d2imaxis1: 'Axis number of the jth independent variable in a d2im function',
-                    d2imaxis2: 'Axis number of the jth independent variable in a d2im function'
-                    }
+        d2im = [
+            (f'D2IMERR{j:1d}', error_val, f'Maximum error of D2IM correction for axis {j:d}'),
+            (f'D2IMDIS{j:1d}', 'Lookup', 'Detector to image correction type'),
+            (f'D2IM{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
+            (f'D2IM{j:1d}.NAXES', 2, 'Number of independent variables in D2IM function'),
+            (f'D2IM{j:1d}.AXIS.1', 1, 'Axis number of the {jth} variable in a D2IM function'),
+            (f'D2IM{j:1d}.AXIS.2', 2, 'Axis number of the {jth} variable in a D2IM function'),
+        ]
+
         # Look for HISTORY keywords. If present, insert new keywords before them
-        before_key = 'HISTORY'
-        if before_key not in hdr:
-            before_key = None
+        before_key = 'HISTORY' if 'HISTORY' in hdr else None
 
-        for key in keys:
-            hdr.set(key, value=values[key], comment=comments[key], before=before_key)
+        for key, value, comment in d2im:
+            hdr.set(key, value=value, comment=comment, before=before_key)
+
 
     addSciExtKw = classmethod(addSciExtKw)
 
