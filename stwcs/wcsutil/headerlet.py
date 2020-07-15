@@ -181,7 +181,6 @@ def parse_filename(fname, mode='readonly'):
         the higher level interface close the object.
 
     """
-    close_fobj = False
     if isinstance(fname, str):
         fname = fu.osfn(fname)
         fobj = fits.open(fname, mode=mode)
@@ -192,6 +191,7 @@ def parse_filename(fname, mode='readonly'):
             fname = fobj.filename()
         else:
             fname = ''
+        close_fobj = False
     else:
         raise ValueError(f"parse_filename expects a file name or HDUList, got {type(fname)}")
     return fobj, fname, close_fobj
@@ -992,7 +992,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             message += "    'wcskey' = %s and 'wcsname' = %s. \n" % (wcskey, wcsname)
             message += "Actual value of %s found to be %s. \n" % (wcsnamekw, wname)
             logger.critical(message)
-            raise KeyError
+            raise KeyError(message)
     wkeys = altwcs.wcskeys(fobj, ext=wcsext)
     if wcskey != ' ':
         if wcskey not in wkeys:
@@ -1928,14 +1928,18 @@ class Headerlet(fits.HDUList):
         for i in range(1, numsip + 1):
             sipheader = self[('SIPWCS', i)].header
             sciext_list.append((sipheader['TG_ENAME'], sipheader['TG_EVER']))
-        target_ext = sciext_list[0]
+
         if archive:
-            if 'wcsname' in fobj[target_ext].header:
-                hdrname = fobj[target_ext].header['WCSNAME']
+            target_ext = sciext_list[0]
+            scihdr = fobj[target_ext].header
+
+            if 'wcsname' in scihdr:
+                hdrname = scihdr['WCSNAME']
                 wcsname = hdrname
             else:
                 hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 wcsname = None
+
             if hdrname not in hdrlet_extnames:
                 # -  if WCS has not been saved, write out WCS as headerlet extension
                 # Create a headerlet for the original Primary WCS data in the file,
@@ -1952,38 +1956,55 @@ class Headerlet(fits.HDUList):
             else:
                 logger.info("Headerlet with name %s is already attached" % hdrname)
 
+            alt_wcs_names_dict = altwcs._alt_wcs_names(scihdr)
+            alt_wcs_names = list(altwcs._alt_wcs_names(scihdr).values())
+
+            mode = altwcs.ArchiveMode.OVERWRITE_KEY | altwcs.ArchiveMode.AUTO_RENAME
+
             if dist_models_equal:
                 # Use the WCSNAME to determine whether or not to archive
                 # Primary WCS as altwcs
-                # wcsname = hwcs.wcs.name
-                scihdr = fobj[target_ext].header
                 if 'hdrname' in scihdr:
-                    priwcs_name = scihdr['hdrname']
+                    archive_wcs = self.hdrname != scihdr['hdrname']
+                    if 'wcsname' in scihdr:
+                        wcsname = scihdr['wcsname']
+                        archive_wcs = archive_wcs or (self.wcsname != wcsname
+                                                      and wcsname not in alt_wcs_names)
+
                 else:
                     if 'wcsname' in scihdr:
-                        priwcs_name = scihdr['wcsname']
+                        priwcs_name = None
+                        wcsname = scihdr['wcsname']
+                        archive_wcs = self.wcsname != wcsname and wcsname not in alt_wcs_names
+
                     else:
                         if 'idctab' in scihdr:
-                            priwcs_name = ''.join(['IDC_',
-                                                   utils.extract_rootname(scihdr['idctab'],
-                                                                          suffix='_idc')])
+                            wcsname = ''.join(
+                                ['IDC_',
+                                 utils.extract_rootname(
+                                     scihdr['idctab'], suffix='_idc')
+                                ]
+                            )
+                            archive_wcs = wcsname not in alt_wcs_names
+
                         else:
-                            priwcs_name = 'UNKNOWN'
-                nextkey = altwcs._next_wcskey(fobj[target_ext].header)
-                altwcs.archive_wcs(fobj, ext=sciext_list, wcskey=nextkey,
-                                   wcsname=priwcs_name)
+                            wcsname = 'UNKNOWN'
+                            archive_wcs = True
+
+                if archive_wcs:
+                    altwcs.archive_wcs(fobj, ext=sciext_list, mode=mode)
 
             else:
-                for hname in altwcs._alt_wcs_names(fobj[target_ext].header).values():
-                    if hname not in hdrlet_extnames:
-                        nextkey = altwcs._next_wcskey(fobj[target_ext].header)
-                        # Archive original WCS as alternate WCS with its own key
-                        altwcs.archive_wcs(fobj, ext=sciext_list,
-                                           wcskey=nextkey, wcsname=hname)
+                # explicity pass wcsname so that if a WCS with the same name
+                # already exists, overwrite it in place:
+                pri_wcsname = scihdr.get('WCSNAME', None)
+                altwcs.archive_wcs(fobj, ext=sciext_list, wcsname=pri_wcsname, mode=mode)
 
+                for wcskey, hname in alt_wcs_names_dict:
+                    if hname not in hdrlet_extnames:
                         # create HeaderletHDU for alternate WCS now
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
-                                                    wcsname=hname, wcskey=nextkey,
+                                                    wcsname=hname, wcskey=wcskey,
                                                     hdrname=hname, sipname=None,
                                                     npolfile=None, d2imfile=None,
                                                     author=None, descrip=None, history=None,

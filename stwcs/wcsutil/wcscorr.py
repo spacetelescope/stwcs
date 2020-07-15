@@ -305,7 +305,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
     # modified...
     wcs_keys = altwcs.wcskeys(source[(extname, 1)].header)
     if 'O' in wcs_keys:
-        del wcs_keys['O']  # 'O' is reserved for original OPUS WCS
+        wcs_keys.remove('O')  # 'O' is reserved for original OPUS WCS
     if ' ' not in wcs_keys: wcs_keys.append(' ')  # Insure that primary WCS gets used
     # apply logic for only updating WCSCORR table with specified keywords
     # corresponding to the WCS with WCSNAME=wcs_id

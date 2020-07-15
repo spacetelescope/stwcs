@@ -12,6 +12,8 @@ from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
 os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
+os.environ['jref'] = data_path + '/'
+
 
 def get_filepath(filename, directory=data_path):
     return os.path.join(directory, filename)
@@ -71,6 +73,7 @@ class TestAltWCS(object):
 
         updatewcs.updatewcs(acs_file)
         self.acs_file = acs_file
+        self.acs_orig_file = acs_orig_file
         self.simplefits = simple_file
         self.ww = wcsutil.HSTWCS(self.acs_file, ext=1)
 
@@ -171,3 +174,102 @@ class TestAltWCS(object):
         #assert(altwcs._parpasscheck(f, ext=1, wcskey='O'))
         #assert(not altwcs._parpasscheck(f, ext=1, wcskey='O', reusekey=False))
         f.close()
+
+    def _prepare_acs_test_file(self, ext_list):
+        shutil.copyfile(self.acs_orig_file, self.acs_file)
+        idctab = get_filepath('postsm4_idc.fits')
+        npol_file = get_filepath('qbu16424j_npl.fits')
+        d2imfile = get_filepath('new_wfc_d2i.fits ')
+        pyfits.setval(self.acs_file, ext=0, keyword="IDCTAB", value=idctab)
+        pyfits.setval(self.acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
+        pyfits.setval(self.acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
+
+        h = pyfits.open(self.acs_file, mode='update')
+
+        # remove all Alt WCS except OPUS:
+        keys = altwcs.wcskeys(h, 1)
+        if ' ' in keys:
+            keys.remove(' ')
+        if 'O' in keys:
+            keys.remove('O')
+
+        for n, ext in enumerate(ext_list):
+            for key in keys:
+                altwcs.deleteWCS(h, ext, wcskey=key)
+
+                # remove HDRNAME:
+                if ('HDRNAME' + key) in h[ext].header:
+                    del h[ext].header['HDRNAME' + key]
+
+            h[ext].header['wcsname'] = 'Initial Primary WCS'
+            h[ext].header['CD1_1'] = n + 1.234
+            # remove HDRNAME:
+            if 'HDRNAME' in h[ext].header:
+                del h[ext].header['HDRNAME']
+
+        envval = os.environ['ASTROMETRY_STEP_CONTROL']
+        os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
+        updatewcs.updatewcs(h, use_db=False)
+        os.environ['ASTROMETRY_STEP_CONTROL'] = envval
+
+        h.close()
+
+    def test_repeated_updatewcs_no_db(self):
+        ext_list = [('sci', 1), ('sci', 2)]
+
+        # remove all Alt WCS except OPUS:
+        self._prepare_acs_test_file(ext_list)
+
+        # run updatewcs() multiple times:
+        for k in range(4):
+            updatewcs.updatewcs(self.acs_file, use_db=False)
+
+        # test:
+        h = pyfits.open(self.acs_file, mode='update')
+        for n, ext in enumerate(ext_list):
+            wnames = altwcs.wcsnames(h, ext=ext)
+            assert not set(altwcs.wcskeys(h, ext)).symmetric_difference(['O', ' '])
+            assert wnames[' '].upper() == 'IDC_POSTSM4'
+            assert not np.allclose(h[ext].header['CD1_1'], n + 1.234)
+
+        h.close()
+
+
+    def test_repeated_updatewcs_use_db(self):
+        ext_list = [('sci', 1), ('sci', 2)]
+        self._prepare_acs_test_file(ext_list)
+
+        ref_priwcs = {}
+        h = pyfits.open(self.acs_file)
+        for ext in ext_list:
+            # store primary wcs:
+            ref_priwcs[ext] = wcsutil.HSTWCS(h, ext)
+        h.close()
+
+        # run updatewcs() multiple times:
+        envval = os.environ['ASTROMETRY_STEP_CONTROL']
+        os.environ['ASTROMETRY_STEP_CONTROL'] = 'On'
+        for k in range(4):
+            updatewcs.updatewcs(self.acs_file, use_db=True)
+        os.environ['ASTROMETRY_STEP_CONTROL'] = envval
+
+        # test:
+        h = pyfits.open(self.acs_file, mode='update')
+        for ext in ext_list:
+            wnames = altwcs.wcsnames(h, ext=ext)
+            assert not set(altwcs.wcskeys(h, ext)).symmetric_difference(['O', ' ', 'A', 'B'])
+            assert wnames['A'].upper() == 'IDC_POSTSM4'
+            assert '-FIT' in wnames[' '].upper() and 'IDC_0461802EJ' in wnames[' '].upper()
+            assert not np.allclose(h[ext].header['CD1_1'], ext[1] + 0.234)
+            assert 'HDRNAME' in h[ext].header
+
+            # check that original primary WCS is stored under key 'A':
+            wcsa = wcsutil.HSTWCS(h, ext, wcskey='A')
+            compare_wcs(ref_priwcs[ext], wcsa)
+
+        h.close()
+
+        # remove all Alt WCS except OPUS:
+        self._prepare_acs_test_file(ext_list)
+
+
