@@ -625,7 +625,9 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        hwcs = wcs_from_key(fobj, i, from_key=wkey)
+        # set exclude_special=False to delete those keywords from the header
+        # (if there were in the header before) when removing an Alt WCS
+        hwcs = wcs_from_key(fobj, i, from_key=wkey, exclude_special=False)
         if hwcs:
             for k in hwcs:
                 if k in hdr:
@@ -734,7 +736,7 @@ def _getheader(fobj, ext):
     return hdr
 
 
-def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
+def wcs_from_key(fobj, ext, from_key=' ', to_key=None, exclude_special=True):
     """
     Read in WCS with a given ``from_key`` from the specified extension of
     the input file object and return a FITS header representing this WCS
@@ -754,17 +756,22 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
         An integer ``ext`` indicates "extension number". Finally, a single
         `str` extension name is interpretted as ``(ext, 1)``.
 
-    from_key : {' ', 'A'-'Z'}
+    from_key : {' ', 'A'-'Z'}, optional
         A 1 character string that is either a space character indicating the
         primary WCS, or one of the 26 ASCII letters (``'A'``-``'Z'``)
         indicating alternate WCS to be loaded from specified header.
 
-    to_key : {None, ' ', 'A'-'Z'}
+    to_key : {None, ' ', 'A'-'Z'}, optional
         The key of the primary/alternate WCS to be used in the returned header.
         When ``to_key`` is `None`, the returned header describes a WCS with the
         same key as the one read in using ``from_key``. A space character or
         a single ASCII letter indicates the key to be used for the returned
         WCS (see ``from_key`` for details).
+
+    exclude_special : bool, optional
+        When `True`, HST-specific keywords that are intended to be present in
+        the primary header and not in ``'SCI'`` extensions, will be filtered
+        out from the returned WCS header.
 
     Returns
     -------
@@ -811,7 +818,8 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
             fobj.close()
 
     hwcs = w.to_header(key=to_key)
-    exclude_hst_specific(hwcs, wcskey=to_key)
+    if exclude_special:
+        exclude_hst_specific(hwcs, wcskey=to_key)
 
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=to_key)
