@@ -31,7 +31,7 @@ import requests
 from io import BytesIO
 from lxml import etree
 
-from stwcs.wcsutil import headerlet
+from ..wcsutil import headerlet
 
 import logging
 
@@ -286,13 +286,13 @@ class AstrometryDB(object):
             Dictionary containing all solutions found for exposure in the
             form of headerlets labelled by the name given to the solution in
             the database.
-            
+
         best_solution_id : str
             WCSNAME of the WCS solution flagged as 'best' in the astrometry
-            database for the observation.  The 'best' solution should be the 
-            one that aligns the observation as close to the GAIA frame as 
+            database for the observation.  The 'best' solution should be the
+            one that aligns the observation as close to the GAIA frame as
             possible.
-            
+
         """
         if not self.perform_step:
             return None, None

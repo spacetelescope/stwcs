@@ -2,8 +2,8 @@ import copy
 import numpy as np
 from astropy.io import fits
 
-import stwcs
 from . import altwcs
+from .hstwcs import HSTWCS
 from ..updatewcs import utils
 from stsci.tools import fileutil
 
@@ -68,7 +68,7 @@ def init_wcscorr(input, force=False):
     wcsext.header['EXTVER'] = 1
 
     # define set of WCS keywords which need to be managed and copied to the table
-    wcs1 = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', 1))
+    wcs1 = HSTWCS(fimg, ext=('SCI', 1))
     idc2header = True
     if wcs1.idcscale is None:
         idc2header = False
@@ -76,9 +76,9 @@ def init_wcscorr(input, force=False):
 
     prihdr = fimg[0].header
     prihdr_keys = DEFAULT_PRI_KEYS
-    pri_funcs = {'SIPNAME': stwcs.updatewcs.utils.build_sipname,
-                 'NPOLNAME': stwcs.updatewcs.utils.build_npolname,
-                 'D2IMNAME': stwcs.updatewcs.utils.build_d2imname}
+    pri_funcs = {'SIPNAME': utils.build_sipname,
+                 'NPOLNAME': utils.build_npolname,
+                 'D2IMNAME': utils.build_d2imname}
 
     # Now copy original OPUS values into table
     for extver in range(1, numsci + 1):
@@ -100,7 +100,7 @@ def init_wcscorr(input, force=False):
             altwcs.archive_wcs(fimg, ('SCI', extver), wcskey='O', wcsname='OPUS')
         wkey = 'O'
 
-        wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver), wcskey=wkey)
+        wcs = HSTWCS(fimg, ext=('SCI', extver), wcskey=wkey)
         wcshdr = wcs.wcs2header(idc2hdr=idc2header)
 
         if wcsext.data.field('CRVAL1')[rownum] != 0:
@@ -130,7 +130,7 @@ def init_wcscorr(input, force=False):
     for uwkey in used_wcskeys:
         for extver in range(1, numsci + 1):
             hdr = fimg['SCI', extver].header
-            wcs = stwcs.wcsutil.HSTWCS(fimg, ext=('SCI', extver),
+            wcs = HSTWCS(fimg, ext=('SCI', extver),
                                        wcskey=uwkey)
             wcshdr = wcs.wcs2header()
             if 'WCSNAME' + uwkey not in wcshdr:
@@ -316,7 +316,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
         if len(wkeys) > 1 and ' ' in wkeys:
             wkeys.remove(' ')
         wcs_keys = wkeys
-    wcshdr = stwcs.wcsutil.HSTWCS(source, ext=(extname, 1)).wcs2header()
+    wcshdr = HSTWCS(source, ext=(extname, 1)).wcs2header()
     wcs_keywords = list(wcshdr.keys())
 
     # create new table for hdr and populate it with the newly updated values
@@ -359,7 +359,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
 
             idx += 1
 
-            wcs = stwcs.wcsutil.HSTWCS(source, ext=extn, wcskey=wcs_key)
+            wcs = HSTWCS(source, ext=extn, wcskey=wcs_key)
             wcshdr = wcs.wcs2header()
 
             # Update selection column values
@@ -441,7 +441,7 @@ def restore_file_from_wcscorr(image, id='OPUS', wcskey=''):
     wcs_table = fimg['WCSCORR']
     orig_rows = (wcs_table.data.field('WCS_ID') == 'OPUS')
     # create an HSTWCS object to figure out what WCS keywords need to be updated
-    wcsobj = stwcs.wcsutil.HSTWCS(fimg, ext=('sci', 1))
+    wcsobj = HSTWCS(fimg, ext=('sci', 1))
     wcshdr = wcsobj.wcs2header()
     for extn in range(1, numsci + 1):
         # find corresponding row from table

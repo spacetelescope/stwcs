@@ -33,6 +33,9 @@
 - Added ``archive_wcs()`` function with more advanced control over how to
   archive primary WCS and with more capabilities, such as auto-renaming. [#153]
 
+- Remove HST-specific WCS keywords from SCI extensions that, following HST
+  convention, are supposed to be present in primary header only. [#159]
+
 
 1.5.3 (2019-09-23)
 ------------------

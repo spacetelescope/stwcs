@@ -109,16 +109,14 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
 
 
 def wcs2header(wcsobj):
-    h = wcsobj.to_header()
+    h = altwcs.exclude_hst_specific(wcsobj.to_header(), wcskey=wcsobj.wcs.alt)
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
     h['CTYPE1'] = 'RA---TAN'
     h['CTYPE2'] = 'DEC--TAN'
-    norient = np.rad2deg(np.arctan2(h['CD1_2'], h['CD2_2']))
-    # okey = 'ORIENT%s' % wkey
-    okey = 'ORIENT'
-    h[okey] = norient
+    orient = np.rad2deg(np.arctan2(h['CD1_2'], h['CD2_2']))
+    h['ORIENT'] = orient
     return h
 
 

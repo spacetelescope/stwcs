@@ -20,11 +20,15 @@ __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "nex
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
-altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
 # List non-standard WCS keywords (such as those created, e.g., by TweakReg)
 # that need to be archived/restored with the rest of WCS here:
 STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME', 'HDRNAME']
+
+# These are keywords that may be present in headers created by WCSLIB.
+# However, HST keeps them (or similar information) in the primary header and so
+# they should not be managed by STWCS when copying/archiving an HST WCS:
+EXCLUDE_WCSLIB_KWDS = ['EQUINOX', 'LONPOLE', 'LATPOLE', 'RESTWAV', 'RESTFRQ']
 
 _DEFAULT_WCSNAME = 'ARCHIVED_WCS'
 
@@ -623,7 +627,9 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     prexts = []
     for i in ext:
         hdr = fobj[i].header
-        hwcs = wcs_from_key(fobj, i, from_key=wkey)
+        # set exclude_special=False to delete those keywords from the header
+        # (if there were in the header before) when removing an Alt WCS
+        hwcs = wcs_from_key(fobj, i, from_key=wkey, exclude_special=False)
         if hwcs:
             for k in hwcs:
                 if k in hdr:
@@ -732,7 +738,7 @@ def _getheader(fobj, ext):
     return hdr
 
 
-def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
+def wcs_from_key(fobj, ext, from_key=' ', to_key=None, exclude_special=True):
     """
     Read in WCS with a given ``from_key`` from the specified extension of
     the input file object and return a FITS header representing this WCS
@@ -752,17 +758,22 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
         An integer ``ext`` indicates "extension number". Finally, a single
         `str` extension name is interpretted as ``(ext, 1)``.
 
-    from_key : {' ', 'A'-'Z'}
+    from_key : {' ', 'A'-'Z'}, optional
         A 1 character string that is either a space character indicating the
         primary WCS, or one of the 26 ASCII letters (``'A'``-``'Z'``)
         indicating alternate WCS to be loaded from specified header.
 
-    to_key : {None, ' ', 'A'-'Z'}
+    to_key : {None, ' ', 'A'-'Z'}, optional
         The key of the primary/alternate WCS to be used in the returned header.
         When ``to_key`` is `None`, the returned header describes a WCS with the
         same key as the one read in using ``from_key``. A space character or
         a single ASCII letter indicates the key to be used for the returned
         WCS (see ``from_key`` for details).
+
+    exclude_special : bool, optional
+        When `True`, HST-specific keywords that are intended to be present in
+        the primary header and not in ``'SCI'`` extensions, will be filtered
+        out from the returned WCS header.
 
     Returns
     -------
@@ -809,6 +820,8 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
             fobj.close()
 
     hwcs = w.to_header(key=to_key)
+    if exclude_special:
+        exclude_hst_specific(hwcs, wcskey=to_key)
 
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=to_key)
@@ -903,7 +916,7 @@ def wcskeys(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
 
-    wcs_kwd_list = ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS', 'LONPOLE']
+    wcs_kwd_list = ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS']
 
     wkeys = set()
 
@@ -1166,3 +1179,31 @@ def mapFitsExt2HDUListInd(fname, extname):
     if close_file:
         f.close()
     return d
+
+
+def exclude_hst_specific(hdr, wcskey=' '):
+    """ Remove HST-specific keywords from header ``hdr`` that are not supposed
+    to be present in SCI headers.
+
+    """
+    if (wcskey is not None and
+        ((not isinstance(wcskey, str) or len(wcskey) != 1 or
+          wcskey.strip() not in string.ascii_uppercase))):
+        raise ValueError(
+            "Parameter 'wcskey' must be a character - one of 'A'-'Z' or ' '."
+        )
+
+    if 'EXTNAME' in hdr and hdr['EXTNAME'] not in ['SCI', 'DQ', 'ERR']:
+        logger.warning("Input header must be either 'SCI', 'DQ', or 'ERR' image headers.")
+        logger.warning("HST-specific keywords will not be excluded from the header.")
+        return hdr
+
+    if wcskey is None or wcskey == ' ':
+        wcskey = ''
+
+    for kwd in EXCLUDE_WCSLIB_KWDS:
+        kwda = kwd + wcskey
+        if kwda in hdr:
+            del hdr[kwda]
+
+    return hdr
