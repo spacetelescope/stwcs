@@ -1997,12 +1997,11 @@ class Headerlet(fits.HDUList):
                     altwcs.archive_wcs(fobj, ext=sciext_list, mode=mode)
 
             else:
-                # explicity pass wcsname so that if a WCS with the same name
-                # already exists, overwrite it in place:
-                pri_wcsname = scihdr.get('WCSNAME', None)
-                altwcs.archive_wcs(fobj, ext=sciext_list, wcsname=pri_wcsname, mode=mode)
+                # Add primary WCS to the list of WCS to be saved to headerlets:
+                all_wcs_dict = alt_wcs_names_dict.copy()
+                all_wcs_dict[' '] = scihdr.get('WCSNAME', ' ')
 
-                for wcskey, hname in alt_wcs_names_dict:
+                for wcskey, hname in all_wcs_dict.items():
                     if hname not in hdrlet_extnames:
                         # create HeaderletHDU for alternate WCS now
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
@@ -2016,6 +2015,8 @@ class Headerlet(fits.HDUList):
                         alt_hlet_hdu.header['EXTVER'] = numhlt
                         alt_hlethdu.append(alt_hlet_hdu)
                         hdrlet_extnames.append(hname)
+
+                    altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
 
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
