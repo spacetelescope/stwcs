@@ -5,7 +5,6 @@ import string
 
 from stsci.tools import parseinput, irafglob
 from ..distortion import utils
-from ..updatewcs.utils import exclude_hst_specific
 from .. import wcsutil
 from ..wcsutil import altwcs
 
@@ -110,7 +109,7 @@ def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
 
 
 def wcs2header(wcsobj):
-    h = exclude_hst_specific(wcsobj.to_header(), wcskey=wcsobj.wcs.alt)
+    h = altwcs.exclude_hst_specific(wcsobj.to_header(), wcskey=wcsobj.wcs.alt)
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)

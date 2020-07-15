@@ -9,8 +9,6 @@ from stsci.tools import fileutil as fu
 from astropy import log
 from astropy.utils.decorators import deprecated
 
-from ..updatewcs.utils import exclude_hst_specific
-
 
 default_log_level = log.getEffectiveLevel()
 
@@ -22,11 +20,15 @@ __all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "nex
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
             'PV', 'PS']
-altwcskw_extra = ['LATPOLE', 'LONPOLE', 'RESTWAV', 'RESTFRQ']
 
 # List non-standard WCS keywords (such as those created, e.g., by TweakReg)
 # that need to be archived/restored with the rest of WCS here:
 STWCS_KWDS = ['WCSTYPE', 'RMS_RA', 'RMS_DEC', 'NMATCH', 'FITNAME', 'HDRNAME']
+
+# These are keywords that may be present in headers created by WCSLIB.
+# However, HST keeps them (or similar information) in the primary header and so
+# they should not be managed by STWCS when copying/archiving an HST WCS:
+EXCLUDE_WCSLIB_KWDS = ['EQUINOX', 'LONPOLE', 'LATPOLE', 'RESTWAV', 'RESTFRQ']
 
 _DEFAULT_WCSNAME = 'ARCHIVED_WCS'
 
@@ -1177,3 +1179,31 @@ def mapFitsExt2HDUListInd(fname, extname):
     if close_file:
         f.close()
     return d
+
+
+def exclude_hst_specific(hdr, wcskey=' '):
+    """ Remove HST-specific keywords from header ``hdr`` that are not supposed
+    to be present in SCI headers.
+
+    """
+    if (wcskey is not None and
+        ((not isinstance(wcskey, str) or len(wcskey) != 1 or
+          wcskey.strip() not in string.ascii_uppercase))):
+        raise ValueError(
+            "Parameter 'wcskey' must be a character - one of 'A'-'Z' or ' '."
+        )
+
+    if 'EXTNAME' in hdr and hdr['EXTNAME'] not in ['SCI', 'DQ', 'ERR']:
+        logger.warning("Input header must be either 'SCI', 'DQ', or 'ERR' image headers.")
+        logger.warning("HST-specific keywords will not be excluded from the header.")
+        return hdr
+
+    if wcskey is None or wcskey == ' ':
+        wcskey = ''
+
+    for kwd in EXCLUDE_WCSLIB_KWDS:
+        kwda = kwd + wcskey
+        if kwda in hdr:
+            del hdr[kwda]
+
+    return hdr

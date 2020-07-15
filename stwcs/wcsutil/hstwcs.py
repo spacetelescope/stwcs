@@ -10,7 +10,7 @@ from . import pc2cd
 from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
-from ..updatewcs.utils import exclude_hst_specific
+from ..wcsutil.altwcs import exclude_hst_specific
 
 from astropy import log
 default_log_level = log.getEffectiveLevel()

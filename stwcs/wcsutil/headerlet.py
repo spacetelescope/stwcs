@@ -1055,7 +1055,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         hwcs = HSTWCS(fobj, ext=ext, wcskey=wcskey)
 
         whdul = hwcs.to_fits(relax=True, key=" ")
-        utils.exclude_hst_specific(whdul[0].header)
+        altwcs.exclude_hst_specific(whdul[0].header)
 
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
@@ -2024,7 +2024,7 @@ class Headerlet(fits.HDUList):
             sipwcs = HSTWCS(self, ('SIPWCS', i))
             idckw = sipwcs._idc2hdr()
             priwcs = sipwcs.to_fits(relax=True)
-            utils.exclude_hst_specific(priwcs[0].header, wcskey=sipwcs.wcs.alt)
+            altwcs.exclude_hst_specific(priwcs[0].header, wcskey=sipwcs.wcs.alt)
             numnpol = 1
             numd2im = 1
             if sipwcs.wcs.has_cd():
@@ -2196,7 +2196,7 @@ class Headerlet(fits.HDUList):
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
             hwcs_header = hwcs.to_header(key=wkey)
-            utils.exclude_hst_specific(hwcs_header, wcskey=wkey)
+            altwcs.exclude_hst_specific(hwcs_header, wcskey=wkey)
 
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():

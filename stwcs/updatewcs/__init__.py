@@ -17,6 +17,7 @@ from . import npol, det2im
 from stsci.tools import parseinput, fileutil
 from . import apply_corrections
 from . import astrometry_utils
+from ..wcsutil.altwcs import exclude_hst_specific
 
 import time
 import logging
@@ -261,7 +262,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    hwcs = utils.exclude_hst_specific(w.to_header(), wcskey=w.wcs.alt)
+    hwcs = exclude_hst_specific(w.to_header(), wcskey=w.wcs.alt)
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
