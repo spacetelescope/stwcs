@@ -914,7 +914,7 @@ def wcskeys(fobj, ext=None):
     _check_headerpars(fobj, ext)
     hdr = _getheader(fobj, ext)
 
-    wcs_kwd_list = ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS', 'LONPOLE']
+    wcs_kwd_list = ['WCSNAME', 'CTYPE1', 'CRPIX1', 'CRVAL1', 'RADESYS']
 
     wkeys = set()
 
