@@ -10,6 +10,7 @@ from . import pc2cd
 from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
+from ..updatewcs.utils import exclude_hst_specific
 
 from astropy import log
 default_log_level = log.getEffectiveLevel()
@@ -375,6 +376,7 @@ class HSTWCS(WCS):
             self.ltv1 = 0.
             self.ltv2 = 0.
 
+
     def wcs2header(self, sip2hdr=False, idc2hdr=True, wcskey=None, relax=False):
         """
         Create a `astropy.io.fits.Header` object from WCS keywords.
@@ -389,6 +391,7 @@ class HSTWCS(WCS):
         """
         warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
         h = self.to_header(key=wcskey, relax=relax)
+        exclude_hst_specific(h, wcskey=wcskey)
 
         if not wcskey:
             wcskey = self.wcs.alt
@@ -405,10 +408,6 @@ class HSTWCS(WCS):
         if idc2hdr:
             for card in self._idc2hdr():
                 h[card.keyword + wcskey] = (card.value, card.comment)
-        try:
-            del h['RESTFRQ']
-            del h['RESTWAV']
-        except KeyError: pass
 
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):

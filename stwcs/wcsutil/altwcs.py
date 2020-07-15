@@ -9,6 +9,8 @@ from stsci.tools import fileutil as fu
 from astropy import log
 from astropy.utils.decorators import deprecated
 
+from ..updatewcs.utils import exclude_hst_specific
+
 
 default_log_level = log.getEffectiveLevel()
 
@@ -809,6 +811,7 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None):
             fobj.close()
 
     hwcs = w.to_header(key=to_key)
+    exclude_hst_specific(hwcs, wcskey=to_key)
 
     if w.wcs.has_cd():
         hwcs = pc2cd(hwcs, key=to_key)
