@@ -36,6 +36,9 @@
 - Remove HST-specific WCS keywords from SCI extensions that, following HST
   convention, are supposed to be present in primary header only. [#159]
 
+- Do not archive primary WCS when applying headerlet as primary if distortion
+  model changes. [#161]
+
 
 1.5.3 (2019-09-23)
 ------------------
