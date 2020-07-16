@@ -115,39 +115,23 @@ class DET2IMCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if d2im_extname == 'DX':
-            j = 1
-        else:
-            j = 2
+        j = 1 if d2im_extname == 'DX' else 2
 
-        d2imerror = 'D2IMERR%s' % j
-        d2imdis = 'D2IMDIS%s' % j
-        d2imext = 'D2IM%s.' % j + 'EXTVER'
-        d2imnaxes = 'D2IM%s.' % j + 'NAXES'
-        d2imaxis1 = 'D2IM%s.' % j + 'AXIS.1'
-        d2imaxis2 = 'D2IM%s.' % j + 'AXIS.2'
-        keys = [d2imerror, d2imdis, d2imext, d2imnaxes, d2imaxis1, d2imaxis2]
-        values = {d2imerror: error_val,
-                  d2imdis: 'Lookup',
-                  d2imext: wdvarr_ver,
-                  d2imnaxes: 2,
-                  d2imaxis1: 1,
-                  d2imaxis2: 2}
+        d2im = [
+            (f'D2IMERR{j:1d}', error_val, f'Maximum error of D2IM correction for axis {j:d}'),
+            (f'D2IMDIS{j:1d}', 'Lookup', 'Detector to image correction type'),
+            (f'D2IM{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
+            (f'D2IM{j:1d}.NAXES', 2, 'Number of independent variables in D2IM function'),
+            (f'D2IM{j:1d}.AXIS.1', 1, 'Axis number of the 1st variable in a D2IM function'),
+            (f'D2IM{j:1d}.AXIS.2', 2, 'Axis number of the 2nd variable in a D2IM function'),
+        ]
 
-        comments = {d2imerror: 'Maximum error of NPOL correction for axis %s' % j,
-                    d2imdis: 'Detector to image correction type',
-                    d2imext: 'Version number of WCSDVARR extension containing d2im lookup table',
-                    d2imnaxes: 'Number of independent variables in d2im function',
-                    d2imaxis1: 'Axis number of the jth independent variable in a d2im function',
-                    d2imaxis2: 'Axis number of the jth independent variable in a d2im function'
-                    }
         # Look for HISTORY keywords. If present, insert new keywords before them
-        before_key = 'HISTORY'
-        if before_key not in hdr:
-            before_key = None
+        before_key = 'HISTORY' if 'HISTORY' in hdr else None
 
-        for key in keys:
-            hdr.set(key, value=values[key], comment=comments[key], before=before_key)
+        for key, value, comment in d2im:
+            hdr.set(key, value=value, comment=comment, before=before_key)
+
 
     addSciExtKw = classmethod(addSciExtKw)
 
@@ -202,60 +186,40 @@ class DET2IMCorr(object):
                 d2imextver = ext.header['EXTVER']
             except KeyError:
                 continue
+
             d2imccdchip = cls.get_ccdchip(d2im, extname=d2imextname, extver=d2imextver)
             if d2imextname == d2im_extname and d2imccdchip == ccdchip:
                 d2im_header = ext.header
                 break
-            else:
-                continue
+
         d2im.close()
 
         naxis = d2im[1].header['NAXIS']
         ccdchip = d2imextname
 
-        kw = {'NAXIS': 'Size of the axis',
-              'CDELT': 'Coordinate increment along axis',
-              'CRPIX': 'Coordinate system reference pixel',
-              'CRVAL': 'Coordinate system value at reference pixel',
-              }
-
-        kw_comm1 = {}
-        kw_val1 = {}
-        for key in kw.keys():
-            for i in range(1, naxis + 1):
-                si = str(i)
-                kw_comm1[key + si] = kw[key]
+        cdl = [
+            ('XTENSION', 'IMAGE', 'Image extension'),
+            ('BITPIX', -32, 'number of bits per data pixel'),
+            ('NAXIS', naxis, 'Number of data axes'),
+            ('EXTNAME', 'D2IMARR', 'WCS distortion array'),
+            ('EXTVER', wdvarr_ver, 'Distortion array version number'),
+            ('PCOUNT', 0, 'number of parameters'),
+            ('GCOUNT', 1, 'number of groups'),
+            ('CCDCHIP', ccdchip),
+        ]
 
         for i in range(1, naxis + 1):
-            si = str(i)
-            kw_val1['NAXIS' + si] = d2im_header.get('NAXIS' + si)
-            kw_val1['CDELT' + si] = d2im_header.get('CDELT' + si, 1.0) * sciheader.get('LTM' + si + '_' + si, 1)
-            kw_val1['CRPIX' + si] = d2im_header.get('CRPIX' + si, 0.0)
-            kw_val1['CRVAL' + si] = (d2im_header.get('CRVAL' + si, 0.0) -
-                                     sciheader.get('LTV' + str(i), 0))
-        kw_comm0 = {'XTENSION': 'Image extension',
-                    'BITPIX': 'IEEE floating point',
-                    'NAXIS': 'Number of axes',
-                    'EXTNAME': 'WCS distortion array',
-                    'EXTVER': 'Distortion array version number',
-                    'PCOUNT': 'Special data area of size 0',
-                    'GCOUNT': 'One data group',
-                    }
+            cdl.append((f'NAXIS{i:d}', d2im_header.get(f'NAXIS{i:d}'),
+                        f"length of data axis {i:d}"))
+            cdl.append((f'CDELT{i:d}', d2im_header.get(f'CDELT{i:d}', 1.0) *
+                        sciheader.get(f'LTM{i:d}_{i:d}', 1),
+                        "Coordinate increment at reference point"))
+            cdl.append((f'CRPIX{i:d}', d2im_header.get(f'CRPIX{i:d}', 0.0),
+                        "Pixel coordinate of reference point"))
+            cdl.append((f'CRVAL{i:d}', d2im_header.get(f'CRVAL{i:d}', 0.0) -
+                        sciheader.get(f'LTV{i:d}', 0),
+                        "Coordinate value at reference point"))
 
-        kw_val0 = {'XTENSION': 'IMAGE',
-                   'BITPIX': -32,
-                   'NAXIS': naxis,
-                   'EXTNAME': 'D2IMARR',
-                   'EXTVER': wdvarr_ver,
-                   'PCOUNT': 0,
-                   'GCOUNT': 1,
-                   'CCDCHIP': ccdchip,
-                   }
-        cdl = []
-        for key in kw_comm0.keys():
-            cdl.append((key, kw_val0[key], kw_comm0[key]))
-        for key in kw_comm1.keys():
-            cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header
         start_indx = -1
@@ -266,6 +230,7 @@ class DET2IMCorr(object):
             if c == '':  # remove blanks from end of header
                 end_indx = i + 1
                 break
+
         if start_indx >= 0:
             for card in d2im_phdr.cards[start_indx:end_indx]:
                 cdl.append(card)

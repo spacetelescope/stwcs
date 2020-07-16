@@ -70,14 +70,20 @@ class TDDCorr(object):
         ext_wcs.idcmodel.ocx = copy.deepcopy(ext_wcs.idcmodel.cx)
         ext_wcs.idcmodel.ocy = copy.deepcopy(ext_wcs.idcmodel.cy)
 
-        newkw = {'TDDALPHA': None, 'TDDBETA': None,
-                 'OCX10': ext_wcs.idcmodel.ocx[1, 0],
-                 'OCX11': ext_wcs.idcmodel.ocx[1, 1],
-                 'OCY10': ext_wcs.idcmodel.ocy[1, 0],
-                 'OCY11': ext_wcs.idcmodel.ocy[1, 1],
-                 'TDD_CTA': None, 'TDD_CTB': None,
-                 'TDD_CYA': None, 'TDD_CYB': None,
-                 'TDD_CXA': None, 'TDD_CXB': None
+        ocxy_comment = "original linear term from IDCTAB"
+
+        newkw = {'TDDALPHA': None,
+                 'TDDBETA': None,
+                 'TDD_CTA': None,
+                 'TDD_CTB': None,
+                 'TDD_CYA': None,
+                 'TDD_CYB': None,
+                 'TDD_CXA': None,
+                 'TDD_CXB': None,
+                 'OCX10': (ext_wcs.idcmodel.ocx[1, 0], ocxy_comment),
+                 'OCX11': (ext_wcs.idcmodel.ocx[1, 1], ocxy_comment),
+                 'OCY10': (ext_wcs.idcmodel.ocy[1, 0], ocxy_comment),
+                 'OCY11': (ext_wcs.idcmodel.ocy[1, 1], ocxy_comment),
                  }
 
         if ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
@@ -111,9 +117,29 @@ class TDDCorr(object):
             ext_wcs.idcmodel.refpix['TDDBETA'] = beta
             ref_wcs.idcmodel.refpix['TDDALPHA'] = alpha
             ref_wcs.idcmodel.refpix['TDDBETA'] = beta
-            newkw.update({'TDDALPHA': alpha, 'TDDBETA': beta} )
+            newkw.update({'TDDALPHA': alpha,
+                          'TDDBETA': beta} )
+
+        # add keyword comments
+        newkw['TDDALPHA'] = (newkw['TDDALPHA'],
+                             "time-dependent y-skew offset (pre-2014 IDCTAB)")
+        newkw['TDDBETA'] = (newkw['TDDBETA'],
+                            "time-dependent y-skew rate (pre-2014 IDCTAB)")
+        newkw['TDD_CXB'] = (newkw['TDD_CXB'],
+                            "time-dependent x-scale rate (>2015 IDCTAB)")
+        newkw['TDD_CYB'] = (newkw['TDD_CYB'],
+                            "time-dependent y-scale rate (>2015 IDCTAB)")
+        newkw['TDD_CTA'] = (newkw['TDD_CTA'],
+                            "time-dependent x-skew rate (>2015 IDCTAB)")
+        newkw['TDD_CTB'] = (newkw['TDD_CTB'],
+                            "time-dependent y-skew rate (>2015 IDCTAB)")
+        newkw['TDD_CXA'] = (newkw['TDD_CXA'],
+                            "time-dependent x-skew offset (2014 IDCTAB)")
+        newkw['TDD_CYA'] = (newkw['TDD_CYA'],
+                            "time-dependent y-skew offset (2014 IDCTAB)")
 
         return newkw
+
     updateWCS = classmethod(updateWCS)
 
     def apply_tdd2idc2015(cls, hwcs):
@@ -267,11 +293,16 @@ class VACorr(object):
             crval = np.array([crval0, crval1])
             ext_wcs.wcs.crval = crval
             ext_wcs.wcs.set()
-        else:
-            pass
-        kw2update = {'CD1_1': ext_wcs.wcs.cd[0, 0], 'CD1_2': ext_wcs.wcs.cd[0, 1],
-                     'CD2_1': ext_wcs.wcs.cd[1, 0], 'CD2_2': ext_wcs.wcs.cd[1, 1],
-                     'CRVAL1': ext_wcs.wcs.crval[0], 'CRVAL2': ext_wcs.wcs.crval[1]}
+
+        kw2update = {
+            'CD1_1': ext_wcs.wcs.cd[0, 0],
+            'CD1_2': ext_wcs.wcs.cd[0, 1],
+            'CD2_1': ext_wcs.wcs.cd[1, 0],
+            'CD2_2': ext_wcs.wcs.cd[1, 1],
+            'CRVAL1': ext_wcs.wcs.crval[0],
+            'CRVAL2': ext_wcs.wcs.crval[1]
+        }
+
         return kw2update
 
     updateWCS = classmethod(updateWCS)
@@ -300,8 +331,8 @@ class CompSIP(object):
             logger.info("IDC model not found, SIP coefficient will not be computed.")
             return kw2update
         order = ext_wcs.idcmodel.norder
-        kw2update['A_ORDER'] = order
-        kw2update['B_ORDER'] = order
+        kw2update['A_ORDER'] = order, 'SIP polynomial order, axis 1, detector to sky'
+        kw2update['B_ORDER'] = order, 'SIP polynomial order, axis 2, detector to sky'
         # pscale = ext_wcs.idcmodel.refpix['PSCALE']
 
         cx = ext_wcs.idcmodel.cx
@@ -311,6 +342,7 @@ class CompSIP(object):
         imatr = linalg.inv(matr)
         akeys1 = np.zeros((order + 1, order + 1), dtype=np.float64)
         bkeys1 = np.zeros((order + 1, order + 1), dtype=np.float64)
+        sip_comment = 'SIP distortion coefficient'
         for n in range(order + 1):
             for m in range(order + 1):
                 if n >= m and n >= 2:
@@ -320,8 +352,8 @@ class CompSIP(object):
                     bkeys1[m, n - m] = sipval[1]
                     Akey = "A_%d_%d" % (m, n - m)
                     Bkey = "B_%d_%d" % (m, n - m)
-                    kw2update[Akey] = sipval[0, 0] * ext_wcs.binned
-                    kw2update[Bkey] = sipval[1, 0] * ext_wcs.binned
+                    kw2update[Akey] = sipval[0, 0] * ext_wcs.binned, sip_comment
+                    kw2update[Bkey] = sipval[1, 0] * ext_wcs.binned, sip_comment
         kw2update['CTYPE1'] = 'RA---TAN-SIP'
         kw2update['CTYPE2'] = 'DEC--TAN-SIP'
         return kw2update

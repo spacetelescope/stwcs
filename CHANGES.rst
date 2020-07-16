@@ -1,9 +1,51 @@
+1.6.0 (2020-07-16)
+------------------
+
+- Prevent same WCS from being updated from astrometry database headerlet. [#111]
+
+- Revise how headerlets are applied as primary WCS [#122]
+
+- Add comments to WCS keywords for ``IDC*``, ``OCX``, ``OCY``, and alternate
+  WCS. [#127]
+
+- Primary WCS keywords no longer contain trailing spaces which, in the past,
+  lead to duplicate keywords in image headers. [#131]
+
+- AltWCS: Non-standard WCS keywords defined by, e.g., ``TweakReg`` are now
+  archived, read, and restored together with standard WCS keywords. [#135]
+
+- WCS keywords that are not specific to an alternate WCS (such as ``MJDREF``)
+  are no longer archived. [#141]
+
+- Fix a bug in ``_restore()`` due to which ``TDDALPHA`` and ``TDDBETA`` were
+  not reset to ``0.0`` when restoring wrom the ``'OPUS'`` WCS with key ``'O'``. [#141]
+
+- Increased reliability of detecting alternate WCS in image headers. [#141]
+
+- Abbreviated comments for ``D2IM``, ``CPDIS`` lookup table distortions. [#142]
+
+- Add comments to ``WCSNAMEa`` header keywords. [#143]
+
+- Do not archive primary WCS when applying headerlet as primary when existing
+  primary WCS was created from the same headerlet that is being applied, based
+  on the value of ``'HDRNAME'`` keyword. [#147]
+
+- Added ``archive_wcs()`` function with more advanced control over how to
+  archive primary WCS and with more capabilities, such as auto-renaming. [#153]
+
+- Remove HST-specific WCS keywords from SCI extensions that, following HST
+  convention, are supposed to be present in primary header only. [#159]
+
+- Do not archive primary WCS when applying headerlet as primary if distortion
+  model changes. [#161]
+
+
 1.5.3 (2019-09-23)
 ------------------
 
 - Add ``stdout`` to logging handlers. [#108]
 
-- Correct the logic for replacing headerlets with one which has a different 
+- Correct the logic for replacing headerlets with one which has a different
   distortion model. [#109]
 
 

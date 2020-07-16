@@ -87,38 +87,36 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
 
 def updatehdr(fname, wcsobj, wkey, wcsname, ext=1, clobber=False):
     hdr = fits.getheader(fname, ext=ext)
-    all_keys = list(string.ascii_uppercase)
-    if wkey.upper() not in all_keys:
-        raise KeyError("wkey must be one character: A-Z")
+    wkey_hdr = wkey.upper().strip()
+    if len(wkey) != 1 or wkey_hdr not in string.ascii_uppercase:
+        raise KeyError("'wkey' must be one character: A-Z or space (' ')")
+
     if wkey not in altwcs.available_wcskeys(hdr):
         if not clobber:
-            raise ValueError("wkey {0} is already in use."
-                             "Use clobber=True to overwrite it or"
+            raise ValueError("'wkey' '{:.1s}' is already in use. "
+                             "Use clobber=True to overwrite it or "
                              "specify a different key.".format(wkey))
         else:
             altwcs.deleteWCS(fname, ext=ext, wcskey='V')
-    f = fits.open(fname, mode='update')
 
+    f = fits.open(fname, mode='update')
     hwcs = wcs2header(wcsobj)
-    wcsnamekey = 'WCSNAME' + wkey
+    wcsnamekey = 'WCSNAME' + wkey_hdr
     f[ext].header[wcsnamekey] = wcsname
     for k in hwcs:
-        f[ext].header[k[: 7] + wkey] = hwcs[k]
-
+        f[ext].header[k[: 7] + wkey_hdr] = hwcs[k]
     f.close()
 
 
 def wcs2header(wcsobj):
-    h = wcsobj.to_header()
+    h = altwcs.exclude_hst_specific(wcsobj.to_header(), wcskey=wcsobj.wcs.alt)
 
     if wcsobj.wcs.has_cd():
         altwcs.pc2cd(h)
     h['CTYPE1'] = 'RA---TAN'
     h['CTYPE2'] = 'DEC--TAN'
-    norient = np.rad2deg(np.arctan2(h['CD1_2'], h['CD2_2']))
-    # okey = 'ORIENT%s' % wkey
-    okey = 'ORIENT'
-    h[okey] = norient
+    orient = np.rad2deg(np.arctan2(h['CD1_2'], h['CD2_2']))
+    h['ORIENT'] = orient
     return h
 
 

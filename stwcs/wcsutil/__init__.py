@@ -1,5 +1,5 @@
-from .altwcs import *
-from .hstwcs import HSTWCS
+from .altwcs import *  # noqa
+from .hstwcs import HSTWCS # noqa
 
 
 def help():

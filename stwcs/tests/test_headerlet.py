@@ -4,9 +4,6 @@ import io
 from astropy.io import fits
 from .. import updatewcs
 from ..wcsutil import headerlet, wcsdiff
-from ..wcsutil import HSTWCS
-import numpy as np
-from numpy.testing import utils
 import pytest
 
 from . import data
@@ -116,7 +113,7 @@ class TestCreateHeaderlet(object):
         #fits.delval(newf, 'HDRNAME', ext=1)
         fits.delval(newf, 'WCSNAME', ext=1)
         with pytest.raises(KeyError):
-            hlet = headerlet.create_headerlet(newf)
+            headerlet.create_headerlet(newf)
 
     def test1SciExt(self):
         """

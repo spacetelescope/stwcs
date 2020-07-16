@@ -8,6 +8,18 @@ solutions for HST data and provide those solutions in a manner
 that would not require getting entirely new images from the archive
 when only the WCS information has been updated.
 
+NOTE ::
+  This module defines a FileHandler for the logging in the current
+  working directory for the user when this module first gets imported.
+  If that directory is removed later by the user, it will cause an
+  Exception when performing headerlet operations later.
+
+  The file handler can be identified using::
+
+    rl = logging.getLogger('stwcs.wcsutil.headerlet')
+    rl.handlers
+    del rl.handlers[-1]  # if FileHandler was the last one, remove it
+
 """
 import os
 import sys
@@ -27,10 +39,10 @@ from stsci.tools.fileutil import countExtn
 from stsci.tools import fileutil as fu
 from stsci.tools import parseinput
 
-from stwcs.updatewcs import utils
 from . import altwcs
 from . import wcscorr
 from .hstwcs import HSTWCS
+from ..updatewcs import utils
 from .mappings import basic_wcs
 
 """
@@ -169,22 +181,19 @@ def parse_filename(fname, mode='readonly'):
         the higher level interface close the object.
 
     """
-    close_fobj = False
-    if not isinstance(fname, list):
-        if sys.version_info[0] >= 3:
-            is_string = isinstance(fname, str)
-        else:
-            is_string = isinstance(fname, basestring)
-        if is_string:
-            fname = fu.osfn(fname)
+    if isinstance(fname, str):
+        fname = fu.osfn(fname)
         fobj = fits.open(fname, mode=mode)
         close_fobj = True
-    else:
+    elif isinstance(fname, list):
         fobj = fname
         if hasattr(fobj, 'filename'):
             fname = fobj.filename()
         else:
             fname = ''
+        close_fobj = False
+    else:
+        raise ValueError(f"parse_filename expects a file name or HDUList, got {type(fname)}")
     return fobj, fname, close_fobj
 
 
@@ -315,11 +324,11 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
         else:
             kwerr = 'distname'
             kwval = distname
-        message = """\n
-        =====================================================
-        No valid Headerlet extension found!'
-        "%s" = %s not found in %s.' % (kwerr, kwval, fname)
-        =====================================================
+        message = f"""\n
+        =======================================
+        No valid Headerlet extension found!
+        {kwerr} = {kwval} not found in {fname}.
+        =======================================
         """
         logger.critical(message)
         raise ValueError
@@ -499,7 +508,7 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
     phdu.header['HDRNAME'] = (hdrname, 'Headerlet name')
     fmt = "%Y-%m-%dT%H:%M:%S"
     phdu.header['DATE'] = (time.strftime(fmt), 'Date FITS file was generated')
-    phdu.header['WCSNAME'] = (wcsname, 'WCS name')
+    phdu.header['WCSNAME'] = (wcsname, 'Coordinate system title')
     phdu.header['DISTNAME'] = (distname, 'Distortion model name')
     phdu.header['SIPNAME'] = (sipname,
                               'origin of SIP polynomial distortion model')
@@ -763,8 +772,6 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
             logger.critical(errstr)
             raise ValueError
 
-        wnames = altwcs.wcsnames(fobj, ext=sciextlist[0])
-
         # Insure that WCSCORR table has been created with all original
         # WCS's recorded prior to adding the headerlet WCS
         wcscorr.init_wcscorr(fobj)
@@ -948,7 +955,6 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     wcsnamekw = "".join(["WCSNAME", wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
 
-    wnames = altwcs.wcsnames(fobj, ext=wcsext)
     if not wcsname:
         # User did not specify a value for 'wcsname'
         if wcsnamekw in fobj[wcsext].header:
@@ -986,7 +992,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             message += "    'wcskey' = %s and 'wcsname' = %s. \n" % (wcskey, wcsname)
             message += "Actual value of %s found to be %s. \n" % (wcsnamekw, wname)
             logger.critical(message)
-            raise KeyError
+            raise KeyError(message)
     wkeys = altwcs.wcskeys(fobj, ext=wcsext)
     if wcskey != ' ':
         if wcskey not in wkeys:
@@ -1029,7 +1035,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                                nmatch, catalog, wcskey,
                                author, descrip, history)
     hdul.append(phdu)
-    wcsdvarr_extns = []
+
     """
     nd2i is a counter for d2i extensions to be used when the science file
     has an old d2i correction format. The old format did not write EXTVER
@@ -1049,6 +1055,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         hwcs = HSTWCS(fobj, ext=ext, wcskey=wcskey)
 
         whdul = hwcs.to_fits(relax=True, key=" ")
+        altwcs.exclude_hst_specific(whdul[0].header)
+
         if hasattr(hwcs, 'orientat'):
             orient_comment = "positions angle of image y axis (deg. e of n)"
             whdul[0].header['ORIENTAT'] = (hwcs.orientat, orient_comment)
@@ -1495,9 +1503,9 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
             extlist.append(fobj[sciext])
     # determine whether distortion is the same
     current_distname = hdrlet[0].header['distname']
-    same_dist = True
+    # same_dist = True
     if current_distname != fobj[0].header['distname']:
-        same_dist = False
+        # same_dist = False
         if not archive and not force:
             if close_fobj:
                 fobj.close()
@@ -1514,7 +1522,6 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
     priwcs_name = None
 
     scihdr = extlist[0].header
-    sci_wcsnames = altwcs.wcsnames(scihdr).values()
     if 'hdrname' in scihdr:
         priwcs_hdrname = scihdr['hdrname']
     else:
@@ -1527,7 +1534,7 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
             else:
                 priwcs_hdrname = 'UNKNOWN'
             priwcs_name = priwcs_hdrname
-            scihdr['WCSNAME'] = priwcs_name
+            scihdr['WCSNAME'] = priwcs_name, 'Coordinate system title'
 
     priwcs_unique = verify_hdrname_is_unique(fobj, priwcs_hdrname)
     if archive and priwcs_unique:
@@ -1631,13 +1638,6 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
         """ % (pri_distname, distname)
         logger.critical(message)
         raise ValueError
-
-    # read in the names of the WCSs which the HeaderletHDUs will update
-    wnames = altwcs.wcsnames(fobj[sciext, 1].header)
-
-    # work out how many HeaderletHDUs will be used to update the WCSs
-    numhlt = len(hdrlet_ind)
-    hdrnames = get_headerlet_kw_names(fobj, kw='wcsname')
 
     # read in headerletHDUs and update WCS keywords
     for hlet in hdrlet_ind:
@@ -1750,8 +1750,6 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
     if wcskey == 'PRIMARY':
         wcskey = ' '
     wcskey = wcskey.upper()
-
-    numhlt = countExtn(fobj, 'HDRLET')
 
     if wcsname is None:
         scihdr = fobj[sciext, 1].header
@@ -1932,14 +1930,18 @@ class Headerlet(fits.HDUList):
         for i in range(1, numsip + 1):
             sipheader = self[('SIPWCS', i)].header
             sciext_list.append((sipheader['TG_ENAME'], sipheader['TG_EVER']))
-        target_ext = sciext_list[0]
+
         if archive:
-            if 'wcsname' in fobj[target_ext].header:
-                hdrname = fobj[target_ext].header['WCSNAME']
+            target_ext = sciext_list[0]
+            scihdr = fobj[target_ext].header
+
+            if 'wcsname' in scihdr:
+                hdrname = scihdr['WCSNAME']
                 wcsname = hdrname
             else:
                 hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 wcsname = None
+
             if hdrname not in hdrlet_extnames:
                 # -  if WCS has not been saved, write out WCS as headerlet extension
                 # Create a headerlet for the original Primary WCS data in the file,
@@ -1956,37 +1958,54 @@ class Headerlet(fits.HDUList):
             else:
                 logger.info("Headerlet with name %s is already attached" % hdrname)
 
+            alt_wcs_names_dict = altwcs._alt_wcs_names(scihdr)
+            alt_wcs_names = list(altwcs._alt_wcs_names(scihdr).values())
+
+            mode = altwcs.ArchiveMode.OVERWRITE_KEY | altwcs.ArchiveMode.AUTO_RENAME
+
             if dist_models_equal:
                 # Use the WCSNAME to determine whether or not to archive
                 # Primary WCS as altwcs
-                # wcsname = hwcs.wcs.name
-                scihdr = fobj[target_ext].header
                 if 'hdrname' in scihdr:
-                    priwcs_name = scihdr['hdrname']
+                    archive_wcs = self.hdrname != scihdr['hdrname']
+                    if 'wcsname' in scihdr:
+                        wcsname = scihdr['wcsname']
+                        archive_wcs = archive_wcs or (self.wcsname != wcsname
+                                                      and wcsname not in alt_wcs_names)
+
                 else:
                     if 'wcsname' in scihdr:
-                        priwcs_name = scihdr['wcsname']
+                        priwcs_name = None
+                        wcsname = scihdr['wcsname']
+                        archive_wcs = self.wcsname != wcsname and wcsname not in alt_wcs_names
+
                     else:
                         if 'idctab' in scihdr:
-                            priwcs_name = ''.join(['IDC_',
-                                                   utils.extract_rootname(scihdr['idctab'],
-                                                                          suffix='_idc')])
-                        else:
-                            priwcs_name = 'UNKNOWN'
-                nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
-                altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=priwcs_name)
-            else:
-                for hname in altwcs.wcsnames(fobj, ext=target_ext).values():
-                    if hname != 'OPUS' and hname not in hdrlet_extnames:
-                        nextkey = altwcs.next_wcskey(fobj, ext=target_ext)
-                        # Archive original WCS as alternate WCS with its own key
-                        altwcs.archiveWCS(fobj, ext=sciext_list, wcskey=nextkey,
-                                  wcsname=hname)
+                            wcsname = ''.join(
+                                ['IDC_',
+                                 utils.extract_rootname(
+                                     scihdr['idctab'], suffix='_idc')
+                                ]
+                            )
+                            archive_wcs = wcsname not in alt_wcs_names
 
+                        else:
+                            wcsname = 'UNKNOWN'
+                            archive_wcs = True
+
+                if archive_wcs:
+                    altwcs.archive_wcs(fobj, ext=sciext_list, mode=mode)
+
+            else:
+                # Add primary WCS to the list of WCS to be saved to headerlets:
+                all_wcs_dict = alt_wcs_names_dict.copy()
+                all_wcs_dict[' '] = scihdr.get('WCSNAME', ' ')
+
+                for wcskey, hname in all_wcs_dict.items():
+                    if hname not in hdrlet_extnames:
                         # create HeaderletHDU for alternate WCS now
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
-                                                    wcsname=hname, wcskey=nextkey,
+                                                    wcsname=hname, wcskey=wcskey,
                                                     hdrname=hname, sipname=None,
                                                     npolfile=None, d2imfile=None,
                                                     author=None, descrip=None, history=None,
@@ -1997,6 +2016,8 @@ class Headerlet(fits.HDUList):
                         alt_hlethdu.append(alt_hlet_hdu)
                         hdrlet_extnames.append(hname)
 
+                    altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
+
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
             target_ext = sciext_list[i - 1]
@@ -2004,6 +2025,7 @@ class Headerlet(fits.HDUList):
             sipwcs = HSTWCS(self, ('SIPWCS', i))
             idckw = sipwcs._idc2hdr()
             priwcs = sipwcs.to_fits(relax=True)
+            altwcs.exclude_hst_specific(priwcs[0].header, wcskey=sipwcs.wcs.alt)
             numnpol = 1
             numd2im = 1
             if sipwcs.wcs.has_cd():
@@ -2019,7 +2041,7 @@ class Headerlet(fits.HDUList):
                 if kw in priwcs[0].header:
                     priwcs[0].header.remove(kw)
 
-            priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "")
+            priwcs[0].header.set('WCSNAME', self[0].header['WCSNAME'], "Coordinate system title")
             priwcs[0].header.set('WCSAXES', self[('SIPWCS', i)].header['WCSAXES'], "")
             priwcs[0].header.set('HDRNAME', self[0].header['HDRNAME'], "")
             if sipwcs.det2im1 or sipwcs.det2im2:
@@ -2061,7 +2083,7 @@ class Headerlet(fits.HDUList):
                     priwcs[('WCSDVARR', 2)].header['EXTVER'] = self[('SIPWCS', i)].header['DP2.EXTVER']
                     numnpol = 2
 
-            fobj[target_ext].header.extend(priwcs[0].header)
+            fobj[target_ext].header.update(priwcs[0].header)
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
                 whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
@@ -2080,7 +2102,8 @@ class Headerlet(fits.HDUList):
                 fobj.append(whdu)
 
         update_versions(self[0].header, fobj[0].header)
-        refs = update_ref_files(self[0].header, fobj[0].header)
+        #refs = update_ref_files(self[0].header, fobj[0].header)
+        _ = update_ref_files(self[0].header, fobj[0].header)
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2152,7 +2175,7 @@ class Headerlet(fits.HDUList):
         tg_ever = self[('SIPWCS', 1)].header['TG_EVER']
         # determine what alternate WCS this headerlet will be assigned to
         if wcskey is None:
-            wkey = altwcs.next_wcskey(fobj[(tg_ename, tg_ever)].header)
+            wkey = altwcs._next_wcskey(fobj[(tg_ename, tg_ever)].header)
         else:
             wcskey = wcskey.upper()
             available_keys = altwcs.available_wcskeys(fobj[(tg_ename, tg_ever)].header)
@@ -2174,6 +2197,8 @@ class Headerlet(fits.HDUList):
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
             hwcs_header = hwcs.to_header(key=wkey)
+            altwcs.exclude_hst_specific(hwcs_header, wcskey=wkey)
+
             _idc2hdr(siphdr, fhdr, towkey=wkey)
             if hwcs.wcs.has_cd():
                 hwcs_header = altwcs.pc2cd(hwcs_header, key=wkey)

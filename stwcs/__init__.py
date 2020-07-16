@@ -15,9 +15,9 @@ descriptions in the headers.
 """
 import os
 
-from . import distortion
-from stsci.tools import fileutil
-from stsci.tools import teal
+from . import distortion  # noqa
+from stsci.tools import fileutil  # noqa
+from stsci.tools import teal  # noqa
 
 from pkg_resources import get_distribution, DistributionNotFound
 

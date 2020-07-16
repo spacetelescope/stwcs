@@ -128,39 +128,23 @@ class NPOLCorr(object):
         Adds kw to sci extension to define WCSDVARR lookup table extensions
 
         """
-        if npol_extname == 'DX':
-            j = 1
-        else:
-            j = 2
+        j = 1 if npol_extname == 'DX' else 2
 
-        cperror = 'CPERR%s' % j
-        cpdis = 'CPDIS%s' % j
-        dpext = 'DP%s.' % j + 'EXTVER'
-        dpnaxes = 'DP%s.' % j + 'NAXES'
-        dpaxis1 = 'DP%s.' % j + 'AXIS.1'
-        dpaxis2 = 'DP%s.' % j + 'AXIS.2'
-        keys = [cperror, cpdis, dpext, dpnaxes, dpaxis1, dpaxis2]
-        values = {cperror: error_val,
-                  cpdis: 'Lookup',
-                  dpext: wdvarr_ver,
-                  dpnaxes: 2,
-                  dpaxis1: 1,
-                  dpaxis2: 2}
+        npol = [
+            (f'CPERR{j:1d}', error_val, f'Maximum error of NPOL correction for axis {j:d}'),
+            (f'CPDIS{j:1d}', 'Lookup', 'Prior distortion function type'),
+            (f'DP{j:1d}.EXTVER', wdvarr_ver, 'Version number of WCSDVARR extension'),
+            (f'DP{j:1d}.NAXES', 2, 'Number of independent variables in CPDIS function'),
+            (f'DP{j:1d}.AXIS.1', 1, 'Axis number of the 1st variable in a CPDIS function'),
+            (f'DP{j:1d}.AXIS.2', 2, 'Axis number of the 2nd variable in a CPDIS function'),
+        ]
 
-        comments = {cperror: 'Maximum error of NPOL correction for axis %s' % j,
-                    cpdis: 'Prior distortion function type',
-                    dpext: 'Version number of WCSDVARR extension containing lookup distortion table',
-                    dpnaxes: 'Number of independent variables in distortion function',
-                    dpaxis1: 'Axis number of the jth independent variable in a distortion function',
-                    dpaxis2: 'Axis number of the jth independent variable in a distortion function'
-                    }
         # Look for HISTORY keywords. If present, insert new keywords before them
-        before_key = 'HISTORY'
-        if before_key not in hdr:
-            before_key = None
+        before_key = 'HISTORY' if 'HISTORY' in hdr else None
 
-        for key in keys:
-            hdr.set(key, value=values[key], comment=comments[key], before=before_key)
+        for key, value, comment in npol:
+            hdr.set(key, value=value, comment=comment, before=before_key)
+
 
     addSciExtKw = classmethod(addSciExtKw)
 
@@ -248,62 +232,40 @@ class NPOLCorr(object):
                 nplextver = ext.header['EXTVER']
             except KeyError:
                 continue
+
             nplccdchip = cls.get_ccdchip(npl, extname=nplextname, extver=nplextver)
             if nplextname == npl_extname and nplccdchip == ccdchip:
                 npol_header = ext.header
                 break
-            else:
-                continue
+
         npl.close()
 
         naxis = npl[1].header['NAXIS']
         ccdchip = nplextname  # npol_header['CCDCHIP']
 
-        kw = {'NAXIS': 'Size of the axis',
-              'CDELT': 'Coordinate increment along axis',
-              'CRPIX': 'Coordinate system reference pixel',
-              'CRVAL': 'Coordinate system value at reference pixel',
-              }
-
-        kw_comm1 = {}
-        kw_val1 = {}
-        for key in kw.keys():
-            for i in range(1, naxis + 1):
-                si = str(i)
-                kw_comm1[key + si] = kw[key]
+        cdl = [
+            ('XTENSION', 'IMAGE', 'Image extension'),
+            ('BITPIX', -32, 'number of bits per data pixel'),
+            ('NAXIS', naxis, 'Number of data axes'),
+            ('EXTNAME', 'WCSDVARR', 'WCS distortion array'),
+            ('EXTVER', wdvarr_ver, 'Distortion array version number'),
+            ('PCOUNT', 0, 'number of parameters'),
+            ('GCOUNT', 1, 'number of groups'),
+            ('CCDCHIP', ccdchip),
+        ]
 
         for i in range(1, naxis + 1):
-            si = str(i)
-            kw_val1['NAXIS' + si] = npol_header.get('NAXIS' + si)
-            kw_val1['CDELT' + si] = npol_header.get('CDELT' + si, 1.0) * \
-                sciheader.get('LTM' + si + '_' + si, 1)
-            kw_val1['CRPIX' + si] = npol_header.get('CRPIX' + si, 0.0)
-            kw_val1['CRVAL' + si] = (npol_header.get('CRVAL' + si, 0.0) -
-                                     sciheader.get('LTV' + str(i), 0))
+            cdl.append((f'NAXIS{i:d}', npol_header.get(f'NAXIS{i:d}'),
+                        f"length of data axis {i:d}"))
+            cdl.append((f'CDELT{i:d}', npol_header.get(f'CDELT{i:d}', 1.0) *
+                        sciheader.get(f'LTM{i:d}_{i:d}', 1),
+                        "Coordinate increment at reference point"))
+            cdl.append((f'CRPIX{i:d}', npol_header.get(f'CRPIX{i:d}', 0.0),
+                        "Pixel coordinate of reference point"))
+            cdl.append((f'CRVAL{i:d}', npol_header.get(f'CRVAL{i:d}', 0.0) -
+                        sciheader.get(f'LTV{i:d}', 0),
+                        "Coordinate value at reference point"))
 
-        kw_comm0 = {'XTENSION': 'Image extension',
-                    'BITPIX': 'IEEE floating point',
-                    'NAXIS': 'Number of axes',
-                    'EXTNAME': 'WCS distortion array',
-                    'EXTVER': 'Distortion array version number',
-                    'PCOUNT': 'Special data area of size 0',
-                    'GCOUNT': 'One data group',
-                    }
-
-        kw_val0 = {'XTENSION': 'IMAGE',
-                   'BITPIX': -32,
-                   'NAXIS': naxis,
-                   'EXTNAME': 'WCSDVARR',
-                   'EXTVER': wdvarr_ver,
-                   'PCOUNT': 0,
-                   'GCOUNT': 1,
-                   'CCDCHIP': ccdchip,
-                   }
-        cdl = []
-        for key in kw_comm0.keys():
-            cdl.append((key, kw_val0[key], kw_comm0[key]))
-        for key in kw_comm1.keys():
-            cdl.append((key, kw_val1[key], kw_comm1[key]))
         # Now add keywords from NPOLFILE header to document source of calibration
         # include all keywords after and including 'FILENAME' from header
         start_indx = -1

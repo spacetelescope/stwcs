@@ -12,11 +12,12 @@ import astropy
 from astropy import log
 default_log_level = log.getEffectiveLevel()
 
-from . import utils, corrections
+from . import utils, corrections, makewcs
 from . import npol, det2im
 from stsci.tools import parseinput, fileutil
 from . import apply_corrections
 from . import astrometry_utils
+from ..wcsutil.altwcs import exclude_hst_specific
 
 import time
 import logging
@@ -187,7 +188,8 @@ def makecorr(f, allowed_corr):
                 ext_wcs = wcsutil.HSTWCS(fobj=f, ext=i)
                 # check if it exists first!!!
                 # 'O ' can be safely archived again because it has been restored first.
-                wcsutil.archiveWCS(f, ext=i, wcskey="O", wcsname="OPUS", reusekey=True)
+                wcsutil.archive_wcs(f, ext=i, wcskey="O", wcsname="OPUS",
+                                    mode=wcsutil.ArchiveMode.OVERWRITE_KEY)
 
                 ext_wcs.readModel(update=True, header=hdr)
                 for c in allowed_corr:
@@ -202,7 +204,7 @@ def makecorr(f, allowed_corr):
                     wname = ''.join(['IDC_',
                                      utils.extract_rootname(idcname, suffix='_idc')])
                 else: wname = " "
-                hdr['WCSNAME'] = wname
+                hdr['WCSNAME'] = wname, 'Coordinate system title'
 
             elif extname in ['err', 'dq', 'sdq', 'samp', 'time']:
                 cextver = extn.header['extver']
@@ -260,7 +262,7 @@ def copyWCS(w, ehdr):
     WCS of the 'SCI' extension to the headers of 'ERR', 'DQ', 'SDQ',
     'TIME' or 'SAMP' extensions.
     """
-    hwcs = w.to_header()
+    hwcs = exclude_hst_specific(w.to_header(), wcskey=w.wcs.alt)
     if w.wcs.has_cd():
         wcsutil.pc2cd(hwcs)
     for k in hwcs.keys():
@@ -407,14 +409,13 @@ def newIDCTAB(fname):
 def cleanWCS(fname):
     # A new IDCTAB means all previously computed WCS's are invalid
     # We are deleting all of them except the original OPUS WCS.
-    #f = fits.open(fname, mode='update')
     keys = wcsutil.wcskeys(fname[1].header)
     # Remove the primary WCS from the list
     try:
         keys.remove(' ')
     except ValueError:
         pass
-    fext = list(range(1, len(f)))
+    fext = list(range(1, len(fname)))
     for key in keys:
         try:
             wcsutil.deleteWCS(fname, ext=fext, wcskey=key)

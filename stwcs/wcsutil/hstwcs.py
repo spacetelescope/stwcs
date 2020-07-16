@@ -10,6 +10,7 @@ from . import pc2cd
 from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
+from ..wcsutil.altwcs import exclude_hst_specific
 
 from astropy import log
 default_log_level = log.getEffectiveLevel()
@@ -375,6 +376,7 @@ class HSTWCS(WCS):
             self.ltv1 = 0.
             self.ltv2 = 0.
 
+
     def wcs2header(self, sip2hdr=False, idc2hdr=True, wcskey=None, relax=False):
         """
         Create a `astropy.io.fits.Header` object from WCS keywords.
@@ -389,6 +391,7 @@ class HSTWCS(WCS):
         """
         warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
         h = self.to_header(key=wcskey, relax=relax)
+        exclude_hst_specific(h, wcskey=wcskey)
 
         if not wcskey:
             wcskey = self.wcs.alt
@@ -400,15 +403,11 @@ class HSTWCS(WCS):
                 wname = build_default_wcsname(self.idctab)
             else:
                 wname = 'DEFAULT'
-            h['wcsname{0}'.format(wcskey)] = wname
+            h['wcsname{0}'.format(wcskey)] = wname, 'Coordinate system title'
 
         if idc2hdr:
             for card in self._idc2hdr():
                 h[card.keyword + wcskey] = (card.value, card.comment)
-        try:
-            del h['RESTFRQ']
-            del h['RESTWAV']
-        except KeyError: pass
 
         if sip2hdr and self.sip:
             for card in self._sip2hdr('a'):
@@ -453,15 +452,21 @@ class HSTWCS(WCS):
 
     def _idc2hdr(self):
         # save some of the idc coefficients
-        coeffs = ['ocx10', 'ocx11', 'ocy10', 'ocy11', 'idcscale']
+        coeffs = [
+            ('ocx10', 'original linear term from IDCTAB'),
+            ('ocx11', 'original linear term from IDCTAB'),
+            ('ocy10', 'original linear term from IDCTAB'),
+            ('ocy11', 'original linear term from IDCTAB'),
+            ('idcscale', 'pixel scale from the IDCTAB reference file'),
+        ]
         cards = []
-        for c in coeffs:
+        for k, c in coeffs:
             try:
-                val = self.__getattribute__(c)
+                val = self.__getattribute__(k)
             except AttributeError:
                 continue
             if val:
-                cards.append(fits.Card(keyword=c, value=val))
+                cards.append(fits.Card(keyword=k, value=val, comment=c))
         return cards
 
     def pc2cd(self):
@@ -939,16 +944,23 @@ adaptive=False, detect_divergence=True, quiet=False)
     def _updatehdr(self, ext_hdr):
         # kw2add : OCX10, OCX11, OCY10, OCY11
         # record the model in the header for use by pydrizzle
-        ext_hdr['OCX10'] = self.idcmodel.cx[1, 0]
-        ext_hdr['OCX11'] = self.idcmodel.cx[1, 1]
-        ext_hdr['OCY10'] = self.idcmodel.cy[1, 0]
-        ext_hdr['OCY11'] = self.idcmodel.cy[1, 1]
-        ext_hdr['IDCSCALE'] = self.idcmodel.refpix['PSCALE']
-        ext_hdr['IDCTHETA'] = self.idcmodel.refpix['THETA']
-        ext_hdr['IDCXREF'] = self.idcmodel.refpix['XREF']
-        ext_hdr['IDCYREF'] = self.idcmodel.refpix['YREF']
-        ext_hdr['IDCV2REF'] = self.idcmodel.refpix['V2REF']
-        ext_hdr['IDCV3REF'] = self.idcmodel.refpix['V3REF']
+        ocx_comment = "original linear term from IDCTAB"
+        ext_hdr['OCX10'] = self.idcmodel.cx[1, 0], ocx_comment
+        ext_hdr['OCX11'] = self.idcmodel.cx[1, 1], ocx_comment
+        ext_hdr['OCY10'] = self.idcmodel.cy[1, 0], ocx_comment
+        ext_hdr['OCY11'] = self.idcmodel.cy[1, 1], ocx_comment
+        ext_hdr['IDCSCALE'] = (self.idcmodel.refpix['PSCALE'],
+                               "pixel scale from the IDCTAB reference file")
+        ext_hdr['IDCTHETA'] = (self.idcmodel.refpix['THETA'],
+                               "orientation of detector's Y-axis w.r.t. V3 axis")
+        ext_hdr['IDCXREF'] = (self.idcmodel.refpix['XREF'],
+                              "reference pixel location in X")
+        ext_hdr['IDCYREF'] = (self.idcmodel.refpix['YREF'],
+                              "reference pixel location in Y")
+        ext_hdr['IDCV2REF'] = (self.idcmodel.refpix['V2REF'],
+                               "reference pixel's V2 position")
+        ext_hdr['IDCV3REF'] = (self.idcmodel.refpix['V3REF'],
+                               "reference pixel's V3 position")
 
     def printwcs(self):
         """

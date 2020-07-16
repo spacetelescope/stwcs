@@ -31,8 +31,7 @@ import requests
 from io import BytesIO
 from lxml import etree
 
-from stwcs.wcsutil import headerlet
-from stwcs.updatewcs import utils
+from ..wcsutil import headerlet
 
 import logging
 
@@ -164,6 +163,10 @@ class AstrometryDB(object):
         # take inventory of what hdrlets are already appended to this file
         wcsnames = headerlet.get_headerlet_kw_names(obsname, 'wcsname')
 
+        # Get all the WCS solutions available from the astrometry database
+        # for this observation, along with what was flagged as the 'best'
+        # solution.  The 'best' solution should be the one that aligns the
+        # observation closest to the GAIA frame.
         headerlets, best_solution_id = self.getObservation(observationID)
         if headerlets is None:
             logger.warning("Problems getting solutions from database")
@@ -189,11 +192,13 @@ class AstrometryDB(object):
                     headerlets[h].attach_to_file(obsname)
                 except ValueError:
                     pass
+        # Obtain the current primary WCS name
+        current_wcsname = obsname[('sci', 1)].header['wcsname']
         # Once all the new headerlet solutions have been added as new extensions
         # Apply the best solution, if one was specified, as primary WCS
         # This needs to be separate logic in order to work with images which have already
         # been updated with solutions from the database, and we are simply resetting.
-        if best_solution_id:
+        if best_solution_id and best_solution_id != current_wcsname:
             # get full list of all headerlet extensions now in the file
             hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
 
@@ -281,6 +286,13 @@ class AstrometryDB(object):
             Dictionary containing all solutions found for exposure in the
             form of headerlets labelled by the name given to the solution in
             the database.
+
+        best_solution_id : str
+            WCSNAME of the WCS solution flagged as 'best' in the astrometry
+            database for the observation.  The 'best' solution should be the
+            one that aligns the observation as close to the GAIA frame as
+            possible.
+
         """
         if not self.perform_step:
             return None, None

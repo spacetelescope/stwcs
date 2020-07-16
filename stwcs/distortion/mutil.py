@@ -312,7 +312,7 @@ def read_tdd_coeffs(phdr, chip=1):
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
         if (a == 0).all() and (b == 0).all():
             print('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
-                   but TDDORDER is %d.' % TDDORDER)
+                   but TDDORDER is %d.' % n)
 
         skew_coeffs['TDDORDER'] = n
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
@@ -347,7 +347,7 @@ def readOfftab(offtab, date, chip=None):
     # How many rows do we have in the table...
     fshape = ftab[1].data.shape
     colnames = ftab[1].data.names
-    row = -1
+    # row = -1
 
     row_start = None
     row_end = None
@@ -451,7 +451,7 @@ def readWCSCoeffs(header):
     _rCD = np.dot(_rotmat, _cdmat)
     _skew = np.arcsin(-_rCD[1][0] / _rCD[0][0])
     _scale = _rCD[0][0] * np.cos(_skew) * 3600.
-    _scale2 = _rCD[1][1] * 3600.
+    #_scale2 = _rCD[1][1] * 3600.
 
     # Set up refpix
     refpix = {}
@@ -582,7 +582,7 @@ def readCubicTable(idcfile):
     _found = False
     while not _found:
         if _line[:7] in ['cubic', 'quartic', 'quintic'] or _line[: 4] == 'poly':
-            found = True
+            # found = True
             break
         _line = fileutil.rAsciiLine(ifile)
 
@@ -702,7 +702,6 @@ def convertDate(date):
     """
 
     _dates = date.split('-')
-    _val = 0
     _date_tuple = (int(_dates[0]), int(_dates[1]), int(_dates[2]), 0, 0, 0, 0, 0, 0)
 
     return calendar.timegm(_date_tuple)

@@ -3,9 +3,9 @@ import sys
 from setuptools import setup, find_packages
 from configparser import ConfigParser
 
-if sys.version_info < (3, 5):
+if sys.version_info < (3, 6):
     error = """
-    STWCS supports Python 3.5 and above.
+    STWCS supports Python 3.6 and above.
     """
     sys.exit(error)
 
@@ -43,6 +43,7 @@ setup(
     ],
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
+    python_requires='>=3.6',
     install_requires = [
         'astropy',
         'numpy',
