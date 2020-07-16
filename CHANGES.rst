@@ -1,4 +1,4 @@
-1.6.0 (Unreleased)
+1.6.0 (2020-07-16)
 ------------------
 
 - Prevent same WCS from being updated from astrometry database headerlet. [#111]
