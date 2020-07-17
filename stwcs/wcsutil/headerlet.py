@@ -1914,7 +1914,7 @@ class Headerlet(fits.HDUList):
 
         orig_hlt_hdu = None
         numhlt = countExtn(fobj, 'HDRLET')
-        hdrlet_extnames = get_headerlet_kw_names(fobj)
+        hdrlet_extnames = list(map(str.upper, get_headerlet_kw_names(fobj)))
 
         # Insure that WCSCORR table has been created with all original
         # WCS's recorded prior to adding the headerlet WCS
@@ -1942,7 +1942,7 @@ class Headerlet(fits.HDUList):
                 hdrname = fobj[0].header['ROOTNAME'] + '_orig'
                 wcsname = None
 
-            if hdrname not in hdrlet_extnames:
+            if hdrname.upper() not in hdrlet_extnames:
                 # -  if WCS has not been saved, write out WCS as headerlet extension
                 # Create a headerlet for the original Primary WCS data in the file,
                 # create an HDU from the original headerlet, and append it to
@@ -1954,12 +1954,12 @@ class Headerlet(fits.HDUList):
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                 numhlt += 1
                 orig_hlt_hdu.header['EXTVER'] = numhlt
-                logger.info("Created headerlet %s to be attached to file" % hdrname)
+                logger.info(f"Created headerlet '{hdrname}' to be attached to file")
             else:
-                logger.info("Headerlet with name %s is already attached" % hdrname)
+                logger.info(f"Headerlet with name '{hdrname}' is already attached")
 
             alt_wcs_names_dict = altwcs._alt_wcs_names(scihdr)
-            alt_wcs_names = list(altwcs._alt_wcs_names(scihdr).values())
+            alt_wcs_names = list(map(str.upper, altwcs._alt_wcs_names(scihdr).values()))
 
             mode = altwcs.ArchiveMode.OVERWRITE_KEY | altwcs.ArchiveMode.AUTO_RENAME
 
@@ -1967,17 +1967,19 @@ class Headerlet(fits.HDUList):
                 # Use the WCSNAME to determine whether or not to archive
                 # Primary WCS as altwcs
                 if 'hdrname' in scihdr:
-                    archive_wcs = self.hdrname != scihdr['hdrname']
+                    archive_wcs = self.hdrname.upper() != scihdr['hdrname'].upper()
                     if 'wcsname' in scihdr:
-                        wcsname = scihdr['wcsname']
-                        archive_wcs = archive_wcs or (self.wcsname != wcsname
-                                                      and wcsname not in alt_wcs_names)
+                        wcsname = scihdr['wcsname'].upper()
+                        archive_wcs = (archive_wcs or
+                                       (self.wcsname.upper() != wcsname and
+                                        wcsname not in alt_wcs_names))
 
                 else:
                     if 'wcsname' in scihdr:
                         priwcs_name = None
-                        wcsname = scihdr['wcsname']
-                        archive_wcs = self.wcsname != wcsname and wcsname not in alt_wcs_names
+                        wcsname = scihdr['wcsname'].upper()
+                        archive_wcs = (self.wcsname.upper() != wcsname and
+                                       wcsname not in alt_wcs_names)
 
                     else:
                         if 'idctab' in scihdr:
@@ -1986,7 +1988,7 @@ class Headerlet(fits.HDUList):
                                  utils.extract_rootname(
                                      scihdr['idctab'], suffix='_idc')
                                 ]
-                            )
+                            ).upper()
                             archive_wcs = wcsname not in alt_wcs_names
 
                         else:
@@ -2002,7 +2004,8 @@ class Headerlet(fits.HDUList):
                 all_wcs_dict[' '] = scihdr.get('WCSNAME', ' ')
 
                 for wcskey, hname in all_wcs_dict.items():
-                    if hname not in hdrlet_extnames:
+                    hname_u = hname.upper()
+                    if hname_u not in hdrlet_extnames:
                         # create HeaderletHDU for alternate WCS now
                         alt_hlet = create_headerlet(fobj, sciext=sciext_list,
                                                     wcsname=hname, wcskey=wcskey,
@@ -2014,7 +2017,7 @@ class Headerlet(fits.HDUList):
                         alt_hlet_hdu = HeaderletHDU.fromheaderlet(alt_hlet)
                         alt_hlet_hdu.header['EXTVER'] = numhlt
                         alt_hlethdu.append(alt_hlet_hdu)
-                        hdrlet_extnames.append(hname)
+                        hdrlet_extnames.append(hname_u)
 
                     altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
 
