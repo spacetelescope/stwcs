@@ -1,4 +1,4 @@
-1.6.1 (Unreleazed)
+1.6.1 (Unreleased)
 ------------------
 
 - Make WCS and headerlet name comparisons case-insensitive when applying
