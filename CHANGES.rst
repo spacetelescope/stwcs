@@ -1,3 +1,10 @@
+1.6.1 (Unreleazed)
+------------------
+
+- Make WCS and headerlet name comparisons case-insensitive when applying
+  headerlets. [#163]
+
+
 1.6.0 (2020-07-16)
 ------------------
 
