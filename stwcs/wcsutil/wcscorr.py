@@ -108,16 +108,15 @@ def init_wcscorr(input, force=False):
             # overwrite them again
             print('WCS keywords already updated...')
             break
-        for key in wcs_keywords:
-            if key in wcsext.data.names:
-                wcsext.data.field(key)[rownum] = wcshdr[(key + wkey)[:8]]
+
+        for kwd in wcs_keywords:
+            alt_kwd = (kwd + wkey)[:8]
+            if kwd in wcsext.data.names and alt_kwd in wcshdr:
+                wcsext.data.field(kwd)[rownum] = wcshdr[alt_kwd]
+
         # Now get any keywords from PRIMARY header needed for WCS updates
-        for key in prihdr_keys:
-            if key in prihdr:
-                val = prihdr[key]
-            else:
-                val = ''
-            wcsext.data.field(key)[rownum] = val
+        for kwd in prihdr_keys:
+            wcsext.data.field(kwd)[rownum] = prihdr.get(kwd, '')
 
     # Now that we have archived the OPUS alternate WCS, remove it from the list
     # of used_wcskeys
@@ -161,10 +160,7 @@ def init_wcscorr(input, force=False):
                 if key in pri_funcs:
                     val = pri_funcs[key](fimg)[0]
                 else:
-                    if key in prihdr:
-                        val = prihdr[key]
-                    else:
-                        val = ''
+                    val = prihdr.get(key, '')
                 wcsext.data.field(key)[rownum] = val
 
     # Append this table to the image FITS file
