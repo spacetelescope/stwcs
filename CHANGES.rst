@@ -4,6 +4,10 @@
 - Make WCS and headerlet name comparisons case-insensitive when applying
   headerlets. [#163]
 
+- Deprecate ``accuracy`` argument in ``all_world2pix`` and replace it with
+  ``tolerance`` in order to have compatible function signature with
+  ``astropy``'s ``all_world2pix()``'. [#166]
+
 
 1.6.0 (2020-07-16)
 ------------------

@@ -2,6 +2,9 @@ import os
 import warnings
 from astropy.wcs import WCS
 from astropy.io import fits
+from astropy import log
+from astropy.utils.decorators import deprecated_renamed_argument
+
 from ..distortion import models, coeff_converter
 import numpy as np
 from stsci.tools import fileutil
@@ -12,7 +15,6 @@ from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
 from ..wcsutil.altwcs import exclude_hst_specific
 
-from astropy import log
 default_log_level = log.getEffectiveLevel()
 
 __all__ = ['HSTWCS']
@@ -473,9 +475,10 @@ class HSTWCS(WCS):
         if self.wcs.has_pc():
             self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
 
+    @deprecated_renamed_argument('accuracy', 'tolerance', '1.6.1', arg_in_kwargs=True)
     def all_world2pix(self, *args, **kwargs):
         """
-        all_world2pix(*arg, accuracy=1.0e-4, maxiter=20, adaptive=False,
+        all_world2pix(*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
         detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
@@ -483,9 +486,9 @@ class HSTWCS(WCS):
 
         Parameters
         ----------
-        accuracy : float, optional (Default = 1.0e-4)
-            Required accuracy of the solution. Iteration terminates when the
-            correction to the solution found during the previous iteration
+        tolerance : float, optional (Default = 1.0e-4)
+            Absolute tolerance required the solution. Iteration terminates when
+            the correction to the solution found during the previous iteration
             is smaller (in the sence of the L2 norm) than `accuracy` .
 
         maxiter : int, optional (Default = 20)
@@ -562,7 +565,7 @@ class HSTWCS(WCS):
             switch to the adaptive algorithm.
 
             .. note::
-               When accuracy has been achieved, small increases in
+               When absolute tolerance has been achieved, small increases in
                current corrections may be possible due to rounding errors
                (when `adaptive` is `False` ) and such increases
                will be ignored.
@@ -640,7 +643,7 @@ class HSTWCS(WCS):
         [[ 1.00000233  0.99999997]
          [ 2.00000232  0.99999997]
          [ 3.00000233  0.99999998]]
-        >>> xy = w.all_world2pix(radec,1, maxiter=3, accuracy=1.0e-10,
+        >>> xy = w.all_world2pix(radec,1, maxiter=3, tolerance=1.0e-10,
 quiet=False)
         NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested
 accuracy after 3 iterations.
@@ -654,7 +657,7 @@ accuracy after 3 iterations.
          [  5.52653313 -72.05170814]]
 
         >>> try:
-        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4,
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, tolerance=1.0e-4,
 adaptive=False, detect_divergence=True, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
@@ -680,7 +683,7 @@ adaptive=False, detect_divergence=True, quiet=False)
         After 5 iterations, the solution is diverging at least for one input point.
 
         >>> try:
-        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, accuracy=1.0e-4,
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, tolerance=1.0e-4,
               adaptive=False, detect_divergence=False, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
@@ -736,7 +739,7 @@ adaptive=False, detect_divergence=True, quiet=False)
             raise TypeError("Expected 2 or 3 arguments, {:d} given.".format(nargs))
 
         # process optional arguments:
-        accuracy          = kwargs.pop('accuracy', 1.0e-4)
+        tolerance          = kwargs.pop('tolerance', 1.0e-4)
         maxiter           = kwargs.pop('maxiter', 20)
         adaptive          = kwargs.pop('adaptive', False)
         detect_divergence = kwargs.pop('detect_divergence', True)
@@ -783,7 +786,7 @@ adaptive=False, detect_divergence=True, quiet=False)
 
         # prepare for iterative process
         iterlist  = list(range(1, maxiter + 1))
-        accuracy2 = accuracy ** 2
+        tolerance2 = tolerance ** 2
         ind = None
         inddiv = None
 
@@ -800,7 +803,7 @@ adaptive=False, detect_divergence=True, quiet=False)
         if not adaptive:
             for k in iterlist:
                 # check convergence:
-                if np.max(dn2) < accuracy2:
+                if np.max(dn2) < tolerance2:
                     break
 
                 # find correction to the previous solution:
@@ -822,13 +825,13 @@ adaptive=False, detect_divergence=True, quiet=False)
                     ind, = np.where(dn2 <= dn2prev)
                     if ind.shape[0] < npts:
                         inddiv, = np.where(
-                            np.logical_and(dn2 > dn2prev, dn2 >= accuracy2))
+                            np.logical_and(dn2 > dn2prev, dn2 >= tolerance2))
                         if inddiv.shape[0] > 0:
                             # apply correction only to the converging points:
                             x[ind] -= dx[ind]
                             y[ind] -= dy[ind]
                             # switch to adaptive iterations:
-                            ind, = np.where((dn2 >= accuracy2) &
+                            ind, = np.where((dn2 >= tolerance2) &
                                             (dn2 <= dn2prev) & np.isfinite(dn2))
                             iterlist = iterlist[k:]
                             adaptive = True
@@ -866,12 +869,12 @@ adaptive=False, detect_divergence=True, quiet=False)
 
                 # update indices of elements that still need correction:
                 if detect_divergence:
-                    ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev))
-                    # ind = ind[np.where((dn2[ind] >= accuracy2) & (dn2[ind] <= dn2prev))]
+                    ind, = np.where((dn2 >= tolerance2) & (dn2 <= dn2prev))
+                    # ind = ind[np.where((dn2[ind] >= tolerance2) & (dn2[ind] <= dn2prev))]
                     dn2prev[ind] = dn2[ind]
                 else:
-                    ind, = np.where(dn2 >= accuracy2)
-                    # ind = ind[np.where(dn2[ind] >= accuracy2)]
+                    ind, = np.where(dn2 >= tolerance2)
+                    # ind = ind[np.where(dn2[ind] >= tolerance2)]
 
                 # apply correction:
                 x[ind] -= dx[ind]
@@ -887,13 +890,13 @@ adaptive=False, detect_divergence=True, quiet=False)
                    (np.isfinite(ra)) & (np.isfinite(dec)))
         # When detect_divergence==False, dn2prev is outdated (it is the
         # norm^2 of the very first correction). Still better than nothing...
-        inddiv, = np.where(((dn2 >= accuracy2) & (dn2 > dn2prev)) | invalid)
+        inddiv, = np.where(((dn2 >= tolerance2) & (dn2 > dn2prev)) | invalid)
         if inddiv.shape[0] == 0:
             inddiv = None
         # identify points that did not converge within
         # 'maxiter' iterations:
         if k >= maxiter:
-            ind, = np.where((dn2 >= accuracy2) & (dn2 <= dn2prev) & (~invalid))
+            ind, = np.where((dn2 >= tolerance2) & (dn2 <= dn2prev) & (~invalid))
             if ind.shape[0] == 0:
                 ind = None
         else:
