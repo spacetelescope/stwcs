@@ -1,6 +1,9 @@
 1.6.1 (Unreleased)
 ------------------
 
+- Fix a bug in ``wcsutil.wcscorr.init_wcscorr()`` that would result in crash
+  when run on drizzled images that do not have OPUS WCS (WCS key 'O'). [#165]
+
 - Make WCS and headerlet name comparisons case-insensitive when applying
   headerlets. [#163]
 

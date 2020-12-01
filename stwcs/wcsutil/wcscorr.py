@@ -40,13 +40,17 @@ def init_wcscorr(input, force=False):
 
     # Do not try to generate a WCSCORR table for a simple FITS file
     numsci = fileutil.countExtn(fimg)
-    if len(fimg) == 1 or numsci == 0:
+    if len(fimg) == 1 or numsci == 0 or 'NDRIZIM' in fimg[0].header or 'D001DATA' in fimg[0].header:
+        if need_to_close:
+            fimg.close()
         return
 
     enames = []
     for e in fimg: enames.append(e.name)
     if 'WCSCORR' in enames:
         if not force:
+            if need_to_close:
+                fimg.close()
             return
         else:
             del fimg['wcscorr']
@@ -56,8 +60,7 @@ def init_wcscorr(input, force=False):
 
     # define the primary columns of the WCSEXT table with initial rows for each
     # SCI extension for the original OPUS solution
-    numwcs = len(used_wcskeys)
-    if numwcs == 0: numwcs = 1
+    numwcs = max(1, len(used_wcskeys))
 
     # create new table with more rows than needed initially to make it easier to
     # add new rows later
@@ -69,9 +72,7 @@ def init_wcscorr(input, force=False):
 
     # define set of WCS keywords which need to be managed and copied to the table
     wcs1 = HSTWCS(fimg, ext=('SCI', 1))
-    idc2header = True
-    if wcs1.idcscale is None:
-        idc2header = False
+    idc2header = wcs1.idcscale is not None
     wcs_keywords = list(wcs1.wcs2header(idc2hdr=idc2header).keys())
 
     prihdr = fimg[0].header
@@ -108,16 +109,15 @@ def init_wcscorr(input, force=False):
             # overwrite them again
             print('WCS keywords already updated...')
             break
-        for key in wcs_keywords:
-            if key in wcsext.data.names:
-                wcsext.data.field(key)[rownum] = wcshdr[(key + wkey)[:8]]
+
+        for kwd in wcs_keywords:
+            alt_kwd = (kwd + wkey)[:8]
+            if kwd in wcsext.data.names and alt_kwd in wcshdr:
+                wcsext.data.field(kwd)[rownum] = wcshdr[alt_kwd]
+
         # Now get any keywords from PRIMARY header needed for WCS updates
-        for key in prihdr_keys:
-            if key in prihdr:
-                val = prihdr[key]
-            else:
-                val = ''
-            wcsext.data.field(key)[rownum] = val
+        for kwd in prihdr_keys:
+            wcsext.data.field(kwd)[rownum] = prihdr.get(kwd, '')
 
     # Now that we have archived the OPUS alternate WCS, remove it from the list
     # of used_wcskeys
@@ -161,10 +161,7 @@ def init_wcscorr(input, force=False):
                 if key in pri_funcs:
                     val = pri_funcs[key](fimg)[0]
                 else:
-                    if key in prihdr:
-                        val = prihdr[key]
-                    else:
-                        val = ''
+                    val = prihdr.get(key, '')
                 wcsext.data.field(key)[rownum] = val
 
     # Append this table to the image FITS file
