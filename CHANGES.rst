@@ -1,4 +1,4 @@
-1.6.1 (Unreleased)
+1.6.1 (2020-12-09)
 ------------------
 
 - Fix a bug in ``wcsutil.wcscorr.init_wcscorr()`` that would result in crash
