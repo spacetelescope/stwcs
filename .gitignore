@@ -18,6 +18,7 @@ MANIFEST
 .coverage
 docs/api/
 docs/_build
+.tox
 
 # Eclipse editor project files
 .project
