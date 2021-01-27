@@ -591,28 +591,30 @@ class AstrometryDB(object):
         hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
         # Create full filename for headerlet:
         hfilename = "{}_hlet.fits".format(hdrname)
-        newhlt += 1
-        numext = len(obsname)
-        descrip = "A Priori WCS based on ICRS guide star positions"
-        logger.info("Appending a priori WCS {} to {}".format(wname, filename))
-        headerlet.archive_as_headerlet(obsname, hfilename,
-                                       sciext='SCI',
-                                       wcskey="PRIMARY",
-                                       author="stwcs.updatewcs",
-                                       descrip=descrip)
-        obsname[numext].header['EXTVER'] = newhlt
-        # Update a priori headerlet with offsets used to compute new WCS
-        apriori_hdr = obsname[numext].headerlet[0].header
-        apriori_hdr['D_RA'] = pix_offsets['delta_ra']
-        apriori_hdr['D_DEC'] = pix_offsets['delta_dec']
-        apriori_hdr['D_ROLL'] = pix_offsets['roll']
-        apriori_hdr['D_SCALE'] = pix_offsets['scale']
-        apriori_hdr['NMATCH'] = 2
-        apriori_hdr['CATALOG'] = pix_offsets['catalog']
+        if wname not in hlet_names:
+            newhlt += 1
+            numext = len(obsname)
+            descrip = "A Priori WCS based on ICRS guide star positions"
+            logger.info("Appending a priori WCS {} to {}".format(wname, filename))
+            headerlet.archive_as_headerlet(obsname, hfilename,
+                                           sciext='SCI',
+                                           wcskey="PRIMARY",
+                                           author="stwcs.updatewcs",
+                                           descrip=descrip)
+            obsname[numext].header['EXTVER'] = newhlt
+            # Update a priori headerlet with offsets used to compute new WCS
+            apriori_hdr = obsname[numext].headerlet[0].header
+            apriori_hdr['D_RA'] = pix_offsets['delta_ra']
+            apriori_hdr['D_DEC'] = pix_offsets['delta_dec']
+            apriori_hdr['D_ROLL'] = pix_offsets['roll']
+            apriori_hdr['D_SCALE'] = pix_offsets['scale']
+            apriori_hdr['NMATCH'] = 2
+            apriori_hdr['CATALOG'] = pix_offsets['catalog']
 
-        # Now, write out new a priori WCS to a unique headerlet file
-        logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
-        headerlet.extract_headerlet(obsname, hfilename, extnum=numext, clobber=True)
+        if not os.path.exists(hfilename):
+            # Now, write out new a priori WCS to a unique headerlet file
+            logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
+            headerlet.extract_headerlet(obsname, hfilename, extnum=numext)
 
         return wname
 
