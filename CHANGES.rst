@@ -1,3 +1,14 @@
+1.6.2 (Unreleased)
+------------------
+
+- Add support for computing new `a priori` WCS solutions when running
+  ``updatewcs``. [#169]
+
+ - Add new parameter to ``updatewcs`` to limit the astrometry database
+   WCSs appended to the file to only those based on the same IDCTAB as
+   specified in the image header. [#169]
+
+
 1.6.1 (2020-12-09)
 ------------------
 
