@@ -202,10 +202,10 @@ class AstrometryDB(object):
         # Determine what WCSs to append to this observation
         # If headerlet found in database, update file with all new WCS solutions
         # according to the 'all_wcs' parameter
+        num_appended = 0
         if not self.new_observation:
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
-            num_appended = 0
             for h in headerlets:
                 newname = headerlets[h][0].header['wcsname']
                 # Only append the WCS from the database if `all_wcs` was turned on,
@@ -260,7 +260,7 @@ class AstrometryDB(object):
 
         # Insure changes are written to the file and that the file is closed.
         if obs_open:
-            fits.close(obsname)
+            obsname.close()
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for
@@ -564,7 +564,7 @@ class AstrometryDB(object):
 
             # Now, write out pipeline-default WCS to a unique headerlet file
             logger.info("Writing out pipeline-default WCS {} to headerlet file: {}".format(wname, hfilename))
-            headerlet.extract_headerlet(obsname, hfilename, extnum=numext)
+            headerlet.extract_headerlet(obsname, hfilename, extnum=numext, clobber=True)
 
         # We need to create new apriori WCS based on new IDCTAB
         # Get guide star offsets from DB
@@ -612,7 +612,7 @@ class AstrometryDB(object):
 
         # Now, write out new a priori WCS to a unique headerlet file
         logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
-        headerlet.extract_headerlet(obsname, hfilename, extnum=numext)
+        headerlet.extract_headerlet(obsname, hfilename, extnum=numext, clobber=True)
 
         return wname
 

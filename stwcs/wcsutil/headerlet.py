@@ -1784,7 +1784,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
         Headerlet with hdrname %s already archived for WCS %s
         No new headerlet appended to %s .
         """ % (hdrname, wcsname, fname)
-        logger.critical(message)
+        logger.warning(message)
 
     if close_fobj:
         fobj.close()
