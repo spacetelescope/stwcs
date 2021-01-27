@@ -30,7 +30,7 @@ atexit.register(logging.shutdown)
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, verbose=False, use_db=True):
+              checkfiles=True, verbose=False, use_db=True, all_wcs=False):
     """
 
     Updates HST science files with the best available calibration information.
@@ -75,6 +75,13 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               If True, attempt to add astrometric solutions from the
               MAST astrometry database.
               Default value is True.
+
+    all_wcs : boolean
+              This parameter only gets used if `use_db=True` to control
+              what WCS solutions from the Astrometry database gets appended
+              to the file.  If True, all solutions get appended.  If False,
+              only solutions based on the IDCTAB from the file's PRIMARY
+              header will be appended.
     """
     if not verbose:
         logger.setLevel(100)
@@ -136,7 +143,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if use_db:
             # Add any new astrometry solutions available from
             #  an accessible astrometry web-service
-            astrometry.updateObs(f)
+            astrometry.updateObs(f, all_wcs=all_wcs)
 
         if toclose:
             f.close()

@@ -31,10 +31,16 @@ import requests
 from io import BytesIO
 from lxml import etree
 
+from astropy.io import fits
+from astropy.coordinates import SkyCoord
+
+from stsci.tools import fileutil
 from ..wcsutil import headerlet
+from ..wcsutil import HSTWCS
+from ..distortion import utils
+from . import updatehdr
 
 import logging
-
 
 logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
 for h in logger.handlers:
@@ -46,9 +52,11 @@ atexit.register(logging.shutdown)
 
 # Definitions of environment variables used by this step
 astrometry_db_envvar = "ASTROMETRY_SERVICE_URL"
+gsss_url_envvar = "GSSS_WEBSERVICES_URL"
 pipeline_error_envvar = "RAISE_PIPELINE_ERRORS"
 astrometry_control_envvar = "ASTROMETRY_STEP_CONTROL"
 
+gsss_url = 'https://gsss.stsci.edu/webservices'
 
 class AstrometryDB(object):
     """Base class for astrometry database interface."""
@@ -143,8 +151,9 @@ class AstrometryDB(object):
 
         # Initialize attribute to keep track of type of observation
         self.new_observation = False
+        self.deltas = None
 
-    def updateObs(self, obsname):
+    def updateObs(self, obsname, all_wcs=False):
         """Update observation with any available solutions.
 
         Parameters
@@ -152,9 +161,18 @@ class AstrometryDB(object):
         obsname : str
            Filename for observation to be updated
 
+        all_wcs : boolean
+            If True, all solutions from the Astrometry database
+            gets appended.  If False, only those based on the
+            same IDCTAB will be appended.
         """
         if not self.perform_step:
             return
+
+        obs_open = False
+        if isinstance(obsname, str):
+            obsname = fits.open(obsname, mode='update')
+            obs_open = True
 
         obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
@@ -177,42 +195,72 @@ class AstrometryDB(object):
             else:
                 return
 
+        # Get IDCTAB filename from file header
+        idctab = obsname[0].header.get('IDCTAB', None)
+        idcroot = os.path.basename(fileutil.osfn(idctab)).split('_')[0]
+
+        # Determine what WCSs to append to this observation
         # If headerlet found in database, update file with all new WCS solutions
+        # according to the 'all_wcs' parameter
         if not self.new_observation:
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
+            num_appended = 0
             for h in headerlets:
                 newname = headerlets[h][0].header['wcsname']
-                if newname in wcsnames:
+                # Only append the WCS from the database if `all_wcs` was turned on,
+                # or the WCS was based on the same IDCTAB as in the image header.
+                append_wcs = True if ((idcroot in newname) or all_wcs or newname == 'OPUS') else False
+
+                # Check to see whether this WCS has already been appended or
+                # if it was never intended to be appended.  If so, skip it.
+                if (newname in wcsnames and append_wcs) or not append_wcs:
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
                 try:
                     logger.info("\tHeaderlet with WCSNAME={}".format(
                                 newname))
                     headerlets[h].attach_to_file(obsname)
+                    num_appended += 1
                 except ValueError:
                     pass
+
         # Obtain the current primary WCS name
         current_wcsname = obsname[('sci', 1)].header['wcsname']
-        # Once all the new headerlet solutions have been added as new extensions
-        # Apply the best solution, if one was specified, as primary WCS
-        # This needs to be separate logic in order to work with images which have already
-        # been updated with solutions from the database, and we are simply resetting.
-        if best_solution_id and best_solution_id != current_wcsname:
-            # get full list of all headerlet extensions now in the file
-            hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
 
-            for h in hdrlet_extns:
-                hdrlet = obsname[h].headerlet
-                wcsname = hdrlet[0].header['wcsname']
-                if wcsname == best_solution_id:
-                    # replace primary WCS with this solution
-                    hdrlet.init_attrs()
-                    hdrlet.apply_as_primary(obsname, attach=False, force=True)
-                    logger.info('Replacing primary WCS with')
-                    logger.info('\tHeaderlet with WCSNAME={}'.format(
-                                 newname))
-                    break
+        # At this point, we have appended all applicable headerlets from the database
+        # However, if no database-provided headerlet was applicable, we need to
+        # compute a new a priori WCS based on the IDCTAB from the observation header.
+        # This will also re-define the 'best_solution_id'.
+        if num_appended == 0:
+            # No headerlets were appended from the database, so we need to define
+            # a new a priori solution and apply it as the new 'best_solution_id'
+            self.apply_new_apriori(obsname)
+
+        else:
+            # Once all the new headerlet solutions have been added as new extensions
+            # Apply the best solution, if one was specified, as primary WCS
+            # This needs to be separate logic in order to work with images which have already
+            # been updated with solutions from the database, and we are simply resetting.
+            if best_solution_id and best_solution_id != current_wcsname:
+                # get full list of all headerlet extensions now in the file
+                hdrlet_extns = headerlet.get_extname_extver_list(obsname, 'hdrlet')
+
+                for h in hdrlet_extns:
+                    hdrlet = obsname[h].headerlet
+                    wcsname = hdrlet[0].header['wcsname']
+                    if wcsname == best_solution_id:
+                        # replace primary WCS with this solution
+                        hdrlet.init_attrs()
+                        hdrlet.apply_as_primary(obsname, attach=False, force=True)
+                        logger.info('Replacing primary WCS with')
+                        logger.info('\tHeaderlet with WCSNAME={}'.format(
+                                     newname))
+                        break
+
+        # Insure changes are written to the file and that the file is closed.
+        if obs_open:
+            fits.close(obsname)
 
     def findObservation(self, observationID):
         """Find whether there are any entries in the AstrometryDB for
@@ -342,7 +390,7 @@ class AstrometryDB(object):
                     best_solution_id = wcsName
                 serviceEndPoint = self.serviceLocation + \
                     'observation/read/' + observationID + \
-                    '?wcsname='+wcsName
+                    '?wcsname=' + wcsName
                 print('Retrieving astrometrically-updated WCS "{}" for observation "{}"'.format(wcsName, observationID))
                 r_solution = requests.get(serviceEndPoint, headers=headers)
                 if r_solution.status_code == requests.codes.ok:
@@ -360,12 +408,221 @@ class AstrometryDB(object):
 
             return headerlets, best_solution_id
 
+    def find_gsc_offset(self, obsname, refframe="ICRS"):
+        """Find the GSC to GAIA offset based on guide star coordinates
+
+        Parameters
+        ----------
+        obsname : str
+            Full filename or `astropy.io.fits.HDUList` object of
+            image to be processed.
+
+        refframe : str
+            Reference frame for the guide star coordinates.
+            Supported options: GSC1, ICRS(default)
+
+        NOTES
+        ------
+        The default transform is GSC2-GAIA. The options were primarily for transforming
+        individual objects from the catalogs and that is not specified in the limited
+        documentation. The ipppssoot input is a special case where it pulls the gsids,
+        epoch and refframe from the dms databases and overrides the transform using this logic.
+            REFFRAME=GSC1 sets GSC1-GAIA
+            REFFRAME=ICRS and EPOCH < 2017.75 sets GSC2-GAIA
+            REFFRAME=ICRS and EPOCH > 2017.75 sets no-offset since it's already in GAIA frame
+
+        Returns
+        -------
+        deltas : dictionary
+            Dict of offset, roll and scale in decimal degrees and pixels for image
+            based on correction to guide star coordinates relative to GAIA.
+            Keys: delta_x, delta_y, delta_ra, delta_dec,
+                  roll, scale,
+                  expwcs, catalog
+        """
+        # check to see whether any URL has been specified as an
+        # environmental variable.
+        if gsss_url_envvar in os.environ:
+            gsss_serviceLocation = os.environ[gsss_url_envvar]
+        else:
+            gsss_serviceLocation = gsss_url
+
+        # Initialize variables for cases where no offsets are available.
+        delta_ra = delta_dec = None
+        delta_roll = delta_scale = None
+
+        if 'rootname' in obsname[0].header:
+            ippssoot = obsname[0].header['rootname'].upper()
+        else:
+            ippssoot = fileutil.buildNewRootname(obsname).upper()
+
+        # Define what service needs to be used to get the offsets
+        serviceType = "GSCConvert/GSCconvert.aspx"
+        spec_str = "REFFRAME=ICRS&IPPPSSOOT={}"
+        spec = spec_str.format(ippssoot)
+        serviceUrl = "{}/{}?{}".format(gsss_serviceLocation, serviceType, spec)
+        rawcat = requests.get(serviceUrl)
+        if not rawcat.ok:
+            logger.info("Problem accessing service with:\n{}".format(serviceUrl))
+            raise ValueError
+
+        if rawcat.status_code == requests.codes.ok:
+            logger.info("gsReference service retrieved {}".format(ippssoot))
+            refXMLtree = etree.fromstring(rawcat.content)
+
+            delta_ra = float(refXMLtree.findtext('deltaRA'))
+            delta_dec = float(refXMLtree.findtext('deltaDEC'))
+            delta_roll = float(refXMLtree.findtext('deltaROLL'))
+            delta_scale = float(refXMLtree.findtext('deltaSCALE'))
+            dGSinputRA = float(refXMLtree.findtext('dGSinputRA'))
+            dGSinputDEC = float(refXMLtree.findtext('dGSinputDEC'))
+            dGSoutputRA = float(refXMLtree.findtext('dGSoutputRA'))
+            dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
+            outputCatalog = refXMLtree.findtext('outputCatalog')
+
+        # Use GS coordinate as reference point
+        old_gs = (dGSinputRA, dGSinputDEC)
+        new_gs = (dGSoutputRA, dGSoutputDEC)
+
+        if delta_ra != 0.0 and delta_dec != 0.0:
+
+            # Compute tangent plane for this observation
+            expwcs = build_reference_wcs(obsname)
+            wcsframe = expwcs.wcs.radesys.lower()
+
+            # Use WCS to compute offset in pixels of shift applied to WCS Reference pixel
+            # RA,Dec of ref pixel in decimal degrees
+            crval = SkyCoord(expwcs.wcs.crval[0], expwcs.wcs.crval[1],
+                             unit='deg', frame=wcsframe)
+
+            # Define SkyCoord for Guide Star using old/original coordinates used to
+            # originally compute WCS for exposure
+            old_gs_coord = SkyCoord(old_gs[0], old_gs[1], unit='deg', frame=wcsframe)
+            sof_old = old_gs_coord.skyoffset_frame()
+            # Define new SkyOffsetFrame based on new GS coords
+            new_gs_coord = SkyCoord(new_gs[0], new_gs[1], unit='deg',
+                               frame=wcsframe)
+            # Determine offset from old GS position to the new GS position
+            sof_new = new_gs_coord.transform_to(sof_old)
+            # Compute new CRVAL position as old CRVAL+GS offset (sof_new)
+            new_crval_coord = SkyCoord(sof_new.lon.arcsec, sof_new.lat.arcsec,
+                                 unit='arcsecond',
+                                 frame=crval.skyoffset_frame())
+            # Return RA/Dec for new/updated CRVAL position
+            new_crval = new_crval_coord.icrs
+
+            # Compute offset in pixels for new CRVAL
+            newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
+            deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
+
+        else:
+            deltaxy = (0., 0.)
+
+        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
+                   'roll': delta_roll, 'scale': delta_scale,
+                   'delta_ra': delta_ra, 'delta_dec': delta_dec,
+                   'expwcs': expwcs, 'catalog': outputCatalog}
+
+        return offsets
+
+    def apply_new_apriori(self, obsname):
+        """ Compute and apply a new a priori WCS based on offsets from astrometry database.
+
+        Parameters
+        -----------
+        obsname : str
+            Full filename or `astropy.io.fits.HDUList` object \
+            for the observation to be corrected
+
+        Returns
+        -------
+        wcsname : str
+            Value of WCSNAME keyword for this new WCS
+
+        """
+        filename = obsname.filename()
+
+        # Start by archiving and writing out pipeline-default based on new IDCTAB
+        # Save this new WCS as a headerlet extension and separate headerlet file
+        wname = obsname[('sci', 1)].header['wcsname']
+        hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
+        newhlt = max(hlet_extns) + 1
+        hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
+
+        if wname not in hlet_names:
+            hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+            # Create full filename for headerlet:
+            hfilename = "{}_hlet.fits".format(hdrname)
+            logger.info("Archiving pipeline-default WCS {} to {}".format(wname, filename))
+            descrip = "Pipeline-default WCS"
+            numext = len(obsname)
+            headerlet.archive_as_headerlet(obsname, hfilename,
+                                           sciext='SCI',
+                                           wcskey="PRIMARY",
+                                           author="stwcs.updatewcs",
+                                           descrip=descrip)
+            obsname[numext].header['EXTVER'] = newhlt
+
+            # Now, write out pipeline-default WCS to a unique headerlet file
+            logger.info("Writing out pipeline-default WCS {} to headerlet file: {}".format(wname, hfilename))
+            headerlet.extract_headerlet(obsname, hfilename, extnum=numext)
+
+        # We need to create new apriori WCS based on new IDCTAB
+        # Get guide star offsets from DB
+        # Getting observationID (rootname) from header to avoid
+        # potential issues with actual filename being changed
+        pix_offsets = self.find_gsc_offset(obsname)
+
+        # Determine rootname for IDCTAB
+        idctab = obsname[0].header['IDCTAB']
+        idcroot = os.path.basename(fileutil.osfn(idctab)).split('_')[0]
+        # Create WCSNAME for this new a priori WCS
+        wname = 'IDC_{}-{}'.format(idcroot, pix_offsets['catalog'])
+
+        # apply offsets to image using the same tangent plane
+        # which was used to compute the offsets
+        updatehdr.updatewcs_with_shift(obsname, pix_offsets['expwcs'],
+                                       wcsname=wname, reusename=False,
+                                       fitgeom='rscale', rot=0.0, scale=1.0,
+                                       xsh=pix_offsets['delta_x'],
+                                       ysh=pix_offsets['delta_y'],
+                                       verbose=False, force=True)
+
+        # Save this new WCS as a headerlet extension and separate headerlet file
+        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+        # Create full filename for headerlet:
+        hfilename = "{}_hlet.fits".format(hdrname)
+        newhlt += 1
+        numext = len(obsname)
+        descrip = "A Priori WCS based on ICRS guide star positions"
+        logger.info("Appending a priori WCS {} to {}".format(wname, filename))
+        headerlet.archive_as_headerlet(obsname, hfilename,
+                                       sciext='SCI',
+                                       wcskey="PRIMARY",
+                                       author="stwcs.updatewcs",
+                                       descrip=descrip)
+        obsname[numext].header['EXTVER'] = newhlt
+        # Update a priori headerlet with offsets used to compute new WCS
+        apriori_hdr = obsname[numext].headerlet[0].header
+        apriori_hdr['D_RA'] = pix_offsets['delta_ra']
+        apriori_hdr['D_DEC'] = pix_offsets['delta_dec']
+        apriori_hdr['D_ROLL'] = pix_offsets['roll']
+        apriori_hdr['D_SCALE'] = pix_offsets['scale']
+        apriori_hdr['NMATCH'] = 2
+        apriori_hdr['CATALOG'] = pix_offsets['catalog']
+
+        # Now, write out new a priori WCS to a unique headerlet file
+        logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
+        headerlet.extract_headerlet(obsname, hfilename, extnum=numext)
+
+        return wname
+
     def isAvailable(self):
         """Test availability of astrometryDB web-service."""
         if not self.perform_step:
             return
 
-        serviceEndPoint = self.serviceLocation+'availability'
+        serviceEndPoint = self.serviceLocation + 'availability'
 
         try:
             r = requests.get(serviceEndPoint, headers=self.headers)
@@ -397,6 +654,54 @@ class AstrometryDB(object):
             self.available = False
             if self.raise_errors:
                 raise ConnectionError from err
+
+
+def build_reference_wcs(input, sciname='sci'):
+    """Create the reference WCS based on all the inputs for a field
+
+    Parameters
+    -----------
+    input : str or `astropy.io.fits.HDUList` object
+        Full filename or
+         of observation to use in building a tangent plane WCS
+
+    sciname : str
+        EXTNAME of extensions which have WCS information for the observation
+
+    """
+    # start by creating a composite field-of-view for all inputs
+    wcslist = []
+    nsci = fileutil.countExtn(input)
+    for num in range(nsci):
+        extname = (sciname, num + 1)
+        if sciname == 'sci':
+            extwcs = HSTWCS(input, ext=extname)
+        else:
+            # Working with HDRLET as input and do the best we can...
+            extwcs = read_hlet_wcs(input, ext=extname)
+
+        wcslist.append(extwcs)
+
+    # This default output WCS will have the same plate-scale and orientation
+    # as the first chip in the list, which for WFPC2 data means the PC.
+    # Fortunately, for alignment, this doesn't matter since no resampling of
+    # data will be performed
+    outwcs = utils.output_wcs(wcslist)
+
+    return outwcs
+
+def read_hlet_wcs(filename, ext):
+    """Insure `~stwcs.wcsutil.HSTWCS` includes all attributes of a full image WCS.
+
+    For headerlets, the WCS does not contain information about the size of the
+    image, as the image array is not present in the headerlet.
+    """
+    hstwcs = HSTWCS(filename, ext=ext)
+    if hstwcs.naxis1 is None:
+        hstwcs.naxis1 = int(hstwcs.wcs.crpix[0] * 2.)  # Assume crpix is center of chip
+        hstwcs.naxis2 = int(hstwcs.wcs.crpix[1] * 2.)
+
+    return hstwcs
 
 
 def apply_astrometric_updates(obsnames, **pars):
