@@ -426,7 +426,8 @@ class AstrometryDB(object):
         The default transform is GSC2-GAIA. The options were primarily for transforming
         individual objects from the catalogs and that is not specified in the limited
         documentation. The ipppssoot input is a special case where it pulls the gsids,
-        epoch and refframe from the dms databases and overrides the transform using this logic.
+        epoch and refframe from the dms databases and overrides the transform using this logic::
+
             REFFRAME=GSC1 sets GSC1-GAIA
             REFFRAME=ICRS and EPOCH < 2017.75 sets GSC2-GAIA
             REFFRAME=ICRS and EPOCH > 2017.75 sets no-offset since it's already in GAIA frame
@@ -436,9 +437,7 @@ class AstrometryDB(object):
         deltas : dictionary
             Dict of offset, roll and scale in decimal degrees and pixels for image
             based on correction to guide star coordinates relative to GAIA.
-            Keys: delta_x, delta_y, delta_ra, delta_dec,
-                  roll, scale,
-                  expwcs, catalog
+            Keys: delta_x, delta_y, delta_ra, delta_dec, roll, scale, expwcs, catalog
         """
         # check to see whether any URL has been specified as an
         # environmental variable.
