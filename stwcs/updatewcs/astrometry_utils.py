@@ -212,8 +212,9 @@ class AstrometryDB(object):
                 # Only append the WCS from the database if `all_wcs` was turned on,
                 # or the WCS was based on the same IDCTAB as in the image header.
                 append_wcs = True if ((idcroot in newname) or all_wcs or newname == 'OPUS') else False
-                if append_wcs:
+                if append_wcs and newname != 'OPUS':
                     num_appended += 1
+
                 # Check to see whether this WCS has already been appended or
                 # if it was never intended to be appended.  If so, skip it.
                 if (newname in wcsnames and append_wcs) or not append_wcs:
@@ -484,10 +485,10 @@ class AstrometryDB(object):
         old_gs = (dGSinputRA, dGSinputDEC)
         new_gs = (dGSoutputRA, dGSoutputDEC)
 
-        if delta_ra != 0.0 and delta_dec != 0.0:
+        expwcs = build_reference_wcs(obsname)
 
+        if delta_ra != 0.0 and delta_dec != 0.0:
             # Compute tangent plane for this observation
-            expwcs = build_reference_wcs(obsname)
             wcsframe = expwcs.wcs.radesys.lower()
 
             # Use WCS to compute offset in pixels of shift applied to WCS Reference pixel
