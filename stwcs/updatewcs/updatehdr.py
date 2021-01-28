@@ -319,7 +319,8 @@ def update_from_shiftfile(shiftfile, wcsname=None, force=False):
                              force=force, **pars)
 
 
-def updatewcs_with_shift(image, reference, wcsname='TWEAK', reusename=False,
+def updatewcs_with_shift(image, reference, hdrname="",
+                         wcsname='TWEAK', reusename=False,
                          fitgeom='rscale', rot=0.0, scale=1.0,
                          xsh=0.0, ysh=0.0, fit=None, xrms=None, yrms=None,
                          verbose=False, force=False, sciext='SCI'):
@@ -366,6 +367,9 @@ def updatewcs_with_shift(image, reference, wcsname='TWEAK', reusename=False,
         used to define the tangent plane in which all the fit parameters
         (shift, rot, scale) were measured.
 
+   hdrname : str, optional
+        Value of HDRNAME keyword for this new WCS.
+        
     wcsname : str, None, optional
         Label to give to new WCS solution being created by this fit. If
         a value of None is given, it will automatically use 'TWEAK' as the
@@ -654,7 +658,9 @@ def update_refchip_with_shift(chip_wcs, wcslin, fitgeom='rscale',
 ###
 # Header keyword prefix related archive functions
 ###
-def update_wcs(image, extnum, new_wcs, wcsname="", reusename=False, verbose=False):
+def update_wcs(image, extnum, new_wcs,
+               wcsname="", hdrname="",
+               reusename=False, verbose=False):
     """
     Updates the WCS of the specified extension number with the new WCS
     after archiving the original WCS.
@@ -675,6 +681,9 @@ def update_wcs(image, extnum, new_wcs, wcsname="", reusename=False, verbose=Fals
 
     wcsname : str
         Label to give newly updated WCS
+
+    hdrname : str
+        Value of HDRNAME keyword for updated WCS
 
     reusename : bool
         User can choose whether to over-write WCS with same name or not.
@@ -736,6 +745,7 @@ def update_wcs(image, extnum, new_wcs, wcsname="", reusename=False, verbose=Fals
         wcs_hdr.set('WCSNAME', wcsname, before=0)
         wcs_hdr.set('WCSTYPE', interpret_wcsname_type(wcsname), after=0)
         wcs_hdr.set('ORIENTAT', new_wcs.orientat, after=len(wcs_hdr))
+        wcs_hdr.set('HDRNAME', hdrname, after=len(wcs_hdr))
         hdr.update(wcs_hdr)
         if 'nextend' in image[0].header:
             image[0].header['nextend'] = len(image) - 1

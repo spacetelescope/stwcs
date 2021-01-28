@@ -212,7 +212,8 @@ class AstrometryDB(object):
                 # Only append the WCS from the database if `all_wcs` was turned on,
                 # or the WCS was based on the same IDCTAB as in the image header.
                 append_wcs = True if ((idcroot in newname) or all_wcs or newname == 'OPUS') else False
-
+                if append_wcs:
+                    num_appended += 1
                 # Check to see whether this WCS has already been appended or
                 # if it was never intended to be appended.  If so, skip it.
                 if (newname in wcsnames and append_wcs) or not append_wcs:
@@ -222,7 +223,6 @@ class AstrometryDB(object):
                     logger.info("\tHeaderlet with WCSNAME={}".format(
                                 newname))
                     headerlets[h].attach_to_file(obsname)
-                    num_appended += 1
                 except ValueError:
                     pass
 
@@ -540,7 +540,7 @@ class AstrometryDB(object):
             Value of WCSNAME keyword for this new WCS
 
         """
-        filename = obsname.filename()
+        filename = os.path.basename(obsname.filename())
 
         # Start by archiving and writing out pipeline-default based on new IDCTAB
         # Save this new WCS as a headerlet extension and separate headerlet file
@@ -548,6 +548,7 @@ class AstrometryDB(object):
         hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
         # newly processed data will not have any hlet_extns, so we need to account for that
         newhlt = max(hlet_extns) + 1 if len(hlet_extns) > 0 else 1
+        newext = max(headerlet.find_headerlet_HDUs(obsname, strict=False))
         hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
 
         if wname not in hlet_names:
@@ -579,16 +580,21 @@ class AstrometryDB(object):
         idcroot = os.path.basename(fileutil.osfn(idctab)).split('_')[0]
         # Create WCSNAME for this new a priori WCS
         wname = 'IDC_{}-{}'.format(idcroot, pix_offsets['catalog'])
+        # Compute and add new solution if it is not already an alternate WCS
+        # Save this new WCS as a headerlet extension and separate headerlet file
+        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+        # Create full filename for headerlet:
+        hfilename = "{}_hlet.fits".format(hdrname)
 
         # apply offsets to image using the same tangent plane
         # which was used to compute the offsets
         updatehdr.updatewcs_with_shift(obsname, pix_offsets['expwcs'],
+                                       hdrname=hfilename,
                                        wcsname=wname, reusename=False,
                                        fitgeom='rscale', rot=0.0, scale=1.0,
                                        xsh=pix_offsets['delta_x'],
                                        ysh=pix_offsets['delta_y'],
                                        verbose=False, force=True)
-
 
         sci_extns = updatehdr.get_ext_list(obsname, extname='SCI')
 
@@ -600,11 +606,6 @@ class AstrometryDB(object):
                 for sci_extn in sci_extns:
                     altwcs.deleteWCS(obsname, sci_extn, wcskey=alt_key)
 
-        # Compute and add new solution if it is not already an alternate WCS
-        # Save this new WCS as a headerlet extension and separate headerlet file
-        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
-        # Create full filename for headerlet:
-        hfilename = "{}_hlet.fits".format(hdrname)
         if wname not in alt_wnames.values():
             for sci_ext in sci_extns:
                 # Create alternate WCS for this new WCS
@@ -626,7 +627,7 @@ class AstrometryDB(object):
             hlet_extns = headerlet.find_headerlet_HDUs(obsname, strict=False)
             newext = max(hlet_extns)
 
-            obsname[newext].header['EXTVER'] = newhlt
+            obsname[newext].header['EXTVER'] = newext
             # Update a priori headerlet with offsets used to compute new WCS
             apriori_hdr = obsname[newext].headerlet[0].header
             apriori_hdr['D_RA'] = pix_offsets['delta_ra']
@@ -636,9 +637,14 @@ class AstrometryDB(object):
             apriori_hdr['NMATCH'] = 2
             apriori_hdr['CATALOG'] = pix_offsets['catalog']
 
+
         if not os.path.exists(hfilename):
             # Now, write out new a priori WCS to a unique headerlet file
             logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
+            try:
+                newext = headerlet.find_headerlet_HDUs(obsname, hdrname=hfilename)[0]
+            except ValueError:
+                newext = headerlet.find_headerlet_HDUs(obsname, hdrname=hdrname)[0]
             headerlet.extract_headerlet(obsname, hfilename, extnum=newext)
 
         return wname

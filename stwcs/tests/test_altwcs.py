@@ -175,11 +175,17 @@ class TestAltWCS(object):
         #assert(not altwcs._parpasscheck(f, ext=1, wcskey='O', reusekey=False))
         f.close()
 
-    def _prepare_acs_test_file(self, ext_list):
+    def _prepare_acs_test_file(self, ext_list, regression=True):
         shutil.copyfile(self.acs_orig_file, self.acs_file)
-        idctab = get_filepath('postsm4_idc.fits')
-        npol_file = get_filepath('qbu16424j_npl.fits')
-        d2imfile = get_filepath('new_wfc_d2i.fits ')
+        if regression:
+            idctab = get_filepath('postsm4_idc.fits')
+            npol_file = get_filepath('qbu16424j_npl.fits')
+            d2imfile = get_filepath('new_wfc_d2i.fits ')
+        else:
+            idctab = get_filepath('0461802ej_idc.fits')
+            npol_file = get_filepath('02c14514j_npl.fits')
+            d2imfile = get_filepath('02c1450oj_d2i.fits')
+
         pyfits.setval(self.acs_file, ext=0, keyword="IDCTAB", value=idctab)
         pyfits.setval(self.acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
         pyfits.setval(self.acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
@@ -236,8 +242,9 @@ class TestAltWCS(object):
 
 
     def test_repeated_updatewcs_use_db(self):
+        """Expectation: All WCSs in header should be based on IDCTAB value from input image header."""
         ext_list = [('sci', 1), ('sci', 2)]
-        self._prepare_acs_test_file(ext_list)
+        self._prepare_acs_test_file(ext_list, regression=False)
 
         ref_priwcs = {}
         h = pyfits.open(self.acs_file)
@@ -269,6 +276,4 @@ class TestAltWCS(object):
         h.close()
 
         # remove all Alt WCS except OPUS:
-        self._prepare_acs_test_file(ext_list)
-
-
+        self._prepare_acs_test_file(ext_list, regression=False)
