@@ -369,7 +369,7 @@ def updatewcs_with_shift(image, reference, hdrname="",
 
    hdrname : str, optional
         Value of HDRNAME keyword for this new WCS.
-        
+
     wcsname : str, None, optional
         Label to give to new WCS solution being created by this fit. If
         a value of None is given, it will automatically use 'TWEAK' as the
