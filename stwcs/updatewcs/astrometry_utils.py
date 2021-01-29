@@ -22,6 +22,12 @@ ASTROMETRY_STEP_CONTROL - String specifying whether or not to perform the
                           astrometry update processing at all.
                           Valid Values: "ON", "On", "on", "OFF", "Off", "off"
                           If not set, default value is "ON".
+
+GSSS_WEBSERVICES_URL - URL point to user-specified web service which provides
+                       information on the guide stars used for taking HST
+                       observations. This value will replace the default URL
+                       included in this module as the `gsss_url` variable.
+
 """
 import os
 import sys
@@ -164,16 +170,31 @@ class AstrometryDB(object):
 
         all_wcs : bool
             If True, all solutions from the Astrometry database
-            gets appended.  If False, only those based on the
+            are appended to the input file as separate FITS
+            extensions.  If False, only those solutions based on the
             same IDCTAB will be appended.
         """
         if not self.perform_step:
             return
 
         obs_open = False
+        # User provided only an input filename, so open in 'update' mode
         if isinstance(obsname, str):
             obsname = fits.open(obsname, mode='update')
             obs_open = True
+        elif isinstance(obsname, fits.HDUList):
+            # User provided an HDUList - make sure it is opened in 'update' mode
+            if obsname.fileinfo(0)['filemode'] != 'update':
+                # Not opened in 'update' mode, so close and re-open
+                obsfile = obsname.filename()
+                obsname.close()
+                logger.info("Opening {} in 'update' mode to append new WCSs".format(obsfile))
+                obsname = fits.open(obsfile, mode='update')
+        else:
+            # We do not know what kind of input this is, so raise an Exception with an explanation.
+            error_msg = "Input not valid!  Please provide either a filename or fits.HDUList object"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
