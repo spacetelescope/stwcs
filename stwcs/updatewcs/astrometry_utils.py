@@ -162,7 +162,7 @@ class AstrometryDB(object):
         obsname : str
            Filename for observation to be updated
 
-        all_wcs : boolean
+        all_wcs : bool
             If True, all solutions from the Astrometry database
             gets appended.  If False, only those based on the
             same IDCTAB will be appended.

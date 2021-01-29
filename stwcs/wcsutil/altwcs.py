@@ -64,7 +64,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         to get a key from WCSNAME value
     wcsname : string
         Name of alternate WCS description
-    reusekey : boolean
+    reusekey : bool
         if True - overwrites a WCS with the same key
 
     Examples

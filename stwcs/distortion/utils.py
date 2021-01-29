@@ -23,7 +23,7 @@ def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
              is used as a reference
     outwcs:  an HSTWCS object
              the tangent plane defined by this object is used as a reference
-    undistort: boolean (default-True)
+    undistort: bool (default-True)
               a flag whether to create an undistorted output WCS
     """
     fra_dec = np.vstack([w.calc_footprint() for w in list_of_wcsobj])

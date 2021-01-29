@@ -31,7 +31,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
               Can be a list of integers or tuples representing FITS extensions
     extname: string
               the value of the EXTNAME keyword for the extensions to be used in the mosaic
-    undistort: boolean (default: True)
+    undistort: bool (default: True)
                undistort (or not) the output WCS
     wkey:   string
               default: 'V'
@@ -44,7 +44,7 @@ def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort
     plot:   boolean
               if True and matplotlib is installed will make a plot of the tangent plane
               and the location of the input observations.
-    clobber: boolean
+    clobber: bool
               This covers the case when an alternate WCS with the requested key
               already exists in the header of the input files.
               if clobber is True, it will be overwritten
