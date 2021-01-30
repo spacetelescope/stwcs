@@ -224,7 +224,7 @@ class AstrometryDB(object):
         # Determine what WCSs to append to this observation
         # If headerlet found in database, update file with all new WCS solutions
         # according to the 'all_wcs' parameter
-        num_appended = 0
+        apriori_added = False
         if not self.new_observation:
             # Attach new unique hdrlets to file...
             logger.info("Updating {} with:".format(observationID))
@@ -233,8 +233,8 @@ class AstrometryDB(object):
                 # Only append the WCS from the database if `all_wcs` was turned on,
                 # or the WCS was based on the same IDCTAB as in the image header.
                 append_wcs = True if ((idcroot in newname) or all_wcs or newname == 'OPUS') else False
-                if append_wcs and newname != 'OPUS':
-                    num_appended += 1
+                if append_wcs and (idcroot in newname):
+                    apriori_added = True
 
                 # Check to see whether this WCS has already been appended or
                 # if it was never intended to be appended.  If so, skip it.
@@ -256,7 +256,7 @@ class AstrometryDB(object):
         # However, if no database-provided headerlet was applicable, we need to
         # compute a new a priori WCS based on the IDCTAB from the observation header.
         # This will also re-define the 'best_solution_id'.
-        if num_appended == 0:
+        if not apriori_added:
             # No headerlets were appended from the database, so we need to define
             # a new a priori solution and apply it as the new 'best_solution_id'
             self.apply_new_apriori(obsname)
@@ -498,7 +498,7 @@ class AstrometryDB(object):
         # which was used to compute the offsets
         updatehdr.updatewcs_with_shift(obsname, pix_offsets['expwcs'],
                                        hdrname=hfilename,
-                                       wcsname=wname, reusename=False,
+                                       wcsname=wname, reusename=True,
                                        fitgeom='rscale', rot=0.0, scale=1.0,
                                        xsh=pix_offsets['delta_x'],
                                        ysh=pix_offsets['delta_y'],
@@ -522,6 +522,9 @@ class AstrometryDB(object):
                                                    mode=altwcs.ArchiveMode.QUIET_ABORT)
                 logger.info('Archived {} in {}'.format(wname, sci_ext))
 
+        # Get updated list of headerlet names
+        hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
+        hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
         if wname not in hlet_names:
             newhlt += 1
             descrip = "A Priori WCS based on ICRS guide star positions"
