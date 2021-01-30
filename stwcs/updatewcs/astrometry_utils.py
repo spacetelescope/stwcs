@@ -238,15 +238,16 @@ class AstrometryDB(object):
 
                 # Check to see whether this WCS has already been appended or
                 # if it was never intended to be appended.  If so, skip it.
-                if (newname in wcsnames and append_wcs) or not append_wcs:
+                if newname in wcsnames:
                     continue  # do not add duplicate hdrlets
                 # Add solution as an alternate WCS
-                try:
-                    logger.info("\tHeaderlet with WCSNAME={}".format(
-                                newname))
-                    headerlets[h].attach_to_file(obsname)
-                except ValueError:
-                    pass
+                if append_wcs:
+                    try:
+                        logger.info("\tHeaderlet with WCSNAME={}".format(
+                                    newname))
+                        headerlets[h].attach_to_file(obsname)
+                    except ValueError:
+                        pass
 
         # Obtain the current primary WCS name
         current_wcsname = obsname[('sci', 1)].header['wcsname']
@@ -431,121 +432,6 @@ class AstrometryDB(object):
 
             return headerlets, best_solution_id
 
-    def find_gsc_offset(self, obsname, refframe="ICRS"):
-        """Find the GSC to GAIA offset based on guide star coordinates
-
-        Parameters
-        ----------
-        obsname : str
-            Full filename or `astropy.io.fits.HDUList` object of
-            image to be processed.
-
-        refframe : str
-            Reference frame for the guide star coordinates.
-            Supported options: GSC1, ICRS(default)
-
-        NOTES
-        ------
-        The default transform is GSC2-GAIA. The options were primarily for transforming
-        individual objects from the catalogs and that is not specified in the limited
-        documentation. The ipppssoot input is a special case where it pulls the gsids,
-        epoch and refframe from the dms databases and overrides the transform using this logic::
-
-            REFFRAME=GSC1 sets GSC1-GAIA
-            REFFRAME=ICRS and EPOCH < 2017.75 sets GSC2-GAIA
-            REFFRAME=ICRS and EPOCH > 2017.75 sets no-offset since it's already in GAIA frame
-
-        Returns
-        -------
-        deltas : dictionary
-            Dict of offset, roll and scale in decimal degrees and pixels for image
-            based on correction to guide star coordinates relative to GAIA.
-            Keys: delta_x, delta_y, delta_ra, delta_dec, roll, scale, expwcs, catalog
-        """
-        # check to see whether any URL has been specified as an
-        # environmental variable.
-        if gsss_url_envvar in os.environ:
-            gsss_serviceLocation = os.environ[gsss_url_envvar]
-        else:
-            gsss_serviceLocation = gsss_url
-
-        # Initialize variables for cases where no offsets are available.
-        delta_ra = delta_dec = None
-        delta_roll = delta_scale = None
-
-        if 'rootname' in obsname[0].header:
-            ippssoot = obsname[0].header['rootname'].upper()
-        else:
-            ippssoot = fileutil.buildNewRootname(obsname).upper()
-
-        # Define what service needs to be used to get the offsets
-        serviceType = "GSCConvert/GSCconvert.aspx"
-        spec_str = "REFFRAME=ICRS&IPPPSSOOT={}"
-        spec = spec_str.format(ippssoot)
-        serviceUrl = "{}/{}?{}".format(gsss_serviceLocation, serviceType, spec)
-        rawcat = requests.get(serviceUrl)
-        if not rawcat.ok:
-            logger.info("Problem accessing service with:\n{}".format(serviceUrl))
-            raise ValueError
-
-        if rawcat.status_code == requests.codes.ok:
-            logger.info("gsReference service retrieved {}".format(ippssoot))
-            refXMLtree = etree.fromstring(rawcat.content)
-
-            delta_ra = float(refXMLtree.findtext('deltaRA'))
-            delta_dec = float(refXMLtree.findtext('deltaDEC'))
-            delta_roll = float(refXMLtree.findtext('deltaROLL'))
-            delta_scale = float(refXMLtree.findtext('deltaSCALE'))
-            dGSinputRA = float(refXMLtree.findtext('dGSinputRA'))
-            dGSinputDEC = float(refXMLtree.findtext('dGSinputDEC'))
-            dGSoutputRA = float(refXMLtree.findtext('dGSoutputRA'))
-            dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
-            outputCatalog = refXMLtree.findtext('outputCatalog')
-
-        # Use GS coordinate as reference point
-        old_gs = (dGSinputRA, dGSinputDEC)
-        new_gs = (dGSoutputRA, dGSoutputDEC)
-
-        expwcs = build_reference_wcs(obsname)
-
-        if delta_ra != 0.0 and delta_dec != 0.0:
-            # Compute tangent plane for this observation
-            wcsframe = expwcs.wcs.radesys.lower()
-
-            # Use WCS to compute offset in pixels of shift applied to WCS Reference pixel
-            # RA,Dec of ref pixel in decimal degrees
-            crval = SkyCoord(expwcs.wcs.crval[0], expwcs.wcs.crval[1],
-                             unit='deg', frame=wcsframe)
-
-            # Define SkyCoord for Guide Star using old/original coordinates used to
-            # originally compute WCS for exposure
-            old_gs_coord = SkyCoord(old_gs[0], old_gs[1], unit='deg', frame=wcsframe)
-            sof_old = old_gs_coord.skyoffset_frame()
-            # Define new SkyOffsetFrame based on new GS coords
-            new_gs_coord = SkyCoord(new_gs[0], new_gs[1], unit='deg',
-                               frame=wcsframe)
-            # Determine offset from old GS position to the new GS position
-            sof_new = new_gs_coord.transform_to(sof_old)
-            # Compute new CRVAL position as old CRVAL+GS offset (sof_new)
-            new_crval_coord = SkyCoord(sof_new.lon.arcsec, sof_new.lat.arcsec,
-                                 unit='arcsecond',
-                                 frame=crval.skyoffset_frame())
-            # Return RA/Dec for new/updated CRVAL position
-            new_crval = new_crval_coord.icrs
-
-            # Compute offset in pixels for new CRVAL
-            newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
-            deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
-
-        else:
-            deltaxy = (0., 0.)
-
-        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-                   'roll': delta_roll, 'scale': delta_scale,
-                   'delta_ra': delta_ra, 'delta_dec': delta_dec,
-                   'expwcs': expwcs, 'catalog': outputCatalog}
-
-        return offsets
 
     def apply_new_apriori(self, obsname):
         """ Compute and apply a new a priori WCS based on offsets from astrometry database.
@@ -595,7 +481,7 @@ class AstrometryDB(object):
         # Get guide star offsets from DB
         # Getting observationID (rootname) from header to avoid
         # potential issues with actual filename being changed
-        pix_offsets = self.find_gsc_offset(obsname)
+        pix_offsets = find_gsc_offset(obsname)
 
         # Determine rootname for IDCTAB
         idctab = obsname[0].header['IDCTAB']
@@ -709,6 +595,126 @@ class AstrometryDB(object):
             if self.raise_errors:
                 raise ConnectionError from err
 
+#
+# Supporting functions
+#
+def find_gsc_offset(obsname, refframe="ICRS"):
+    """Find the GSC to GAIA offset based on guide star coordinates
+
+    Parameters
+    ----------
+    obsname : str
+        Full filename or `astropy.io.fits.HDUList` object of
+        image to be processed.
+
+    refframe : str
+        Reference frame for the guide star coordinates.
+        Supported options: GSC1, ICRS(default)
+
+    NOTES
+    ------
+    The default transform is GSC2-GAIA. The options were primarily for transforming
+    individual objects from the catalogs and that is not specified in the limited
+    documentation. The ipppssoot input is a special case where it pulls the gsids,
+    epoch and refframe from the dms databases and overrides the transform using this logic::
+
+        REFFRAME=GSC1 sets GSC1-GAIA
+        REFFRAME=ICRS and EPOCH < 2017.75 sets GSC2-GAIA
+        REFFRAME=ICRS and EPOCH > 2017.75 sets no-offset since it's already in GAIA frame
+
+    Returns
+    -------
+    deltas : dict
+        Dict of offset, roll and scale in decimal degrees and pixels for image
+        based on correction to guide star coordinates relative to GAIA.
+        Keys: delta_x, delta_y, delta_ra, delta_dec, roll, scale, expwcs, catalog
+    """
+    # check to see whether any URL has been specified as an
+    # environmental variable.
+    if gsss_url_envvar in os.environ:
+        gsss_serviceLocation = os.environ[gsss_url_envvar]
+    else:
+        gsss_serviceLocation = gsss_url
+
+    # Initialize variables for cases where no offsets are available.
+    delta_ra = delta_dec = None
+    delta_roll = delta_scale = None
+
+    if 'rootname' in obsname[0].header:
+        ippssoot = obsname[0].header['rootname'].upper()
+    else:
+        ippssoot = fileutil.buildNewRootname(obsname).upper()
+
+    # Define what service needs to be used to get the offsets
+    serviceType = "GSCConvert/GSCconvert.aspx"
+    spec_str = "REFFRAME=ICRS&IPPPSSOOT={}"
+    spec = spec_str.format(ippssoot)
+    serviceUrl = "{}/{}?{}".format(gsss_serviceLocation, serviceType, spec)
+    rawcat = requests.get(serviceUrl)
+    if not rawcat.ok:
+        logger.info("Problem accessing service with:\n{}".format(serviceUrl))
+        raise ValueError
+
+    if rawcat.status_code == requests.codes.ok:
+        logger.info("gsReference service retrieved {}".format(ippssoot))
+        refXMLtree = etree.fromstring(rawcat.content)
+
+        delta_ra = float(refXMLtree.findtext('deltaRA'))
+        delta_dec = float(refXMLtree.findtext('deltaDEC'))
+        delta_roll = float(refXMLtree.findtext('deltaROLL'))
+        delta_scale = float(refXMLtree.findtext('deltaSCALE'))
+        dGSinputRA = float(refXMLtree.findtext('dGSinputRA'))
+        dGSinputDEC = float(refXMLtree.findtext('dGSinputDEC'))
+        dGSoutputRA = float(refXMLtree.findtext('dGSoutputRA'))
+        dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
+        outputCatalog = refXMLtree.findtext('outputCatalog')
+
+    # Use GS coordinate as reference point
+    old_gs = (dGSinputRA, dGSinputDEC)
+    new_gs = (dGSoutputRA, dGSoutputDEC)
+
+    expwcs = build_reference_wcs(obsname)
+
+    if delta_ra != 0.0 and delta_dec != 0.0:
+        # Compute tangent plane for this observation
+        wcsframe = expwcs.wcs.radesys.lower()
+
+        # Use WCS to compute offset in pixels of shift applied to WCS Reference pixel
+        # RA,Dec of ref pixel in decimal degrees
+        crval = SkyCoord(expwcs.wcs.crval[0], expwcs.wcs.crval[1],
+                         unit='deg', frame=wcsframe)
+
+        # Define SkyCoord for Guide Star using old/original coordinates used to
+        # originally compute WCS for exposure
+        old_gs_coord = SkyCoord(old_gs[0], old_gs[1], unit='deg', frame=wcsframe)
+        sof_old = old_gs_coord.skyoffset_frame()
+        # Define new SkyOffsetFrame based on new GS coords
+        new_gs_coord = SkyCoord(new_gs[0], new_gs[1], unit='deg',
+                           frame=wcsframe)
+        # Determine offset from old GS position to the new GS position
+        sof_new = new_gs_coord.transform_to(sof_old)
+        # Compute new CRVAL position as old CRVAL+GS offset (sof_new)
+        new_crval_coord = SkyCoord(sof_new.lon.arcsec, sof_new.lat.arcsec,
+                             unit='arcsecond',
+                             frame=crval.skyoffset_frame())
+        # Return RA/Dec for new/updated CRVAL position
+        new_crval = new_crval_coord.icrs
+
+        # Compute offset in pixels for new CRVAL
+        newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
+        deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
+
+    else:
+        deltaxy = (0., 0.)
+
+    offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
+               'roll': delta_roll, 'scale': delta_scale,
+               'delta_ra': delta_ra, 'delta_dec': delta_dec,
+               'expwcs': expwcs, 'catalog': outputCatalog}
+
+    return offsets
+
+
 
 def build_reference_wcs(input, sciname='sci'):
     """Create the reference WCS based on all the inputs for a field
@@ -716,7 +722,7 @@ def build_reference_wcs(input, sciname='sci'):
     Parameters
     -----------
     input : str or `astropy.io.fits.HDUList` object
-        Full filename or
+        Full filename or `fits.HDUList` object
          of observation to use in building a tangent plane WCS
 
     sciname : str
