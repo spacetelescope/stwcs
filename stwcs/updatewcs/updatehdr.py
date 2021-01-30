@@ -1,8 +1,5 @@
 """
-
-:Authors: Warren Hack, Mihai Cara
-
-:License: :doc:`LICENSE`
+updatehdr - Module for applying corrections to the WCS solution in the FITS headers.
 
 """
 import sys
@@ -12,14 +9,11 @@ import atexit
 from astropy.io import fits
 import numpy as np
 
-from astropy import wcs as pywcs
+from astropy import wcs
 
 from stsci.tools import fileutil
 from .. import wcsutil
 from ..wcsutil import wcscorr, altwcs
-
-__version__ = '0.4.0'
-__version_date__ = '13-July-2020'
 
 
 wcs_keys = ['CRVAL1', 'CRVAL2', 'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2',
@@ -326,8 +320,8 @@ def updatewcs_with_shift(image, reference, hdrname="",
                          verbose=False, force=False, sciext='SCI'):
     """
     Update the SCI headers in 'image' based on the fit provided as determined
-    in the WCS specified by 'reference'.  The fit should be a 2-D matrix as
-    generated for use with 'make_vector_plot()'.
+    in the WCS specified by 'reference'.  The fit should be a 2-D matrix or
+    can be specified as separate 'xsh', 'ysh', 'rot' and 'scale' terms.
 
     Notes
     -----
@@ -374,63 +368,54 @@ def updatewcs_with_shift(image, reference, hdrname="",
         Label to give to new WCS solution being created by this fit. If
         a value of None is given, it will automatically use 'TWEAK' as the
         label.
-        [Default =None]
 
     reusename : bool
         User can specify whether or not to over-write WCS with same name.
-        [Default: False]
 
     rot : float
         Amount of rotation measured in fit to be applied.
-        [Default=0.0]
 
     scale : float
         Amount of scale change measured in fit to be applied.
-        [Default=1.0]
 
     xsh : float
         Offset in X pixels from defined tangent plane to be applied to image.
-        [Default=0.0]
 
     ysh : float
         Offset in Y pixels from defined tangent plane to be applied to image.
-        [Default=0.0]
 
     fit : arr
         Linear coefficients for fit
-        [Default = None]
 
     xrms : float
         RMS of fit in RA (in decimal degrees) that will be recorded as
         CRDER1 in WCS and header
-        [Default = None]
 
     yrms : float
         RMS of fit in Dec (in decimal degrees) that will be recorded as
         CRDER2 in WCS and header
-        [Default = None]
 
     verbose : bool
         Print extra messages during processing? [Default=False]
 
     force : bool
         Update header even though WCS already exists with this solution or
-        wcsname? [Default=False]
+        wcsname?
 
     sciext : string
         Value of FITS EXTNAME keyword for extensions with WCS headers to
-        be updated with the fit values. [Default='SCI']
+        be updated with the fit values.
 
     """
     # if input reference is a ref_wcs file from tweakshifts, use it
-    if isinstance(reference, wcsutil.HSTWCS) or isinstance(reference, pywcs.WCS):
+    if isinstance(reference, wcsutil.HSTWCS) or isinstance(reference, wcs.WCS):
         wref = reference
     else:
         refimg = fits.open(reference, memmap=False)
         wref = None
         for extn in refimg:
             if 'extname' in extn.header and extn.header['extname'] == 'WCS':
-                wref = pywcs.WCS(refimg['wcs'].header)
+                wref = wcs.WCS(refimg['wcs'].header)
                 break
         refimg.close()
         # else, we have presumably been provided a full undistorted image
