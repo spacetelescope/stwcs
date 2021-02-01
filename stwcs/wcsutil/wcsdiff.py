@@ -26,7 +26,7 @@ def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
              alternate WCS key in scifile
     file2key: string
              alternate WCS key in file2
-    verbose: boolean
+    verbose: bool
              True: print to stdout
 
     Notes
