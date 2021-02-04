@@ -647,6 +647,9 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         based on correction to guide star coordinates relative to GAIA.
         Keys: delta_x, delta_y, delta_ra, delta_dec, roll, scale, expwcs, catalog
     """
+    if isinstance(obsname, str):
+        obsname = fits.open(obsname)
+
     # check to see whether any URL has been specified as an
     # environmental variable.
     if gsss_url_envvar in os.environ:
