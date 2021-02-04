@@ -160,7 +160,7 @@ class AstrometryDB(object):
         self.new_observation = False
         self.deltas = None
 
-    def updateObs(self, obsname, all_wcs=False):
+    def updateObs(self, obsname, all_wcs=False, remove_duplicates=True):
         """Update observation with any available solutions.
 
         Parameters
@@ -173,6 +173,11 @@ class AstrometryDB(object):
             are appended to the input file as separate FITS
             extensions.  If False, only those solutions based on the
             same IDCTAB will be appended.
+
+        remove_duplicates : bool
+            If True, any headerlet extensions with the same
+            HDRNAME are found, the copies will
+            be deleted until only the first version added remains.
         """
         if not self.perform_step:
             return
@@ -180,13 +185,14 @@ class AstrometryDB(object):
         obs_open = False
         # User provided only an input filename, so open in 'update' mode
         if isinstance(obsname, str):
-            obsname = fits.open(obsname, mode='update')
+            obsfile = obsname
+            obsname = fits.open(obsfile, mode='update')
             obs_open = True
         elif isinstance(obsname, fits.HDUList):
+            obsfile = obsname.filename()
             # User provided an HDUList - make sure it is opened in 'update' mode
             if obsname.fileinfo(0)['filemode'] != 'update':
                 # Not opened in 'update' mode, so close and re-open
-                obsfile = obsname.filename()
                 obsname.close()
                 logger.info("Opening {} in 'update' mode to append new WCSs".format(obsfile))
                 obsname = fits.open(obsfile, mode='update')
@@ -248,6 +254,15 @@ class AstrometryDB(object):
                         headerlets[h].attach_to_file(obsname)
                     except ValueError:
                         pass
+
+        if remove_duplicates:
+            hdrnames = headerlet.get_headerlet_kw_names(obsname, kw='HDRNAME')
+            hdrname_set = set(hdrnames)
+            if len(hdrnames) > len(hdrname_set):
+                for hname in hdrname_set:
+                    if hdrnames.count(hname) > 1:
+                        headerlet.delete_headerlet([obsname], hdrname=hname,
+                                                    delete_all=False)
 
         # Obtain the current primary WCS name
         current_wcsname = obsname[('sci', 1)].header['wcsname']

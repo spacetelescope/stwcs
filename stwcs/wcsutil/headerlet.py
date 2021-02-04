@@ -1248,7 +1248,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
 
 @with_logging
 def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                     logging=False, logmode='w'):
+                     delete_all=False, logging=False, logmode='w'):
     """
     Deletes HeaderletHDU(s) with same HDRNAME from science files
 
@@ -1274,6 +1274,9 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
+    delete_all: bool
+        enable deletion of all headerlet extensions with the specified hdrname
+        or distname.  If False, all but the first one found will be deleted.
     logging: bool
              enable file logging
     logmode: 'a' or 'w'
@@ -1284,11 +1287,12 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     for f in filename:
         print("Deleting Headerlet from ", f)
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
-                                 distname=distname, logging=logging, logmode='a')
+                                 distname=distname, delete_all=delete_all,
+                                 logging=logging, logmode='a')
 
 
 def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                             logging=False, logmode='w'):
+                             delete_all=False, logging=False, logmode='w'):
     """
     Deletes HeaderletHDU(s) from a SINGLE science file
 
@@ -1313,6 +1317,9 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
+    delete_all: bool
+        enable deletion of all headerlet extensions with the specified hdrname
+        or distname.  If False, all but the first duplicate extension will be deleted.
     logging: bool
              enable file logging
     logmode: 'a' or 'w'
@@ -1344,7 +1351,10 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     wcscorr.delete_wcscorr_row(fobj['WCSCORR'].data, selections)
 
     # delete the headerlet extension now
-    for hdrind in hdrlet_ind:
+    hdrlet_ind.reverse()
+    del_all = 0 if delete_all else 1
+    del_hdrlets = slice(0, len(hdrlet_ind) - del_all)
+    for hdrind in hdrlet_ind[del_hdrlets]:
         del fobj[hdrind]
 
     utils.updateNEXTENDKw(fobj)
