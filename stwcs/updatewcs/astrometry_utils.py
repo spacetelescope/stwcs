@@ -256,14 +256,10 @@ class AstrometryDB(object):
                         pass
 
         if remove_duplicates:
-            hdrnames = headerlet.get_headerlet_kw_names(obsname, kw='HDRNAME')
-            hdrname_set = set(hdrnames)
-            if len(hdrnames) > len(hdrname_set):
-                for hname in hdrname_set:
-                    if hdrnames.count(hname) > 1:
-                        headerlet.delete_headerlet([obsname], hdrname=hname,
-                                                    delete_all=False)
-            logger.warn(f"Duplicate headerlet with 'HDRNAME'='{hname}' found. Duplicate headerlets have been removed.")
+            hdr_kw = headerlet.get_headerlet_kw_names(obsname, kw='HDRNAME')
+            for hname in [kwd for kwd in set(hdr_kw) if hdr_kw.count(kwd) > 1]:
+                headerlet.delete_headerlet([obsname], hdrname=hname, delete_all=False)
+                logger.warn(f"Duplicate headerlet with 'HDRNAME'='{hname}' found. Duplicate headerlets have been removed.")
 
         # Obtain the current primary WCS name
         current_wcsname = obsname[('sci', 1)].header['wcsname']
