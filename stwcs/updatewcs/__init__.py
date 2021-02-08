@@ -82,7 +82,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               to the file.  If True, all solutions get appended.  If False,
               only solutions based on the IDCTAB from the file's PRIMARY
               header will be appended.
-    remove_duplicates : bool
+    remove_duplicates : bool, optional
               This parameter only gets used if ``use_db=True`` to remove any
               duplicate headerlet extensions.  These extensions contain WCS
               solutions that are identical to the WCS found in other
