@@ -8,6 +8,9 @@
    WCSs appended to the file to only those based on the same IDCTAB as
    specified in the image header. [#170]
 
+ - Add new parameter to ``updatewcs`` to specify whether or not to
+   remove duplicate headerlet extensions from the FITS file when updating
+   the image using the astrometry database. [#172]
 
 1.6.1 (2020-12-09)
 ------------------

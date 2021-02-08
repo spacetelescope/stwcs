@@ -30,7 +30,8 @@ atexit.register(logging.shutdown)
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs")
 
 def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
-              checkfiles=True, verbose=False, use_db=True, all_wcs=False):
+              checkfiles=True, verbose=False, use_db=True,
+              all_wcs=False, remove_duplicates=True):
     """
 
     Updates HST science files with the best available calibration information.
@@ -39,6 +40,9 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
     Basic WCS keywords are updated in the process and new keywords (following WCS
     Paper IV and the SIP convention) as well as new extensions are added to the science files.
+    Duplicate HeaderletHDU extensions (each containing a separate WCS) can also be deleted
+    from the file as well.  These duplicates generally are unintended, but if left in place,
+    they can cause an Exception to be thrown when the user works with these extensions later.
 
 
     Examples
@@ -75,13 +79,17 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               If True, attempt to add astrometric solutions from the
               MAST astrometry database.
               Default value is True.
-
     all_wcs : bool
               This parameter only gets used if `use_db=True` to control
               what WCS solutions from the Astrometry database gets appended
               to the file.  If True, all solutions get appended.  If False,
               only solutions based on the IDCTAB from the file's PRIMARY
               header will be appended.
+    remove_duplicates : bool, optional
+              This parameter only gets used if ``use_db=True`` to remove any
+              duplicate headerlet extensions.  These extensions contain WCS
+              solutions that are identical to the WCS found in other
+              extensions of the image.
     """
     if not verbose:
         logger.setLevel(100)
@@ -143,7 +151,8 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         if use_db:
             # Add any new astrometry solutions available from
             #  an accessible astrometry web-service
-            astrometry.updateObs(f, all_wcs=all_wcs)
+            astrometry.updateObs(f, all_wcs=all_wcs,
+                                    remove_duplicates=remove_duplicates)
 
         if toclose:
             f.close()

@@ -160,7 +160,7 @@ class AstrometryDB(object):
         self.new_observation = False
         self.deltas = None
 
-    def updateObs(self, obsname, all_wcs=False):
+    def updateObs(self, obsname, all_wcs=False, remove_duplicates=True):
         """Update observation with any available solutions.
 
         Parameters
@@ -173,6 +173,11 @@ class AstrometryDB(object):
             are appended to the input file as separate FITS
             extensions.  If False, only those solutions based on the
             same IDCTAB will be appended.
+
+        remove_duplicates : bool
+            If True, any headerlet extensions with the same
+            HDRNAME are found, the copies will
+            be deleted until only the first version added remains.
         """
         if not self.perform_step:
             return
@@ -180,13 +185,14 @@ class AstrometryDB(object):
         obs_open = False
         # User provided only an input filename, so open in 'update' mode
         if isinstance(obsname, str):
-            obsname = fits.open(obsname, mode='update')
+            obsfile = obsname
+            obsname = fits.open(obsfile, mode='update')
             obs_open = True
         elif isinstance(obsname, fits.HDUList):
+            obsfile = obsname.filename()
             # User provided an HDUList - make sure it is opened in 'update' mode
             if obsname.fileinfo(0)['filemode'] != 'update':
                 # Not opened in 'update' mode, so close and re-open
-                obsfile = obsname.filename()
                 obsname.close()
                 logger.info("Opening {} in 'update' mode to append new WCSs".format(obsfile))
                 obsname = fits.open(obsfile, mode='update')
@@ -248,6 +254,13 @@ class AstrometryDB(object):
                         headerlets[h].attach_to_file(obsname)
                     except ValueError:
                         pass
+
+        if remove_duplicates:
+            hdr_kw = headerlet.get_headerlet_kw_names(obsname, kw='HDRNAME')
+            for hname in [kwd for kwd in set(hdr_kw) if hdr_kw.count(kwd) > 1]:
+                headerlet.delete_headerlet([obsname], hdrname=hname, keep_first=True)
+                logger.warn(f"Duplicate headerlet with 'HDRNAME'='{hname}' found.")
+                logger.warn("Duplicate headerlets have been removed.")
 
         # Obtain the current primary WCS name
         current_wcsname = obsname[('sci', 1)].header['wcsname']
@@ -487,7 +500,10 @@ class AstrometryDB(object):
         idctab = obsname[0].header['IDCTAB']
         idcroot = os.path.basename(fileutil.osfn(idctab)).split('_')[0]
         # Create WCSNAME for this new a priori WCS
-        wname = 'IDC_{}-{}'.format(idcroot, pix_offsets['catalog'])
+        if pix_offsets['catalog']:
+            wname = 'IDC_{}-{}'.format(idcroot, pix_offsets['catalog'])
+        else:
+            wname = 'IDC_{}'.format(idcroot)
         # Compute and add new solution if it is not already an alternate WCS
         # Save this new WCS as a headerlet extension and separate headerlet file
         hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
@@ -607,7 +623,7 @@ def find_gsc_offset(obsname, refframe="ICRS"):
     Parameters
     ----------
     obsname : str
-        Full filename or `astropy.io.fits.HDUList` object of
+        Full filename or (preferably)`astropy.io.fits.HDUList` object of
         image to be processed.
 
     refframe : str
@@ -640,8 +656,18 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         gsss_serviceLocation = gsss_url
 
     # Initialize variables for cases where no offsets are available.
-    delta_ra = delta_dec = None
-    delta_roll = delta_scale = None
+    delta_ra = delta_dec = 0.0
+    delta_roll = 0.0
+    delta_scale = 1.0
+    dGSinputRA = dGSoutputRA = 0.0
+    dGSinputDEC = dGSoutputDEC = 0.0
+    outputCatalog = None
+
+    # Insure input is a fits.HDUList object, if originally provided as a filename(str)
+    close_obj = False
+    if isinstance(obsname, str):
+        obsname = fits.open(obsname)
+        close_obj = True
 
     if 'rootname' in obsname[0].header:
         ippssoot = obsname[0].header['rootname'].upper()
@@ -650,13 +676,13 @@ def find_gsc_offset(obsname, refframe="ICRS"):
 
     # Define what service needs to be used to get the offsets
     serviceType = "GSCConvert/GSCconvert.aspx"
-    spec_str = "REFFRAME=ICRS&IPPPSSOOT={}"
-    spec = spec_str.format(ippssoot)
+    spec_str = "REFFRAME={}&IPPPSSOOT={}"
+    spec = spec_str.format(refframe, ippssoot)
     serviceUrl = "{}/{}?{}".format(gsss_serviceLocation, serviceType, spec)
     rawcat = requests.get(serviceUrl)
     if not rawcat.ok:
-        logger.info("Problem accessing service with:\n{}".format(serviceUrl))
-        raise ValueError
+        logger.warning("Problem accessing service with:\n{}".format(serviceUrl))
+        logger.warning("  No offset found! ")
 
     if rawcat.status_code == requests.codes.ok:
         logger.info("gsReference service retrieved {}".format(ippssoot))
@@ -714,6 +740,8 @@ def find_gsc_offset(obsname, refframe="ICRS"):
                'roll': delta_roll, 'scale': delta_scale,
                'delta_ra': delta_ra, 'delta_dec': delta_dec,
                'expwcs': expwcs, 'catalog': outputCatalog}
+    if close_obj:
+        obsname.close()
 
     return offsets
 
