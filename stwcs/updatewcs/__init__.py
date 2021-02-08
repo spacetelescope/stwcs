@@ -84,7 +84,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               header will be appended.
     remove_duplicates : bool
               This parameter only gets used if `use_db=True` to remove any
-              duplicate headerlet extensions.   These extension contain WCS
+              duplicate headerlet extensions.  These extensions contain WCS
               solutions that are identical to the WCS found in other
               extensions of the image.  The duplications typically occur
               through errors in the code, but will cause the headerlet functions
