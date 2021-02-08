@@ -40,6 +40,9 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
 
     Basic WCS keywords are updated in the process and new keywords (following WCS
     Paper IV and the SIP convention) as well as new extensions are added to the science files.
+    Duplicate HeaderletHDU extensions (each containing a separate WCS) can also be deleted
+    from the file as well.  These duplicates generally are unintended, but if left in place,
+    they can cause an Exception to be thrown when the user works with these extensions later.
 
 
     Examples
@@ -86,9 +89,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
               This parameter only gets used if ``use_db=True`` to remove any
               duplicate headerlet extensions.  These extensions contain WCS
               solutions that are identical to the WCS found in other
-              extensions of the image.  The duplications typically occur
-              through errors in the code, but will cause the headerlet functions
-              to fail if left in place.
+              extensions of the image.
     """
     if not verbose:
         logger.setLevel(100)

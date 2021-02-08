@@ -1248,7 +1248,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
 
 @with_logging
 def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                     delete_all=False, logging=False, logmode='w'):
+                     keep_first=False, logging=False, logmode='w'):
     """
     Deletes all HeaderletHDUs with same HDRNAME from science files
 
@@ -1274,8 +1274,8 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
-    delete_all: bool, optional
-        If False, the first specified HeaderletHDU will be NOT deleted.
+    keep_first: bool, optional
+        If True, the first matching HeaderletHDU found will be NOT deleted.
     logging: bool
              enable file logging
     logmode: 'a' or 'w'
@@ -1286,19 +1286,19 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     for f in filename:
         print("Deleting Headerlet from ", f)
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
-                                 distname=distname, delete_all=delete_all,
+                                 distname=distname, keep_first=keep_first,
                                  logging=logging, logmode='a')
 
 
 def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                             delete_all=False, logging=False, logmode='w'):
+                             keep_first=True, logging=False, logmode='w'):
     """
-    Deletes HeaderletHDU(s) from a SINGLE science file
+    Deletes all matching HeaderletHDU(s) from a SINGLE science file
 
     Notes
     -----
     One of hdrname, hdrext or distname should be given.
-    If hdrname is given - delete a HeaderletHDU with a name HDRNAME from fobj.
+    If hdrname is given - delete all HeaderletHDUs with a name HDRNAME from fobj.
     If hdrext is given - delete HeaderletHDU in extension.
     If distname is given - deletes all HeaderletHDUs with a specific distortion model from fobj.
     Updates wcscorr
@@ -1316,9 +1316,8 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
-    delete_all: bool
-        enable deletion of all headerlet extensions with the specified hdrname
-        or distname.  If False, all but the first duplicate extension will be deleted.
+    keep_first: bool, optional
+        If True, all but the first duplicate extension will be deleted.
     logging: bool
              enable file logging
     logmode: 'a' or 'w'
@@ -1351,7 +1350,7 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
 
     # delete the headerlet extension now
     hdrlet_ind.reverse()
-    del_all = 0 if delete_all else 1
+    del_all = 1 if keep_first else 0
     del_hdrlets = slice(0, len(hdrlet_ind) - del_all)
     for hdrind in hdrlet_ind[del_hdrlets]:
         del fobj[hdrind]
