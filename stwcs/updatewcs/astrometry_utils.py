@@ -752,26 +752,35 @@ def build_reference_wcs(input, sciname='sci'):
 
     Parameters
     -----------
-    input : str or `astropy.io.fits.HDUList` object
+    input : str or `astropy.io.fits.HDUList` object or list
         Full filename or `fits.HDUList` object
-         of observation to use in building a tangent plane WCS
+         of the observation to use in building a tangent plane WCS.
+         If a list of filenames or HDUList objects are provided, then all
+         of them will be used to generate the reference WCS for the entire
+         field of view.
 
     sciname : str
         EXTNAME of extensions which have WCS information for the observation
 
     """
-    # start by creating a composite field-of-view for all inputs
-    wcslist = []
-    nsci = fileutil.countExtn(input)
-    for num in range(nsci):
-        extname = (sciname, num + 1)
-        if sciname == 'sci':
-            extwcs = HSTWCS(input, ext=extname)
-        else:
-            # Working with HDRLET as input and do the best we can...
-            extwcs = read_hlet_wcs(input, ext=extname)
+    # Insure that input is a list at all times.
+    # If a single filename (str) or single HDUList is provided, wrap it as a list.
+    if not isinstance(input, list) or isinstance(input, fits.HDUList):
+        input = [input]
 
-        wcslist.append(extwcs)
+    # Create a composite field-of-view for all inputs
+    wcslist = []
+    for img in input:
+        nsci = fileutil.countExtn(img)
+        for num in range(nsci):
+            extname = (sciname, num + 1)
+            if sciname == 'sci':
+                extwcs = HSTWCS(img, ext=extname)
+            else:
+                # Working with HDRLET as input and do the best we can...
+                extwcs = read_hlet_wcs(img, ext=extname)
+
+            wcslist.append(extwcs)
 
     # This default output WCS will have the same plate-scale and orientation
     # as the first chip in the list, which for WFPC2 data means the PC.
