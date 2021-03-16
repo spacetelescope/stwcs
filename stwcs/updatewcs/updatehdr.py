@@ -476,7 +476,7 @@ def updatewcs_with_shift(image, reference, hdrname="",
         # Update FITS file with newly updated WCS for this chip
         extnum = fimg.index(fimg[ext])
         update_wcs(fimg, extnum, chip_wcs, wcsname=wcsname,
-                   reusename=reusename, verbose=verbose)
+                   reusename=reusename, hdrname=hdrname, verbose=verbose)
 
     if open_image:
         fimg.close()
