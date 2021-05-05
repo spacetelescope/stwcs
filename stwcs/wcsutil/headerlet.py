@@ -2027,7 +2027,6 @@ class Headerlet(fits.HDUList):
                         hdrlet_extnames.append(hname_u)
 
                     altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
-        indx = fobj[0].header.index('imphttab')
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
             target_ext = sciext_list[i - 1]
