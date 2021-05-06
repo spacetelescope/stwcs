@@ -1,8 +1,14 @@
 1.6.2 (Unreleased)
 ------------------
+ - Modify ``updatewcs`` to insure that the distortion keywords remain
+   in the same part of the primary header as the rest of the calibration
+   reference file names. [#175]
 
-- Add support for computing new `a priori` WCS solutions when running
-  ``updatewcs``. [#170]
+ - Update ``build_reference_wcs`` to accept list of filenames as well
+   single filenames or a single ``HDUList`` object as input. [#173]
+
+ - Add support for computing new `a priori` WCS solutions when running
+   ``updatewcs``. [#170]
 
  - Add new parameter to ``updatewcs`` to limit the astrometry database
    WCSs appended to the file to only those based on the same IDCTAB as
