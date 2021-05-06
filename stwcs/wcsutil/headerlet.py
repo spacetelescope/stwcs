@@ -83,6 +83,7 @@ logger.setLevel(logging.DEBUG)
 FITS_STD_KW = ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
                'GCOUNT', 'EXTNAME', 'EXTVER', 'ORIGIN',
                'INHERIT', 'DATE', 'IRAF-TLM']
+DISTORTION_KEYWORDS = ['NPOLFILE', 'IDCTAB', 'D2IMFILE', 'SIPNAME', 'DISTNAME']
 
 DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
                         'SIPNAME', 'NPOLFILE', 'D2IMFILE', 'DESCRIP']
@@ -383,20 +384,15 @@ def update_ref_files(source, dest):
     dest :   `astropy.io.fits.Header`
     """
     logger.info("Updating reference files")
-    phdukw = {'NPOLFILE': True,
-              'IDCTAB': True,
-              'D2IMFILE': True,
-              'SIPNAME': True,
-              'DISTNAME': True}
+    phdukw = {}
 
-    for key in phdukw:
-        if key not in dest:
-            phdukw[key] = False
-            continue
-        try:
+    for key in DISTORTION_KEYWORDS:
+        if key in dest:
             dest.set(key, source[key], source.comments[key])
-        except KeyError:
+            phdukw[key] = True
+        else:
             phdukw[key] = False
+
     return phdukw
 
 
