@@ -83,6 +83,7 @@ logger.setLevel(logging.DEBUG)
 FITS_STD_KW = ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
                'GCOUNT', 'EXTNAME', 'EXTVER', 'ORIGIN',
                'INHERIT', 'DATE', 'IRAF-TLM']
+DISTORTION_KEYWORDS = ['NPOLFILE', 'IDCTAB', 'D2IMFILE', 'SIPNAME', 'DISTNAME']
 
 DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
                         'SIPNAME', 'NPOLFILE', 'D2IMFILE', 'DESCRIP']
@@ -383,21 +384,15 @@ def update_ref_files(source, dest):
     dest :   `astropy.io.fits.Header`
     """
     logger.info("Updating reference files")
-    phdukw = {'NPOLFILE': True,
-              'IDCTAB': True,
-              'D2IMFILE': True,
-              'SIPNAME': True,
-              'DISTNAME': True}
+    phdukw = {}
 
-    for key in phdukw:
-        try:
-            try:
-                del dest[key]
-            except:
-                pass
+    for key in DISTORTION_KEYWORDS:
+        if key in dest:
             dest.set(key, source[key], source.comments[key])
-        except KeyError:
+            phdukw[key] = True
+        else:
             phdukw[key] = False
+
     return phdukw
 
 
@@ -2028,7 +2023,6 @@ class Headerlet(fits.HDUList):
                         hdrlet_extnames.append(hname_u)
 
                     altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
-
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
             target_ext = sciext_list[i - 1]
@@ -2095,6 +2089,7 @@ class Headerlet(fits.HDUList):
                     numnpol = 2
 
             fobj[target_ext].header.update(priwcs[0].header)
+
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
                 whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
@@ -2115,6 +2110,7 @@ class Headerlet(fits.HDUList):
         update_versions(self[0].header, fobj[0].header)
         #refs = update_ref_files(self[0].header, fobj[0].header)
         _ = update_ref_files(self[0].header, fobj[0].header)
+
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2514,7 +2510,7 @@ class Headerlet(fits.HDUList):
         refkw = ['IDCTAB', 'NPOLFILE', 'D2IMFILE', 'SIPNAME', 'DISTNAME']
         for kw in refkw:
             try:
-                del phdu.header[kw]
+                phdu.header.set(kw, 'N/A')
             except KeyError:
                 pass
 
@@ -2554,7 +2550,7 @@ class Headerlet(fits.HDUList):
                     except KeyError:
                         pass
         try:
-            del ext.header['IDCTAB']
+            ext.header.set('IDCTAB', 'N/A')
         except KeyError:
             pass
 
@@ -2574,7 +2570,7 @@ class Headerlet(fits.HDUList):
                 del ext.header['DP%s*...' % c]
                 del ext.header[cpdis.cards[c - 1].keyword]
             del ext.header['CPERR*']
-            del ext.header['NPOLFILE']
+            ext.header.set('NPOLFILE', 'N/A')
             del ext.header['NPOLEXT']
         except KeyError:
             pass
@@ -2595,7 +2591,7 @@ class Headerlet(fits.HDUList):
                 del ext.header['D2IM%s*...' % c]
                 del ext.header[d2imdis.cards[c - 1].keyword]
             del ext.header['D2IMERR*']
-            del ext.header['D2IMFILE']
+            ext.header.set('D2IMFILE', 'N/A')
             del ext.header['D2IMEXT']
         except KeyError:
             pass
