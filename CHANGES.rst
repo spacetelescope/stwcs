@@ -1,22 +1,27 @@
 1.6.2 (Unreleased)
 ------------------
- - Modify ``updatewcs`` to insure that the distortion keywords remain
-   in the same part of the primary header as the rest of the calibration
-   reference file names. [#175]
 
- - Update ``build_reference_wcs`` to accept list of filenames as well
-   single filenames or a single ``HDUList`` object as input. [#173]
+- Fix a bug in ``stwcs.wcsutil.altwcs.archive_wcs`` due to which
+  a ``str`` type ``ext`` would raise an exception. [#177]
 
- - Add support for computing new `a priori` WCS solutions when running
-   ``updatewcs``. [#170]
+- Modify ``updatewcs`` to insure that the distortion keywords remain
+  in the same part of the primary header as the rest of the calibration
+  reference file names. [#175]
 
- - Add new parameter to ``updatewcs`` to limit the astrometry database
-   WCSs appended to the file to only those based on the same IDCTAB as
-   specified in the image header. [#170]
+- Update ``build_reference_wcs`` to accept list of filenames as well
+  single filenames or a single ``HDUList`` object as input. [#173]
 
- - Add new parameter to ``updatewcs`` to specify whether or not to
-   remove duplicate headerlet extensions from the FITS file when updating
-   the image using the astrometry database. [#172]
+- Add support for computing new `a priori` WCS solutions when running
+  ``updatewcs``. [#170]
+
+- Add new parameter to ``updatewcs`` to limit the astrometry database
+  WCSs appended to the file to only those based on the same IDCTAB as
+  specified in the image header. [#170]
+
+- Add new parameter to ``updatewcs`` to specify whether or not to
+  remove duplicate headerlet extensions from the FITS file when updating
+  the image using the astrometry database. [#172]
+
 
 1.6.1 (2020-12-09)
 ------------------
