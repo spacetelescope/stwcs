@@ -156,8 +156,8 @@ class HSTWCS(WCS):
                 phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
-            extname = ehdr.get('EXTNAME', '')
-            extnum = ehdr.get('EXTVER', None)
+            extname = ehdr.get('EXTNAME', 'PRIMARY' if ehdr is hdr0 else '')
+            extnum = ehdr.get('EXTVER', 1)
             self.extname = (extname, extnum)
         else:
             # create a default HSTWCS object
