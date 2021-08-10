@@ -1,6 +1,10 @@
 1.6.2 (Unreleased)
 ------------------
 
+- Make the code more robust when defining ``extname`` attribute of a WCS for
+  multi-extension FITS files when their primary header contains ``'EXTVER'``
+  keyword but not the ``'EXTNAME'`` keywords. [#179]
+
 - Fix a bug in ``stwcs.wcsutil.altwcs.archive_wcs`` due to which
   a ``str`` type ``ext`` would raise an exception. [#177]
 
