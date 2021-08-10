@@ -1,4 +1,4 @@
-1.6.2 (Unreleased)
+1.7.0 (2021-08-10)
 ------------------
 
 - Make the code more robust when defining ``extname`` attribute of a WCS for
