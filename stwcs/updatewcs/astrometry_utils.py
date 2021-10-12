@@ -508,7 +508,8 @@ class AstrometryDB(object):
             wname = 'IDC_{}'.format(idcroot)
         # Compute and add new solution if it is not already an alternate WCS
         # Save this new WCS as a headerlet extension and separate headerlet file
-        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+        wname_hash = hashlib.sha1(wname.encode()).hexdigest()[:6]
+        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname_hash)
         # Create full filename for headerlet:
         hfilename = "{}_hlet.fits".format(hdrname)
 
