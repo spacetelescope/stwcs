@@ -1,4 +1,4 @@
-1.7.1 (Unreleased)
+1.7.1 (2021-10-20)
 ------------------
 - Filenames for new headerlet files based on updated/new
   IDCTABs now based on hash of WCSNAME instead of WCSNAME itself. [#183]
