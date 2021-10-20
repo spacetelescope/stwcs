@@ -83,6 +83,7 @@ logger.setLevel(logging.DEBUG)
 FITS_STD_KW = ['XTENSION', 'BITPIX', 'NAXIS', 'PCOUNT',
                'GCOUNT', 'EXTNAME', 'EXTVER', 'ORIGIN',
                'INHERIT', 'DATE', 'IRAF-TLM']
+DISTORTION_KEYWORDS = ['NPOLFILE', 'IDCTAB', 'D2IMFILE', 'SIPNAME', 'DISTNAME']
 
 DEFAULT_SUMMARY_COLS = ['HDRNAME', 'WCSNAME', 'DISTNAME', 'AUTHOR', 'DATE',
                         'SIPNAME', 'NPOLFILE', 'D2IMFILE', 'DESCRIP']
@@ -254,7 +255,7 @@ def find_headerlet_HDUs(fobj, hdrext=None, hdrname=None, distname=None,
         If False, all extension indices returned if hdrext, hdrname and distname
         are all None. If True and hdrext, hdrname, and distname are all None,
         raise an Exception requiring one to be specified.
-    logging : boolean
+    logging : bool
              enable logging to a file called headerlet.log
     logmode : 'w' or 'a'
              log file open mode
@@ -383,21 +384,15 @@ def update_ref_files(source, dest):
     dest :   `astropy.io.fits.Header`
     """
     logger.info("Updating reference files")
-    phdukw = {'NPOLFILE': True,
-              'IDCTAB': True,
-              'D2IMFILE': True,
-              'SIPNAME': True,
-              'DISTNAME': True}
+    phdukw = {}
 
-    for key in phdukw:
-        try:
-            try:
-                del dest[key]
-            except:
-                pass
+    for key in DISTORTION_KEYWORDS:
+        if key in dest:
             dest.set(key, source[key], source.comments[key])
-        except KeyError:
+            phdukw[key] = True
+        else:
             phdukw[key] = False
+
     return phdukw
 
 
@@ -585,7 +580,7 @@ def extract_headerlet(filename, output, extnum=None, hdrname=None,
     clobber: bool
         If output file already exists, this parameter specifies whether or not
         to overwrite that file [Default: False]
-    logging: boolean
+    logging: bool
              enable logging to a file
 
     """
@@ -720,7 +715,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
     clobber: bool
         If output file already exists, this parameter specifies whether or not
         to overwrite that file [Default: False]
-    logging: boolean
+    logging: bool
          enable file logging
     """
 
@@ -919,7 +914,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
             Number of sources used in the new solution fit
     catalog: string (optional)
             Astrometric catalog used for headerlet solution
-    logging: boolean
+    logging: bool
             enable file logging
     logmode: 'w' or 'a'
             log file open mode
@@ -1144,15 +1139,15 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
              File name(s) of science observation whose WCS solution will be updated
     hdrlet: string or list of strings
              Headerlet file(s), must match 1-to-1 with input filename(s)
-    attach: boolean
+    attach: bool
             True (default): append headerlet to FITS file as a new extension.
-    archive: boolean
+    archive: bool
             True (default): before updating, create a headerlet with the
             WCS old solution.
-    force: boolean
+    force: bool
             If True, this will cause the headerlet to replace the current PRIMARY
             WCS even if it has a different distortion model. [Default: False]
-    logging: boolean
+    logging: bool
             enable file logging
     logmode: 'w' or 'a'
              log file open mode
@@ -1185,7 +1180,7 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
              File name(s) of science observation whose WCS solution will be updated
     hdrlet: string or list of strings
              Headerlet file(s), must match 1-to-1 with input filename(s)
-    attach: boolean
+    attach: bool
           flag indicating if the headerlet should be attached as a
           HeaderletHDU to fobj. If True checks that HDRNAME is unique
           in the fobj and stops if not.
@@ -1196,7 +1191,7 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
           Name to be assigned to this alternate WCS
           WCSNAME is a required keyword in a Headerlet but this allows the
           user to change it as desired.
-    logging: boolean
+    logging: bool
           enable file logging
     logmode: 'a' or 'w'
     """
@@ -1227,7 +1222,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
             science file(s) to which the headerlet should be applied
     hdrlet: string, Headerlet object or list of strings or Headerlet objects
             string representing a headerlet file(s), must match 1-to-1 input filename(s)
-    logging: boolean
+    logging: bool
             enable file logging
     logmode: 'a' or 'w'
     """
@@ -1248,15 +1243,15 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
 
 @with_logging
 def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                     logging=False, logmode='w'):
+                     keep_first=False, logging=False, logmode='w'):
     """
-    Deletes HeaderletHDU(s) with same HDRNAME from science files
+    Deletes all HeaderletHDUs with same HDRNAME from science files
 
     Notes
     -----
     One of hdrname, hdrext or distname should be given.
-    If hdrname is given - delete a HeaderletHDU with a name HDRNAME from fobj.
-    If hdrext is given - delete HeaderletHDU in extension.
+    If hdrname is given - delete all HeaderletHDUs with a name HDRNAME from fobj.
+    If hdrext is given - delete specified HeaderletHDU(s) extension(s).
     If distname is given - deletes all HeaderletHDUs with a specific distortion model from fobj.
     Updates wcscorr
 
@@ -1274,7 +1269,9 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
-    logging: boolean
+    keep_first: bool, optional
+        If True, the first matching HeaderletHDU found will be NOT deleted.
+    logging: bool
              enable file logging
     logmode: 'a' or 'w'
     """
@@ -1284,18 +1281,19 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     for f in filename:
         print("Deleting Headerlet from ", f)
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
-                                 distname=distname, logging=logging, logmode='a')
+                                 distname=distname, keep_first=keep_first,
+                                 logging=logging, logmode='a')
 
 
 def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
-                             logging=False, logmode='w'):
+                             keep_first=True, logging=False, logmode='w'):
     """
-    Deletes HeaderletHDU(s) from a SINGLE science file
+    Deletes all matching HeaderletHDU(s) from a SINGLE science file
 
     Notes
     -----
     One of hdrname, hdrext or distname should be given.
-    If hdrname is given - delete a HeaderletHDU with a name HDRNAME from fobj.
+    If hdrname is given - delete all HeaderletHDUs with a name HDRNAME from fobj.
     If hdrext is given - delete HeaderletHDU in extension.
     If distname is given - deletes all HeaderletHDUs with a specific distortion model from fobj.
     Updates wcscorr
@@ -1313,7 +1311,9 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         tuple has the form ('HDRLET', 1)
     distname: string or None
         distortion model as specified in the DISTNAME keyword
-    logging: boolean
+    keep_first: bool, optional
+        If True, all but the first duplicate extension will be deleted.
+    logging: bool
              enable file logging
     logmode: 'a' or 'w'
     """
@@ -1344,7 +1344,10 @@ def _delete_single_headerlet(filename, hdrname=None, hdrext=None, distname=None,
     wcscorr.delete_wcscorr_row(fobj['WCSCORR'].data, selections)
 
     # delete the headerlet extension now
-    for hdrind in hdrlet_ind:
+    hdrlet_ind.reverse()
+    del_all = 1 if keep_first else 0
+    del_hdrlets = slice(0, len(hdrlet_ind) - del_all)
+    for hdrind in hdrlet_ind[del_hdrlets]:
         del fobj[hdrind]
 
     utils.updateNEXTENDKw(fobj)
@@ -1445,16 +1448,16 @@ def restore_from_headerlet(filename, hdrname=None, hdrext=None, archive=True,
         HDRNAME keyword of HeaderletHDU
     hdrext: int or tuple
         Headerlet extension number of tuple ('HDRLET',2)
-    archive: boolean (default: True)
+    archive: bool (default: True)
         When the distortion model in the headerlet is the same as the distortion model of
         the science file, this flag indicates if the primary WCS should be saved as an alternate
         nd a headerlet extension.
         When the distortion models do not match this flag indicates if the current primary and
         alternate WCSs should be archived as headerlet extensions and alternate WCS.
-    force: boolean (default:False)
+    force: bool (default:False)
         When the distortion models of the headerlet and the primary do not match, and archive
         is False, this flag forces an update of the primary.
-    logging: boolean
+    logging: bool
            enable file logging
     logmode: 'a' or 'w'
     """
@@ -1572,11 +1575,11 @@ def restore_all_with_distname(filename, distname, primary, archive=True,
         if int - a fits extension
         if string - HDRNAME
         if None - use first HeaderletHDU
-    archive: boolean (default True)
+    archive: bool (default True)
         flag indicating if HeaderletHDUs should be created from the
         primary and alternate WCSs in fname before restoring all matching
         headerlet extensions
-    logging: boolean
+    logging: bool
          enable file logging
     logmode: 'a' or 'w'
     """
@@ -1727,7 +1730,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
             to the headerlet PRIMARY header
             If filename is specified, it will format and attach all text from
             that file as the history.
-    logging: boolean
+    logging: bool
             enable file folling
     logmode: 'w' or 'a'
              log file open mode
@@ -1784,7 +1787,7 @@ def archive_as_headerlet(filename, hdrname, sciext='SCI',
         Headerlet with hdrname %s already archived for WCS %s
         No new headerlet appended to %s .
         """ % (hdrname, wcsname, fname)
-        logger.critical(message)
+        logger.warning(message)
 
     if close_fobj:
         fobj.close()
@@ -1807,7 +1810,7 @@ class Headerlet(fits.HDUList):
                 List of HDUs to be used to create the headerlet object itself
         file:  string
                 File-like object from which HDUs should be read
-        logging: boolean
+        logging: bool
                  enable file logging
         logmode: 'w' or 'a'
                 for internal use only, indicates whether the log file
@@ -1877,11 +1880,11 @@ class Headerlet(fits.HDUList):
         ----------
         fobj: string, HDUList
               science file to which the headerlet should be applied
-        attach: boolean
+        attach: bool
               flag indicating if the headerlet should be attached as a
               HeaderletHDU to fobj. If True checks that HDRNAME is unique
               in the fobj and stops if not.
-        archive: boolean (default is True)
+        archive: bool (default is True)
               When the distortion model in the headerlet is the same as the
               distortion model of the science file, this flag indicates if
               the primary WCS should be saved as an alternate and a headerlet
@@ -1889,7 +1892,7 @@ class Headerlet(fits.HDUList):
               When the distortion models do not match this flag indicates if
               the current primary and alternate WCSs should be archived as
               headerlet extensions and alternate WCS.
-        force: boolean (default is False)
+        force: bool (default is False)
               When the distortion models of the headerlet and the primary do
               not match, and archive is False this flag forces an update
               of the primary
@@ -2020,7 +2023,6 @@ class Headerlet(fits.HDUList):
                         hdrlet_extnames.append(hname_u)
 
                     altwcs.deleteWCS(fobj, sciext_list, wcskey=wcskey, wcsname=hname)
-
         self._del_dest_WCS_ext(fobj)
         for i in range(1, numsip + 1):
             target_ext = sciext_list[i - 1]
@@ -2087,6 +2089,7 @@ class Headerlet(fits.HDUList):
                     numnpol = 2
 
             fobj[target_ext].header.update(priwcs[0].header)
+
             if sipwcs.cpdis1:
                 whdu = priwcs[('WCSDVARR', (i - 1) * numnpol + 1)].copy()
                 whdu.ver = int(self[('SIPWCS', i)].header['DP1.EXTVER'])
@@ -2107,6 +2110,7 @@ class Headerlet(fits.HDUList):
         update_versions(self[0].header, fobj[0].header)
         #refs = update_ref_files(self[0].header, fobj[0].header)
         _ = update_ref_files(self[0].header, fobj[0].header)
+
         # Update the WCSCORR table with new rows from the headerlet's WCSs
         wcscorr.update_wcscorr(fobj, self, 'SIPWCS')
 
@@ -2132,7 +2136,7 @@ class Headerlet(fits.HDUList):
         ----------
         fobj: string, HDUList
               science file/HDUList to which the headerlet should be applied
-        attach: boolean
+        attach: bool
               flag indicating if the headerlet should be attached as a
               HeaderletHDU to fobj. If True checks that HDRNAME is unique
               in the fobj and stops if not.
@@ -2454,7 +2458,7 @@ class Headerlet(fits.HDUList):
                 provide a value for DESTIM keyword
         hdrname: string (optional)
                 provide a value for HDRNAME keyword
-        clobber: boolean
+        clobber: bool
                 a flag which allows to overwrte an existing file
         """
         if not destim or not hdrname:
@@ -2506,7 +2510,7 @@ class Headerlet(fits.HDUList):
         refkw = ['IDCTAB', 'NPOLFILE', 'D2IMFILE', 'SIPNAME', 'DISTNAME']
         for kw in refkw:
             try:
-                del phdu.header[kw]
+                phdu.header.set(kw, 'N/A')
             except KeyError:
                 pass
 
@@ -2546,7 +2550,7 @@ class Headerlet(fits.HDUList):
                     except KeyError:
                         pass
         try:
-            del ext.header['IDCTAB']
+            ext.header.set('IDCTAB', 'N/A')
         except KeyError:
             pass
 
@@ -2566,7 +2570,7 @@ class Headerlet(fits.HDUList):
                 del ext.header['DP%s*...' % c]
                 del ext.header[cpdis.cards[c - 1].keyword]
             del ext.header['CPERR*']
-            del ext.header['NPOLFILE']
+            ext.header.set('NPOLFILE', 'N/A')
             del ext.header['NPOLEXT']
         except KeyError:
             pass
@@ -2587,7 +2591,7 @@ class Headerlet(fits.HDUList):
                 del ext.header['D2IM%s*...' % c]
                 del ext.header[d2imdis.cards[c - 1].keyword]
             del ext.header['D2IMERR*']
-            del ext.header['D2IMFILE']
+            ext.header.set('D2IMFILE', 'N/A')
             del ext.header['D2IMEXT']
         except KeyError:
             pass

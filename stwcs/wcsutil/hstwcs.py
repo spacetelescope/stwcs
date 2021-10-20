@@ -156,8 +156,8 @@ class HSTWCS(WCS):
                 phdu.close()
             self.setInstrSpecKw(hdr0, ehdr)
             self.readIDCCoeffs(ehdr)
-            extname = ehdr.get('EXTNAME', '')
-            extnum = ehdr.get('EXTVER', None)
+            extname = ehdr.get('EXTNAME', 'PRIMARY' if ehdr is hdr0 else '')
+            extnum = ehdr.get('EXTVER', 1)
             self.extname = (extname, extnum)
         else:
             # create a default HSTWCS object
@@ -478,7 +478,7 @@ class HSTWCS(WCS):
     @deprecated_renamed_argument('accuracy', 'tolerance', '1.6.1', arg_in_kwargs=True)
     def all_world2pix(self, *args, **kwargs):
         """
-        all_world2pix(*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
+        all_world2pix(\*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
         detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
@@ -643,22 +643,18 @@ class HSTWCS(WCS):
         [[ 1.00000233  0.99999997]
          [ 2.00000232  0.99999997]
          [ 3.00000233  0.99999998]]
-        >>> xy = w.all_world2pix(radec,1, maxiter=3, tolerance=1.0e-10,
-quiet=False)
-        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested
-accuracy after 3 iterations.
+        >>> xy = w.all_world2pix(radec,1, maxiter=3, tolerance=1.0e-10, quiet=False)
+        NoConvergence: 'HSTWCS.all_world2pix' failed to converge to requested accuracy after 3 iterations.
 
         >>>
         Now try to use some diverging data:
-        >>> divradec = w.all_pix2world([[1.0,1.0],[10000.0,50000.0],
-[3.0,1.0]],1); print(divradec)
+        >>> divradec = w.all_pix2world([[1.0,1.0],[10000.0,50000.0], [3.0,1.0]],1); print(divradec)
         [[  5.52645241 -72.05171776]
          [  7.15979392 -70.81405561]
          [  5.52653313 -72.05170814]]
 
         >>> try:
-        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, tolerance=1.0e-4,
-adaptive=False, detect_divergence=True, quiet=False)
+        >>>   xy = w.all_world2pix(divradec,1, maxiter=20, tolerance=1.0e-4, adaptive=False, detect_divergence=True, quiet=False)
         >>> except stwcs.wcsutil.hstwcs.NoConvergence as e:
         >>>   print("Indices of diverging points: {}".format(e.divergent))
         >>>   print("Indices of poorly converging points: {}".format(e.failed2converge))

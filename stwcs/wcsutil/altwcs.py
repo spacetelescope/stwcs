@@ -1,4 +1,5 @@
 import string
+from numbers import Integral
 from enum import IntFlag
 
 import numpy as np
@@ -64,7 +65,7 @@ def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
         to get a key from WCSNAME value
     wcsname : string
         Name of alternate WCS description
-    reusekey : boolean
+    reusekey : bool
         if True - overwrites a WCS with the same key
 
     Examples
@@ -186,12 +187,7 @@ def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFL
 
     # validate and interpret extension(s):
     try:
-        if isinstance(ext, list):
-            map(_validate_ext, ext)
-        else:
-            _validate_ext(ext)
-            ext = [ext]
-
+        ext = _buildExtlist(h, ext)
     except ValueError as e:
         if close_hdulist:
             h.close()
@@ -332,16 +328,6 @@ def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFL
         h.close()
 
     return wcs_id
-
-
-def _validate_ext(ext):
-    if not (isinstance(ext, int) or isinstance(ext, str) or
-            (isinstance(ext, tuple) and len(ext) == 2 and
-             isinstance(ext[0], str) and isinstance(ext[1], int))):
-        raise ValueError(
-            "'ext' must be int, str, or a tuple of the form (extname, extver), "
-            "where, extname is a string and extver is an integer number."
-        )
 
 
 def _auto_increment_wcsname(wcsname, alt_names):
@@ -643,33 +629,56 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     closefobj(fname, fobj)
 
 
-def _buildExtlist(fobj, ext):
+def _buildExtlist(fobj, ext, _single=False):
     """
     Utility function to interpret the provided value of 'ext' and return a list
     of 'valid' values which can then be used by the rest of the functions in
     this module.
 
+    .. note::
+       This function does not check that extension list contains extensions
+       that identify the same HDUs. For example, for a typical ACS/WFC image
+       it would not detect that 1 is the same as ``('SCI', 1)``.
+
     Parameters
     ----------
     fobj: HDUList
         file to be examined
-    ext:    an int, a tuple, string, list of integers or tuples (e.g.('sci',1))
-            fits extensions to work with
-            If a string is provided, it should specify the EXTNAME of extensions
-            with WCSs to be archived
+    ext: an int, a tuple, string, list of integers or tuples (e.g.('sci',1))
+        FITS extensions to work with. If a string is provided,
+        it should specify the EXTNAME of extensions with WCSs to be archived.
+    _single: bool
+        Do not allow lists of simple extensions.
+
     """
-    if not isinstance(ext, list):
+    if not _single and isinstance(ext, list):
+        ext_list = []
+        for e in ext:
+            ext_list.extend(_buildExtlist(fobj, e, _single=True))
+
+    else:
         if isinstance(ext, str):
-            extstr = ext
-            ext = []
+            ext_list = []
             for extn in range(1, len(fobj)):
-                if 'extname' in fobj[extn].header and fobj[extn].header['extname'] == extstr:
-                    ext.append(extn)
-        elif isinstance(ext, int) or isinstance(ext, tuple):
-            ext = [ext]
+                hdr = fobj[extn].header
+                if 'extname' in hdr and hdr['extname'].upper() == ext.upper():
+                    exti = (ext, hdr.get('extver', 1))
+                    ext_list.append(extn if exti in ext_list else exti)
+
+        elif isinstance(ext, Integral):
+            ext_list = [int(ext)]
+
+        elif (isinstance(ext, tuple) and len(ext) == 2 and
+              isinstance(ext[0], str) and isinstance(ext[1], Integral)):
+            ext_list = [(ext[0], int(ext[1]))]
+
         else:
-            raise KeyError("Valid extensions in 'ext' parameter need to be specified.")
-    return ext
+            raise ValueError(
+                "'ext' must be int, str, or a tuple of the form (extname, extver), "
+                "where, extname is a string and extver is an integer number."
+            )
+
+    return ext_list
 
 
 def _restore(fobj, ukey, fromextnum,
@@ -724,7 +733,7 @@ def _check_headerpars(fobj, ext):
         raise ValueError("Expected a file name, a file object or a header\n")
 
     if not isinstance(fobj, fits.Header):
-        if not isinstance(ext, int) and not isinstance(ext, tuple):
+        if not isinstance(ext, Integral) and not isinstance(ext, tuple):
             raise ValueError("Expected ext to be a number or a tuple, e.g. ('SCI', 1)\n")
 
 
@@ -1124,7 +1133,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
             print("First parameter must be a file name or a file object opened in 'update' mode.")
             return False
 
-    if not isinstance(ext, int) and not isinstance(ext, tuple) \
+    if not isinstance(ext, Integral) and not isinstance(ext, tuple) \
         and not isinstance(ext, str) \
         and not isinstance(ext, list) and ext is not None:
         print("Ext must be integer, tuple, string,a list of int extension "

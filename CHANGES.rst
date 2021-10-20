@@ -1,3 +1,38 @@
+1.7.1 (2021-10-20)
+------------------
+- Filenames for new headerlet files based on updated/new
+  IDCTABs now based on hash of WCSNAME instead of WCSNAME itself. [#183]
+
+
+1.7.0 (2021-08-10)
+------------------
+
+- Make the code more robust when defining ``extname`` attribute of a WCS for
+  multi-extension FITS files when their primary header contains ``'EXTVER'``
+  keyword but not the ``'EXTNAME'`` keywords. [#179]
+
+- Fix a bug in ``stwcs.wcsutil.altwcs.archive_wcs`` due to which
+  a ``str`` type ``ext`` would raise an exception. [#177]
+
+- Modify ``updatewcs`` to insure that the distortion keywords remain
+  in the same part of the primary header as the rest of the calibration
+  reference file names. [#175]
+
+- Update ``build_reference_wcs`` to accept list of filenames as well
+  single filenames or a single ``HDUList`` object as input. [#173]
+
+- Add support for computing new `a priori` WCS solutions when running
+  ``updatewcs``. [#170]
+
+- Add new parameter to ``updatewcs`` to limit the astrometry database
+  WCSs appended to the file to only those based on the same IDCTAB as
+  specified in the image header. [#170]
+
+- Add new parameter to ``updatewcs`` to specify whether or not to
+  remove duplicate headerlet extensions from the FITS file when updating
+  the image using the astrometry database. [#172]
+
+
 1.6.1 (2020-12-09)
 ------------------
 
