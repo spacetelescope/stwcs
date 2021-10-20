@@ -32,6 +32,7 @@ GSSS_WEBSERVICES_URL - URL point to user-specified web service which provides
 import os
 import sys
 import atexit
+import hashlib
 
 import requests
 from io import BytesIO
@@ -473,7 +474,8 @@ class AstrometryDB(object):
         hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
 
         if wname not in hlet_names:
-            hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+            wname_hash = hashlib.sha1(wname.encode()).hexdigest()[:6]
+            hdrname = "{}_{}".format(filename.replace('.fits', ''), wname_hash)
             # Create full filename for headerlet:
             hfilename = "{}_hlet.fits".format(hdrname)
             logger.info("Archiving pipeline-default WCS {} to {}".format(wname, filename))
@@ -506,7 +508,8 @@ class AstrometryDB(object):
             wname = 'IDC_{}'.format(idcroot)
         # Compute and add new solution if it is not already an alternate WCS
         # Save this new WCS as a headerlet extension and separate headerlet file
-        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname)
+        wname_hash = hashlib.sha1(wname.encode()).hexdigest()[:6]
+        hdrname = "{}_{}".format(filename.replace('.fits', ''), wname_hash)
         # Create full filename for headerlet:
         hfilename = "{}_hlet.fits".format(hdrname)
 
