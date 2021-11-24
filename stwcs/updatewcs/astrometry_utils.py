@@ -470,7 +470,6 @@ class AstrometryDB(object):
         hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
         # newly processed data will not have any hlet_extns, so we need to account for that
         newhlt = max(hlet_extns) + 1 if len(hlet_extns) > 0 else 1
-        newext = max(headerlet.find_headerlet_HDUs(obsname, strict=False))
         hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
 
         if wname not in hlet_names:
