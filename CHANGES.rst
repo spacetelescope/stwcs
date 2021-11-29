@@ -1,3 +1,12 @@
+1.7.2 (2021-11-29)
+-----------------
+
+Bug Fixes
+^^^^^^^^^
+
+- Fixed bug affecting data with no astrometry database solutions so
+  that they can now be processed successfully. [#189]
+
 1.7.1 (2021-10-20)
 ------------------
 - Filenames for new headerlet files based on updated/new
