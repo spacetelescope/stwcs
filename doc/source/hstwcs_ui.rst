@@ -50,9 +50,9 @@ of the first image pixel is (0,0).
 
 - Apply the entire detector to sky transformation at once:
 
- ``outpix=w1.all_pix2sky(inpix,1)``
+ ``outpix = w1.all_pix2world(inpix, 1)``
 
- ``outpix=w1.all_pix2sky(X, Y,1)``
+ ``outpix = w1.all_pix2world(X, Y, 1)``
 
 - The same transformation can be done in separate steps:
 
