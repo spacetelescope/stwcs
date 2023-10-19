@@ -1,2 +1,2 @@
-git+https://github.com/astropy/astropy.git
+--extra-index-url https://pypi.anaconda.org/astropy/simple astropy --pre
 git+https://github.com/spacetelescope/stsci.tools.git
