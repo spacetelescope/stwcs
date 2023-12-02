@@ -26,20 +26,20 @@ jobs:
             python-version: 3.9
             toxenv: py39
 
-          - name: Python 3.8
+          - name: Python 3.12
             runs-on: ubuntu-latest
-            python-version: 3.8
-            toxenv: py38
+            python-version: 3.12
+            toxenv: py312
 
           - name: Code style checks
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.11
             toxenv: style
 
-          - name: Python 3.8 with dev dependencies
+          - name: Python 3.11 with dev dependencies
             runs-on: ubuntu-latest
-            python-version: 3.8
-            toxenv: py38-dev
+            python-version: 3.11
+            toxenv: py311-dev
     steps:
       - uses: actions/checkout@v2
         with:
