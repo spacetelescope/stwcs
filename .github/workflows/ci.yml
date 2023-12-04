@@ -39,7 +39,7 @@ jobs:
           - name: Python 3.11 with dev dependencies
             runs-on: ubuntu-latest
             python-version: 3.11
-            toxenv: py311-dev
+            toxenv: dev
     steps:
       - uses: actions/checkout@v2
         with:
