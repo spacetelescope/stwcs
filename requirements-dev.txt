@@ -1,5 +1,6 @@
 git+https://github.com/spacetelescope/stsci.tools.git
---extra-index-url https://pypi.anaconda.org/astropy/simple astropy --pre
+
+--extra-index-url https://pypi.anaconda.org/astropy/simple https://pypi.anaconda.org/liberfa/simple https://pypi.anaconda.org/scientific-python-nightly-wheels/simple astropy --pre
 
 # Use Bi-weekly numpy/scipy dev builds
 --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
