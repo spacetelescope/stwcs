@@ -1,15 +1,30 @@
+# .readthedocs.yaml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
 version: 2
 
 sphinx:
   builder: html
   configuration: doc/source/conf.py
+  fail_on_warning: true
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: mambaforge-4.10
+
+conda:
+  environment: doc/rtd_requirements.yaml
 
 python:
-  version: 3.8
-  system_packages: true
   install:
     - method: pip
       path: .
+      extra_requirements:
+        - doc
+
 
 # Don't build any extra formats
 formats: []

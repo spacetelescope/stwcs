@@ -1,8 +1,10 @@
 import shutil
 import os
+import warnings
 
 from astropy import wcs
 from astropy.io import fits
+from astropy.wcs import FITSFixedWarning
 from .. import updatewcs
 from ..updatewcs import apply_corrections
 from ..distortion import utils as dutils
@@ -11,8 +13,9 @@ import numpy as np
 from numpy import testing
 import pytest
 
-
 from . import data
+
+
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
 os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
@@ -463,6 +466,9 @@ def test_update_stis_asn():
 
     shutil.copyfile(stis_asn_orig_file, fname)
     shutil.copyfile(idc_orig_file, idctab)
+
+    warnings.simplefilter("ignore", category=FITSFixedWarning)#,
+                          #  message=" 'datfix' made the change 'Set MJD-OBS to 50853.000000 from DATE-OBS'.")
 
     expnames = updatewcs.updatewcs(fname)
 

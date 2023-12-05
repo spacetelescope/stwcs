@@ -348,8 +348,8 @@ class CompSIP(object):
                 if n >= m and n >= 2:
                     idcval = np.array([[cx[n, m]], [cy[n, m]]])
                     sipval = np.dot(imatr, idcval)
-                    akeys1[m, n - m] = sipval[0]
-                    bkeys1[m, n - m] = sipval[1]
+                    akeys1[m, n - m] = sipval[0].item()
+                    bkeys1[m, n - m] = sipval[1].item()
                     Akey = "A_%d_%d" % (m, n - m)
                     Bkey = "B_%d_%d" % (m, n - m)
                     kw2update[Akey] = sipval[0, 0] * ext_wcs.binned, sip_comment

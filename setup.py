@@ -3,11 +3,6 @@ import sys
 from setuptools import setup, find_packages
 from configparser import ConfigParser
 
-if sys.version_info < (3, 6):
-    error = """
-    STWCS supports Python 3.6 and above.
-    """
-    sys.exit(error)
 
 conf = ConfigParser()
 conf.read(['setup.cfg'])

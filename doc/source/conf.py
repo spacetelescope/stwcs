@@ -15,6 +15,7 @@ import sys, os
 import importlib
 # Check Sphinx version
 import sphinx
+import sphinx_rtd_theme
 
 
 # If extensions (or modules to document with autodoc) are in another directory,

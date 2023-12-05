@@ -14,18 +14,19 @@ descriptions in the headers.
 
 """
 import os
+import importlib.metadata
 
 from . import distortion  # noqa
 from stsci.tools import fileutil  # noqa
 from stsci.tools import teal  # noqa
 
-from pkg_resources import get_distribution, DistributionNotFound
 
 try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
+    __version__ = importlib.metadata.version(__name__)
+
+except importlib.metadata.PackageNotFoundError:  # pragma: no cover
     # package is not installed
-    pass
+    pass  # pragma: no cover
 
 try:
     from . import gui
