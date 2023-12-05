@@ -16,7 +16,7 @@ build:
     python: mambaforge-4.10
 
 conda:
-  environment: docs/rtd_requirements.yaml
+  environment: doc/rtd_requirements.yaml
 
 python:
   install:
