@@ -6,4 +6,4 @@ dependencies:
  - astropy
  - pip
  - graphviz
-
+ - sphinx_rtd_theme>1.2.0
