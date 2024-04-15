@@ -71,7 +71,8 @@ class TestStwcs(object):
         """
         px1 = np.array([self.w1.wcs.crpix])
         rd1 = np.array([self.w1.wcs.crval])
-        assert(((self.w1.all_pix2world(px1, 1) - rd1) < 5E-7).all())
+        assert(((self.w1.wcs_pix2world(px1, 1) - rd1) < 1E-11).all())
+        assert(((self.w1.all_pix2world(px1, 1) - rd1) < 6E-7).all())
 
     def test_simple_sci2(self):
         """
@@ -79,6 +80,7 @@ class TestStwcs(object):
         """
         px4 = np.array([self.w4.wcs.crpix])
         rd4 = np.array([self.w4.wcs.crval])
+        assert(((self.w4.wcs_pix2world(px4, 1) - rd4) < 1E-11).all())
         assert(((self.w4.all_pix2world(px4, 1) - rd4) < 2E-6).all())
 
     def test_pipeline_sci1(self):
