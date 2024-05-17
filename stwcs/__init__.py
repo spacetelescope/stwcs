@@ -14,19 +14,12 @@ descriptions in the headers.
 
 """
 import os
-import importlib.metadata
 
 from . import distortion  # noqa
 from stsci.tools import fileutil  # noqa
 from stsci.tools import teal  # noqa
 
-
-try:
-    __version__ = importlib.metadata.version(__name__)
-
-except importlib.metadata.PackageNotFoundError:  # pragma: no cover
-    # package is not installed
-    pass  # pragma: no cover
+from .version import __version__
 
 try:
     from . import gui

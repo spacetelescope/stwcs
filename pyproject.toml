@@ -1,0 +1,125 @@
+[project]
+name = "stwcs"
+description = "Computes the WCS of HST images."
+authors = [
+    { name = "STScI", email = "help@stsci.edu" },
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "astropy>=5.0.4",
+    "numpy",
+    "stsci.tools>=3.6",
+    "requests",
+    "lxml",
+]
+dynamic = [
+    "version",
+]
+
+[project.urls]
+Repository = "https://github.com/spacetelescope/stwcs.git"
+Documentation = "https://stwcs.readthedocs.io"
+
+[project.readme]
+file = "README.rst"
+content-type = "text/x-rst"
+
+[project.optional-dependencies]
+docs = [
+    "sphinx",
+    "sphinx-automodapi",
+    "sphinx-rtd-theme",
+]
+test = [
+    "pytest",
+]
+
+[build-system]
+requires = [
+    "setuptools>=61.2",
+    "setuptools_scm[toml]>=3.4",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+namespaces = false
+
+[tool.setuptools.package-data]
+"stwcs.gui" = [
+    "*.help",
+]
+"stwcs.gui.pars" = [
+    "*",
+]
+"stwcs.gui.htmlhelp" = [
+    "*",
+]
+
+[tool.pytest.ini_options]
+minversion = "3.9"
+norecursedirs = [
+    "build",
+    "docs/_build",
+]
+filterwarnings = [
+    "ignore:.*Card is too long*",
+    "ignore:.*Some non-standard WCS keywords*",
+    "ignore:.*The WCS transformation has more axes*",
+    "ignore:.*Keyword name 'IDCSCALE*",
+]
+
+[tool.build_sphinx]
+builder = "html"
+warning-is-error = "1"
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "W",
+    "E101",
+    # "E111",
+    # "E112",
+    # "E113",
+    "E401",
+    "E711",
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "doc",
+    "build",
+    "dist",
+    ".tox",
+    ".eggs",
+]
+ignore = [
+    "F401",
+    "F523",
+    "F524",
+    "F541",
+    "F821",
+    "F841",
+    "W292",
+    "W391",
+    # "W504",
+    "W605",
+]
+
+[tool.distutils.bdist_wheel]
+universal = 0
+
+[tool.setuptools_scm]
+version_file = "stwcs/version.py"
