@@ -24,7 +24,7 @@ jobs:
           - name: Python 3.11
             runs-on: ubuntu-latest
             python-version: 3.11
-            toxenv: py312
+            toxenv: py311
 
           - name: Python 3.12
             runs-on: ubuntu-latest
