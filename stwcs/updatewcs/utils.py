@@ -1,5 +1,4 @@
 import os
-import string
 from stsci.tools import fileutil
 
 import logging

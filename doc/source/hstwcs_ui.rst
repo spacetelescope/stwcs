@@ -9,9 +9,13 @@ Create an HSTWCS Object
 --------------------------
 - Create an HSTWCS object using a pyfits HDUList and an extension number 
 
-  ``fobj = pyfits.open('some_file.fits')``
+  ``from astropy.io import fits``
 
-  ``w = wcsutil.HSTWCS(fobj, 3)``
+  ``from stwcs import wcsutil``
+
+  ``hdu = fits.open('some_file.fits')``
+
+  ``w = wcsutil.HSTWCS(hdu, 3)``
 
 - Create an HSTWCS object using a qualified file name. 
 
@@ -24,10 +28,6 @@ Create an HSTWCS Object
 - Create an HSTWCS object from WCS with key 'O'.
 
   ``w = wcsutil.HSTWCS('j9irw4b1q_flt.fits', ext=2, wcskey='O')``
-
-- Create a template HSTWCS object for a DEFAULT object.
-
-  ``w = wcsutil.HSTWCS(instrument='DEFAULT')``
   
 ----------------------------------
 Coordinate Transformation Examples
@@ -50,9 +50,9 @@ of the first image pixel is (0,0).
 
 - Apply the entire detector to sky transformation at once:
 
- ``outpix = w1.all_pix2world(inpix, 1)``
+ ``outpix = w.all_pix2world(inpix, 1)``
 
- ``outpix = w1.all_pix2world(X, Y, 1)``
+ ``outpix = w.all_pix2world(X, Y, 1)``
 
 - The same transformation can be done in separate steps:
 
@@ -76,6 +76,6 @@ of the first image pixel is (0,0).
 5. Finally the transformation from undistorted to world coordinates is done 
    by applying the linear WCS.
  
- ``wpix = w.wcs_pix2sky(fpix, 1)``
+ ``wpix = w.wcs_pix2world(fpix, 1)``
  
  
