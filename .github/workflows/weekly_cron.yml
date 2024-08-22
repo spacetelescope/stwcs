@@ -1,12 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
-    tags:
-      - '*'
-  pull_request:
+  schedule:
+    # Weekly Monday 6AM build
+    - cron: "0 0 * * 1"
 
 jobs:
   tox:
@@ -24,7 +21,7 @@ jobs:
           - name: Python 3.11
             runs-on: ubuntu-latest
             python-version: 3.11
-            toxenv: py311
+            toxenv: py312
 
           - name: Python 3.12
             runs-on: ubuntu-latest
