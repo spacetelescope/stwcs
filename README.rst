@@ -1,7 +1,7 @@
 STWCS
 -----
 
-.. image:: https://github.com/spacetelescope/stwcs/workflows/CI/badge.svg
+.. image:: https://github.com/spacetelescope/stwcs/actions/workflows/weekly_cron.yml/badge.svg
     :target: https://github.com/spacetelescope/stwcs/actions
     :alt: CI Status
     
