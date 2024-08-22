@@ -25,4 +25,4 @@ To clone the project from github::
 
 To install::
 
-    python setup.py install
+    pip install .
