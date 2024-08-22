@@ -41,7 +41,7 @@ due to velocity aberration observed due to the motion of HST in orbit.  The typi
 for HST cameras results in a measurable velocity aberration with variations from the center of
 the field of view to the edge on the order of 0.1 pixels. More details about this correction can
 be found in `Appendix A.3 of the DrizzlePac Handbook
-<http://documents.stsci.edu/hst/HST_overview/documents/DrizzlePac/DrizzlePac.cover.html>`_.
+<https://hst-docs.stsci.edu/drizzpac>`_.
 
 This scale factor gets computed by
 the HST ground systems for start of each exposure and recorded as the VAFACTOR keyword in each
