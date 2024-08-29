@@ -244,11 +244,11 @@ class IDCModel(GeometryModel):
         if 'empty_model' in self.refpix and self.refpix['empty_model']:
             pass
         else:
-            self.refpix['PSCALE'] = self.refpix['PSCALE'] * binned
+            self.refpix['PSCALE'] = np.float64(self.refpix['PSCALE']) * binned
             self.cx = self.cx * binned
             self.cy = self.cy * binned
-            self.refpix['XREF'] = self.refpix['XREF'] / binned
-            self.refpix['YREF'] = self.refpix['YREF'] / binned
+            self.refpix['XREF'] = np.float64(self.refpix['XREF']) / binned
+            self.refpix['YREF'] = np.float64(self.refpix['YREF']) / binned
             self.refpix['XSIZE'] = self.refpix['XSIZE'] / binned
             self.refpix['YSIZE'] = self.refpix['YSIZE'] / binned
 
