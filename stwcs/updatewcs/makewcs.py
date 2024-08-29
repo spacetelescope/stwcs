@@ -44,11 +44,11 @@ class MakeWCS(object):
         if not ext_wcs.idcmodel:
             logger.info("IDC model not found, turning off Makewcs")
             return {}
-        
+
         # promote scalars manually for Numpy 2.0+
         ext_wcs = utils.promote_idctab_floats(ext_wcs)
         ref_wcs = utils.promote_idctab_floats(ref_wcs)
-        
+
         ltvoff, offshift = cls.getOffsets(ext_wcs)
 
         v23_corr = cls.zero_point_corr(ext_wcs)
