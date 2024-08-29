@@ -1,6 +1,9 @@
 1.7.3 (Unreleased)
 ------------------
 
+- Manual scalar promotion from float32 to float 64 to avoid future
+  Numpy 2.0 issues [#206].
+
 - Pin astropy min version to 5.0.4. [#191]
 
 1.7.2 (2021-11-29)
