@@ -1,20 +1,8 @@
 import os
-import numpy as np
 from stsci.tools import fileutil
 
 import logging
 logger = logging.getLogger("stwcs.updatewcs.utils")
-
-def promote_idctab_floats(wcs):
-    """
-    Promote scalars properly in Numpy 2.0, which was
-    automated in Numpy <2.0. Keys are values in the IDCTAB.
-    """
-    keys = ['PSCALE', 'XREF', 'YREF', 'THETA']
-    for key in keys:
-        if wcs.idcmodel.refpix[key]:
-            wcs.idcmodel.refpix[key] = np.float64(wcs.idcmodel.refpix[key])
-    return wcs
 
 
 def diff_angles(a, b):
