@@ -46,8 +46,8 @@ class MakeWCS(object):
             return {}
 
         # promote scalars manually for Numpy 2.0+
-        ext_wcs.idcmodel.refpix['PSCALE'] = np.float64(ext_wcs.idcmodel.refpix['PSCALE'])
-        ref_wcs.idcmodel.refpix['PSCALE'] = np.float64(ref_wcs.idcmodel.refpix['PSCALE'])
+        ext_wcs.idcmodel.refpix['PSCALE'] = ext_wcs.idcmodel.refpix['PSCALE'])
+        ref_wcs.idcmodel.refpix['PSCALE'] = ref_wcs.idcmodel.refpix['PSCALE'])
 
         ltvoff, offshift = cls.getOffsets(ext_wcs)
 

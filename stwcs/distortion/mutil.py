@@ -202,7 +202,7 @@ def readIDCtab(tabname, chip=1, date=None, direction='forward',
     refpix['YREF'] = ftab[1].data.field('YREF')[row]
     refpix['XSIZE'] = ftab[1].data.field('XSIZE')[row]
     refpix['YSIZE'] = ftab[1].data.field('YSIZE')[row]
-    refpix['PSCALE'] = round(ftab[1].data.field('SCALE')[row], 8)
+    refpix['PSCALE'] = np.float64(round(ftab[1].data.field('SCALE')[row], 8))
     refpix['V2REF'] = v2ref
     refpix['V3REF'] = v3ref
     refpix['THETA'] = theta
