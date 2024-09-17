@@ -45,10 +45,6 @@ class MakeWCS(object):
             logger.info("IDC model not found, turning off Makewcs")
             return {}
 
-        # promote scalars manually for Numpy 2.0+
-        ext_wcs.idcmodel.refpix['PSCALE'] = ext_wcs.idcmodel.refpix['PSCALE'])
-        ref_wcs.idcmodel.refpix['PSCALE'] = ref_wcs.idcmodel.refpix['PSCALE'])
-
         ltvoff, offshift = cls.getOffsets(ext_wcs)
 
         v23_corr = cls.zero_point_corr(ext_wcs)
