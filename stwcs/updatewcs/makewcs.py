@@ -44,7 +44,6 @@ class MakeWCS(object):
         if not ext_wcs.idcmodel:
             logger.info("IDC model not found, turning off Makewcs")
             return {}
-
         ltvoff, offshift = cls.getOffsets(ext_wcs)
 
         v23_corr = cls.zero_point_corr(ext_wcs)
