@@ -1,10 +1,21 @@
-1.7.3 (Unreleased)
+1.7.4 (2025-01-07)
 ------------------
 
 - Manual scalar promotion of refpix['PSCALE'] from float32
   to float64 to avoid future Numpy 2.0 issues [#206].
 
-- Pin astropy min version to 5.0.4. [#191]
+- Pin numpy min version greater than 2.0 [#214] 
+
+
+1.7.3 (2024-05-06)
+------------------
+  
+- Avoid Exception for some new data. [#189]
+  
+- Convert WCSNAME to hash for HLET filename. [#183]
+  
+- Pin astropy min version to 5.0.4 [#191]
+  
 
 1.7.2 (2021-11-29)
 -----------------
