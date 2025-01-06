@@ -4,7 +4,7 @@
 - Manual scalar promotion of refpix['PSCALE'] from float32
   to float64 to avoid future Numpy 2.0 issues [#206].
 
-- Pin numpy min version greater than 2.0 [#214]
+- Pin numpy min version greater than 2.0 [#214] 
 
 
 1.7.3 (2024-05-06)
