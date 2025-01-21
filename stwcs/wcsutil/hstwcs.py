@@ -478,7 +478,7 @@ class HSTWCS(WCS):
     @deprecated_renamed_argument('accuracy', 'tolerance', '1.6.1', arg_in_kwargs=True)
     def all_world2pix(self, *args, **kwargs):
         """
-        all_world2pix(\*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
+        all_world2pix(*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
         detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
