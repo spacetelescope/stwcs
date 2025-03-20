@@ -27,8 +27,8 @@ logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
 for h in logger.handlers:
     if isinstance(h, logging.StreamHandler) and h.stream is sys.stdout:
         break
-else:
-    logger.handlers.append(logging.StreamHandler(sys.stdout))
+    else:
+        logger.handlers.append(logging.StreamHandler(sys.stdout))
 atexit.register(logging.shutdown)
 
 #
