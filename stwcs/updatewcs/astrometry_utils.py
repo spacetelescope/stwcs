@@ -142,6 +142,9 @@ class AstrometryDB(object):
 
         if url is not None:
             self.serviceLocation = url
+            
+        logger.info("Astrometry Database URL: {}".format(
+            self.serviceLocation))
         #
         # Implement control over behavior for error conditions
         # User provided input will always take precedent
