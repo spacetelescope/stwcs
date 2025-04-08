@@ -584,6 +584,7 @@ class AstrometryDB(object):
             return
 
         serviceEndPoint = self.serviceLocation + 'availability'
+        logger.info(f"AstrometryDB URL: {serviceEndPoint}")
 
         try:
             r = requests.get(serviceEndPoint, headers=self.headers)
