@@ -584,7 +584,6 @@ class AstrometryDB(object):
             return
 
         serviceEndPoint = self.serviceLocation + 'availability'
-        logger.info(f"AstrometryDB URL: {serviceEndPoint}")
 
         try:
             r = requests.get(serviceEndPoint, headers=self.headers)
@@ -701,6 +700,10 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
         outputCatalog = refXMLtree.findtext('outputCatalog')
 
+        for kw in [delta_ra, delta_dec, delta_roll, delta_scale, 
+                   dGSinputRA, dGSinputDEC, dGSoutputRA, dGSoutputDEC]:
+                   val = float(refXMLtree.findtext('deltaRA'))
+
     # Use GS coordinate as reference point
     old_gs = (dGSinputRA, dGSinputDEC)
     new_gs = (dGSoutputRA, dGSoutputDEC)
@@ -735,14 +738,18 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         # Compute offset in pixels for new CRVAL
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
         deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
+        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
+            'roll': delta_roll, 'scale': delta_scale,
+            'delta_ra': delta_ra, 'delta_dec': delta_dec,
+            'expwcs': expwcs, 'catalog': outputCatalog}
 
     else:
         deltaxy = (0., 0.)
 
-    offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-               'roll': delta_roll, 'scale': delta_scale,
-               'delta_ra': delta_ra, 'delta_dec': delta_dec,
-               'expwcs': expwcs, 'catalog': outputCatalog}
+        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
+                'roll': delta_roll, 'scale': delta_scale,
+                'delta_ra': delta_ra, 'delta_dec': delta_dec,
+                'expwcs': expwcs, 'catalog': outputCatalog}
     if close_obj:
         obsname.close()
 
