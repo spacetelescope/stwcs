@@ -468,6 +468,7 @@ class AstrometryDB(object):
         # Save this new WCS as a headerlet extension and separate headerlet file
         wname = obsname[('sci', 1)].header['wcsname']
         hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
+
         # newly processed data will not have any hlet_extns, so we need to account for that
         newhlt = max(hlet_extns) + 1 if len(hlet_extns) > 0 else 1
         hlet_names = [obsname[('hdrlet', e)].header['wcsname'] for e in hlet_extns]
@@ -658,12 +659,12 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         gsss_serviceLocation = gsss_url
 
     # Initialize variables for cases where no offsets are available.
-    delta_ra = delta_dec = 0.0
-    delta_roll = 0.0
-    delta_scale = 1.0
-    dGSinputRA = dGSoutputRA = 0.0
-    dGSinputDEC = dGSoutputDEC = 0.0
-    outputCatalog = None
+    default_delta_ra = default_delta_dec = 0.0
+    default_delta_roll = 0.0
+    default_delta_scale = 1.0
+    default_dGSinputRA = default_dGSoutputRA = 0.0
+    defailt_dGSinputDEC = default_dGSoutputDEC = 0.0
+    default_outputCatalog = None
 
     # Insure input is a fits.HDUList object, if originally provided as a filename(str)
     close_obj = False
@@ -699,10 +700,6 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         dGSoutputRA = float(refXMLtree.findtext('dGSoutputRA'))
         dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
         outputCatalog = refXMLtree.findtext('outputCatalog')
-
-        for kw in [delta_ra, delta_dec, delta_roll, delta_scale, 
-                   dGSinputRA, dGSinputDEC, dGSoutputRA, dGSoutputDEC]:
-                   val = float(refXMLtree.findtext('deltaRA'))
 
     # Use GS coordinate as reference point
     old_gs = (dGSinputRA, dGSinputDEC)
@@ -744,15 +741,15 @@ def find_gsc_offset(obsname, refframe="ICRS"):
             'expwcs': expwcs, 'catalog': outputCatalog}
 
     else:
+        logger.warning("GSC returned 0 offsets in RA, DEC for guide star")
         deltaxy = (0., 0.)
 
         offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-                'roll': delta_roll, 'scale': delta_scale,
-                'delta_ra': delta_ra, 'delta_dec': delta_dec,
-                'expwcs': expwcs, 'catalog': outputCatalog}
+                'roll': default_delta_roll, 'scale': default_delta_scale,
+                'delta_ra': default_delta_ra, 'delta_dec': default_delta_dec,
+                'expwcs': expwcs, 'catalog': default_outputCatalog}
     if close_obj:
         obsname.close()
-
     return offsets
 
 
