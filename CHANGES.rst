@@ -1,3 +1,7 @@
+Unreleased
+----------
+- When the GSC web service returns no RA and DEC offsets from GAIA (0.), use default FITS WCS values.
+
 1.7.4 (2025-01-07)
 ------------------
 
