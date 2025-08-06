@@ -687,7 +687,15 @@ def find_gsc_offset(obsname, refframe="ICRS"):
     if not rawcat.ok:
         logger.warning("Problem accessing service with:\n{}".format(serviceUrl))
         logger.warning("  No offset found! ")
-
+        delta_ra = default_delta_ra
+        delta_dec = default_delta_dec
+        delta_roll = default_delta_roll
+        delta_scale = default_delta_scale
+        dGSinputRA = default_dGSinputRA
+        GSinputDEC = default_GSinputDEC
+        dGSoutputRA = default_dGSoutputRA
+        dGSoutputDEC = default_dGSoutputDEC
+        outputCatalog = default_ouputCatalog
     if rawcat.status_code == requests.codes.ok:
         logger.info("gsReference service retrieved {}".format(ippssoot))
         refXMLtree = etree.fromstring(rawcat.content)
