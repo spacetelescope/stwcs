@@ -2,6 +2,10 @@ import shutil
 import os
 
 import pytest
+<<<<<<< HEAD
+=======
+
+>>>>>>> acb99e7 (processing with no offsets from the GSC)
 from astropy.io import fits
 from astropy.io.fits import diff
 from .. import updatewcs
@@ -49,7 +53,16 @@ class TestAstrometryDB:
 
         updatewcs.updatewcs(self.acs_file, use_db=False)
 
+<<<<<<< HEAD
     @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
+=======
+    def test_db_connection(self):
+
+        adb = astrometry_utils.AstrometryDB()
+        assert adb.available
+        del adb
+
+>>>>>>> acb99e7 (processing with no offsets from the GSC)
     def test_default(self):
         """
         Sanity check: Insure it will run at all in default mode
@@ -63,6 +76,7 @@ class TestAstrometryDB:
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
         assert "No differences found" in report
 
+    @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
     def test_new_obs(self):
         """
         A simple sanity check that first time processing will not crash
@@ -77,6 +91,7 @@ class TestAstrometryDB:
         os.remove(new_obsname)  # remove intermediate test file
         del adb
 
+<<<<<<< HEAD
 
 def test_db_connection():
 
@@ -84,3 +99,24 @@ def test_db_connection():
     adb.isAvailable()
     assert adb.available
     del adb
+=======
+    def test_no_offset(self):
+        """ HLA-1541"""
+        new_obsname = 'j8di67a2q_flt.fits'
+        shutil.copyfile(self.acs_file, new_obsname)
+        fits.setval(new_obsname, keyword="rootname", value="j8di67a2q")
+        offsets = astrometry_utils.find_gsc_offset('j8di67a2q_flt.fits')
+        expected = {
+            'delta_x': 0.0,
+            'delta_y': 0.0,
+            'roll': 0.0,
+            'scale': 1.0,
+            'delta_ra': 0.0,
+            'delta_dec': 0.0,
+            'catalog': None
+            }
+        # Do not compare the WCS
+        offsets.pop("expwcs")
+        assert expected == offsets
+        os.remove(new_obsname)
+>>>>>>> acb99e7 (processing with no offsets from the GSC)

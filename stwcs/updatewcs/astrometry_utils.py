@@ -664,7 +664,7 @@ def find_gsc_offset(obsname, refframe="ICRS"):
     default_delta_roll = 0.0
     default_delta_scale = 1.0
     default_dGSinputRA = default_dGSoutputRA = 0.0
-    defailt_dGSinputDEC = default_dGSoutputDEC = 0.0
+    default_dGSinputDEC = default_dGSoutputDEC = 0.0
     default_outputCatalog = None
 
     # Insure input is a fits.HDUList object, if originally provided as a filename(str)
@@ -692,10 +692,10 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         delta_roll = default_delta_roll
         delta_scale = default_delta_scale
         dGSinputRA = default_dGSinputRA
-        GSinputDEC = default_GSinputDEC
+        dGSinputDEC = default_dGSinputDEC
         dGSoutputRA = default_dGSoutputRA
         dGSoutputDEC = default_dGSoutputDEC
-        outputCatalog = default_ouputCatalog
+        outputCatalog = default_outputCatalog
     if rawcat.status_code == requests.codes.ok:
         logger.info("gsReference service retrieved {}".format(ippssoot))
         refXMLtree = etree.fromstring(rawcat.content)
@@ -745,18 +745,18 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
         deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
         offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-            'roll': delta_roll, 'scale': delta_scale,
-            'delta_ra': delta_ra, 'delta_dec': delta_dec,
-            'expwcs': expwcs, 'catalog': outputCatalog}
+                   'roll': delta_roll, 'scale': delta_scale,
+                   'delta_ra': delta_ra, 'delta_dec': delta_dec,
+                   'expwcs': expwcs, 'catalog': outputCatalog}
 
     else:
         logger.warning("GSC returned 0 offsets in RA, DEC for guide star")
         deltaxy = (0., 0.)
 
         offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-                'roll': default_delta_roll, 'scale': default_delta_scale,
-                'delta_ra': default_delta_ra, 'delta_dec': default_delta_dec,
-                'expwcs': expwcs, 'catalog': default_outputCatalog}
+                   'roll': default_delta_roll, 'scale': default_delta_scale,
+                   'delta_ra': default_delta_ra, 'delta_dec': default_delta_dec,
+                   'expwcs': expwcs, 'catalog': default_outputCatalog}
     if close_obj:
         obsname.close()
     return offsets
