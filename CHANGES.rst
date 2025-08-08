@@ -1,6 +1,15 @@
 Unreleased
 ----------
-- When the GSC web service returns no RA and DEC offsets from GAIA (0.), use default FITS WCS values.
+- When the GSC web service returns no RA and DEC offsets from GAIA,
+  use default FITS WCS values. [#225]
+
+- When computing an orthogonal CD matrix, check that ``idcscale`` exists
+  and is not ``None``. If ``idcscale`` is missing (some headerlets in
+  the Astrometry DB), compute a scale from the CD matrix. [#225]
+
+1.7.5 (2025-07-14)
+------------------
+- Work around an issue with the AStrometry DB which returns NaNs in certain cases. [#221]
 
 1.7.4 (2025-01-07)
 ------------------
@@ -8,18 +17,18 @@ Unreleased
 - Manual scalar promotion of refpix['PSCALE'] from float32
   to float64 to avoid future Numpy 2.0 issues [#206].
 
-- Pin numpy min version greater than 2.0 [#214] 
+- Pin numpy min version greater than 2.0 [#214]
 
 
 1.7.3 (2024-05-06)
 ------------------
-  
+
 - Avoid Exception for some new data. [#189]
-  
+
 - Convert WCSNAME to hash for HLET filename. [#183]
-  
+
 - Pin astropy min version to 5.0.4 [#191]
-  
+
 
 1.7.2 (2021-11-29)
 -----------------
