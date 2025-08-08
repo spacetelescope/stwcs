@@ -482,3 +482,22 @@ def test_update_stis_asn():
 
     wcsname_exp1 = fits.getval('o4k19ac3q_flt.fits','wcsname',ext=('sci',1))
     assert wcsname_exp1.startswith('IDC_')
+
+
+@pytest.mark.parametrize("idcscale", [0.5, None])
+def test_make_orthogonal_cd(idcscale):
+    ewcs = wcs.WCS(naxis=2)
+    ewcs.wcs.crval = [5.63056810618, -72.05457184278998]
+    ewcs.wcs.crpix = [2048.0, 1024.0]
+    ewcs.wcs.ctype = ["RA---TAN-SIP", "DEC--TAN-SIP"]
+    ewcs.wcs.cd = [[1.29055156992758e-05, 5.95250078565221e-06],[5.02263821027651e-06, -1.2644844109546e-05]]
+    ewcs.idcscale = idcscale
+    assert idcscale == ewcs.idcscale
+    w = dutils.make_orthogonal_cd(ewcs)
+    cd = w.wcs.cd
+    testing.assert_equal(cd * cd.T, cd.T * cd)
+
+    ewcs.idcscale = None
+    w = dutils.make_orthogonal_cd(ewcs)
+    cd = w.wcs.cd
+    testing.assert_equal(cd * cd.T, cd.T * cd)
