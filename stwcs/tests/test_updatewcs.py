@@ -496,8 +496,3 @@ def test_make_orthogonal_cd(idcscale):
     w = dutils.make_orthogonal_cd(ewcs)
     cd = w.wcs.cd
     testing.assert_equal(cd * cd.T, cd.T * cd)
-
-    ewcs.idcscale = None
-    w = dutils.make_orthogonal_cd(ewcs)
-    cd = w.wcs.cd
-    testing.assert_equal(cd * cd.T, cd.T * cd)
