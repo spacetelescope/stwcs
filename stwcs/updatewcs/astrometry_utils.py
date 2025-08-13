@@ -96,8 +96,8 @@ class AstrometryDB:
              'RAISE_PIPELINE_ERRORS' if set.
 
         perform_step : bool, optional
-            Specify whether or not to perform this step.  This will
-            completely override the setting of the `ASTROMETRY_STEP_CONTROL`
+            Specify whether or not to perform this step.  This is
+            overriden by the setting of the `ASTROMETRY_STEP_CONTROL`
             environment variable.  Default value: True.
 
         write_log : bool, optional
