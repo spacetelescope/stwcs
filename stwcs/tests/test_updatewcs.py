@@ -18,15 +18,16 @@ from . import data
 
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
-os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
+# os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
 
 def get_filepath(filename, directory=data_path):
     return os.path.join(directory, filename)
 
 
-class TestStwcs(object):
+class TestStwcs:
 
     def setup_class(self):
+        os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
         acs_orig_file = get_filepath('j94f05bgq_flt.fits')
         current_dir = os.path.abspath(os.path.curdir)
         self.ref_file = get_filepath('j94f05bgq_flt_r.fits', current_dir)

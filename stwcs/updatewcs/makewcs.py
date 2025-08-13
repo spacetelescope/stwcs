@@ -9,7 +9,7 @@ from . import utils
 logger = logging.getLogger(__name__)
 
 
-class MakeWCS(object):
+class MakeWCS:
     """
     Recompute basic WCS keywords based on PA_V3 and distortion model.
 

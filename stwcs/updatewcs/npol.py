@@ -9,7 +9,7 @@ from stsci.tools import fileutil
 logger = logging.getLogger('stwcs.updatewcs.npol')
 
 
-class NPOLCorr(object):
+class NPOLCorr:
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
     It uses a reference file defined by the NPOLFILE (suffix 'NPL') keyword

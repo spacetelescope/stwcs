@@ -1,5 +1,5 @@
 
-class InstrWCS(object):
+class InstrWCS:
     """
     A base class for instrument specific keyword definition.
     It prvides a default implementation (modeled by ACS) for
@@ -315,4 +315,3 @@ class STISWCS(InstrWCS):
             self.date_obs = self.exthdr['DATE-OBS']
         except (KeyError, TypeError):
             self.date_obs = None
-

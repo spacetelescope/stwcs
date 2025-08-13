@@ -16,7 +16,7 @@ MakeWCS = makewcs.MakeWCS
 NPOLCorr = npol.NPOLCorr
 
 
-class TDDCorr(object):
+class TDDCorr:
     """
     Apply time dependent distortion correction to distortion coefficients and basic
     WCS keywords. This correction **must** be done before any other WCS correction.
@@ -272,7 +272,7 @@ class TDDCorr(object):
     compute_alpha_beta = classmethod(compute_alpha_beta)
 
 
-class VACorr(object):
+class VACorr:
     """
     Apply velocity aberation correction to WCS keywords.
 
@@ -308,7 +308,7 @@ class VACorr(object):
     updateWCS = classmethod(updateWCS)
 
 
-class CompSIP(object):
+class CompSIP:
     """
     Compute Simple Imaging Polynomial (SIP) coefficients as defined in [2]_
     from IDC table coefficients.
