@@ -2,10 +2,6 @@ import shutil
 import os
 
 import pytest
-<<<<<<< HEAD
-=======
-
->>>>>>> acb99e7 (processing with no offsets from the GSC)
 from astropy.io import fits
 from astropy.io.fits import diff
 from .. import updatewcs
@@ -16,6 +12,7 @@ data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
 # set environment variable to insure Exceptions are raised
 os.environ['RAISE_PIPELINE_ERRORS'] = 'True'
+#os.environ['ASTROMETRY_STEP_CONTROL'] = 'ON'
 
 
 def get_filepath(filename, directory=data_path):
@@ -53,20 +50,8 @@ class TestAstrometryDB:
 
         updatewcs.updatewcs(self.acs_file, use_db=False)
 
-<<<<<<< HEAD
-    @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
-=======
-    def test_db_connection(self):
 
-        adb = astrometry_utils.AstrometryDB()
-        assert adb.available
-        del adb
-
-<<<<<<< HEAD
->>>>>>> acb99e7 (processing with no offsets from the GSC)
-=======
     @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
->>>>>>> 907a89c (add and skip another test)
     def test_default(self):
         """
         Sanity check: Insure it will run at all in default mode
@@ -78,15 +63,10 @@ class TestAstrometryDB:
         acs = fits.open(self.acs_file)
         ref = fits.open(self.ref_file)
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
-<<<<<<< HEAD
         assert "No differences found" in report
-=======
-        print(report)
-        assert report == ""
->>>>>>> 907a89c (add and skip another test)
 
-    @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
-    def test_new_obs(self):
+
+    def test_new_obs(self, caplog):
         """
         A simple sanity check that first time processing will not crash
         since that observation name will not be found in the database.
@@ -100,15 +80,7 @@ class TestAstrometryDB:
         os.remove(new_obsname)  # remove intermediate test file
         del adb
 
-<<<<<<< HEAD
 
-def test_db_connection():
-
-    adb = astrometry_utils.AstrometryDB()
-    adb.isAvailable()
-    assert adb.available
-    del adb
-=======
     def test_no_offset(self):
         """ HLA-1541"""
         new_obsname = 'j8di67a2q_flt.fits'
@@ -118,14 +90,27 @@ def test_db_connection():
         expected = {
             'delta_x': 0.0,
             'delta_y': 0.0,
-            'roll': 0.0,
-            'scale': 1.0,
             'delta_ra': 0.0,
             'delta_dec': 0.0,
-            'catalog': None
+            'dGSinputDEC': 0.0,
+            'dGSinputRA': 0.0,
+            'dGSoutputDEC': 0.0,
+            'dGSoutputRA': 0.0,
+            'roll': 0.0,
+            'scale': 1.0,
+            'catalog': None,
+            "delta_x": 0.0,
+            "delta_y": 0.0
             }
         # Do not compare the WCS
         offsets.pop("expwcs")
+        offsets.pop("message")
         assert expected == offsets
         os.remove(new_obsname)
->>>>>>> acb99e7 (processing with no offsets from the GSC)
+
+
+def test_db_connection():
+
+    adb = astrometry_utils.AstrometryDB()
+    assert adb.available
+    del adb

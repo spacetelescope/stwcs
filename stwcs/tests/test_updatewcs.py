@@ -18,7 +18,6 @@ from . import data
 
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
-# os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
 
 def get_filepath(filename, directory=data_path):
     return os.path.join(directory, filename)
@@ -47,7 +46,7 @@ class TestStwcs:
         fits.setval(self.acs_file, ext=0, keyword="IDCTAB", value=idctab)
         fits.setval(self.acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
         fits.setval(self.acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
-        updatewcs.updatewcs(self.acs_file)
+        updatewcs.updatewcs(self.acs_file, use_db=False)
         #self.ref_file = ref_file
         shutil.copyfile(self.acs_file, self.ref_file)
 
@@ -128,7 +127,7 @@ class TestStwcs:
 
     def test_repeate(self):
         # make sure repeated runs of updatewcs do not change the WCS.
-        updatewcs.updatewcs(self.acs_file)
+        updatewcs.updatewcs(self.acs_file, use_db=False)
         w1 = HSTWCS(self.acs_file, ext=('SCI', 1))
         w4 = HSTWCS(self.acs_file, ext=('SCI', 2))
         w1r = HSTWCS(self.ref_file, ext=('SCI', 1))
@@ -165,9 +164,9 @@ def test_remove_npol_distortion():
     fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
 
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     fits.setval(acs_file, keyword="NPOLFILE", value="N/A")
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     w1 = HSTWCS(acs_file, ext=("SCI", 1))
     w4 = HSTWCS(acs_file, ext=("SCI", 2))
     assert w1.cpdis1 is None
@@ -193,9 +192,9 @@ def test_remove_npol_distortion_hdulist():
     hdul[0].header["NPOLFILE"] = npol_file
     hdul[0].header["D2IMFILE"] = d2imfile
 
-    updatewcs.updatewcs(hdul)
+    updatewcs.updatewcs(hdul, use_db=False)
     hdul[0].header["NPOLFILE"] = "N/A"
-    updatewcs.updatewcs(hdul)
+    updatewcs.updatewcs(hdul, use_db=False)
     w1 = HSTWCS(hdul, ext=("SCI", 1))
     w4 = HSTWCS(hdul, ext=("SCI", 2))
     assert w1.cpdis1 is None
@@ -221,9 +220,9 @@ def test_remove_d2im_distortion():
     fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
 
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     fits.setval(acs_file, keyword="D2IMFILE", value="N/A")
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     w1 = HSTWCS(acs_file, ext=("SCI", 1))
     w4 = HSTWCS(acs_file, ext=("SCI", 2))
     assert w1.det2im1 is None
@@ -244,11 +243,11 @@ def test_missing_idctab():
 
     fits.setval(acs_file, keyword="IDCTAB", value="my_missing_idctab.fits")
     with pytest.raises(IOError):
-        updatewcs.updatewcs(acs_file)
+        updatewcs.updatewcs(acs_file, use_db=False)
 
     fobj = fits.open(acs_file)
     with pytest.raises(IOError):
-        updatewcs.updatewcs(fobj)
+        updatewcs.updatewcs(fobj, use_db=False)
 
 
 def test_missing_npolfile():
@@ -266,11 +265,11 @@ def test_missing_npolfile():
 
     fits.setval(acs_file, keyword="NPOLFILE", value="missing_npl.fits")
     with pytest.raises(IOError):
-        updatewcs.updatewcs(acs_file)
+        updatewcs.updatewcs(acs_file, use_db=False)
 
     fobj = fits.open(acs_file)
     with pytest.raises(IOError):
-        updatewcs.updatewcs(fobj)
+        updatewcs.updatewcs(fobj, use_db=False)
 
 
 def test_missing_d2imfile():
@@ -288,11 +287,11 @@ def test_missing_d2imfile():
 
     fits.setval(acs_file, keyword="D2IMFILE", value="missing_d2i.fits")
     with pytest.raises(IOError):
-        updatewcs.updatewcs(acs_file)
+        updatewcs.updatewcs(acs_file, use_db=False)
 
     fobj = fits.open(acs_file)
     with pytest.raises(IOError):
-        updatewcs.updatewcs(fobj)
+        updatewcs.updatewcs(fobj, use_db=False)
 
 
 def test_found_idctab():
@@ -344,7 +343,7 @@ def test_add_radesys():
     fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
 
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     for ext in [('SCI', 1), ('SCI', 2)]:
         hdr = fits.getheader(acs_file, ext)
         assert hdr['RADESYS'] == 'FK5'
@@ -366,7 +365,7 @@ def test_update_d2im_distortion():
     fits.setval(acs_file, ext=0, keyword="IDCTAB", value=idctab)
     fits.setval(acs_file, ext=0, keyword="NPOLFILE", value=npol_file)
     fits.setval(acs_file, ext=0, keyword="D2IMFILE", value=d2imfile)
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     d2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
     d2imerr4 = fits.getval(acs_file, ext=4, keyword='D2IMERR1')
     shutil.copyfile(d2imfile, newd2im)
@@ -375,7 +374,7 @@ def test_update_d2im_distortion():
             ext.data = ext.data * 100
 
     fits.setval(acs_file, keyword="D2IMFILE", value=newd2im)
-    updatewcs.updatewcs(acs_file)
+    updatewcs.updatewcs(acs_file, use_db=False)
     nd2imerr1 = fits.getval(acs_file, ext=1, keyword='D2IMERR1')
     nd2imerr4 = fits.getval(acs_file, ext=4, keyword='D2IMERR1')
     assert np.isclose(d2imerr1 * 100, nd2imerr1)
@@ -399,7 +398,7 @@ def test_apply_d2im():
     # If D2IMEXT does not exist, the correction should be applied
     fileobj = fits.open(fname, mode='update')
     assert appc.apply_d2im_correction(fileobj, d2imcorr=True)
-    updatewcs.updatewcs(fname)
+    updatewcs.updatewcs(fname, use_db=False)
 
     # Test the case when D2IMFILE == D2IMEXT
     assert not appc.apply_d2im_correction(fname, d2imcorr=True)
@@ -443,7 +442,7 @@ def test_update_waiver_wfpc2():
     shutil.copyfile(off_orig_file, offtab)
     shutil.copyfile(wfpc2_orig_file.replace('c0f','c1f'), fname_c1f)
 
-    updated_file = updatewcs.updatewcs(fname)
+    updated_file = updatewcs.updatewcs(fname, use_db=False)
     fileobj = fits.open(updated_file[0])
     assert len(fileobj) == 6  # Converted to MEF file with D2IMARR ext
     assert 'wcsname' in fileobj[1].header # New WCS written out with WCSNAME
@@ -473,7 +472,7 @@ def test_update_stis_asn():
     warnings.simplefilter("ignore", category=FITSFixedWarning)#,
                           #  message=" 'datfix' made the change 'Set MJD-OBS to 50853.000000 from DATE-OBS'.")
 
-    expnames = updatewcs.updatewcs(fname)
+    expnames = updatewcs.updatewcs(fname, use_db=False)
 
     assert expnames[0] == os.path.basename(fname_expname1)
     assert expnames[1] == os.path.basename(fname_expname2)

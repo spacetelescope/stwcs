@@ -11,7 +11,7 @@ import pytest
 from . import data
 data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
-# os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
+
 os.environ['jref'] = data_path + '/'
 
 
@@ -214,10 +214,10 @@ class TestAltWCS:
             if 'HDRNAME' in h[ext].header:
                 del h[ext].header['HDRNAME']
 
-        envval = os.environ['ASTROMETRY_STEP_CONTROL']
-        os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
+        # envval = os.environ['ASTROMETRY_STEP_CONTROL']
+        # os.environ['ASTROMETRY_STEP_CONTROL'] = 'Off'
         updatewcs.updatewcs(h, use_db=False)
-        os.environ['ASTROMETRY_STEP_CONTROL'] = envval
+        # os.environ['ASTROMETRY_STEP_CONTROL'] = envval
 
         h.close()
 
@@ -255,11 +255,11 @@ class TestAltWCS:
         h.close()
 
         # run updatewcs() multiple times:
-        envval = os.environ['ASTROMETRY_STEP_CONTROL']
-        os.environ['ASTROMETRY_STEP_CONTROL'] = 'On'
+        # envval = os.environ['ASTROMETRY_STEP_CONTROL']
+        # os.environ['ASTROMETRY_STEP_CONTROL'] = 'On'
         for k in range(4):
             updatewcs.updatewcs(self.acs_file, use_db=True)
-        os.environ['ASTROMETRY_STEP_CONTROL'] = envval
+        # os.environ['ASTROMETRY_STEP_CONTROL'] = envval
 
         # test:
         h = pyfits.open(self.acs_file, mode='update')
