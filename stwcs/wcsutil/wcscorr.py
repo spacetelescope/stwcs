@@ -190,7 +190,7 @@ def find_wcscorr_row(wcstab, selections):
     mask = None
     for i in selections:
         icol = wcstab.field(i)
-        if isinstance(icol, np.chararray): icol = icol.rstrip()
+        #if isinstance(icol, np.chararray): icol = icol.rstrip()
         selecti = selections[i]
         if not isinstance(selecti, list):
             if isinstance(selecti, str):

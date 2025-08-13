@@ -66,7 +66,7 @@ astrometry_control_envvar = "ASTROMETRY_STEP_CONTROL"
 
 gsss_url = 'https://gsss.stsci.edu/webservices'
 
-class AstrometryDB(object):
+class AstrometryDB:
     """Base class for astrometry database interface."""
 
     serviceLocation = 'https://mast.stsci.edu/portal/astrometryDB/'

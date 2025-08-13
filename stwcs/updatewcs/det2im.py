@@ -6,7 +6,7 @@ import time
 logger = logging.getLogger('stwcs.updatewcs.d2im')
 
 
-class DET2IMCorr(object):
+class DET2IMCorr:
     """
     Defines a Lookup table prior distortion correction as per WCS paper IV.
     It uses a reference file defined by the D2IMFILE (suffix 'd2im') keyword
