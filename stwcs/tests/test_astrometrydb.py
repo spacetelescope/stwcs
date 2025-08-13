@@ -54,17 +54,14 @@ class TestAstrometryDB:
         """
         Sanity check: Insure it will run at all in default mode
         """
-
         updatewcs.updatewcs(self.ref_file)
-
         adb = astrometry_utils.AstrometryDB()
         adb.updateObs(self.acs_file)
         # at this point self.acs_file == self.ref_file if all worked...
         acs = fits.open(self.acs_file)
         ref = fits.open(self.ref_file)
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
-        print(report)
-        assert report == ""
+        assert "No differences found" in report
 
     def test_new_obs(self):
         """
