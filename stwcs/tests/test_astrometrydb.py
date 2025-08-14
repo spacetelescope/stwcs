@@ -4,6 +4,8 @@ import os
 import pytest
 import requests
 
+from numpy.testing import assert_allclose
+
 from astropy.io import fits
 from astropy.io.fits import diff
 from .. import updatewcs
@@ -133,11 +135,15 @@ class TestAstrometryDB:
                     'delta_x': -26.195118548980645,
                     'delta_y': -30.37243670094358
                    }
+
         offsets = astrometry_utils.find_gsc_offset(self.acs_file)
         offsets.pop("expwcs")
         offsets.pop("message")
-        assert offsets == expected
-
+        assert expected.pop('catalog') == offsets.pop('catalog')
+        for item in list(expected.keys())[::-1]:
+            # can't compare directly because computed results are slightly different on
+            # different OSs.
+            assert_allclose(expected.pop(item), offsets.pop(item))
 
 
 def test_db_connection():
