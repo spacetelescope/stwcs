@@ -2,6 +2,8 @@ import shutil
 import os
 
 import pytest
+import requests
+
 from astropy.io import fits
 from astropy.io.fits import diff
 from .. import updatewcs
@@ -81,7 +83,7 @@ class TestAstrometryDB:
         del adb
 
 
-    def test_no_offset(self):
+    def test_no_offsets(self):
         """ HLA-1541"""
         new_obsname = 'j8di67a2q_flt.fits'
         shutil.copyfile(self.acs_file, new_obsname)
@@ -107,6 +109,37 @@ class TestAstrometryDB:
         offsets.pop("message")
         assert expected == offsets
         os.remove(new_obsname)
+
+        # mock a request response of False, code 403
+        os.environ['GSSS_WEBSERVICES_URL']="http://test.com"
+        serviceUrl='http://test.com/GSCConvert/GSCconvert.aspx?IPPPSSOOT=a8di67a2q'
+        rawcat= requests.get(serviceUrl)
+        assert not rawcat.ok
+        offsets = astrometry_utils.find_gsc_offset(self.acs_file)
+        offsets.pop("expwcs")
+        offsets.pop("message")
+        assert expected == offsets
+        del os.environ['GSSS_WEBSERVICES_URL']
+
+    def test_success_offsets(self):
+        """Test successfully retrieving offsets from the GSC service."""
+        expected = {'delta_ra': 0.00163279,
+                    'delta_dec': -0.00024635,
+                    'roll': 0.05507061,
+                    'scale': 0.99852027,
+                    'dGSinputRA': 4.870375,
+                    'dGSinputDEC': -72.181833,
+                    'dGSoutputRA': 4.87200779,
+                    'dGSoutputDEC': -72.18207935,
+                    'catalog': 'GSC240',
+                    'delta_x': -26.195118548980645,
+                    'delta_y': -30.37243670094358
+                   }
+        offsets = astrometry_utils.find_gsc_offset(self.acs_file)
+        offsets.pop("expwcs")
+        offsets.pop("message")
+        assert offsets == expected
+
 
 
 def test_db_connection():
