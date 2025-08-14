@@ -2,14 +2,11 @@ Unreleased
 ----------
 - Enable CI and add tests [#226]
 
-1.7.5 (2025-07-14)
-------------------
-- When the GSC web service returns no RA and DEC offsets from GAIA,
-  use default FITS WCS values. [#221]
-
 - When computing an orthogonal CD matrix, check that ``idcscale`` exists
   and is not ``None``. If ``idcscale`` is missing (some headerlets in
-  the Astrometry DB), compute a scale from the CD matrix. [#225]
+  the Astrometry DB), compute a scale from the CD matrix. [#227]
+
+- Return default response when request to the GSC service failed. [#227]
 
 1.7.5 (2025-07-14)
 ------------------
