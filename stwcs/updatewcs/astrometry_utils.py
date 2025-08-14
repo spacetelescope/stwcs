@@ -622,11 +622,6 @@ class AstrometryDB:
 #
 # Supporting functions
 #
-def connect_to_service(obsname, service):
-
-    return response
-
-
 def find_gsc_offset(obsname):
     """Find the GSC to GAIA offset based on guide star coordinates
 
@@ -734,7 +729,7 @@ def find_gsc_offset(obsname):
     new_gs = (response["dGSoutputRA"], response["dGSoutputDEC"])
 
     # This check is a workaround an issue with the service where delta_ra/dec are 0
-    # but the computed scale is NaN. 
+    # but the computed scale is NaN.
     if response["delta_ra"] != 0.0 and response["delta_dec"] != 0.0:
 
         # Compute tangent plane for this observation

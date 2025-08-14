@@ -58,6 +58,18 @@ API
   :show-inheritance:
 
 .. autofunction:: stwcs.updatewcs.astrometry_utils.apply_astrometric_updates
+.. autofunction:: stwcs.updatewcs.astrometry_utils.find_gsc_offset
+
+The :py:func:`find_gsc_offset` function uses a web service to
+provide an improved position for both the reference guide star and the secondary (roll) guide star
+used in an HST observation. The Guide Star Catalog astrometry has improved a lot over the years.
+The original version of GSC (GSC-1) had errors in astrometry as large as 1 or 2 arcseconds.
+GSC-2 reduced those errors to about 0.25 arcseconds. More recent versions of the catalog
+(now up to GSC 3) reduce the errors further using Gaia positions,
+typically 0.01 arcsecond or less, depending on the epoch of the observation.
+By knowing what the guide star position was thought to be at the time (from the
+original catalog), and what the position really is (from the improved catalog),
+one can get a more accurate value for where the telescope was actually pointing.
 
 Version
 -------
