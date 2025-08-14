@@ -255,11 +255,11 @@ class TestAltWCS:
         h.close()
 
         # run updatewcs() multiple times:
-        # envval = os.environ['ASTROMETRY_STEP_CONTROL']
-        # os.environ['ASTROMETRY_STEP_CONTROL'] = 'On'
+        envval = os.environ['ASTROMETRY_STEP_CONTROL']
+        os.environ['ASTROMETRY_STEP_CONTROL'] = 'On'
         for k in range(4):
             updatewcs.updatewcs(self.acs_file, use_db=True)
-        # os.environ['ASTROMETRY_STEP_CONTROL'] = envval
+        os.environ['ASTROMETRY_STEP_CONTROL'] = envval
 
         # test:
         h = pyfits.open(self.acs_file, mode='update')
