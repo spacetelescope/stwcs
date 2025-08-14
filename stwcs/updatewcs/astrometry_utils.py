@@ -35,6 +35,7 @@ import atexit
 import hashlib
 
 import requests
+from requests.exceptions import ConnectionError
 from io import BytesIO
 from lxml import etree
 
@@ -621,7 +622,7 @@ class AstrometryDB:
 #
 # Supporting functions
 #
-def find_gsc_offset(obsname, refframe="ICRS"):
+def find_gsc_offset(obsname):
     """Find the GSC to GAIA offset based on guide star coordinates
 
     Parameters
@@ -629,10 +630,6 @@ def find_gsc_offset(obsname, refframe="ICRS"):
     obsname : str
         Full filename or (preferably)`astropy.io.fits.HDUList` object of
         image to be processed.
-
-    refframe : str
-        Reference frame for the guide star coordinates.
-        Supported options: GSC1, ICRS(default)
 
     NOTES
     ------
@@ -647,10 +644,11 @@ def find_gsc_offset(obsname, refframe="ICRS"):
 
     Returns
     -------
-    deltas : dict
+    response : dict
         Dict of offset, roll and scale in decimal degrees and pixels for image
         based on correction to guide star coordinates relative to GAIA.
-        Keys: delta_x, delta_y, delta_ra, delta_dec, roll, scale, expwcs, catalog
+        Keys: ``delta_x``, ``delta_y``, ``delta_ra``, ``delta_dec``, ``roll``, ``scale``,
+        ``expwcs``, ``catalog``, ``dGSinputRA``, ``dGSoutputRA``, ``dGSinputDEC``, ``dGSoutputDEC``
     """
     # check to see whether any URL has been specified as an
     # environmental variable.
@@ -658,14 +656,6 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         gsss_serviceLocation = os.environ[gsss_url_envvar]
     else:
         gsss_serviceLocation = gsss_url
-
-    # Initialize variables for cases where no offsets are available.
-    default_delta_ra = default_delta_dec = 0.0
-    default_delta_roll = 0.0
-    default_delta_scale = 1.0
-    default_dGSinputRA = default_dGSoutputRA = 0.0
-    defailt_dGSinputDEC = default_dGSoutputDEC = 0.0
-    default_outputCatalog = None
 
     # Insure input is a fits.HDUList object, if originally provided as a filename(str)
     close_obj = False
@@ -678,37 +668,70 @@ def find_gsc_offset(obsname, refframe="ICRS"):
     else:
         ippssoot = fileutil.buildNewRootname(obsname).upper()
 
+    expwcs = build_reference_wcs(obsname)
+    delta_xy = [0.0, 0.0]
+    # Initialize variables for cases where no offsets are available.
+    response = {
+        "delta_ra": 0.0,
+        "delta_dec": 0.0,
+        "roll": 0.0,
+        "scale": 1.0,
+        "dGSinputRA": 0.0,
+        "dGSoutputRA": 0.0,
+        "dGSinputDEC": 0.0,
+        "dGSoutputDEC": 0.0,
+        "catalog": None,
+        "message": "",
+        "expwcs": expwcs,
+        "delta_x": delta_xy[0],
+        "delta_y": delta_xy[1],
+    }
     # Define what service needs to be used to get the offsets
     serviceType = "GSCConvert/GSCconvert.aspx"
-    spec_str = "REFFRAME={}&IPPPSSOOT={}"
-    spec = spec_str.format(refframe, ippssoot)
+    spec_str = "IPPPSSOOT={}"
+    spec = spec_str.format(ippssoot)
     serviceUrl = "{}/{}?{}".format(gsss_serviceLocation, serviceType, spec)
-    rawcat = requests.get(serviceUrl)
+    try:
+        rawcat = requests.get(serviceUrl)
+    except ConnectionError:
+        logger.warning("Problem accessing service")
+        return response
     if not rawcat.ok:
         logger.warning("Problem accessing service with:\n{}".format(serviceUrl))
-        logger.warning("  No offset found! ")
 
+        # It's possible rawcat.status_code to be 200 and rawcat.ok to be False
+        return response
     if rawcat.status_code == requests.codes.ok:
         logger.info("gsReference service retrieved {}".format(ippssoot))
         refXMLtree = etree.fromstring(rawcat.content)
-
-        delta_ra = float(refXMLtree.findtext('deltaRA'))
-        delta_dec = float(refXMLtree.findtext('deltaDEC'))
-        delta_roll = float(refXMLtree.findtext('deltaROLL'))
-        delta_scale = float(refXMLtree.findtext('deltaSCALE'))
-        dGSinputRA = float(refXMLtree.findtext('dGSinputRA'))
-        dGSinputDEC = float(refXMLtree.findtext('dGSinputDEC'))
-        dGSoutputRA = float(refXMLtree.findtext('dGSoutputRA'))
-        dGSoutputDEC = float(refXMLtree.findtext('dGSoutputDEC'))
-        outputCatalog = refXMLtree.findtext('outputCatalog')
+        message = refXMLtree.findtext('msg')
+        response["message"] = message
+        if message.split()[0] == "Success":
+            response = {
+                "delta_ra": float(refXMLtree.findtext('deltaRA')),
+                "delta_dec": float(refXMLtree.findtext('deltaDEC')),
+                "roll": float(refXMLtree.findtext('deltaROLL')),
+                "scale": float(refXMLtree.findtext('deltaSCALE')),
+                "dGSinputRA": float(refXMLtree.findtext('dGSinputRA')),
+                "dGSinputDEC": float(refXMLtree.findtext('dGSinputDEC')),
+                "dGSoutputRA": float(refXMLtree.findtext('dGSoutputRA')),
+                "dGSoutputDEC": float(refXMLtree.findtext('dGSoutputDEC')),
+                "catalog": refXMLtree.findtext('outputCatalog'),
+                "expwcs": expwcs,
+                "message": message,
+                }
+        else:
+            # status_code == 200 but message indicates "Failure"
+            return response
 
     # Use GS coordinate as reference point
-    old_gs = (dGSinputRA, dGSinputDEC)
-    new_gs = (dGSoutputRA, dGSoutputDEC)
+    old_gs = (response["dGSinputRA"], response["dGSinputDEC"])
+    new_gs = (response["dGSoutputRA"], response["dGSoutputDEC"])
 
-    expwcs = build_reference_wcs(obsname)
+    # This check is a workaround an issue with the service where delta_ra/dec are 0
+    # but the computed scale is NaN.
+    if response["delta_ra"] != 0.0 and response["delta_dec"] != 0.0:
 
-    if delta_ra != 0.0 and delta_dec != 0.0:
         # Compute tangent plane for this observation
         wcsframe = expwcs.wcs.radesys.lower()
 
@@ -736,23 +759,15 @@ def find_gsc_offset(obsname, refframe="ICRS"):
         # Compute offset in pixels for new CRVAL
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
         deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
-        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-            'roll': delta_roll, 'scale': delta_scale,
-            'delta_ra': delta_ra, 'delta_dec': delta_dec,
-            'expwcs': expwcs, 'catalog': outputCatalog}
 
+        response["delta_x"] = deltaxy[0]
+        response["delta_y"] = deltaxy[1]
     else:
-        logger.warning("GSC returned 0 offsets in RA, DEC for guide star")
-        deltaxy = (0., 0.)
+        logger.warning("GSC returned zero offsets in RA, DEC for guide star")
 
-        offsets = {'delta_x': deltaxy[0], 'delta_y': deltaxy[1],
-                'roll': default_delta_roll, 'scale': default_delta_scale,
-                'delta_ra': default_delta_ra, 'delta_dec': default_delta_dec,
-                'expwcs': expwcs, 'catalog': default_outputCatalog}
     if close_obj:
         obsname.close()
-    return offsets
-
+    return response
 
 
 def build_reference_wcs(input, sciname='sci'):
