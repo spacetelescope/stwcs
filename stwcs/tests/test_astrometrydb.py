@@ -101,8 +101,6 @@ class TestAstrometryDB:
             'roll': 0.0,
             'scale': 1.0,
             'catalog': None,
-            "delta_x": 0.0,
-            "delta_y": 0.0
             }
         # Do not compare the WCS
         offsets.pop("expwcs")
