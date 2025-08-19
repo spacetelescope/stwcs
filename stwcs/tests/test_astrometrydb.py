@@ -2,6 +2,10 @@ import shutil
 import os
 
 import pytest
+import requests
+
+from numpy.testing import assert_allclose
+
 from astropy.io import fits
 from astropy.io.fits import diff
 from .. import updatewcs
@@ -49,6 +53,7 @@ class TestAstrometryDB:
 
         updatewcs.updatewcs(self.acs_file, use_db=False)
 
+
     @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
     def test_default(self):
         """
@@ -63,7 +68,8 @@ class TestAstrometryDB:
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
         assert "No differences found" in report
 
-    def test_new_obs(self):
+
+    def test_new_obs(self, caplog):
         """
         A simple sanity check that first time processing will not crash
         since that observation name will not be found in the database.
@@ -78,9 +84,69 @@ class TestAstrometryDB:
         del adb
 
 
+    def test_no_offsets(self):
+        """ HLA-1541"""
+        new_obsname = 'j8di67a2q_flt.fits'
+        shutil.copyfile(self.acs_file, new_obsname)
+        fits.setval(new_obsname, keyword="rootname", value="j8di67a2q")
+        offsets = astrometry_utils.find_gsc_offset('j8di67a2q_flt.fits')
+        expected = {
+            'delta_x': 0.0,
+            'delta_y': 0.0,
+            'delta_ra': 0.0,
+            'delta_dec': 0.0,
+            'dGSinputDEC': 0.0,
+            'dGSinputRA': 0.0,
+            'dGSoutputDEC': 0.0,
+            'dGSoutputRA': 0.0,
+            'roll': 0.0,
+            'scale': 1.0,
+            'catalog': None,
+            }
+        # Do not compare the WCS
+        offsets.pop("expwcs")
+        offsets.pop("message")
+        assert expected == offsets
+        os.remove(new_obsname)
+
+        # mock a request response of False, code 403
+        os.environ['GSSS_WEBSERVICES_URL']="http://test.com"
+        serviceUrl='http://test.com/GSCConvert/GSCconvert.aspx?IPPPSSOOT=a8di67a2q'
+        rawcat= requests.get(serviceUrl)
+        assert not rawcat.ok
+        offsets = astrometry_utils.find_gsc_offset(self.acs_file)
+        offsets.pop("expwcs")
+        offsets.pop("message")
+        assert expected == offsets
+        del os.environ['GSSS_WEBSERVICES_URL']
+
+    def test_success_offsets(self):
+        """Test successfully retrieving offsets from the GSC service."""
+        expected = {'delta_ra': 0.00163279,
+                    'delta_dec': -0.00024635,
+                    'roll': 0.05507061,
+                    'scale': 0.99852027,
+                    'dGSinputRA': 4.870375,
+                    'dGSinputDEC': -72.181833,
+                    'dGSoutputRA': 4.87200779,
+                    'dGSoutputDEC': -72.18207935,
+                    'catalog': 'GSC240',
+                    'delta_x': -26.195118548980645,
+                    'delta_y': -30.37243670094358
+                   }
+
+        offsets = astrometry_utils.find_gsc_offset(self.acs_file)
+        offsets.pop("expwcs")
+        offsets.pop("message")
+        assert expected.pop('catalog') == offsets.pop('catalog')
+        for item in list(expected.keys())[::-1]:
+            # can't compare directly because computed results are slightly different on
+            # different OSs.
+            assert_allclose(expected.pop(item), offsets.pop(item))
+
+
 def test_db_connection():
 
     adb = astrometry_utils.AstrometryDB()
-    adb.isAvailable()
     assert adb.available
     del adb

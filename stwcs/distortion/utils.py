@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import numpy as np
 from numpy import linalg
@@ -112,18 +113,19 @@ def make_orthogonal_cd(wcs):
         sn = np.sin(np.deg2rad(pv))
         pvmat = np.dot(np.array([[cs, sn], [-sn, cs]]), wcs.parity)
         rot = np.arctan2(pvmat[0, 1], pvmat[1, 1])
-        scale = wcs.idcscale / 3600.
 
         det = linalg.det(wcs.parity)
-
+        if hasattr(wcs, 'idcscale') and wcs.idcscale is not None:
+            scale = (wcs.idcscale) / 3600.  # HST pixel scale provided
     else:
 
         det = linalg.det(cd)
 
         # find pixel scale:
-        if hasattr(wcs, 'idcscale'):
+        if hasattr(wcs, 'idcscale') and wcs.idcscale is not None:
             scale = (wcs.idcscale) / 3600.  # HST pixel scale provided
         else:
+            warnings.warn("IDCSCALE is missing, computing it from CD matrix.")
             scale = np.sqrt(np.abs(det))  # find as sqrt(pixel area)
 
         # find Y-axis orientation:
