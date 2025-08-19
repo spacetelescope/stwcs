@@ -482,7 +482,7 @@ def test_update_stis_asn():
     wcsname_exp1 = fits.getval('o4k19ac3q_flt.fits','wcsname',ext=('sci',1))
     assert wcsname_exp1.startswith('IDC_')
 
-
+@pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.parametrize("idcscale", [0.5, None])
 def test_make_orthogonal_cd(idcscale):
     ewcs = wcs.WCS(naxis=2)
@@ -492,6 +492,10 @@ def test_make_orthogonal_cd(idcscale):
     ewcs.wcs.cd = [[1.29055156992758e-05, 5.95250078565221e-06],[5.02263821027651e-06, -1.2644844109546e-05]]
     ewcs.idcscale = idcscale
     assert idcscale == ewcs.idcscale
+    if idcscale is None:
+        with pytest.warns(UserWarning, ):
+            warnings.warn("IDCSCALE is missing, computing it from CD matrix.")
+            w = dutils.make_orthogonal_cd(ewcs)
     w = dutils.make_orthogonal_cd(ewcs)
     cd = w.wcs.cd
     testing.assert_equal(cd * cd.T, cd.T * cd)

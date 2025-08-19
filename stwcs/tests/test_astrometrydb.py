@@ -16,7 +16,6 @@ data_path = os.path.split(os.path.abspath(data.__file__))[0]
 
 # set environment variable to insure Exceptions are raised
 os.environ['RAISE_PIPELINE_ERRORS'] = 'True'
-#os.environ['ASTROMETRY_STEP_CONTROL'] = 'ON'
 
 
 def get_filepath(filename, directory=data_path):
