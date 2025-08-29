@@ -24,6 +24,9 @@
 
 - Return default response when request to the GSC service failed. [#227]
 
+- Fix a bug in ``stwcs.wcsutil.hstwcs.HSTWCS.pc2cd()`` that would result in
+  incorrect CD matrix when the WCS has a PC matrix. [#228]
+
 
 1.7.5 (2025-07-14)
 ------------------
