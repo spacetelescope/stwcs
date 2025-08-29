@@ -8,9 +8,14 @@ Unreleased
 
 - Return default response when request to the GSC service failed. [#227]
 
+- Fix a bug in ``stwcs.wcsutil.hstwcs.HSTWCS.pc2cd()`` that would result in
+  incorrect CD matrix when the WCS has a PC matrix. [#228]
+
+
 1.7.5 (2025-07-14)
 ------------------
 - Work around an issue with the AStrometry DB which returns NaNs in certain cases. [#221]
+
 
 1.7.4 (2025-01-07)
 ------------------
