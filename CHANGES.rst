@@ -1,5 +1,8 @@
 Unreleased
 ----------
+
+- Added automatic retry of astrometrydb.isAvailable() upon failure. [#231]
+
 - Enable CI and add tests [#226]
 
 - When computing an orthogonal CD matrix, check that ``idcscale`` exists
