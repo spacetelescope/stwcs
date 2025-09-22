@@ -31,6 +31,7 @@ GSSS_WEBSERVICES_URL - URL point to user-specified web service which provides
 """
 import os
 import sys
+import time
 import atexit
 import hashlib
 
@@ -580,44 +581,78 @@ class AstrometryDB:
 
         return wname
 
-    def isAvailable(self):
-        """Test availability of astrometryDB web-service."""
+    def isAvailable(self, max_tries=2, testing=False):
+        """Tests the availability of the astrometry database
+
+        Parameters
+        ----------
+        max_tries : int, optional
+            Number of attempts to query the db, by default 2
+        testing : bool, optional
+            If True, use a very short timeout for testing purposes, by default False
+
+        Raises
+        ------
+        ConnectionRefusedError
+            If the service is unavailable after max_tries attempts and raise_errors is True
+        ConnectionError
+            If there is a network-related error during the request and raise_errors is True
+        """
         if not self.perform_step:
             return
-
+        
+        if testing:
+            timeout=1E-15
+        else:
+            timeout=5
+        
         serviceEndPoint = self.serviceLocation + 'availability'
         logger.info(f"AstrometryDB URL: {serviceEndPoint}")
 
-        try:
-            r = requests.get(serviceEndPoint, headers=self.headers)
+        for attempt_number in range(0, max_tries):
+            try:
+                r = requests.get(serviceEndPoint, headers=self.headers, timeout=timeout)
+                if r.status_code == requests.codes.ok:
+                    logger.info('AstrometryDB service available...')
+                    self.available_code['code'] = r.status_code
+                    self.available_code['text'] = 'Available'
+                    self.available = True
+                    break
+                else:
+                    logger.warning('          AstrometryDB called: {}'.format(
+                                    self.serviceLocation))
+                    logger.warning('          AstrometryDB status: {}'.format(
+                                r.status_code))
+                    logger.warning('          AstrometryDB text: {}'.format(
+                                r.text))
+                    self.available_code['code'] = r.status_code
+                    self.available_code['text'] = r.text
+                    self.available = False
+                    if attempt_number==(max_tries-1):
+                        if self.raise_errors:
+                            e = "AstrometryDB service unavailable!"
+                            raise ConnectionRefusedError(e)
+                        else:
+                            logger.warning("AstrometryDB service unavailable!")
+                            break
+                    logger.warning('WARNING : AstrometryDB service unavailable! '+ 
+                                   f'Trying again in 60 seconds')
+                    time.sleep(60)
 
-            if r.status_code == requests.codes.ok:
-                logger.info('AstrometryDB service available...')
-                self.available_code['code'] = r.status_code
-                self.available_code['text'] = 'Available'
-                self.available = True
-            else:
-                logger.warning('WARNING : AstrometryDB service unavailable!')
-                logger.warning('          AstrometryDB called: {}'.format(
-                                self.serviceLocation))
-                logger.warning('          AstrometryDB status: {}'.format(
-                               r.status_code))
-                logger.warning('          AstrometryDB text: {}'.format(
-                               r.text))
-                self.available_code['code'] = r.status_code
-                self.available_code['text'] = r.text
+            except Exception as err:
+                logger.warning('    AstrometryDB called: {}'.format(
+                                    self.serviceLocation))
                 self.available = False
-                if self.raise_errors:
-                    e = "AstrometryDB service unavailable!"
-                    raise ConnectionRefusedError(e)
-
-        except Exception as err:
-            logger.warning('WARNING : AstrometryDB service inaccessible!')
-            logger.warning('    AstrometryDB called: {}'.format(
-                                self.serviceLocation))
-            self.available = False
-            if self.raise_errors:
-                raise ConnectionError from err
+                if attempt_number==(max_tries-1):
+                    if self.raise_errors:
+                        raise ConnectionError from err
+                    else:
+                        logger.warning("AstrometryDB service unavailable!")
+                        break
+                logger.warning('WARNING : AstrometryDB service unavailable!'+ 
+                                   f' Trying again in 60 seconds')
+                time.sleep(60)
+            
 
 #
 # Supporting functions
