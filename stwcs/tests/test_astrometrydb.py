@@ -151,7 +151,9 @@ def test_db_connection():
 def test_db_raise_errors_user_override():
     # should not raise an exception since raise_errors is False
     db = astrometry_utils.AstrometryDB(url="bad_link/", raise_errors=False)
+    assert db.available is False
     del db
+
 
 @pytest.mark.xfail
 def test_db_raise_errors_true():

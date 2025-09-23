@@ -151,11 +151,14 @@ class AstrometryDB:
         # otherwise, it will turn off raising Exceptions
         #
         self.raise_errors = False
-        if raise_errors is not None:
-            self.raise_errors = raise_errors
-            logger.info("Setting `raise_errors` to {}".format(raise_errors))
         if pipeline_error_envvar in os.environ:
             self.raise_errors = True
+        if raise_errors:
+            self.raise_errors = raise_errors
+            logger.info("Setting `raise_errors` to {}".format(raise_errors))
+        else:
+            self.raise_errors = False
+        
         self.isAvailable()  # determine whether service is available
 
         # Initialize attribute to keep track of type of observation
