@@ -158,7 +158,7 @@ class AstrometryDB:
             logger.info("Setting `raise_errors` to {}".format(raise_errors))
         else:
             self.raise_errors = False
-        
+
         self.isAvailable()  # determine whether service is available
 
         # Initialize attribute to keep track of type of observation
