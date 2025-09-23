@@ -156,7 +156,6 @@ class AstrometryDB:
             logger.info("Setting `raise_errors` to {}".format(raise_errors))
         if pipeline_error_envvar in os.environ:
             self.raise_errors = True
-
         self.isAvailable()  # determine whether service is available
 
         # Initialize attribute to keep track of type of observation
@@ -648,6 +647,12 @@ class AstrometryDB:
                         return
 
                 self._log_retry_message(attempt, max_tries)
+            except Exception as e:
+                logger.warning(f"Unexpected error: {e}")
+                self.available = False
+                if self.raise_errors:
+                    raise
+                return
 
     def _set_availability_status(self, status_code, status_text, is_available):
         """Helper method to set availability status consistently."""

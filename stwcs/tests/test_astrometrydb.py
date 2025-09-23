@@ -148,27 +148,22 @@ def test_db_connection():
     del adb
 
 
-def test_db_bad_connection():
-    # ensures test do not raise an exception with the default raise_errors=False
-    # argument.
-    raised = False
-    try:
-        db = astrometry_utils.AstrometryDB(url="bad_link/")
-    except Exception:
-        raised = True
-    if raised:
-        pytest.fail("AstrometryDB raised Exception unexpectedly!")
+def test_db_raise_errors_user_override():
+    # should not raise an exception since raise_errors is False
+    db = astrometry_utils.AstrometryDB(url="bad_link/", raise_errors=False)
+    del db
+
+@pytest.mark.xfail
+def test_db_raise_errors_true():
+    # tests that environment variable RAISE_PIPELINE_ERRORS raises an exception
+    db = astrometry_utils.AstrometryDB(url="bad_link/")
     del db
 
 
 @pytest.mark.xfail
-def test_db_bad_connection_raise_errors():
-    db = astrometry_utils.AstrometryDB(url="bad_link/", raise_errors=True)
-    del db
-
-
-@pytest.mark.xfail
-def test_db_timeout_raise_errors():
-    db = astrometry_utils.AstrometryDB(raise_errors=True)
+def test_db_timeout():
+    # Testing mode uses short timeout to simulate timeout. raise_errors should
+    # be set to True with the environment variable.
+    db = astrometry_utils.AstrometryDB()
     db.isAvailable(testing=True)
     del db
