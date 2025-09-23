@@ -448,7 +448,6 @@ class AstrometryDB:
 
             return headerlets, best_solution_id
 
-
     def apply_new_apriori(self, obsname):
         """ Compute and apply a new a priori WCS based on offsets from astrometry database.
 
@@ -569,7 +568,6 @@ class AstrometryDB:
             apriori_hdr['NMATCH'] = 2
             apriori_hdr['CATALOG'] = pix_offsets['catalog']
 
-
         if not os.path.exists(hfilename):
             # Now, write out new a priori WCS to a unique headerlet file
             logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
@@ -600,59 +598,65 @@ class AstrometryDB:
         """
         if not self.perform_step:
             return
-        
+
         if testing:
-            timeout=1E-15
+            timeout = 1e-15
         else:
-            timeout=5
-        
-        serviceEndPoint = self.serviceLocation + 'availability'
+            timeout = 5
+
+        serviceEndPoint = self.serviceLocation + "availability"
         logger.info(f"AstrometryDB URL: {serviceEndPoint}")
 
         for attempt_number in range(0, max_tries):
             try:
                 r = requests.get(serviceEndPoint, headers=self.headers, timeout=timeout)
                 if r.status_code == requests.codes.ok:
-                    logger.info('AstrometryDB service available...')
-                    self.available_code['code'] = r.status_code
-                    self.available_code['text'] = 'Available'
+                    logger.info("AstrometryDB service available...")
+                    self.available_code["code"] = r.status_code
+                    self.available_code["text"] = "Available"
                     self.available = True
                     break
                 else:
-                    logger.warning('          AstrometryDB called: {}'.format(
-                                    self.serviceLocation))
-                    logger.warning('          AstrometryDB status: {}'.format(
-                                r.status_code))
-                    logger.warning('          AstrometryDB text: {}'.format(
-                                r.text))
-                    self.available_code['code'] = r.status_code
-                    self.available_code['text'] = r.text
+                    logger.warning(
+                        "          AstrometryDB called: {}".format(self.serviceLocation)
+                    )
+                    logger.warning(
+                        "          AstrometryDB status: {}".format(r.status_code)
+                    )
+                    logger.warning("          AstrometryDB text: {}".format(r.text))
+                    self.available_code["code"] = r.status_code
+                    self.available_code["text"] = r.text
                     self.available = False
-                    if attempt_number==(max_tries-1):
+                    if attempt_number == (max_tries - 1):
                         if self.raise_errors:
                             e = "AstrometryDB service unavailable!"
                             raise ConnectionRefusedError(e)
                         else:
                             logger.warning("AstrometryDB service unavailable!")
                             break
-                    logger.warning('WARNING : AstrometryDB service unavailable! '+ 
-                                   f'Trying again in 60 seconds')
+                    logger.warning(
+                        "WARNING : AstrometryDB service unavailable! "
+                        + f"Trying again in 60 seconds"
+                    )
                     time.sleep(60)
 
             except Exception as err:
-                logger.warning('    AstrometryDB called: {}'.format(
-                                    self.serviceLocation))
+                logger.warning(
+                    "    AstrometryDB called: {}".format(self.serviceLocation)
+                )
                 self.available = False
-                if attempt_number==(max_tries-1):
+                if attempt_number == (max_tries - 1):
                     if self.raise_errors:
                         raise ConnectionError from err
                     else:
                         logger.warning("AstrometryDB service unavailable!")
                         break
-                logger.warning('WARNING : AstrometryDB service unavailable!'+ 
-                                   f' Trying again in 60 seconds')
+                logger.warning(
+                    "WARNING : AstrometryDB service unavailable!"
+                    + f" Trying again in 60 seconds"
+                )
                 time.sleep(60)
-            
+
 
 #
 # Supporting functions
