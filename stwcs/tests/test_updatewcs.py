@@ -499,18 +499,3 @@ def test_make_orthogonal_cd(idcscale):
     w = dutils.make_orthogonal_cd(ewcs)
     cd = w.wcs.cd
     testing.assert_equal(cd * cd.T, cd.T * cd)
-
-
-def test_astrometrydb_bad_gateway():
-    db = astrometry_utils.AstrometryDB(url="bad_link")
-
-
-@pytest.mark.xfail
-def test_astrometrydb_bad_gateway_raise_errors():
-    db = astrometry_utils.AstrometryDB(url="bad_link", raise_errors=True)
-
-
-@pytest.mark.xfail
-def test_astrometrydb_timeout_raise_errors():
-    db = astrometry_utils.AstrometryDB(raise_errors=True)
-    db.isAvailable(testing=True)

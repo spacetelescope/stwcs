@@ -53,7 +53,6 @@ class TestAstrometryDB:
 
         updatewcs.updatewcs(self.acs_file, use_db=False)
 
-
     @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
     def test_default(self):
         """
@@ -68,7 +67,6 @@ class TestAstrometryDB:
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
         assert "No differences found" in report
 
-
     def test_new_obs(self, caplog):
         """
         A simple sanity check that first time processing will not crash
@@ -82,7 +80,6 @@ class TestAstrometryDB:
         assert adb.new_observation
         os.remove(new_obsname)  # remove intermediate test file
         del adb
-
 
     def test_no_offsets(self):
         """ HLA-1541"""
@@ -146,7 +143,32 @@ class TestAstrometryDB:
 
 
 def test_db_connection():
-
     adb = astrometry_utils.AstrometryDB()
     assert adb.available
     del adb
+
+
+def test_db_bad_connection():
+    # ensures test do not raise an exception with the default raise_errors=False
+    # argument.
+    raised = False
+    try:
+        db = astrometry_utils.AstrometryDB(url="bad_link/")
+    except Exception:
+        raised = True
+    if raised:
+        pytest.fail("AstrometryDB raised Exception unexpectedly!")
+    del db
+
+
+@pytest.mark.xfail
+def test_db_bad_connection_raise_errors():
+    db = astrometry_utils.AstrometryDB(url="bad_link/", raise_errors=True)
+    del db
+
+
+@pytest.mark.xfail
+def test_db_timeout_raise_errors():
+    db = astrometry_utils.AstrometryDB(raise_errors=True)
+    db.isAvailable(testing=True)
+    del db
