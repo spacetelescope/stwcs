@@ -599,63 +599,89 @@ class AstrometryDB:
         if not self.perform_step:
             return
 
-        if testing:
-            timeout = 1e-15
-        else:
-            timeout = 5
+        # Set timeout based on testing flag
+        timeout = 1e-15 if testing else 5.0
 
-        serviceEndPoint = self.serviceLocation + "availability"
-        logger.info(f"AstrometryDB URL: {serviceEndPoint}")
+        service_endpoint = self.serviceLocation + "availability"
+        logger.info(f"AstrometryDB URL: {service_endpoint}")
 
-        for attempt_number in range(0, max_tries):
+        for attempt in range(max_tries):
             try:
-                r = requests.get(serviceEndPoint, headers=self.headers, timeout=timeout)
-                if r.status_code == requests.codes.ok:
-                    logger.info("AstrometryDB service available...")
-                    self.available_code["code"] = r.status_code
-                    self.available_code["text"] = "Available"
-                    self.available = True
-                    break
-                else:
-                    logger.warning(
-                        "          AstrometryDB called: {}".format(self.serviceLocation)
-                    )
-                    logger.warning(
-                        "          AstrometryDB status: {}".format(r.status_code)
-                    )
-                    logger.warning("          AstrometryDB text: {}".format(r.text))
-                    self.available_code["code"] = r.status_code
-                    self.available_code["text"] = r.text
-                    self.available = False
-                    if attempt_number == (max_tries - 1):
-                        if self.raise_errors:
-                            e = "AstrometryDB service unavailable!"
-                            raise ConnectionRefusedError(e)
-                        else:
-                            logger.warning("AstrometryDB service unavailable!")
-                            break
-                    logger.warning(
-                        "WARNING : AstrometryDB service unavailable! "
-                        + f"Trying again in 60 seconds"
-                    )
-                    time.sleep(60)
-
-            except Exception as err:
-                logger.warning(
-                    "    AstrometryDB called: {}".format(self.serviceLocation)
+                response = requests.get(
+                    service_endpoint, headers=self.headers, timeout=timeout
                 )
+
+                if response.status_code == requests.codes.ok:
+                    logger.info("AstrometryDB service available")
+                    self._set_availability_status(
+                        response.status_code, "Available", True
+                    )
+                    return
+                else:
+                    self._log_service_failure(response.status_code, response.text)
+                    self._set_availability_status(
+                        response.status_code, response.text, False
+                    )
+
+                    if self._is_final_attempt(attempt, max_tries):
+                        self._handle_final_failure("AstrometryDB service unavailable!")
+                        return
+
+                    self._log_retry_message(attempt, max_tries)
+
+            except (
+                requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
+            ) as err:
+                logger.warning(f"AstrometryDB connection failed: {service_endpoint}")
+                logger.warning(f"Error: {err}")
                 self.available = False
-                if attempt_number == (max_tries - 1):
+
+                if self._is_final_attempt(attempt, max_tries):
                     if self.raise_errors:
-                        raise ConnectionError from err
+                        raise ConnectionError(
+                            f"Failed to connect to AstrometryDB: {err}"
+                        ) from err
                     else:
                         logger.warning("AstrometryDB service unavailable!")
-                        break
-                logger.warning(
-                    "WARNING : AstrometryDB service unavailable!"
-                    + f" Trying again in 60 seconds"
-                )
-                time.sleep(60)
+                        return
+
+                self._log_retry_message(attempt, max_tries)
+
+    def _set_availability_status(self, status_code, status_text, is_available):
+        """Helper method to set availability status consistently."""
+        self.available_code["code"] = status_code
+        self.available_code["text"] = status_text
+        self.available = is_available
+
+    def _log_service_failure(self, status_code, response_text):
+        """Helper method to log service failure details."""
+        logger.warning(f"AstrometryDB service call failed:")
+        logger.warning(f"  URL: {self.serviceLocation}")
+        logger.warning(f"  Status: {status_code}")
+        logger.warning(f"  Response: {response_text}")
+
+    def _is_final_attempt(self, current_attempt, max_tries):
+        """Check if this is the final attempt."""
+        return current_attempt == (max_tries - 1)
+
+    def _handle_final_failure(self, error_message):
+        """Handle the final failure attempt."""
+        if self.raise_errors:
+            raise ConnectionRefusedError(error_message)
+        else:
+            logger.warning(error_message)
+
+    def _log_retry_message(self, attempt, max_tries):
+        """Log retry message with consistent formatting."""
+        remaining_attempts = max_tries - attempt - 1
+        if remaining_attempts > 0:
+            logger.warning(
+                "AstrometryDB service unavailable! Retrying in 60 seconds " +
+                f"({remaining_attempts} attempt(s) remaining)"
+            )
+            time.sleep(60)
 
 
 #
