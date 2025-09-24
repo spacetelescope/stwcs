@@ -600,7 +600,7 @@ class AstrometryDB:
             return
 
         # Set timeout based on testing flag
-        timeout = 1e-15 if testing else 5.0
+        timeout = 1e-15 if testing else 5.0 # values in seconds. 
 
         service_endpoint = self.serviceLocation + "availability"
         logger.info(f"AstrometryDB URL: {service_endpoint}")
