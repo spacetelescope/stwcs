@@ -592,7 +592,7 @@ class AstrometryDB:
         ----------
         max_tries : int, optional
             Number of attempts to query the db, by default 2
-        
+
         force_timeout : bool, optional
             If True, forces a timeout to test error handling, by default False
 
@@ -612,7 +612,7 @@ class AstrometryDB:
             logger.warning("max_tries limited to 10")
 
         # Set timeout based on testing flag
-        timeout = 1e-15 if force_timeout else 5.0 # values in seconds. 
+        timeout = 1e-15 if force_timeout else 5.0  # values in seconds.
 
         service_endpoint = self.serviceLocation + "availability"
         logger.info(f"AstrometryDB URL: {service_endpoint}")
