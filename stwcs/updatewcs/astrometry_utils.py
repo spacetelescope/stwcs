@@ -78,7 +78,7 @@ class AstrometryDB:
     available_code = {'code': "", 'text': ""}
 
     def __init__(self, url=None, raise_errors=None, perform_step=True,
-                 write_log=False):
+                 write_log=False, testing=False):
         """Initialize class with user-provided URL.
 
         Parameters
@@ -106,8 +106,14 @@ class AstrometryDB:
             Specify whether or not to write a log file during processing.
             Default: False
 
+        testing : bool, optional
+            Specify whether or not the code is being run in a testing environment.
+            Shorten time between retries when checking for service availability.
+            Default: False
+
         """
         self.perform_step = perform_step
+        self.testing = testing
         # Check to see whether an environment variable has been set
         if astrometry_control_envvar in os.environ:
             val = os.environ[astrometry_control_envvar].lower()
@@ -579,15 +585,16 @@ class AstrometryDB:
 
         return wname
 
-    def isAvailable(self, max_tries=2, testing=False):
+    def isAvailable(self, max_tries=2, force_timeout=False):
         """Tests the availability of the astrometry database
 
         Parameters
         ----------
         max_tries : int, optional
             Number of attempts to query the db, by default 2
-        testing : bool, optional
-            If True, use a very short timeout for testing purposes, by default False
+        
+        force_timeout : bool, optional
+            If True, forces a timeout to test error handling, by default False
 
         Raises
         ------
@@ -600,12 +607,12 @@ class AstrometryDB:
             return
 
         # added max_tries limit to 10
-        if max_tries >10:
+        if max_tries > 10:
             max_tries = 10
             logger.warning("max_tries limited to 10")
 
         # Set timeout based on testing flag
-        timeout = 1e-15 if testing else 5.0 # values in seconds. 
+        timeout = 1e-15 if force_timeout else 5.0 # values in seconds. 
 
         service_endpoint = self.serviceLocation + "availability"
         logger.info(f"AstrometryDB URL: {service_endpoint}")
@@ -686,13 +693,18 @@ class AstrometryDB:
 
     def _log_retry_message(self, attempt, max_tries):
         """Log retry message with consistent formatting."""
+        # shorten time between retries if testing
+        if self.testing:
+            wait_time = 0.1
+        else:
+            wait_time = 60
         remaining_attempts = max_tries - attempt - 1
         if remaining_attempts > 0:
             logger.warning(
-                "AstrometryDB service unavailable! Retrying in 60 seconds " +
+                f"AstrometryDB service unavailable! Retrying in {wait_time} seconds " +
                 f"({remaining_attempts} attempt(s) remaining)"
             )
-            time.sleep(60)
+            time.sleep(wait_time)
 
 
 #
