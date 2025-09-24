@@ -585,13 +585,13 @@ class AstrometryDB:
 
         return wname
 
-    def isAvailable(self, max_tries=2, force_timeout=False):
+    def isAvailable(self, max_tries=3, force_timeout=False):
         """Tests the availability of the astrometry database
 
         Parameters
         ----------
         max_tries : int, optional
-            Number of attempts to query the db, by default 2
+            Number of attempts to query the db, by default 3
 
         force_timeout : bool, optional
             If True, forces a timeout to test error handling, by default False
