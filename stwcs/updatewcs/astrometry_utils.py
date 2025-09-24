@@ -599,6 +599,11 @@ class AstrometryDB:
         if not self.perform_step:
             return
 
+        # added max_tries limit to 10
+        if max_tries >10:
+            max_tries = 10
+            logger.warning("max_tries limited to 10")
+
         # Set timeout based on testing flag
         timeout = 1e-15 if testing else 5.0 # values in seconds. 
 
