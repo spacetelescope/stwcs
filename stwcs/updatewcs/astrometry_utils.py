@@ -153,11 +153,9 @@ class AstrometryDB:
         self.raise_errors = False
         if pipeline_error_envvar in os.environ:
             self.raise_errors = True
-        if raise_errors:
+        if raise_errors is not None:
             self.raise_errors = raise_errors
             logger.info("Setting `raise_errors` to {}".format(raise_errors))
-        else:
-            self.raise_errors = False
 
         self.isAvailable()  # determine whether service is available
 
