@@ -107,8 +107,7 @@ class AstrometryDB:
             Default: False
 
         testing : bool, optional
-            Specify whether or not the code is being run in a testing environment.
-            Shorten time between retries when checking for service availability.
+            Shortens time between retries when checking for service availability.
             Default: False
 
         """
