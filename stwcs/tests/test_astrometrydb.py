@@ -148,11 +148,16 @@ def test_db_connection():
     del adb
 
 
-def test_db_raise_errors_user_override():
+def test_db_raise_errors_user_override_False():
     # should not raise an exception since raise_errors is False
     db = astrometry_utils.AstrometryDB(testing=True, url="bad_link/", raise_errors=False)
     assert db.available is False
     del db
+
+def test_db_raise_errors_user_override_True():
+    # should raise an exception since raise_errors is overwritten to True
+    with pytest.raises(requests.exceptions.ConnectionError):
+        db = astrometry_utils.AstrometryDB(testing=True, url="bad_link/", raise_errors=True)
 
 
 def test_db_raise_errors_true():
