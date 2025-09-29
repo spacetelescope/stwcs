@@ -157,7 +157,16 @@ class AstrometryDB:
         #
         self.raise_errors = False
         if pipeline_error_envvar in os.environ:
-            self.raise_errors = True
+            val = os.environ[pipeline_error_envvar].lower()
+            if val in ["true"]:
+                self.raise_errors = True
+            elif val in ["false"]:
+                self.raise_errors = False
+            else:
+                l = f"Invalid environment variable setting for {pipeline_error_envvar}."
+                l += "\t Valid values: True or False (case-insensitive)"
+                raise ValueError(l)
+            logger.debug(f"{pipeline_error_envvar} set to {self.raise_errors}")
         if raise_errors is not None:
             self.raise_errors = raise_errors
             logger.info("Setting `raise_errors` to {}".format(raise_errors))
