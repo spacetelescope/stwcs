@@ -2,7 +2,7 @@
 name = "stwcs"
 description = "Computes the WCS of HST images."
 authors = [
-    { name = "STScI", email = "help@stsci.edu" },
+    { name = "STScI" },
 ]
 classifiers = [
     "Intended Audience :: Science/Research",
