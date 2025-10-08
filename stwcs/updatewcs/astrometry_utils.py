@@ -31,6 +31,7 @@ GSSS_WEBSERVICES_URL - URL point to user-specified web service which provides
 """
 import os
 import sys
+import time
 import atexit
 import hashlib
 
@@ -77,7 +78,7 @@ class AstrometryDB:
     available_code = {'code': "", 'text': ""}
 
     def __init__(self, url=None, raise_errors=None, perform_step=True,
-                 write_log=False):
+                 write_log=False, testing=False):
         """Initialize class with user-provided URL.
 
         Parameters
@@ -105,8 +106,13 @@ class AstrometryDB:
             Specify whether or not to write a log file during processing.
             Default: False
 
+        testing : bool, optional
+            Shortens time between retries when checking for service availability.
+            Default: False
+
         """
         self.perform_step = perform_step
+        self.testing = testing
         # Check to see whether an environment variable has been set
         if astrometry_control_envvar in os.environ:
             val = os.environ[astrometry_control_envvar].lower()
@@ -150,11 +156,20 @@ class AstrometryDB:
         # otherwise, it will turn off raising Exceptions
         #
         self.raise_errors = False
+        if pipeline_error_envvar in os.environ:
+            val = os.environ[pipeline_error_envvar].lower()
+            if val in ["true"]:
+                self.raise_errors = True
+            elif val in ["false"]:
+                self.raise_errors = False
+            else:
+                l = f"Invalid environment variable setting for {pipeline_error_envvar}."
+                l += "\t Valid values: True or False (case-insensitive)"
+                raise ValueError(l)
+            logger.debug(f"{pipeline_error_envvar} set to {self.raise_errors}")
         if raise_errors is not None:
             self.raise_errors = raise_errors
             logger.info("Setting `raise_errors` to {}".format(raise_errors))
-        if pipeline_error_envvar in os.environ:
-            self.raise_errors = True
 
         self.isAvailable()  # determine whether service is available
 
@@ -447,7 +462,6 @@ class AstrometryDB:
 
             return headerlets, best_solution_id
 
-
     def apply_new_apriori(self, obsname):
         """ Compute and apply a new a priori WCS based on offsets from astrometry database.
 
@@ -568,7 +582,6 @@ class AstrometryDB:
             apriori_hdr['NMATCH'] = 2
             apriori_hdr['CATALOG'] = pix_offsets['catalog']
 
-
         if not os.path.exists(hfilename):
             # Now, write out new a priori WCS to a unique headerlet file
             logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
@@ -580,44 +593,127 @@ class AstrometryDB:
 
         return wname
 
-    def isAvailable(self):
-        """Test availability of astrometryDB web-service."""
+    def isAvailable(self, max_tries=3, force_timeout=False):
+        """Tests the availability of the astrometry database
+
+        Parameters
+        ----------
+        max_tries : int, optional
+            Number of attempts to query the db, by default 3
+
+        force_timeout : bool, optional
+            If True, forces a timeout to test error handling, by default False
+
+        Raises
+        ------
+        ConnectionRefusedError
+            If the service is unavailable after max_tries attempts and raise_errors is True
+        ConnectionError
+            If there is a network-related error during the request and raise_errors is True
+        """
         if not self.perform_step:
             return
 
-        serviceEndPoint = self.serviceLocation + 'availability'
-        logger.info(f"AstrometryDB URL: {serviceEndPoint}")
+        # added max_tries limit to 10
+        if max_tries > 10:
+            max_tries = 10
+            logger.warning("max_tries limited to 10")
 
-        try:
-            r = requests.get(serviceEndPoint, headers=self.headers)
+        # Set timeout based on testing flag
+        timeout = 1e-15 if force_timeout else 5.0  # values in seconds.
 
-            if r.status_code == requests.codes.ok:
-                logger.info('AstrometryDB service available...')
-                self.available_code['code'] = r.status_code
-                self.available_code['text'] = 'Available'
-                self.available = True
-            else:
-                logger.warning('WARNING : AstrometryDB service unavailable!')
-                logger.warning('          AstrometryDB called: {}'.format(
-                                self.serviceLocation))
-                logger.warning('          AstrometryDB status: {}'.format(
-                               r.status_code))
-                logger.warning('          AstrometryDB text: {}'.format(
-                               r.text))
-                self.available_code['code'] = r.status_code
-                self.available_code['text'] = r.text
+        service_endpoint = self.serviceLocation + "availability"
+        logger.info(f"AstrometryDB URL: {service_endpoint}")
+
+        for attempt in range(max_tries):
+            try:
+                response = requests.get(
+                    service_endpoint, headers=self.headers, timeout=timeout
+                )
+
+                if response.status_code == requests.codes.ok:
+                    logger.info("AstrometryDB service available")
+                    self._set_availability_status(
+                        response.status_code, "Available", True
+                    )
+                    return
+                else:
+                    self._log_service_failure(response.status_code, response.text)
+                    self._set_availability_status(
+                        response.status_code, response.text, False
+                    )
+
+                    if self._is_final_attempt(attempt, max_tries):
+                        self._handle_final_failure("AstrometryDB service unavailable!")
+                        return
+
+                    self._log_retry_message(attempt, max_tries)
+
+            except (
+                requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
+            ) as err:
+                logger.warning(f"AstrometryDB connection failed: {service_endpoint}")
+                logger.warning(f"Error: {err}")
+                self.available = False
+
+                if self._is_final_attempt(attempt, max_tries):
+                    if self.raise_errors:
+                        raise ConnectionError(
+                            f"Failed to connect to AstrometryDB: {err}"
+                        ) from err
+                    else:
+                        logger.warning("AstrometryDB service unavailable!")
+                        return
+
+                self._log_retry_message(attempt, max_tries)
+            except Exception as e:
+                logger.warning(f"Unexpected error: {e}")
                 self.available = False
                 if self.raise_errors:
-                    e = "AstrometryDB service unavailable!"
-                    raise ConnectionRefusedError(e)
+                    raise
+                return
 
-        except Exception as err:
-            logger.warning('WARNING : AstrometryDB service inaccessible!')
-            logger.warning('    AstrometryDB called: {}'.format(
-                                self.serviceLocation))
-            self.available = False
-            if self.raise_errors:
-                raise ConnectionError from err
+    def _set_availability_status(self, status_code, status_text, is_available):
+        """Helper method to set availability status consistently."""
+        self.available_code["code"] = status_code
+        self.available_code["text"] = status_text
+        self.available = is_available
+
+    def _log_service_failure(self, status_code, response_text):
+        """Helper method to log service failure details."""
+        logger.warning(f"AstrometryDB service call failed:")
+        logger.warning(f"  URL: {self.serviceLocation}")
+        logger.warning(f"  Status: {status_code}")
+        logger.warning(f"  Response: {response_text}")
+
+    def _is_final_attempt(self, current_attempt, max_tries):
+        """Check if this is the final attempt."""
+        return current_attempt == (max_tries - 1)
+
+    def _handle_final_failure(self, error_message):
+        """Handle the final failure attempt."""
+        if self.raise_errors:
+            raise ConnectionRefusedError(error_message)
+        else:
+            logger.warning(error_message)
+
+    def _log_retry_message(self, attempt, max_tries):
+        """Log retry message with consistent formatting."""
+        # shorten time between retries if testing
+        if self.testing:
+            wait_time = 0.1
+        else:
+            wait_time = 60
+        remaining_attempts = max_tries - attempt - 1
+        if remaining_attempts > 0:
+            logger.warning(
+                f"AstrometryDB service unavailable! Retrying in {wait_time} seconds " +
+                f"({remaining_attempts} attempt(s) remaining)"
+            )
+            time.sleep(wait_time)
+
 
 #
 # Supporting functions

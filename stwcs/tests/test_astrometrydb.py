@@ -53,7 +53,6 @@ class TestAstrometryDB:
 
         updatewcs.updatewcs(self.acs_file, use_db=False)
 
-
     @pytest.mark.skip("Need to understand why this fails and how it's supposed to work.")
     def test_default(self):
         """
@@ -68,7 +67,6 @@ class TestAstrometryDB:
         report = diff.HDUDiff(acs[1], ref[1], ignore_keywords=['HDRNAME', 'HDRNAMEB']).report()
         assert "No differences found" in report
 
-
     def test_new_obs(self, caplog):
         """
         A simple sanity check that first time processing will not crash
@@ -82,7 +80,6 @@ class TestAstrometryDB:
         assert adb.new_observation
         os.remove(new_obsname)  # remove intermediate test file
         del adb
-
 
     def test_no_offsets(self):
         """ HLA-1541"""
@@ -146,7 +143,33 @@ class TestAstrometryDB:
 
 
 def test_db_connection():
-
     adb = astrometry_utils.AstrometryDB()
     assert adb.available
     del adb
+
+
+def test_db_raise_errors_user_override_False():
+    # should not raise an exception since raise_errors is False
+    db = astrometry_utils.AstrometryDB(testing=True, url="bad_link/", raise_errors=False)
+    assert db.available is False
+    del db
+
+def test_db_raise_errors_user_override_True():
+    # should raise an exception since raise_errors is overwritten to True
+    with pytest.raises(requests.exceptions.ConnectionError):
+        db = astrometry_utils.AstrometryDB(testing=True, url="bad_link/", raise_errors=True)
+
+
+def test_db_raise_errors_true():
+    # tests that environment variable RAISE_PIPELINE_ERRORS raises an exception
+    with pytest.raises(requests.exceptions.ConnectionError):
+        db = astrometry_utils.AstrometryDB(testing=True, url="bad_link/")
+
+
+def test_db_timeout():
+    # Testing mode uses short timeout to simulate timeout. raise_errors should
+    # be set to True with the environment variable.
+    db = astrometry_utils.AstrometryDB(testing=True)
+    with pytest.raises(requests.exceptions.ConnectionError):
+        db.isAvailable(force_timeout=True)
+    del db

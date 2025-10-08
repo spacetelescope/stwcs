@@ -6,7 +6,7 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from .. import updatewcs
-from ..updatewcs import apply_corrections
+from ..updatewcs import apply_corrections, astrometry_utils
 from ..distortion import utils as dutils
 from ..wcsutil import HSTWCS
 import numpy as np
