@@ -2,8 +2,5 @@ name: rtd311
 
 dependencies:
  - python=3.11
- - numpy
- - astropy
  - pip
  - graphviz
- - sphinx_rtd_theme>1.2.0
