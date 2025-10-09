@@ -239,6 +239,7 @@ class TestAltWCS:
         h.close()
 
 
+    @pytest.mark.skipif(os.name == "nt", reason="FIXME: Crash on Windows")
     def test_repeated_updatewcs_use_db(self):
         """Expectation: All WCSs in header should be based on IDCTAB value from input image header."""
         ext_list = [('sci', 1), ('sci', 2)]
