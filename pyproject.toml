@@ -36,6 +36,8 @@ docs = [
 ]
 test = [
     "pytest",
+    "numpy",
+    "astropy",
 ]
 
 [build-system]
