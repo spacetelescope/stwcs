@@ -6,7 +6,7 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from .. import updatewcs
-from ..updatewcs import apply_corrections, astrometry_utils
+from ..updatewcs import apply_corrections
 from ..distortion import utils as dutils
 from ..wcsutil import HSTWCS
 import numpy as np
@@ -381,6 +381,7 @@ def test_update_d2im_distortion():
     assert np.isclose(d2imerr4 * 100, nd2imerr4)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="FIXME: PermissionError on Windows")
 def test_apply_d2im():
     from stwcs.updatewcs import apply_corrections as appc
     acs_orig_file = get_filepath('j94f05bgq_flt.fits')
@@ -398,6 +399,10 @@ def test_apply_d2im():
     # If D2IMEXT does not exist, the correction should be applied
     fileobj = fits.open(fname, mode='update')
     assert appc.apply_d2im_correction(fileobj, d2imcorr=True)
+
+    # FIXME: PermissionError: [WinError 32] The process cannot access
+    #        the file because it is being used by another process:
+    #        j94f05bgq_flt.fits
     updatewcs.updatewcs(fname, use_db=False)
 
     # Test the case when D2IMFILE == D2IMEXT
