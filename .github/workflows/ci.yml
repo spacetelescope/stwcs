@@ -23,7 +23,7 @@ jobs:
             runs-on: windows-latest
             python-version: 3.11
             toxenv: py311
-            posargs: -vv
+            posargs: -vv -p no:faulthandler
 
           - name: Python 3.12
             runs-on: macos-latest
