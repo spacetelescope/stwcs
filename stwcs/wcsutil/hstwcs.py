@@ -473,7 +473,7 @@ class HSTWCS(WCS):
 
     def pc2cd(self):
         if self.wcs.has_pc():
-            self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
+            self.wcs.cd = self.pixel_scale_matrix
 
     @deprecated_renamed_argument('accuracy', 'tolerance', '1.6.1', arg_in_kwargs=True)
     def all_world2pix(self, *args, **kwargs):
