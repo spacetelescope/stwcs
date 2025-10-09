@@ -1,12 +1,12 @@
 .. _hstwcs_ui:
 
-**************************************
+***************
 HSTWCS Examples
-**************************************
+***************
 
---------------------------
+-----------------------
 Create an HSTWCS Object
---------------------------
+-----------------------
 - Create an HSTWCS object using a pyfits HDUList and an extension number 
 
   ``from astropy.io import fits``
@@ -28,7 +28,7 @@ Create an HSTWCS Object
 - Create an HSTWCS object from WCS with key 'O'.
 
   ``w = wcsutil.HSTWCS('j9irw4b1q_flt.fits', ext=2, wcskey='O')``
-  
+
 ----------------------------------
 Coordinate Transformation Examples
 ----------------------------------
@@ -77,5 +77,3 @@ of the first image pixel is (0,0).
    by applying the linear WCS.
  
  ``wpix = w.wcs_pix2world(fpix, 1)``
- 
- 
