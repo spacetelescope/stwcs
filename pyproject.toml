@@ -13,9 +13,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "astropy>=6.0",
-    "numpy>=2.0",
-    "stsci.tools>=3.6",
     "requests",
     "lxml",
 ]
