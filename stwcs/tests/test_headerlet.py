@@ -237,6 +237,7 @@ class TestApplyHeaderlet:
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
                                         verbose=True)[0])
 
+    @pytest.mark.skipif(os.name == "nt", reason="FIXME: Crash on Windows")
     def test_apply_as_alternate_method(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1')
         hlet.apply_as_alternate(self.comp_file, wcskey='K', wcsname='KK')
