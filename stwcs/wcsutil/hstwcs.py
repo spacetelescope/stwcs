@@ -487,7 +487,8 @@ class HSTWCS(WCS):
         tolerance : float, optional (Default = 1.0e-4)
             Absolute tolerance required the solution. Iteration terminates when
             the correction to the solution found during the previous iteration
-            is smaller (in the sence of the L2 norm) than `accuracy` .
+            is smaller (in the sence of the L2 norm) than the specified
+            ``tollerance``.
 
         maxiter : int, optional (Default = 20)
             Maximum number of iterations allowed to reach the solution.
