@@ -3,7 +3,6 @@ import warnings
 from astropy.wcs import WCS
 from astropy.io import fits
 from astropy import log
-from astropy.utils.decorators import deprecated_renamed_argument
 
 from ..distortion import models, coeff_converter
 import numpy as np
@@ -475,7 +474,6 @@ class HSTWCS(WCS):
         if self.wcs.has_pc():
             self.wcs.cd = self.wcs.pc * self.wcs.cdelt[1]
 
-    @deprecated_renamed_argument('accuracy', 'tolerance', '1.6.1', arg_in_kwargs=True)
     def all_world2pix(self, *args, **kwargs):
         """
         all_world2pix(\*arg, tolerance=1.0e-4, maxiter=20, adaptive=False,
