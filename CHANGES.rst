@@ -1,8 +1,9 @@
 Unreleased
 ----------
 
-- Removed deprecated (since 1.6.0) functions: ``ArchiveWCS``,
-  ``readAltWCS``, and ``convertAltWCS``. [#236]
+- Removed deprecated (since 1.6.0) functions: ``ArchiveWCS`` (replaced with
+  ``archive_wcs``), ``readAltWCS`` and ``convertAltWCS`` (both replaced with
+  ``wcs_from_key``). [#236]
 
 - Removed deprecated (since 1.6.1) ``accuracy`` argument in
   ``all_world2pix`` - use ``tolerance`` instead. [#236]

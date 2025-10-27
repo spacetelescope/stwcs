@@ -13,8 +13,8 @@ from astropy import log
 default_log_level = log.getEffectiveLevel()
 
 
-__all__ = ["available_wcskeys", "deleteWCS", "deleteWCS", "next_wcskey",
-           "pc2cd", "wcskeys", "wcsnames",
+__all__ = ["available_wcskeys", "deleteWCS", "next_wcskey",
+           "pc2cd", "wcskeys", "wcsnames", "restoreWCS"
            "wcs_from_key", "archive_wcs", "ArchiveMode"]
 
 
@@ -383,7 +383,6 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     Goes sequentially through the list of extensions in ext.
     Alternatively uses 'fromext' and 'toext'.
 
-
     Parameters
     ----------
     f:       string or `astropy.io.fits.HDUList`
@@ -401,7 +400,8 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
 
     See Also
     --------
-    archive_wcs - copy the primary WCS as an alternate WCS
+    archive_wcs - Copy primary WCS as an alternate WCS
+    restoreWCS - Copy a WCS with key "WCSKEY" to the primary WCS
 
     """
     if isinstance(f, str):
