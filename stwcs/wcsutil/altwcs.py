@@ -13,9 +13,9 @@ from astropy import log
 default_log_level = log.getEffectiveLevel()
 
 
-__all__ = ["available_wcskeys", "deleteWCS", "next_wcskey",
-           "pc2cd", "wcskeys", "wcsnames", "restoreWCS"
-           "wcs_from_key", "archive_wcs", "ArchiveMode"]
+__all__ = ["archive_wcs", "ArchiveMode", "available_wcskeys", "deleteWCS",
+           "next_wcskey", "pc2cd", "restoreWCS", "wcskeys", "wcsnames",
+           "wcs_from_key"]
 
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
