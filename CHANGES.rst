@@ -1,6 +1,13 @@
 Unreleased
 ----------
 
+- Removed deprecated (since 1.6.0) functions: ``ArchiveWCS`` (replaced with
+  ``archive_wcs``), ``readAltWCS`` and ``convertAltWCS`` (both replaced with
+  ``wcs_from_key``). [#236]
+
+- Removed deprecated (since 1.6.1) ``accuracy`` argument in
+  ``all_world2pix`` - use ``tolerance`` instead. [#236]
+
 - Added automatic retry of astrometrydb.isAvailable() upon failure. [#231]
 
 - Enable CI and add tests [#226]

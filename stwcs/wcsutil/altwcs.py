@@ -8,15 +8,14 @@ from astropy.io import fits
 from stsci.tools import fileutil as fu
 
 from astropy import log
-from astropy.utils.decorators import deprecated
 
 
 default_log_level = log.getEffectiveLevel()
 
 
-__all__ = ["archiveWCS", "available_wcskeys", "convertAltWCS", "deleteWCS", "next_wcskey",
-           "pc2cd", "readAltWCS", "restoreWCS", "wcskeys", "wcsnames",
-           "wcs_from_key", "archive_wcs", "ArchiveMode"]
+__all__ = ["archive_wcs", "ArchiveMode", "available_wcskeys", "deleteWCS",
+           "next_wcskey", "pc2cd", "restoreWCS", "wcskeys", "wcsnames",
+           "wcs_from_key"]
 
 
 altwcskw = ['WCSAXES', 'CRVAL', 'CRPIX', 'PC', 'CDELT', 'CD', 'CTYPE', 'CUNIT',
@@ -43,51 +42,6 @@ class ArchiveMode(IntFlag):
     QUIET_ABORT = 4  # quit if conflicts without raising exceptions
 
 AM = ArchiveMode
-
-
-@deprecated(since='1.6.0', message='', name='archiveWCS',
-            alternative='archive_wcs')
-def archiveWCS(fname, ext, wcskey=" ", wcsname=" ", reusekey=False):
-    """
-    Copy the primary WCS to the header as an alternate WCS
-    with wcskey and name WCSNAME. It loops over all extensions in 'ext'
-
-    Parameters
-    ----------
-    fname :  string or `astropy.io.fits.HDUList`
-        file name or a file object
-    ext :    int, tuple, str, or list of integers or tuples (e.g.('sci',1))
-        fits extensions to work with
-        If a string is provided, it should specify the EXTNAME of extensions
-        with WCSs to be archived
-    wcskey : string "A"-"Z" or " "
-        if ``' '``: get next available key if wcsname is also ``' '`` or try
-        to get a key from WCSNAME value
-    wcsname : string
-        Name of alternate WCS description
-    reusekey : bool
-        if True - overwrites a WCS with the same key
-
-    Examples
-    --------
-    Copy the primary WCS of an in memory headrlet object to an
-    alternate WCS with key 'T'
-
-    >>> hlet=headerlet.createHeaderlet('junk.fits', 'hdr1.fits')
-    >>> altwcs.wcskeys(hlet[1].header)
-    ['A']
-    >>> altwcs.archiveWCS(hlet, ext=[('SIPWCS',1),('SIPWCS',2)], wcskey='T')
-    >>> altwcs.wcskeys(hlet[1].header)
-    ['A', 'T']
-
-
-    See Also
-    --------
-    wcsutil.restoreWCS: Copy an alternate WCS to the primary WCS
-
-    """
-    mode = AM.OVERWRITE_KEY if reusekey else AM.NO_CONFLICT
-    archive_wcs(fname, ext, wcskey=wcskey, wcsname=wcsname, mode=mode)
 
 
 def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFLICT):
@@ -429,7 +383,6 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
     Goes sequentially through the list of extensions in ext.
     Alternatively uses 'fromext' and 'toext'.
 
-
     Parameters
     ----------
     f:       string or `astropy.io.fits.HDUList`
@@ -447,7 +400,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
 
     See Also
     --------
-    archiveWCS - copy the primary WCS as an alternate WCS
+    archive_wcs - Copy primary WCS as an alternate WCS
     restoreWCS - Copy a WCS with key "WCSKEY" to the primary WCS
 
     """
@@ -524,7 +477,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     See Also
     --------
-    archiveWCS - copy the primary WCS as an alternate WCS
+    archive_wcs - copy the primary WCS as an alternate WCS
     restore_from_to
 
     """
@@ -852,61 +805,6 @@ def wcs_from_key(fobj, ext, from_key=' ', to_key=None, exclude_special=True):
             hwcs.update(hdri)
 
     return hwcs
-
-
-@deprecated(since='1.6.0', message='', name='readAltWCS',
-            alternative='wcs_from_key')
-def readAltWCS(fobj, ext, wcskey=' ', verbose=False):
-    """
-    Reads in alternate primary WCS from specified extension.
-
-    Parameters
-    ----------
-    fobj : str, `astropy.io.fits.HDUList`
-        fits filename or fits file object
-        containing alternate/primary WCS(s) to be converted
-    wcskey : str
-        [" ",A-Z]
-        alternate/primary WCS key that will be replaced by the new key
-    ext : int
-        fits extension number
-
-    Returns
-    -------
-    hdr: fits.Header
-        header object with ONLY the keywords for specified alternate WCS
-    """
-    hwcs = wcs_from_key(fobj, ext, from_key=wcskey)
-    return hwcs if hwcs else None
-
-
-@deprecated(since='1.6.0', message='', name='convertAltWCS',
-            alternative='wcs_from_key')
-def convertAltWCS(fobj, ext, oldkey=' ', newkey=' '):
-    """
-    Translates the alternate/primary WCS with one key to an alternate/primary WCS with
-    another key.
-
-    Parameters
-    ----------
-    fobj : str, `astropy.io.fits.HDUList`, or `astropy.io.fits.Header`
-        fits filename, fits file object or fits header
-        containing alternate/primary WCS(s) to be converted
-    ext : int
-        extension number
-    oldkey : str
-        [" ",A-Z]
-        alternate/primary WCS key that will be replaced by the new key
-    newkey : str
-        [" ",A-Z]
-        new alternate/primary WCS key
-
-    Returns
-    -------
-    hdr: `astropy.io.fits.Header`
-        header object with keywords renamed from oldkey to newkey
-    """
-    return wcs_from_key(fobj, ext, from_key=wcskey, to_key=newkey)
 
 
 def wcskeys(fobj, ext=None):
