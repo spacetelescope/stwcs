@@ -1,8 +1,8 @@
 .. _updatewcs:
 
-**************************************
+*********
 updatewcs
-**************************************
+*********
 UPDATEWCS applies corrections to the WCS of an HST science file
 and adds reference information as header keywords and fits
 file extensions so that a science file contains all necessary
@@ -10,17 +10,12 @@ information to represent astrometrically precise positions.
 The order in which the corrections are applied is important
 and is as follows:
 
-- Detector to Image Correction
-
-- Apply Time dependent distortion (if applciable)
-
-- Recomputing the basic WCS
-
-- Apply Velocity Aberration Correction
-
-- Apply polynomial distortion through the SIP coefficients
-
-- Apply non-polynomial distortion
+* Detector to Image Correction
+* Apply Time dependent distortion (if applicable)
+* Recomputing the basic WCS
+* Apply Velocity Aberration Correction
+* Apply polynomial distortion through the SIP coefficients
+* Apply non-polynomial distortion
 
 Mathematically the entire transformation from detector to sky
 coordinates is described by:
@@ -52,7 +47,6 @@ where f(u',v') and g(u',v') represent the polynomial distortion correction speci
           \\
           g(u',v')  = \sum_{p+q=2}^{BORDER} B_{pq} {u'}^{p} {v'}^{q}
 
-
 where
 
 * x', y' are the initial coordinates x,y with the 68th column correction applied through the DET2IM convention
@@ -67,4 +61,3 @@ where
    wcs_corrections
    utils
    astrometry_utils
-

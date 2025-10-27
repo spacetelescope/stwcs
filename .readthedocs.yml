@@ -23,7 +23,7 @@ python:
     - method: pip
       path: .
       extra_requirements:
-        - doc
+        - docs
 
 
 # Don't build any extra formats
