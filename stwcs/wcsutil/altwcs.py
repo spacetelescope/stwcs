@@ -477,7 +477,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
 
     See Also
     --------
-    archiveWCS - copy the primary WCS as an alternate WCS
+    archive_wcs - copy the primary WCS as an alternate WCS
     restore_from_to
 
     """
