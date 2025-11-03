@@ -9,7 +9,7 @@ The functions in this module manage alternate WCS's in a header.
 
 .. automodule:: stwcs.wcsutil.altwcs
 
-.. autofunction:: stwcs.wcsutil.altwcs.archiveWCS
+.. autofunction:: stwcs.wcsutil.altwcs.archive_wcs
 .. autofunction:: stwcs.wcsutil.altwcs.restoreWCS
 .. autofunction:: stwcs.wcsutil.altwcs.deleteWCS
 .. autofunction:: stwcs.wcsutil.altwcs.wcsnames
