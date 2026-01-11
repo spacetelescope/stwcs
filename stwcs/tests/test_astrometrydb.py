@@ -81,7 +81,7 @@ class TestAstrometryDB:
         os.remove(new_obsname)  # remove intermediate test file
         del adb
 
-    def test_no_offsets(self):
+    def test_no_offsets(self, monkeypatch):
         """ HLA-1541"""
         new_obsname = 'j8di67a2q_flt.fits'
         shutil.copyfile(self.acs_file, new_obsname)
@@ -108,8 +108,13 @@ class TestAstrometryDB:
 
         # mock a request response of False, code 403
         os.environ['GSSS_WEBSERVICES_URL']="http://test.com"
-        serviceUrl='http://test.com/GSCConvert/GSCconvert.aspx?IPPPSSOOT=a8di67a2q'
-        rawcat= requests.get(serviceUrl)
+        serviceUrl='http://test.com/GSCConvert/GSCconvert.aspx?IPPPSSOOT=j8di67a2q'
+        mock_response = requests.Response()
+        mock_response.status_code = 403
+        mock_response.url = serviceUrl
+        mock_response.reason = "Forbidden"
+        monkeypatch.setattr(requests, "get", lambda url, *args, **kwargs: mock_response)
+        rawcat = requests.get(serviceUrl)
         assert not rawcat.ok
         offsets = astrometry_utils.find_gsc_offset(self.acs_file)
         offsets.pop("expwcs")
