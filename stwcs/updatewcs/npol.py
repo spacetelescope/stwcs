@@ -174,8 +174,8 @@ class NPOLCorr:
         Transform the NPOL data arrays for use with SIP
         """
         ndx, ndy = np.dot(coeffs, [dx.ravel(), dy.ravel()]).astype(np.float32)
-        ndx.shape = dx.shape
-        ndy.shape = dy.shape
+        ndx = np.reshape(ndx, dx.shape)
+        ndy = np.reshape(ndy, dy.shape)
         return ndx, ndy
 
     transformData = classmethod(transformData)
