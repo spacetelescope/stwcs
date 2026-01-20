@@ -217,8 +217,8 @@ class TDDCorr:
         icxy = np.dot(abmat2, [hwcs.idcmodel.cx.ravel(), hwcs.idcmodel.cy.ravel()])
         hwcs.idcmodel.cx = icxy[0]
         hwcs.idcmodel.cy = icxy[1]
-        hwcs.idcmodel.cx.shape = xshape
-        hwcs.idcmodel.cy.shape = yshape
+        hwcs.idcmodel.cx = np.reshape(hwcs.idcmodel.cx, xshape)
+        hwcs.idcmodel.cy = np.reshape(hwcs.idcmodel.cy, yshape)
 
     apply_tdd2idc = classmethod(apply_tdd2idc)
 
