@@ -1,5 +1,5 @@
-Unreleased
-----------
+1.7.6 (2026-02-03)
+------------------
 
 - Removed deprecated (since 1.6.0) functions: ``ArchiveWCS`` (replaced with
   ``archive_wcs``), ``readAltWCS`` and ``convertAltWCS`` (both replaced with
@@ -18,9 +18,12 @@ Unreleased
 
 - Return default response when request to the GSC service failed. [#227]
 
+
 1.7.5 (2025-07-14)
 ------------------
+
 - Work around an issue with the AStrometry DB which returns NaNs in certain cases. [#221]
+
 
 1.7.4 (2025-01-07)
 ------------------
