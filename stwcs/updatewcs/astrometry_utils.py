@@ -854,12 +854,13 @@ def find_gsc_offset(obsname):
 
         # Compute offset in pixels for new CRVAL
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
-        deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
+        delta_xy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
 
-        response["delta_x"] = deltaxy[0]
-        response["delta_y"] = deltaxy[1]
     else:
         logger.warning("GSC returned zero offsets in RA, DEC for guide star")
+    
+    response["delta_x"] = delta_xy[0]
+    response["delta_y"] = delta_xy[1]
 
     if close_obj:
         obsname.close()
