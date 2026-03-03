@@ -813,8 +813,10 @@ def find_gsc_offset(obsname):
                 "dGSoutputRA": float(refXMLtree.findtext('dGSoutputRA')),
                 "dGSoutputDEC": float(refXMLtree.findtext('dGSoutputDEC')),
                 "catalog": refXMLtree.findtext('outputCatalog'),
-                "expwcs": expwcs,
                 "message": message,
+                "expwcs": expwcs,
+                "delta_x": delta_xy[0],
+                "delta_y": delta_xy[1],
                 }
         else:
             # status_code == 200 but message indicates "Failure"
@@ -855,12 +857,11 @@ def find_gsc_offset(obsname):
         # Compute offset in pixels for new CRVAL
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
         delta_xy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
+        response["delta_x"] = delta_xy[0]
+        response["delta_y"] = delta_xy[1]
 
     else:
         logger.warning("GSC returned zero offsets in RA, DEC for guide star")
-    
-    response["delta_x"] = delta_xy[0]
-    response["delta_y"] = delta_xy[1]
 
     if close_obj:
         obsname.close()
