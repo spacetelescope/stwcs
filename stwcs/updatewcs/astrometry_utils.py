@@ -765,7 +765,6 @@ def find_gsc_offset(obsname):
         ippssoot = fileutil.buildNewRootname(obsname).upper()
 
     expwcs = build_reference_wcs(obsname)
-    delta_xy = [0.0, 0.0]
     # Initialize variables for cases where no offsets are available.
     response = {
         "delta_ra": 0.0,
@@ -779,8 +778,8 @@ def find_gsc_offset(obsname):
         "catalog": None,
         "message": "",
         "expwcs": expwcs,
-        "delta_x": delta_xy[0],
-        "delta_y": delta_xy[1],
+        "delta_x": 0.0,
+        "delta_y": 0.0,
     }
     # Define what service needs to be used to get the offsets
     serviceType = "GSCConvert/GSCconvert.aspx"
@@ -815,8 +814,8 @@ def find_gsc_offset(obsname):
                 "catalog": refXMLtree.findtext('outputCatalog'),
                 "message": message,
                 "expwcs": expwcs,
-                "delta_x": delta_xy[0],
-                "delta_y": delta_xy[1],
+                "delta_x": 0.0,
+                "delta_y": 0.0,
                 }
         else:
             # status_code == 200 but message indicates "Failure"
