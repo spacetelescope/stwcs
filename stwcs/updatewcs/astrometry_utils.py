@@ -765,7 +765,6 @@ def find_gsc_offset(obsname):
         ippssoot = fileutil.buildNewRootname(obsname).upper()
 
     expwcs = build_reference_wcs(obsname)
-    delta_xy = [0.0, 0.0]
     # Initialize variables for cases where no offsets are available.
     response = {
         "delta_ra": 0.0,
@@ -779,8 +778,8 @@ def find_gsc_offset(obsname):
         "catalog": None,
         "message": "",
         "expwcs": expwcs,
-        "delta_x": delta_xy[0],
-        "delta_y": delta_xy[1],
+        "delta_x": 0.0,
+        "delta_y": 0.0,
     }
     # Define what service needs to be used to get the offsets
     serviceType = "GSCConvert/GSCconvert.aspx"
@@ -813,8 +812,10 @@ def find_gsc_offset(obsname):
                 "dGSoutputRA": float(refXMLtree.findtext('dGSoutputRA')),
                 "dGSoutputDEC": float(refXMLtree.findtext('dGSoutputDEC')),
                 "catalog": refXMLtree.findtext('outputCatalog'),
-                "expwcs": expwcs,
                 "message": message,
+                "expwcs": expwcs,
+                "delta_x": 0.0,
+                "delta_y": 0.0,
                 }
         else:
             # status_code == 200 but message indicates "Failure"
@@ -855,9 +856,9 @@ def find_gsc_offset(obsname):
         # Compute offset in pixels for new CRVAL
         newpix = expwcs.all_world2pix(new_crval.ra.value, new_crval.dec.value, 1)
         deltaxy = expwcs.wcs.crpix - newpix  # offset from ref pixel position
-
         response["delta_x"] = deltaxy[0]
         response["delta_y"] = deltaxy[1]
+
     else:
         logger.warning("GSC returned zero offsets in RA, DEC for guide star")
 
