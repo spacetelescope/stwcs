@@ -1,4 +1,4 @@
-1.7.7 (2026-03-03)
+1.7.7 (2026-03-05)
 ------------------
 
 - Bug fix for 'delta_x not defined'; related to GSC returning zero offsets [#243]
