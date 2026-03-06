@@ -785,6 +785,12 @@ class HSTWCS(WCS):
         ind = None
         inddiv = None
 
+        # handle scalar x, y
+        scalar_input = False
+        if x.shape == ():
+            scalar_input = True
+            x = np.atleast_1d(x)
+            y = np.atleast_1d(y)
         npts = x.shape[0]
 
         # turn off numpy runtime warnings for 'invalid' and 'over':
@@ -935,7 +941,10 @@ class HSTWCS(WCS):
         np.seterr(invalid=old_invalid, over=old_over)
 
         if vect1D:
-            return [x, y]
+            if scalar_input:
+                return [np.array(x[0]), np.array(y[0])]
+            else:
+                return [x, y]
         else:
             return np.dstack([x, y] )[0]
 
