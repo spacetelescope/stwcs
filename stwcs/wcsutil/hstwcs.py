@@ -476,8 +476,8 @@ class HSTWCS(WCS):
 
     def all_world2pix(self, *args, **kwargs):
         """
-        ``all_world2pix(*arg, tolerance=1.0e-4, maxiter=20, adaptive=False, \
-        detect_divergence=True, quiet=False)``
+        all_world2pix(*arg, tolerance=1.0e-4, maxiter=20, adaptive=False, \
+detect_divergence=True, quiet=False)
 
         Performs full inverse transformation using iterative solution
         on full forward transformation with complete distortion model.
