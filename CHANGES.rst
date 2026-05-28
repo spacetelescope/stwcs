@@ -1,3 +1,10 @@
+1.7.8 (TBD)
+-----------
+
+- Bug fix addressing astropy wcs change enabling secondary distortion correction 
+  keywords. [#246]
+
+
 1.7.7 (2026-03-05)
 ------------------
 
