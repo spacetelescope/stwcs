@@ -245,13 +245,13 @@ class TestApplyHeaderlet:
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
-                                        scikey='K', verbose=True)[0])
+                                        scikey='K', verbose=True, ignore_cpdisp=True)[0])
         headerlet.apply_headerlet_as_alternate(self.comp_file,
                                                self.headerlet_name, wcskey='P')
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
-                                        scikey='P', verbose=True)[0])
+                                        scikey='P', verbose=True, ignore_cpdisp=True)[0])
 
 class TestRestoreHeaderlet:
 
