@@ -240,18 +240,26 @@ class TestApplyHeaderlet:
     @pytest.mark.skipif(os.name == "nt", reason="FIXME: Crash on Windows")
     def test_apply_as_alternate_method(self):
         hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1')
+
+        # Make the headerlet WCS distinct from the current primary WCS
+        hlet['SIPWCS', 1].header['CRPIX1'] += 1
+        hlet['SIPWCS', 1].header['CRPIX2'] += 1
+        hlet['SIPWCS', 2].header['CRPIX1'] += 2
+        hlet['SIPWCS', 2].header['CRPIX2'] += 2
+
         hlet.apply_as_alternate(self.comp_file, wcskey='K', wcsname='KK')
+        assert fits.getval(self.comp_file, 'WCSNAMEK', ext=('SCI', 1)) == 'KK'
         hlet.writeto(self.headerlet_name, overwrite=True)
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
-                                        scikey='K', verbose=True)[0])
+                                        scikey='K', verbose=True, ignore_cpdis=True)[0])
         headerlet.apply_headerlet_as_alternate(self.comp_file,
                                                self.headerlet_name, wcskey='P')
         assert(wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
                                         [('SCI', 1), ('SCI', 2)],
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
-                                        scikey='P', verbose=True)[0])
+                                        scikey='P', verbose=True, ignore_cpdis=True)[0])
 
 class TestRestoreHeaderlet:
 

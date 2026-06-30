@@ -6,7 +6,7 @@ import numpy as np
 
 
 def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
-                     file2key=" ", verbose=False):
+                     file2key=" ", ignore_cpdis=False, verbose=False):
     """
     Compares the WCS solution of 2 files.
 
@@ -26,6 +26,8 @@ def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
              alternate WCS key in scifile
     file2key: string
              alternate WCS key in file2
+    ignore_cpdis: bool
+             True: ignore CPDIS1 and CPDIS2 when comparing WCS solutions
     verbose: bool
              True: print to stdout
 
@@ -83,21 +85,24 @@ def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
                 # logger.info('SIP coefficients do not match')
                 diff['SIP_B'] = (w1.sip.b, w2.sip.b)
                 result = False
-        if w1.cpdis1 or w2.cpdis1:
-            if w1.cpdis1 and not w2.cpdis1 or w2.cpdis1 and not w1.cpdis1:
-                diff['CPDIS1'] = "CPDIS1 missing"
-                result = False
-            if w1.cpdis2 and not w2.cpdis2 or w2.cpdis2 and not w1.cpdis2:
-                diff['CPDIS2'] = "CPDIS2 missing"
-                result = False
-            if not np.allclose(w1.cpdis1.data, w2.cpdis1.data, rtol=10**(-7)):
-                # logger.info('NPOL distortions do not match')
-                diff['CPDIS1_data'] = (w1.cpdis1.data, w2.cpdis1.data)
-                result = False
-            if not np.allclose(w1.cpdis2.data, w2.cpdis2.data, rtol=10**(-7)):
-                # logger.info('NPOL distortions do not match')
-                diff['CPDIS2_data'] = (w1.cpdis2.data, w2.cpdis2.data)
-                result = False
+        if ignore_cpdis:
+            pass
+        else:
+            if w1.cpdis1 or w2.cpdis1:
+                if w1.cpdis1 and not w2.cpdis1 or w2.cpdis1 and not w1.cpdis1:
+                    diff['CPDIS1'] = "CPDIS1 missing"
+                    result = False
+                if w1.cpdis2 and not w2.cpdis2 or w2.cpdis2 and not w1.cpdis2:
+                    diff['CPDIS2'] = "CPDIS2 missing"
+                    result = False
+                if not np.allclose(w1.cpdis1.data, w2.cpdis1.data, rtol=10**(-7)):
+                    # logger.info('NPOL distortions do not match')
+                    diff['CPDIS1_data'] = (w1.cpdis1.data, w2.cpdis1.data)
+                    result = False
+                if not np.allclose(w1.cpdis2.data, w2.cpdis2.data, rtol=10**(-7)):
+                    # logger.info('NPOL distortions do not match')
+                    diff['CPDIS2_data'] = (w1.cpdis2.data, w2.cpdis2.data)
+                    result = False
         if w1.det2im1 or w2.det2im1:
             if w1.det2im1 and not w2.det2im1 or \
                     w2.det2im1 and not w1.det2im1:
