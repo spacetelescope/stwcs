@@ -1,5 +1,6 @@
 import os
 import warnings
+import logging
 from astropy.wcs import WCS
 from astropy.io import fits
 from astropy import log
@@ -13,6 +14,8 @@ from . import getinput
 from . import instruments
 from .mappings import inst_mappings, ins_spec_kw
 from ..wcsutil.altwcs import exclude_hst_specific
+
+logger = logging.getLogger(__name__)
 
 default_log_level = log.getEffectiveLevel()
 
@@ -238,7 +241,7 @@ class HSTWCS(WCS):
             self.pscale = np.sqrt(np.power(cd11, 2) + np.power(cd21, 2)) * 3600.
         except AttributeError:
             if self.wcs.has_cd():
-                print("This file has a PC matrix. You may want to convert it \n \
+                logger.debug("This file has a PC matrix. You may want to convert it \n \
                 to a CD matrix, if reasonable, by running pc2.cd() method.\n \
                 The plate scale can be set then by calling setPscale() method.\n")
             self.pscale = None
@@ -253,7 +256,7 @@ class HSTWCS(WCS):
             self.orientat = np.rad2deg(np.arctan2(cd12, cd22))
         except AttributeError:
             if self.wcs.has_cd():
-                print("This file has a PC matrix. You may want to convert it \n \
+                logger.debug("This file has a PC matrix. You may want to convert it \n \
                 to a CD matrix, if reasonable, by running pc2.cd() method.\n \
                 The orientation can be set then by calling setOrient() method.\n")
             self.pscale = None
@@ -288,20 +291,20 @@ class HSTWCS(WCS):
             if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
-                print("Distortion model is not available: IDCTAB=None\n")
+                logger.debug("Distortion model is not available: IDCTAB=None\n")
                 self.idcmodel = None
         elif not os.path.exists(fileutil.osfn(self.idctab)):
             if header is not None and 'IDCSCALE' in header:
                 self._readModelFromHeader(header)
             else:
-                print('Distortion model is not available: IDCTAB file %s not found\n' % self.idctab)
+                logger.debug('Distortion model is not available: IDCTAB file %s not found\n', self.idctab)
                 self.idcmodel = None
         else:
             self.readModelFromIDCTAB(header=header, update=update)
 
     def _readModelFromHeader(self, header):
         # Recreate idc model from SIP coefficients and header kw
-        print('Restoring IDC model from SIP coefficients\n')
+        logger.debug('Restoring IDC model from SIP coefficients\n')
         model = models.GeometryModel()
         cx, cy = coeff_converter.sip2idc(self)
         model.cx = cx
@@ -335,7 +338,7 @@ class HSTWCS(WCS):
 
         """
         if self.date_obs is None:
-            print('date_obs not available\n')
+            logger.debug('date_obs not available\n')
             self.idcmodel = None
             return
         if self.filter1 is None and self.filter2 is None:
@@ -354,7 +357,7 @@ class HSTWCS(WCS):
 
         if update:
             if header is None:
-                print('Update header with IDC model kw requested but header was not provided\n.')
+                logger.debug('Update header with IDC model kw requested but header was not provided\n.')
             else:
                 self._updatehdr(header)
 
@@ -973,14 +976,14 @@ detect_divergence=True, quiet=False)
         """
         Print the basic WCS keywords.
         """
-        print('WCS Keywords\n')
-        print('CD_11  CD_12: %r %r' % (self.wcs.cd[0, 0], self.wcs.cd[0, 1]))
-        print('CD_21  CD_22: %r %r' % (self.wcs.cd[1, 0], self.wcs.cd[1, 1]))
-        print('CRVAL    : %r %r' % (self.wcs.crval[0], self.wcs.crval[1]))
-        print('CRPIX    : %r %r' % (self.wcs.crpix[0], self.wcs.crpix[1]))
-        print('NAXIS    : %d %d' % (self.naxis1, self.naxis2))
-        print('Plate Scale : %r' % self.pscale)
-        print('ORIENTAT : %r' % self.orientat)
+        logger.debug('WCS Keywords\n')
+        logger.debug('CD_11  CD_12: %r %r', self.wcs.cd[0, 0], self.wcs.cd[0, 1])
+        logger.debug('CD_21  CD_22: %r %r', self.wcs.cd[1, 0], self.wcs.cd[1, 1])
+        logger.debug('CRVAL    : %r %r', self.wcs.crval[0], self.wcs.crval[1])
+        logger.debug('CRPIX    : %r %r', self.wcs.crpix[0], self.wcs.crpix[1])
+        logger.debug('NAXIS    : %d %d', self.naxis1, self.naxis2)
+        logger.debug('Plate Scale : %r', self.pscale)
+        logger.debug('ORIENTAT : %r', self.orientat)
 
 
 def determine_refframe(phdr):

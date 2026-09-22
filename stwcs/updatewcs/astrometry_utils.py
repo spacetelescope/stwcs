@@ -125,11 +125,11 @@ class AstrometryDB:
                     format(astrometry_control_envvar)
                 l += "\t Valid values: on or off (case-insensitive)"
                 raise ValueError(l)
-            logger.info("Astrometry step operation set to {}".
+            logger.debug("Astrometry step operation set to {}".
                         format(self.perform_step))
         if not self.perform_step:
-            logger.info("Astrometry update step has been turned off")
-            logger.info("\tNo updates will be performed!")
+            logger.debug("Astrometry update step has been turned off")
+            logger.debug("\tNo updates will be performed!")
             return
 
         if write_log:
@@ -169,7 +169,7 @@ class AstrometryDB:
             logger.debug(f"{pipeline_error_envvar} set to {self.raise_errors}")
         if raise_errors is not None:
             self.raise_errors = raise_errors
-            logger.info("Setting `raise_errors` to {}".format(raise_errors))
+            logger.debug("Setting `raise_errors` to {}".format(raise_errors))
 
         self.isAvailable()  # determine whether service is available
 
@@ -211,7 +211,7 @@ class AstrometryDB:
             if obsname.fileinfo(0)['filemode'] != 'update':
                 # Not opened in 'update' mode, so close and re-open
                 obsname.close()
-                logger.info("Opening {} in 'update' mode to append new WCSs".format(obsfile))
+                logger.debug("Opening {} in 'update' mode to append new WCSs".format(obsfile))
                 obsname = fits.open(obsfile, mode='update')
         else:
             # We do not know what kind of input this is, so raise an Exception with an explanation.
@@ -221,7 +221,7 @@ class AstrometryDB:
 
         obsroot = obsname[0].header.get('rootname', None)
         observationID = obsroot.split('_')[:1][0]
-        logger.info("Updating astrometry for {}".format(observationID))
+        logger.debug("Updating astrometry for {}".format(observationID))
 
         # take inventory of what hdrlets are already appended to this file
         wcsnames = headerlet.get_headerlet_kw_names(obsname, 'wcsname')
@@ -250,7 +250,7 @@ class AstrometryDB:
         apriori_added = False
         if not self.new_observation:
             # Attach new unique hdrlets to file...
-            logger.info("Updating {} with:".format(observationID))
+            logger.debug("Updating {} with:".format(observationID))
             for h in headerlets:
                 newname = headerlets[h][0].header['wcsname']
                 # Only append the WCS from the database if `all_wcs` was turned on,
@@ -266,7 +266,7 @@ class AstrometryDB:
                 # Add solution as an alternate WCS
                 if append_wcs:
                     try:
-                        logger.info("\tHeaderlet with WCSNAME={}".format(
+                        logger.debug("\tHeaderlet with WCSNAME={}".format(
                                     newname))
                         headerlets[h].attach_to_file(obsname)
                     except ValueError:
@@ -307,8 +307,8 @@ class AstrometryDB:
                         # replace primary WCS with this solution
                         hdrlet.init_attrs()
                         hdrlet.apply_as_primary(obsname, attach=False, force=True)
-                        logger.info('Replacing primary WCS with')
-                        logger.info('\tHeaderlet with WCSNAME={}'.format(
+                        logger.debug('Replacing primary WCS with')
+                        logger.debug('\tHeaderlet with WCSNAME={}'.format(
                                      newname))
                         break
 
@@ -339,16 +339,16 @@ class AstrometryDB:
             'observation/read/' + observationID
 
         try:
-            logger.info('Accessing AstrometryDB service :')
-            logger.info('\t{}'.format(serviceEndPoint))
+            logger.debug('Accessing AstrometryDB service :')
+            logger.debug('\t{}'.format(serviceEndPoint))
             r = requests.get(serviceEndPoint, headers=self.headers)
             if r.status_code == requests.codes.ok:
-                logger.info('AstrometryDB service call succeeded')
+                logger.debug('AstrometryDB service call succeeded')
             elif r.status_code == 404:
                 # This code gets returned if exposure is not found in database
                 # Never fail for this case since all new observations
                 # will result in this error
-                logger.info("No solutions found in database for {}".
+                logger.debug("No solutions found in database for {}".
                             format(observationID))
                 self.new_observation = True
             else:
@@ -445,7 +445,7 @@ class AstrometryDB:
                 serviceEndPoint = self.serviceLocation + \
                     'observation/read/' + observationID + \
                     '?wcsname=' + wcsName
-                logger.info('Retrieving astrometrically-updated WCS "{}" for observation "{}"'.format(wcsName, observationID))
+                logger.debug('Retrieving astrometrically-updated WCS "{}" for observation "{}"'.format(wcsName, observationID))
                 r_solution = requests.get(serviceEndPoint, headers=headers)
                 if r_solution.status_code == requests.codes.ok:
                     hlet_bytes = BytesIO(r_solution.content).getvalue()
@@ -493,7 +493,7 @@ class AstrometryDB:
             hdrname = "{}_{}".format(filename.replace('.fits', ''), wname_hash)
             # Create full filename for headerlet:
             hfilename = "{}_hlet.fits".format(hdrname)
-            logger.info("Archiving pipeline-default WCS {} to {}".format(wname, filename))
+            logger.debug("Archiving pipeline-default WCS {} to {}".format(wname, filename))
             descrip = "Pipeline-default WCS"
             numext = len(obsname)
             headerlet.archive_as_headerlet(obsname, hfilename,
@@ -504,7 +504,7 @@ class AstrometryDB:
             obsname[numext].header['EXTVER'] = newhlt
 
             # Now, write out pipeline-default WCS to a unique headerlet file
-            logger.info("Writing out pipeline-default WCS {} to headerlet file: {}".format(wname, hfilename))
+            logger.debug("Writing out pipeline-default WCS {} to headerlet file: {}".format(wname, hfilename))
             headerlet.extract_headerlet(obsname, hfilename, extnum=numext, clobber=True)
 
         # We need to create new apriori WCS based on new IDCTAB
@@ -554,7 +554,7 @@ class AstrometryDB:
                 _, wname = altwcs.archive_wcs(obsname, sci_ext,
                                                    wcsname=wname,
                                                    mode=altwcs.ArchiveMode.QUIET_ABORT)
-                logger.info('Archived {} in {}'.format(wname, sci_ext))
+                logger.debug('Archived {} in {}'.format(wname, sci_ext))
 
         # Get updated list of headerlet names
         hlet_extns = headerlet.get_headerlet_kw_names(obsname, kw='EXTVER')
@@ -562,7 +562,7 @@ class AstrometryDB:
         if wname not in hlet_names:
             newhlt += 1
             descrip = "A Priori WCS based on ICRS guide star positions"
-            logger.info("Appending a priori WCS {} to {}".format(wname, filename))
+            logger.debug("Appending a priori WCS {} to {}".format(wname, filename))
             headerlet.archive_as_headerlet(obsname, hfilename,
                                            sciext='SCI',
                                            wcskey="PRIMARY",
@@ -584,7 +584,7 @@ class AstrometryDB:
 
         if not os.path.exists(hfilename):
             # Now, write out new a priori WCS to a unique headerlet file
-            logger.info("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
+            logger.debug("Writing out a priori WCS {} to headerlet file: {}".format(wname, hfilename))
             try:
                 newext = headerlet.find_headerlet_HDUs(obsname, hdrname=hfilename)[0]
             except ValueError:
@@ -623,7 +623,7 @@ class AstrometryDB:
         timeout = 1e-15 if force_timeout else 5.0  # values in seconds.
 
         service_endpoint = self.serviceLocation + "availability"
-        logger.info(f"AstrometryDB URL: {service_endpoint}")
+        logger.debug(f"AstrometryDB URL: {service_endpoint}")
 
         for attempt in range(max_tries):
             try:
@@ -632,7 +632,7 @@ class AstrometryDB:
                 )
 
                 if response.status_code == requests.codes.ok:
-                    logger.info("AstrometryDB service available")
+                    logger.debug("AstrometryDB service available")
                     self._set_availability_status(
                         response.status_code, "Available", True
                     )
@@ -797,7 +797,7 @@ def find_gsc_offset(obsname):
         # It's possible rawcat.status_code to be 200 and rawcat.ok to be False
         return response
     if rawcat.status_code == requests.codes.ok:
-        logger.info("gsReference service retrieved {}".format(ippssoot))
+        logger.debug("gsReference service retrieved {}".format(ippssoot))
         refXMLtree = etree.fromstring(rawcat.content)
         message = refXMLtree.findtext('msg')
         response["message"] = message

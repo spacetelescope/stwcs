@@ -1,4 +1,5 @@
 import copy
+import logging
 import numpy as np
 from astropy.io import fits
 
@@ -6,6 +7,8 @@ from . import altwcs
 from .hstwcs import HSTWCS
 from ..updatewcs import utils
 from stsci.tools import fileutil
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_WCS_KEYS = ['CRVAL1', 'CRVAL2', 'CRPIX1', 'CRPIX2',
                     'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2',
@@ -54,7 +57,7 @@ def init_wcscorr(input, force=False):
             return
         else:
             del fimg['wcscorr']
-    print('Initializing new WCSCORR table for ', fimg.filename())
+    logger.debug('Initializing new WCSCORR table for %s', fimg.filename())
 
     used_wcskeys = altwcs.wcskeys(fimg['SCI', 1].header)
 
@@ -107,7 +110,7 @@ def init_wcscorr(input, force=False):
         if wcsext.data.field('CRVAL1')[rownum] != 0:
             # If we find values for these keywords already in the table, do not
             # overwrite them again
-            print('WCS keywords already updated...')
+            logger.debug('WCS keywords already updated...')
             break
 
         for kwd in wcs_keywords:
@@ -145,7 +148,7 @@ def init_wcscorr(input, force=False):
             if len(rows[0]) > 0:
                 rownum = np.where(rowind)[0][0]
             else:
-                print('No available rows found for updating. ')
+                logger.debug('No available rows found for updating. ')
 
             # Update selection columns for this row with relevant values
             wcsext.data.field('WCS_ID')[rownum] = wcsid
@@ -290,7 +293,7 @@ def update_wcscorr(dest, source=None, extname='SCI', wcs_id=None, active=True):
 
     for colname in wcscorr_cols:
         if colname not in old_table.data.columns.names:
-            print("WARNING:    Replacing outdated WCSCORR table...")
+            logger.debug("WARNING:    Replacing outdated WCSCORR table...")
             #outdated_table = old_table.copy()
             del dest['WCSCORR']
             init_wcscorr(dest)
@@ -566,16 +569,16 @@ def delete_wcscorr_row(wcstab, selections=None, rows=None):
     """
 
     if selections is None and rows is None:
-        print('ERROR: Some row selection information must be provided!')
-        print('       Either a row numbers or "selections" must be provided.')
+        logger.debug('ERROR: Some row selection information must be provided!')
+        logger.debug('       Either a row numbers or "selections" must be provided.')
         raise ValueError
 
     delete_rows = None
     if rows is None:
         if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
             delete_rows = None
-            print('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
-            print('         This row will not be deleted!')
+            logger.debug('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
+            logger.debug('         This row will not be deleted!')
         else:
             rowind = find_wcscorr_row(wcstab, selections=selections)
             delete_rows = np.where(rowind)[0].tolist()
@@ -621,8 +624,8 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
         of the value of 'selections'
     """
     if selections is None and rows is None:
-        print('ERROR: Some row selection information must be provided!')
-        print('       Either a row numbers or "selections" must be provided.')
+        logger.debug('ERROR: Some row selection information must be provided!')
+        logger.debug('       Either a row numbers or "selections" must be provided.')
         raise ValueError
 
     if not isinstance(values, list):
@@ -632,8 +635,8 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
     if rows is None:
         if 'wcs_id' in selections and selections['wcs_id'] == 'OPUS':
             update_rows = None
-            print('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
-            print('         This row will not be deleted!')
+            logger.debug('WARNING: OPUS WCS information can not be deleted from WCSCORR table.')
+            logger.debug('         This row will not be deleted!')
         else:
             rowind = find_wcscorr_row(wcstab, selections=selections)
             update_rows = np.where(rowind)[0].tolist()
@@ -647,11 +650,11 @@ def update_wcscorr_column(wcstab, column, values, selections=None, rows=None):
 
     # Expand single input value to apply to all selected rows
     if len(values) > 1 and len(values) < len(update_rows):
-        print('ERROR: Number of new values', len(values))
-        print('       does not match number of rows', len(update_rows), ' to be updated!')
-        print('       Please enter either 1 value or the same number of values')
-        print('       as there are rows to be updated.')
-        print('    Table will not be updated...')
+        logger.debug('ERROR: Number of new values %s', len(values))
+        logger.debug('       does not match number of rows %s to be updated!', len(update_rows))
+        logger.debug('       Please enter either 1 value or the same number of values')
+        logger.debug('       as there are rows to be updated.')
+        logger.debug('    Table will not be updated...')
         raise ValueError
 
     if len(values) == 1 and len(values) < len(update_rows):

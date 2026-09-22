@@ -11,7 +11,7 @@ import numpy as np
 from stsci.tools import fileutil
 
 import logging
-logger = logging.getLogger("stwcs.updatewcs.apply_corrections")
+logger = logging.getLogger(__name__)
 
 
 def update_wfpc2_d2geofile(filename, fhdu=None):
@@ -49,7 +49,7 @@ def update_wfpc2_d2geofile(filename, fhdu=None):
     if already_converted or 'ODGEOFIL' in fhdu['PRIMARY'].header:
         if not already_converted:
             dgeofile = fhdu['PRIMARY'].header.get('ODGEOFIL', None)
-        logger.info('Converting DGEOFILE %s into D2IMFILE...' % dgeofile)
+        logger.debug('Converting DGEOFILE %s into D2IMFILE...' % dgeofile)
         rootname = filename[:filename.find('.fits')]
         d2imfile = convert_dgeo_to_d2im(dgeofile, rootname)
         fhdu['PRIMARY'].header['ODGEOFIL'] = dgeofile

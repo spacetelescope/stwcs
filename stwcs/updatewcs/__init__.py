@@ -107,7 +107,7 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
     args = "vacorr=%s, tddcorr=%s, npolcorr=%s, d2imcorr=%s, checkfiles=%s, \
     " % (str(vacorr), str(tddcorr), str(npolcorr),
          str(d2imcorr), str(checkfiles))
-    logger.info('\n\tStarting UPDATEWCS: %s', time.asctime())
+    logger.debug('\n\tStarting UPDATEWCS: %s', time.asctime())
 
     toclose = True
 
@@ -125,14 +125,14 @@ def updatewcs(input, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=True,
         for item in file_names:
             files.append(fits.open(item, mode='update'))
 
-    logger.info("\n\tInput files: {}".format(file_names))
-    logger.info("\n\tInput arguments: %s" % args)
+    logger.debug("\n\tInput files: {}".format(file_names))
+    logger.debug("\n\tInput arguments: %s" % args)
 
     if checkfiles:
         files = checkFiles(files)
         file_names = [inp.filename() for inp in files]
         if not files:
-            print('No valid input, quitting ...\n')
+            logger.debug('No valid input, quitting ...\n')
             return
 
     if use_db:
@@ -172,7 +172,7 @@ def makecorr(f, allowed_corr):
     `acorr`: list
              list of corrections to be applied
     """
-    logger.info("Allowed corrections: {0}".format(allowed_corr))
+    logger.debug("Allowed corrections: {0}".format(allowed_corr))
     #f = fits.open(fname, mode='update')
     f.readall()
     # Determine the reference chip and create the reference HSTWCS object
@@ -360,7 +360,7 @@ def checkFiles(input):
     Converts geis and waiver fits files to multiextension fits.
     """
     from stsci.tools.check_files import geis2mef, waiver2mef, checkFiles
-    logger.info("\n\tChecking files %s" % input)
+    logger.debug("\n\tChecking files %s" % input)
     removed_files = []
     newfiles = []
     if not isinstance(input, list):
@@ -403,7 +403,7 @@ def checkFiles(input):
                        'to be processed %s' % removed_files)
 
     newfiles = checkFiles(newfiles)[0]
-    logger.info("\n\tThese files passed the input check and will be processed: %s" % newfiles)
+    logger.debug("\n\tThese files passed the input check and will be processed: %s" % newfiles)
     return newfiles
 
 
@@ -449,5 +449,6 @@ def getCorrections(instrument):
     """
     acorr = apply_corrections.allowed_corrections[instrument]
 
-    print("The following corrections will be performed for instrument %s\n" % instrument)
-    for c in acorr: print(c, ': ', apply_corrections.cnames[c])
+    logger.debug("The following corrections will be performed for instrument %s\n", instrument)
+    for c in acorr:
+        logger.debug("%s: %s", c, apply_corrections.cnames[c])

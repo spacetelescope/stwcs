@@ -23,7 +23,7 @@ _SHIFT_COLNAMES = ['xsh', 'ysh', 'rot', 'scale', 'xrms', 'yrms']
 
 blank_list = [None, '', ' ', 'None', 'INDEF']
 
-logger = logging.getLogger('stwcs.updatewcs.astrometry_utils')
+logger = logging.getLogger(__name__)
 for h in logger.handlers:
     if isinstance(h, logging.StreamHandler) and h.stream is sys.stdout:
         break
@@ -439,9 +439,9 @@ def updatewcs_with_shift(image, reference, hdrname="",
     # continue with the update
     logstr = "....Updating header for {:s}...".format(filename)
     if verbose:
-        print("\n{:s}\n".format(logstr))
+        logger.debug("\n%s\n", logstr)
     else:
-        logger.info(logstr)
+        logger.debug(logstr)
 
     # reset header WCS keywords to original (OPUS generated) values
     extlist = get_ext_list(image, extname='SCI')
@@ -464,9 +464,9 @@ def updatewcs_with_shift(image, reference, hdrname="",
         logstr = "Processing {:s}[{:s}]".format(fimg.filename(),
                                                 ext2str(ext))
         if verbose:
-            print("\n{:s}\n".format(logstr))
+            logger.debug("\n%s\n", logstr)
         else:
-            logger.info(logstr)
+            logger.debug(logstr)
         chip_wcs = wcsutil.HSTWCS(fimg, ext=ext)
 
         update_refchip_with_shift(chip_wcs, wref, fitgeom=fitgeom,
@@ -719,12 +719,12 @@ def update_wcs(image, extnum, new_wcs,
     try:
         logstr = f'Updating header for {image.filename()}[{extnum}]'
         if verbose:
-            print(logstr)
-            logger.info('    with WCS of')
+            logger.debug(logstr)
+            logger.debug('    with WCS of')
             new_wcs.printwcs()
-            print("WCSNAME  : ", wcsname)
+            logger.debug("WCSNAME  : %s", wcsname)
         else:
-            logger.info(logstr)
+            logger.debug(logstr)
 
         wcs_hdr = new_wcs.wcs2header(idc2hdr=new_wcs.idcscale is not None, relax=True)
         wcs_hdr.set('WCSNAME', wcsname, before=0)

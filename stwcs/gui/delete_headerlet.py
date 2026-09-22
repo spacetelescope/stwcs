@@ -1,9 +1,12 @@
 import os
+import logging
 from stsci.tools import teal
 from stsci.tools import parseinput
 
 from .. import __version__
 from ..wcsutil import headerlet
+
+logger = logging.getLogger(__name__)
 
 __taskname__ = __name__.split('.')[-1]  # needed for help string
 __package__ = headerlet.__name__
@@ -33,11 +36,11 @@ def run(configObj=None):
 
     if configObj['hdrname'] == '' and configObj['hdrext'] is None and \
             configObj['distname'] == '':
-        print('=' * 60)
-        print('ERROR:')
-        print('    No valid "hdrname", "hdrext" or "distname" parameter value provided!')
-        print('    Please restart this task and provide a value for one of these parameters.')
-        print('=' * 60)
+        logger.debug('=' * 60)
+        logger.debug('ERROR:')
+        logger.debug('    No valid "hdrname", "hdrext" or "distname" parameter value provided!')
+        logger.debug('    Please restart this task and provide a value for one of these parameters.')
+        logger.debug('=' * 60)
         return
     filename = parseinput.parseinput(configObj['filename'])[0]
     # Call function with properly interpreted input parameters
