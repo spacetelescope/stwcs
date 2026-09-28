@@ -253,6 +253,28 @@ class TestApplyHeaderlet:
                                         [("SIPWCS", 1), ("SIPWCS", 2)],
                                         scikey='P', verbose=True)[0])
 
+    @pytest.mark.skipif(os.name == "nt", reason="FIXME: Crash on Windows")
+    def test_alternate_wcs_without_distortion_tables(self, monkeypatch):
+        hlet = headerlet.create_headerlet(self.comp_file, hdrname='test1')
+        hlet.apply_as_alternate(self.comp_file, wcskey='Y', wcsname='YY')
+        hlet.writeto(self.headerlet_name, overwrite=True)
+
+        original_wcs = wcsdiff.pywcs.WCS
+
+        def wcs_without_alternate_distortion(*args, **kwargs):
+            wcs = original_wcs(*args, **kwargs)
+            if kwargs.get('key') == 'Y':
+                wcs.cpdis1 = wcs.cpdis2 = None
+                wcs.det2im1 = wcs.det2im2 = None
+            return wcs
+
+        monkeypatch.setattr(wcsdiff.pywcs, 'WCS', wcs_without_alternate_distortion)
+        assert wcsdiff.is_wcs_identical(self.comp_file, self.headerlet_name,
+                                        [('SCI', 1), ('SCI', 2)],
+                                        [('SIPWCS', 1), ('SIPWCS', 2)],
+                                        scikey='Y')[0]
+
+
 class TestRestoreHeaderlet:
 
     def setup_class(self):
