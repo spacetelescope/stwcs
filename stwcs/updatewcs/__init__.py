@@ -434,7 +434,15 @@ def cleanWCS(fname):
     fext = list(range(1, len(fname)))
     for key in keys:
         try:
-            wcsutil.deleteWCS(fname, ext=fext, wcskey=key)
+            if logger.isEnabledFor(logging.DEBUG):
+                # Preserve the missing-WCS warnings when debug logging is enabled.
+                key_ext = fext
+            else:
+                # Avoid warnings from extensions that do not contain this WCS key.
+                key_ext = [ext for ext in fext
+                           if key in wcsutil.wcskeys(fname[ext].header)]
+            if key_ext:
+                wcsutil.deleteWCS(fname, ext=key_ext, wcskey=key)
         except KeyError:
             # Some extensions don't have the alternate (or any) WCS keywords
             continue
