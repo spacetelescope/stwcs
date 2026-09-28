@@ -1,3 +1,14 @@
+===================
+STWCS Release Notes
+===================
+
+
+1.7.8 (TBD)
+-----------
+
+- Bug fix for empty scale value returned from idctab [#249]
+
+
 1.7.7 (2026-03-05)
 ------------------
 
