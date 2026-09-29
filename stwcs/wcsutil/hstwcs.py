@@ -1,7 +1,8 @@
+import contextlib
 import os
 import warnings
 import logging
-from astropy.wcs import WCS
+from astropy.wcs import WCS, FITSFixedWarning
 from astropy.io import fits
 from astropy import log
 
@@ -22,6 +23,17 @@ default_log_level = log.getEffectiveLevel()
 __all__ = ['HSTWCS']
 
 warnings.filterwarnings("ignore", message="^Some non-standard WCS keywords were excluded:", module="astropy.wcs.wcs")
+
+
+@contextlib.contextmanager
+def ignore_naxis_mismatch(header):
+    """Ignore FITS WCS warnings for headers without image data."""
+    if header is not None and header.get('NAXIS', 0):
+        yield
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FITSFixedWarning)
+            yield
 
 def extract_rootname(kwvalue, suffix=""):
     """ Returns the rootname from a full reference filename
@@ -148,8 +160,9 @@ class HSTWCS(WCS):
             if refframe is not None:
                 ehdr['RADESYS'] = refframe
 
-            WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
-                         key=self.wcskey)
+            with ignore_naxis_mismatch(ehdr):
+                WCS.__init__(self, ehdr, fobj=phdu, minerr=self.minerr,
+                             key=self.wcskey)
             if self.instrument == 'DEFAULT':
                 self.pc2cd()
             # If input was a `astropy.io.fits.HDUList` object, it's the user's

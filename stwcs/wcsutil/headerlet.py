@@ -41,7 +41,7 @@ from stsci.tools import parseinput
 
 from . import altwcs
 from . import wcscorr
-from .hstwcs import HSTWCS
+from .hstwcs import HSTWCS, ignore_naxis_mismatch
 from ..updatewcs import utils
 from .mappings import basic_wcs
 
@@ -2202,7 +2202,8 @@ class Headerlet(fits.HDUList):
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
 
             fhdr = fobj[tg_ext].header
-            hwcs = pywcs.WCS(siphdr, self)
+            with ignore_naxis_mismatch(siphdr):
+                hwcs = pywcs.WCS(siphdr, self)
             hwcs_header = hwcs.to_header(key=wkey)
             altwcs.exclude_hst_specific(hwcs_header, wcskey=wkey)
 
