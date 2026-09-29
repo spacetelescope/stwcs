@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 
@@ -8,6 +9,8 @@ from astropy import wcs as pywcs
 from .. import updatewcs
 from numpy import sqrt, arctan2
 from stsci.tools import fileutil
+
+logger = logging.getLogger(__name__)
 
 
 def output_wcs(list_of_wcsobj, ref_wcs=None, owcs=None, undistort=True):
@@ -174,7 +177,7 @@ def undistortWCS(wcsobj):
             """
             raise RuntimeError(m)
         else:
-            print('Distortion model is not available, using input reference image for output WCS.\n')
+            logger.debug('Distortion model is not available, using input reference image for output WCS.\n')
             return wcsobj.copy()
     crpix1 = wcsobj.wcs.crpix[0]
     crpix2 = wcsobj.wcs.crpix[1]
@@ -198,7 +201,7 @@ def undistortWCS(wcsobj):
     # Check the determinant for singularity
     _det = (am * dm) - (bm * cm)
     if (_det == 0.0):
-        print('Singular matrix in updateWCS, aborting ...')
+        logger.debug('Singular matrix in updateWCS, aborting ...')
         return
 
     lin_wcsobj = pywcs.WCS()
@@ -231,10 +234,10 @@ def apply_idc(pixpos, cx, cy, pixref, pscale=None, order=None):
         return pixpos
 
     if order is None:
-        print('Unknown order of distortion model \n')
+        logger.debug('Unknown order of distortion model \n')
         return pixpos
     if pscale is None:
-        print('Unknown model plate scale\n')
+        logger.debug('Unknown model plate scale\n')
         return pixpos
 
     # Apply in the same way that 'drizzle' would...

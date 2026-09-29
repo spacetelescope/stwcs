@@ -42,7 +42,7 @@ class NPOLCorr:
             Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("\n\tStarting NPOL: %s" % time.asctime())
+        logger.debug("\n\tStarting NPOL: %s" % time.asctime())
         try:
             assert isinstance(fobj, fits.HDUList)
         except AssertionError:

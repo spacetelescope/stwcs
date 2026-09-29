@@ -1,8 +1,11 @@
 import os
+import logging
 
 from stsci.tools import teal
 from .. import __version__
 from ..wcsutil import headerlet
+
+logger = logging.getLogger(__name__)
 
 __taskname__ = __name__.split('.')[-1]  # needed for help string
 __package__ = headerlet.__name__
@@ -34,11 +37,11 @@ def getHelpAsString(docstring=False):
 def run(configObj=None):
 
     if configObj['hdrname'] in ['', ' ', 'INDEF']:
-        print('=' * 60)
-        print('ERROR:')
-        print('    No valid "hdrname" parameter value provided!')
-        print('    Please restart this task and provide a value for this parameter.')
-        print('=' * 60)
+        logger.debug('=' * 60)
+        logger.debug('ERROR:')
+        logger.debug('    No valid "hdrname" parameter value provided!')
+        logger.debug('    Please restart this task and provide a value for this parameter.')
+        logger.debug('=' * 60)
         return
 
     str_kw = ['wcsname', 'destim', 'sipname', 'npolfile', 'd2imfile',

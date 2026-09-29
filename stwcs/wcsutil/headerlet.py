@@ -41,7 +41,7 @@ from stsci.tools import parseinput
 
 from . import altwcs
 from . import wcscorr
-from .hstwcs import HSTWCS
+from .hstwcs import HSTWCS, ignore_naxis_mismatch
 from ..updatewcs import utils
 from .mappings import basic_wcs
 
@@ -121,7 +121,7 @@ def init_logging(funcname=None, level=100, mode='w', **kwargs):
             fh.setFormatter(formatter)
             fh.setLevel(logging.DEBUG)
             logger.addHandler(fh)
-        logger.info("%s: Starting %s with arguments:\n\t %s" %
+        logger.debug("%s: Starting %s with arguments:\n\t %s" %
                     (time.asctime(), funcname, kwargs))
 
 
@@ -383,7 +383,7 @@ def update_ref_files(source, dest):
     source : `astropy.io.fits.Header`
     dest :   `astropy.io.fits.Header`
     """
-    logger.info("Updating reference files")
+    logger.debug("Updating reference files")
     phdukw = {}
 
     for key in DISTORTION_KEYWORDS:
@@ -434,7 +434,7 @@ def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
             outstr += COLUMN_FMT.format(val, width=column_widths[kw])
         outstr += '\n'
     if not quiet:
-        print(outstr)
+        logger.debug(outstr)
 
     # If specified, write info to separate text file
     write_file = False
@@ -445,9 +445,9 @@ def print_summary(summary_cols, summary_dict, pad=2, maxwidth=None, idcol=None,
             if clobber:
                 os.remove(output)
             else:
-                print('WARNING: Not writing results to file!')
-                print('         Output text file ', output, ' already exists.')
-                print('         Set "clobber" to True or move file before trying again.')
+                logger.debug('WARNING: Not writing results to file!')
+                logger.debug('         Output text file %s already exists.', output)
+                logger.debug('         Set "clobber" to True or move file before trying again.')
                 write_file = False
         if write_file:
             fout = open(output, mode='w')
@@ -468,16 +468,16 @@ def _create_primary_HDU(fobj, fname, wcsext, destim, hdrname, wcsname,
         descrip = ''
 
     sipname, idctab = utils.build_sipname(fobj, fname, sipname)
-    logger.info("Setting sipname value to %s" % sipname)
+    logger.debug("Setting sipname value to %s" % sipname)
 
     npolname, npolfile = utils.build_npolname(fobj, npolfile)
-    logger.info("Setting npolfile value to %s" % npolname)
+    logger.debug("Setting npolfile value to %s" % npolname)
 
     d2imname, d2imfile = utils.build_d2imname(fobj, d2imfile)
-    logger.info("Setting d2imfile value to %s" % d2imname)
+    logger.debug("Setting d2imfile value to %s" % d2imname)
 
     distname = utils.build_distname(sipname, npolname, d2imname)
-    logger.info("Setting distname to %s" % distname)
+    logger.debug("Setting distname to %s" % distname)
 
     # open file and parse comments
     if history not in ['', ' ', None, 'INDEF'] and os.path.isfile(history):
@@ -815,7 +815,7 @@ def write_headerlet(filename, hdrname, output=None, sciext='SCI',
                 logger.critical(message)
 
         if close_fobj:
-            logger.info('Closing image in write_headerlet()...')
+            logger.debug('Closing image in write_headerlet()...')
             fobj.close()
 
         frootname = fu.buildNewRootname(fname)
@@ -926,7 +926,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     """
     if wcskey == 'O':
         message = "Warning: 'O' is a reserved key for the original WCS. Quitting..."
-        logger.info(message)
+        logger.debug(message)
         return None
 
     fobj, fname, close_file = parse_filename(filename)
@@ -945,7 +945,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     # Translate 'wcskey' value for PRIMARY WCS to valid altwcs value of ' '
     if wcskey == 'PRIMARY':
         wcskey = ' '
-        logger.info("wcskey reset from 'PRIMARY' to ' '")
+        logger.debug("wcskey reset from 'PRIMARY' to ' '")
     wcskey = wcskey.upper()
     wcsnamekw = "".join(["WCSNAME", wcskey.upper()]).rstrip()
     hdrnamekw = "".join(["HDRNAME", wcskey.upper()]).rstrip()
@@ -955,7 +955,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
         if wcsnamekw in fobj[wcsext].header:
             # check if there's a WCSNAME for this wcskey in the header
             wcsname = fobj[wcsext].header[wcsnamekw]
-            logger.info("Setting wcsname from header[%s] to %s" % (wcsnamekw, wcsname))
+            logger.debug("Setting wcsname from header[%s] to %s" % (wcsnamekw, wcsname))
         else:
             if hdrname not in ['', ' ', None, "INDEF"]:
                 """
@@ -999,12 +999,12 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
     if destim is None:
         if 'ROOTNAME' in fobj[0].header:
             destim = fobj[0].header['ROOTNAME']
-            logger.info("Setting destim to rootname of the science file")
+            logger.debug("Setting destim to rootname of the science file")
         else:
             destim = fname
-            logger.info('DESTIM not provided')
-            logger.info('Keyword "ROOTNAME" not found')
-            logger.info('Using file name as DESTIM')
+            logger.debug('DESTIM not provided')
+            logger.debug('Keyword "ROOTNAME" not found')
+            logger.debug('Using file name as DESTIM')
 
     if not hdrname:
         # check if HDRNAME<wcskey> is in header
@@ -1016,8 +1016,8 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 message = """
                 Using default value for HDRNAME of "%s" derived from %s.
                 """ % (hdrname, wcsnamekw)
-                logger.info(message)
-                logger.info("Setting hdrname to %s from header[%s]"
+                logger.debug(message)
+                logger.debug("Setting hdrname to %s from header[%s]"
                             % (hdrname, wcsnamekw))
             else:
                 message = "Required keywords 'HDRNAME' or 'WCSNAME' not found"
@@ -1162,7 +1162,7 @@ def apply_headerlet_as_primary(filename, hdrlet, attach=True, archive=True,
                                                                                 len(hdrlet)))
 
     for fname, h in zip(filename, hdrlet):
-        print("Applying {0} as Primary WCS to {1}".format(h, fname))
+        logger.debug("Applying %s as Primary WCS to %s", h, fname)
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.apply_as_primary(fname, attach=attach, archive=archive,
                               force=force)
@@ -1205,7 +1205,7 @@ def apply_headerlet_as_alternate(filename, hdrlet, attach=True, wcskey=None,
                                                                                 len(hdrlet)))
 
     for fname, h in zip(filename, hdrlet):
-        print('Applying {0} as an alternate WCS to {1}'.format(h, fname))
+        logger.debug('Applying %s as an alternate WCS to %s', h, fname)
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.apply_as_alternate(fname, attach=attach,
                                 wcsname=wcsname, wcskey=wcskey)
@@ -1236,7 +1236,7 @@ def attach_headerlet(filename, hdrlet, logging=False, logmode='a'):
                                                                                 len(hdrlet)))
 
     for fname, h in zip(filename, hdrlet):
-        print('Attaching {0} as Headerlet extension to {1}'.format(h, fname))
+        logger.debug('Attaching %s as Headerlet extension to %s', h, fname)
         hlet = Headerlet.fromfile(h, logging=logging, logmode=logmode)
         hlet.attach_to_file(fname, archive=True)
 
@@ -1279,7 +1279,7 @@ def delete_headerlet(filename, hdrname=None, hdrext=None, distname=None,
         filename = [filename]
 
     for f in filename:
-        print("Deleting Headerlet from ", f)
+        logger.debug("Deleting Headerlet from %s", f)
         _delete_single_headerlet(f, hdrname=hdrname, hdrext=hdrext,
                                  distname=distname, keep_first=keep_first,
                                  logging=logging, logmode='a')
@@ -1420,8 +1420,8 @@ def headerlet_summary(filename, columns=None, pad=2, maxwidth=None,
                     for key in COLUMN_DICT:
                         summary_dict[kw][key].extend(ext_summary[kw][key])
             except:
-                print("Skipping headerlet")
-                print("Could not read Headerlet from extension ", hdrlet_indx)
+                logger.debug("Skipping headerlet")
+                logger.debug("Could not read Headerlet from extension %s", hdrlet_indx)
 
     if close_fobj:
         fobj.close()
@@ -1957,9 +1957,9 @@ class Headerlet(fits.HDUList):
                 orig_hlt_hdu = HeaderletHDU.fromheaderlet(orig_hlt)
                 numhlt += 1
                 orig_hlt_hdu.header['EXTVER'] = numhlt
-                logger.info(f"Created headerlet '{hdrname}' to be attached to file")
+                logger.debug(f"Created headerlet '{hdrname}' to be attached to file")
             else:
-                logger.info(f"Headerlet with name '{hdrname}' is already attached")
+                logger.debug(f"Headerlet with name '{hdrname}' is already attached")
 
             alt_wcs_names_dict = altwcs._alt_wcs_names(scihdr)
             alt_wcs_names = list(map(str.upper, altwcs._alt_wcs_names(scihdr).values()))
@@ -2202,7 +2202,8 @@ class Headerlet(fits.HDUList):
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
 
             fhdr = fobj[tg_ext].header
-            hwcs = pywcs.WCS(siphdr, self)
+            with ignore_naxis_mismatch(siphdr):
+                hwcs = pywcs.WCS(siphdr, self)
             hwcs_header = hwcs.to_header(key=wkey)
             altwcs.exclude_hst_specific(hwcs_header, wcskey=wkey)
 
@@ -2470,7 +2471,7 @@ class Headerlet(fits.HDUList):
         Delete the WCS of a science file extension
         """
 
-        logger.info("Deleting all WCSs of file %s" % dest.filename())
+        logger.debug("Deleting all WCSs of file %s" % dest.filename())
         numext = len(dest)
 
         if ext:

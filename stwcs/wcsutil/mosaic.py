@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 from matplotlib import pyplot as plt
 from astropy.io import fits
 import string
@@ -7,6 +8,8 @@ from stsci.tools import parseinput, irafglob
 from ..distortion import utils
 from .. import wcsutil
 from ..wcsutil import altwcs
+
+logger = logging.getLogger(__name__)
 
 
 def vmosaic(fnames, outwcs=None, ref_wcs=None, ext=None, extname=None, undistort=True,
@@ -168,16 +171,16 @@ def readWCS(input, exts=None, extname=None):
                     continue
             fobj.close()
     if fomited != []:
-        print("These files were skipped:")
+        logger.debug("These files were skipped:")
         for f in fomited:
-            print(f)
+            logger.debug(f)
     return wcso
 
 
 def validateExt(ext):
     if not isinstance(ext, int) and not isinstance(ext, tuple) \
        and not isinstance(ext, list):
-        print("Ext must be integer, tuple, a list of int extension numbers, \
+        logger.debug("Ext must be integer, tuple, a list of int extension numbers, \
         or a list of tuples representing a fits extension, for example ('sci', 1).")
         return False
     else:

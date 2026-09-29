@@ -1,5 +1,9 @@
+import logging
+
 from .altwcs import *  # noqa
 from .hstwcs import HSTWCS # noqa
+
+logger = logging.getLogger(__name__)
 
 
 def help():
@@ -28,5 +32,5 @@ def help():
     w = wcsutil.HSTWCS(instrument='DEFAULT')\n\n
     """
 
-    print('How to create an HSTWCS object:\n\n')
-    print(doc)
+    logger.debug('How to create an HSTWCS object:\n\n')
+    logger.debug(doc)

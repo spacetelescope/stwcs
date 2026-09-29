@@ -1,4 +1,5 @@
 import string
+import logging
 from numbers import Integral
 from enum import IntFlag
 
@@ -9,6 +10,7 @@ from stsci.tools import fileutil as fu
 
 from astropy import log
 
+logger = logging.getLogger(__name__)
 
 default_log_level = log.getEffectiveLevel()
 
@@ -434,7 +436,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
                 raise KeyError(f"Could not get a key from wcsname '{wcsname}'.")
     else:
         if wcskey not in wcskeys(fobj, ext=wcskeyext):
-            print(f"Could not find alternate WCS with key '{wcskey}' in this file")
+            logger.debug("Could not find alternate WCS with key '%s' in this file", wcskey)
             closefobj(f, fobj)
             return
         wkey = wcskey
@@ -542,7 +544,7 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
     ext = _buildExtlist(fobj, ext)
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
-        print("Wcskey 'O' is reserved for the original WCS and should not be deleted.")
+        logger.debug("Wcskey 'O' is reserved for the original WCS and should not be deleted.")
         closefobj(fname, fobj)
         return
 
@@ -576,9 +578,9 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
             prexts.append(i)
 
     if prexts:
-        print(f'Deleted all instances of WCS with key {wkey:s} in extensions {prexts}')
+        logger.debug('Deleted all instances of WCS with key %s in extensions %s', wkey, prexts)
     else:
-        print(f"Did not find WCS with key {wkey:s} in any of the extensions {prexts}")
+        logger.debug("Did not find WCS with key %s in any of the extensions %s", wkey, prexts)
     closefobj(fname, fobj)
 
 
@@ -1018,7 +1020,7 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
         A flag which indicates whether to reuse a wcskey in the header
     """
     if not isinstance(fobj, fits.HDUList):
-        print("First parameter must be a fits file object or a file name.")
+        logger.debug("First parameter must be a fits file object or a file name.")
         return False
 
     # first one covers the case of an object created in memory
@@ -1028,28 +1030,28 @@ def _parpasscheck(fobj, ext, wcskey, fromext=None, toext=None, reusekey=False):
     else:
         # an HDUList object with associated file
         if fobj.fileinfo(0)['filemode'] != 'update':
-            print("First parameter must be a file name or a file object opened in 'update' mode.")
+            logger.debug("First parameter must be a file name or a file object opened in 'update' mode.")
             return False
 
     if not isinstance(ext, Integral) and not isinstance(ext, tuple) \
         and not isinstance(ext, str) \
         and not isinstance(ext, list) and ext is not None:
-        print("Ext must be integer, tuple, string,a list of int extension "
-              "numbers,\nor a list of tuples representing a fits extension, "
-              "for example ('sci', 1).")
+        logger.debug("Ext must be integer, tuple, string,a list of int extension "
+                     "numbers,\nor a list of tuples representing a fits extension, "
+                     "for example ('sci', 1).")
         return False
 
     if not isinstance(fromext, str) and fromext is not None:
-        print("fromext must be a string representing a valid extname")
+        logger.debug("fromext must be a string representing a valid extname")
         return False
 
     if not isinstance(toext, list) and not isinstance(toext, str) and \
                         toext is not None:
-        print("toext must be a string or a list of strings representing extname")
+        logger.debug("toext must be a string or a list of strings representing extname")
         return False
 
     if len(wcskey) > 1 or wcskey.strip() not in string.ascii_letters:
-        print('Parameter wcskey must be a character - one of "A"-"Z" or " "')
+        logger.debug('Parameter wcskey must be a character - one of "A"-"Z" or " "')
         return False
 
     return True
