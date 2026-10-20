@@ -1,15 +1,25 @@
-<!-- If this PR closes a JIRA ticket, make sure the title starts with the JIRA issue number,
-for example HLA-1234: <Fix a bug> -->
-Resolves [HLA-nnnn](https://jira.stsci.edu/browse/HLA-nnnn)
+<!-- If this PR addresses a JIRA ticket: -->
+<!-- Resolves [HLA-nnnn](https://jira.stsci.edu/browse/HLA-nnnn) -->
 
-<!-- If this PR closes a GitHub issue, reference it here by its number -->
-Closes #
+<!-- If this PR will close an existing GitHub issue (that is not already attached to a JIRA ticket): -->
+<!-- Closes # -->
 
-<!-- describe the changes comprising this PR here -->
-This PR addresses ...
+<!-- Describe your changes here: -->
 
-**Checklist for maintainers**
+## Description
+
+This change ...
+
+<!-- If you can't perform these tasks due to permissions, reach out to a maintainer. -->
+
+## Tasks
+
 - [ ] added entry in `CHANGELOG.rst` within the relevant release section
 - [ ] updated or added relevant tests
 - [ ] updated relevant documentation
 - [ ] added relevant label(s)
+
+## Generative AI Usage Disclosure
+
+<!-- If generative AI or LLMs were used in the process of making this change, describe their use here. -->
+<!-- Otherwise, indicate "No genAI tools used". -->
