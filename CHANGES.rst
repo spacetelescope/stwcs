@@ -1,3 +1,15 @@
+1.7.8 (unreleased)
+------------------
+
+- Update the handling of ``WCSDVARR`` extensions when deleting a WCS so that
+  they are deleted only when they are no longer referenced by any DP
+  keywords. [#257]
+
+- When applying headerlets as alternate WCS, ensure that the corresponding
+  ``WCSDVARR`` extensions are properly managed instead of assuming that they
+  are shared across all primary and alternate WCS. [#257]
+
+
 1.7.7 (2026-03-05)
 ------------------
 

@@ -1,9 +1,11 @@
+import re
 import string
 from numbers import Integral
 from enum import IntFlag
 
 import numpy as np
 from astropy import wcs as pywcs
+from astropy.io.fits import ImageHDU, PrimaryHDU
 from astropy.io import fits
 from stsci.tools import fileutil as fu
 
@@ -141,7 +143,7 @@ def archive_wcs(fname, ext, wcskey=None, wcsname=None, mode=ArchiveMode.NO_CONFL
 
     # validate and interpret extension(s):
     try:
-        ext = _buildExtlist(h, ext)
+        ext = _build_ext_list(h, ext)
     except ValueError as e:
         if close_hdulist:
             h.close()
@@ -414,7 +416,7 @@ def restore_from_to(f, fromext=None, toext=None, wcskey=" ", wcsname=" "):
         raise ValueError("Input parameters problem")
 
     # Interpret input 'ext' value to get list of extensions to process
-    # ext = _buildExtlist(fobj, ext)
+    # ext = _build_ext_list(fobj, ext)
 
     if isinstance(toext, str):
         toext = [toext]
@@ -491,7 +493,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
         raise ValueError("Input parameters problem")
 
     # Interpret input 'ext' value to get list of extensions to process
-    ext = _buildExtlist(fobj, ext)
+    ext = _build_ext_list(fobj, ext)
 
     # the case of an HDUList object in memory without an associated file
 
@@ -512,7 +514,7 @@ def restoreWCS(f, ext, wcskey=" ", wcsname=" "):
         closefobj(f, fobj)
 
 
-def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
+def deleteWCS(fname, ext, wcskey=" ", wcsname=" ", verbose=True):
     """
     Delete an alternate WCS defined with wcskey.
     If wcskey is " " try to get a key from WCSNAME.
@@ -539,10 +541,11 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
         raise ValueError("Input parameters problem")
 
     # Interpret input 'ext' value to get list of extensions to process
-    ext = _buildExtlist(fobj, ext)
+    ext = _build_ext_list(fobj, ext)
     # Do not allow deleting the original WCS.
     if wcskey == 'O':
-        print("Wcskey 'O' is reserved for the original WCS and should not be deleted.")
+        if verbose:
+            print("Wcskey 'O' is reserved for the original WCS and should not be deleted.")
         closefobj(fname, fobj)
         return
 
@@ -563,26 +566,85 @@ def deleteWCS(fname, ext, wcskey=" ", wcsname=" "):
             raise KeyError(f"Could not find alternate WCS with key '{wcskey}' in this file")
         wkey = wcskey
 
+    # Deleting CPDIS distortion keywords and associated WCSDVARR extensions
+    # requires extra care because DP.EXTVER keywords are linked to WCSDVARR
+    # extensions and *in principle* could be used by multiple alt or primary
+    # WCSes. We need to find all WCSes that might be using a specific WCSDVARR
+    # extension before deleting it. We should delete a WCSDVARR extension only
+    # if no WCS is using it, other than the one being deleted.
+
+    index_pattern = rf'(?:DP|CPDIS)(\d+){wkey.strip()}'
+    keyword_pattern = rf'(?:CPDIS\d+{wkey.strip()}|DP\d+{wkey.strip()}\..*)'
+
+    wcsdvarr_extver_to_delete = []
     prexts = []
+
     for i in ext:
         hdr = fobj[i].header
         # set exclude_special=False to delete those keywords from the header
         # (if there were in the header before) when removing an Alt WCS
         hwcs = wcs_from_key(fobj, i, from_key=wkey, exclude_special=False)
         if hwcs:
+            # find number of axes from distortion keywords:
+            dis_kwds = [
+                k for k in hdr.keys()
+                if re.match(keyword_pattern, k)
+            ]
+            ndis_axes = max(
+                (int(m.group(1)) for k in dis_kwds if (m := re.search(index_pattern, k))),
+                default=0
+            )
+            # find potential WCSDVARR extensions to delete
+            for axis in range(1, ndis_axes + 1):
+                extver = hwcs.get(f"DP{axis}{wkey}.EXTVER")
+                if extver is not None:
+                    wcsdvarr_extver_to_delete.append(extver)
+
             for k in hwcs:
                 if k in hdr:
                     del hdr[k]
+
             prexts.append(i)
 
-    if prexts:
+    # In principle, we could iterate only over the primary and SCI extensions
+    # instead of over all extensions, such as:
+    #
+    # sci_ext_list = _build_ext_list(fobj, "SCI")
+    #
+    # However, because deleting WCSDVARR extensions is irreversible, and the
+    # user may have added custom extensions with WCSes, we need to consider
+    # all extensions to ensure we correctly identify which WCSDVARR extensions
+    # can be deleted.
+
+    hdu_types = (PrimaryHDU, ImageHDU)
+    ignore_extnames = ("WCSDVARR", "D2IMARR")
+    wcsdvarr_refcount = {extver: 0 for extver in wcsdvarr_extver_to_delete}
+    dp_extver_pattern = re.compile(r'DP(\d+)[A-Z]?\.EXTVER')
+    for hdu in fobj:
+        if type(hdu) not in hdu_types or hdu.header.get("EXTNAME") in ignore_extnames:
+            continue
+        for key, val in hdu.header.items():
+            if dp_extver_pattern.match(key):
+                try:
+                    extver = int(val)
+                    if extver in wcsdvarr_refcount:
+                        wcsdvarr_refcount[extver] += 1
+                except ValueError:
+                    pass
+
+    # Delete WCSDVARR extensions that are no longer referenced by any DP keywords:
+    for extver in wcsdvarr_extver_to_delete:
+        if wcsdvarr_refcount[extver] <= 1 and ("WCSDVARR", extver) in fobj:
+            del fobj[("WCSDVARR", extver)]
+
+    if verbose and prexts:
         print(f'Deleted all instances of WCS with key {wkey:s} in extensions {prexts}')
-    else:
-        print(f"Did not find WCS with key {wkey:s} in any of the extensions {prexts}")
+    elif verbose:
+        print(f"Did not find WCS with key {wkey:s} in any of the extensions {ext}")
     closefobj(fname, fobj)
 
 
-def _buildExtlist(fobj, ext, _single=False):
+def _build_ext_list(fobj, ext, _single=False):
     """
     Utility function to interpret the provided value of 'ext' and return a list
     of 'valid' values which can then be used by the rest of the functions in
@@ -607,7 +669,7 @@ def _buildExtlist(fobj, ext, _single=False):
     if not _single and isinstance(ext, list):
         ext_list = []
         for e in ext:
-            ext_list.extend(_buildExtlist(fobj, e, _single=True))
+            ext_list.extend(_build_ext_list(fobj, e, _single=True))
 
     else:
         if isinstance(ext, str):
@@ -1101,8 +1163,8 @@ def exclude_hst_specific(hdr, wcskey=' '):
         )
 
     if 'EXTNAME' in hdr and hdr['EXTNAME'] not in ['SCI', 'DQ', 'ERR']:
-        logger.warning("Input header must be either 'SCI', 'DQ', or 'ERR' image headers.")
-        logger.warning("HST-specific keywords will not be excluded from the header.")
+        log.warning("Input header must be either 'SCI', 'DQ', or 'ERR' image headers.")
+        log.warning("HST-specific keywords will not be excluded from the header.")
         return hdr
 
     if wcskey is None or wcskey == ' ':

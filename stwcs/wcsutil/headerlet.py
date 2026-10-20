@@ -27,6 +27,7 @@ import functools
 import logging
 import textwrap
 import copy
+import re
 import time
 
 import numpy as np
@@ -2180,6 +2181,7 @@ class Headerlet(fits.HDUList):
             wname = self[0].header['WCSNAME']
         tg_ename = self[('SIPWCS', 1)].header['TG_ENAME']
         tg_ever = self[('SIPWCS', 1)].header['TG_EVER']
+
         # determine what alternate WCS this headerlet will be assigned to
         if wcskey is None:
             wkey = altwcs._next_wcskey(fobj[(tg_ename, tg_ever)].header)
@@ -2197,13 +2199,46 @@ class Headerlet(fits.HDUList):
         numsip = countExtn(self, 'SIPWCS')
 
         log.setLevel('WARNING')
+
+        extver_wcsdvarr = [
+            hdu.header.get("EXTVER") for hdu in fobj
+            if hdu.header.get("EXTNAME") == "WCSDVARR"
+        ]
+        wcsdvarr_extver = max(
+            len(extver_wcsdvarr),
+            max((x for x in extver_wcsdvarr if x is not None), default=0)
+        ) + 1
+        index_pattern = rf'(?:DP|CPDIS)(\d+){wkey.strip()}'
+        keyword_pattern = rf'(?:CPDIS\d+{wkey.strip()}|DP\d+{wkey.strip()}\..*)'
+
         for idx in range(1, numsip + 1):
             siphdr = self[('SIPWCS', idx)].header
             tg_ext = (siphdr['TG_ENAME'], siphdr['TG_EVER'])
 
             fhdr = fobj[tg_ext].header
             hwcs = pywcs.WCS(siphdr, self)
-            hwcs_header = hwcs.to_header(key=wkey)
+            hwcs_hdul = hwcs.to_fits(key=wkey)
+            hwcs_header = hwcs_hdul[0].header
+
+            # find number of axes from distortion keywords:
+            dis_kwds = [
+                k for k in hwcs_header.keys()
+                if re.match(keyword_pattern, k)
+            ]
+            ndis_axes = max(
+                (int(m.group(1)) for k in dis_kwds if (m := re.search(index_pattern, k))),
+                default=0
+            )
+
+            # append modified WCSDVARR HDUs:
+            for axis in range(1, ndis_axes + 1):
+                orig_extver = hwcs_header[f"DP{axis}{wkey}.EXTVER"]
+                wcsdvarr_hdu = hwcs_hdul[("WCSDVARR", orig_extver)].copy()
+                wcsdvarr_hdu.header['EXTVER'] = wcsdvarr_extver
+                hwcs_header[f"DP{axis}{wkey}.EXTVER"] = wcsdvarr_extver
+                fobj.append(wcsdvarr_hdu)
+                wcsdvarr_extver += 1
+
             altwcs.exclude_hst_specific(hwcs_header, wcskey=wkey)
 
             _idc2hdr(siphdr, fhdr, towkey=wkey)
@@ -2214,6 +2249,7 @@ class Headerlet(fits.HDUList):
                     self[('SIPWCS', 1)].header['CTYPE{0}'.format(ax)]
             fhdr.extend(hwcs_header)
             fhdr['WCSNAME' + wkey] = wname
+
             # also update with HDRNAME (a non-WCS-standard kw)
             for kw in self.fit_kws:
                 # fhdr.insert(wind, pyfits.Card(kw + wkey,
