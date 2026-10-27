@@ -42,7 +42,7 @@ jobs:
     # Settings > Environments > pypi > Add required reviewers
     environment:
       name: pypi
-      url: https://pypi.org/p/rad
+      url: https://pypi.org/p/stwcs
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
