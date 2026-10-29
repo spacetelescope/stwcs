@@ -38,6 +38,7 @@ docs = [
     "sphinx-rtd-theme",
 ]
 test = [
+    "coverage",
     "pytest",
 ]
 
