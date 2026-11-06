@@ -50,7 +50,6 @@ def test_world_to_pixel():
 
 
 def test_pc2cd():
-    e = np.exp(1)
     hdulist = fits.HDUList([
         fits.PrimaryHDU(header=fits.Header([('extver', 1)])),
         fits.ImageHDU(header=fits.Header([
@@ -58,7 +57,7 @@ def test_pc2cd():
             ('pc1_2', 0.08),
             ('pc2_1', -0.05),
             ('pc2_2', 0.7),
-            ('cdelt1', e),
+            ('cdelt1', np.e),
             ('cdelt2', np.pi),
             ('crpix1', 512.0),
             ('crpix2', 512.0),
@@ -70,5 +69,5 @@ def test_pc2cd():
     ])
     wcs = HSTWCS(hdulist, ext=1)
     assert wcs.wcs.has_cd()
-    cd = np.array([[0.1 * e, 0.08 * e], [-0.05 * np.pi, 0.7 * np.pi]])
+    cd = np.array([[0.1 * np.e, 0.08 * np.e], [-0.05 * np.pi, 0.7 * np.pi]])
     assert np.allclose(wcs.wcs.cd, cd)
