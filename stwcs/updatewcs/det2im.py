@@ -3,7 +3,7 @@ from stsci.tools import fileutil
 
 import logging
 import time
-logger = logging.getLogger('stwcs.updatewcs.d2im')
+logger = logging.getLogger(__name__)
 
 
 class DET2IMCorr:
@@ -35,7 +35,7 @@ class DET2IMCorr:
                 Science file, for which a distortion correction in a NPOLFILE is available
 
         """
-        logger.info("Starting DET2IM: {0}".format(time.asctime()))
+        logger.debug("Starting DET2IM: {0}".format(time.asctime()))
         try:
             assert isinstance(fobj, fits.HDUList)
         except AssertionError:

@@ -1,8 +1,11 @@
 from astropy import wcs as pywcs
 from collections import OrderedDict
 from astropy.io import fits
+import logging
 from .headerlet import parse_filename
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
@@ -118,7 +121,7 @@ def is_wcs_identical(scifile, file2, sciextlist, fextlist, scikey=" ",
                 result = False
     if not result and verbose:
         for key in diff:
-            print(key, ":\t", diff[key][0], "\t", diff[key][1])
+            logger.debug("%s:\t%s\t%s", key, diff[key][0], diff[key][1])
     if close_file:
         fobj.close()
     if close_scifile:

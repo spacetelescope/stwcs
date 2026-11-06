@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class InstrWCS:
     """
@@ -155,7 +159,7 @@ class ACSWCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print('ERROR: Detector kw not found.\n')
+            logger.debug('ERROR: Detector kw not found.\n')
             raise
 
     def set_parity(self):
@@ -204,7 +208,7 @@ class WFPC2WCS(InstrWCS):
         try:
             self.detector = self.exthdr['DETECTOR']
         except KeyError:
-            print('ERROR: Detector kw not found.\n')
+            logger.debug('ERROR: Detector kw not found.\n')
             raise
 
 
@@ -223,7 +227,7 @@ class WFC3WCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print('ERROR: Detector kw not found.\n')
+            logger.debug('ERROR: Detector kw not found.\n')
             raise
 
     def set_filter1(self):
@@ -275,7 +279,7 @@ class NICMOSWCS(InstrWCS):
         try:
             self.detector = self.primhdr['CAMERA']
         except KeyError:
-            print('ERROR: Detector kw not found.\n')
+            logger.debug('ERROR: Detector kw not found.\n')
             raise
 
 
@@ -307,7 +311,7 @@ class STISWCS(InstrWCS):
         try:
             self.detector = self.primhdr['DETECTOR']
         except KeyError:
-            print('ERROR: Detector kw not found.\n')
+            logger.debug('ERROR: Detector kw not found.\n')
             raise
 
     def set_date_obs(self):

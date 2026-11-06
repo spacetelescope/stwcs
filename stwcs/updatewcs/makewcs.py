@@ -40,9 +40,9 @@ class MakeWCS:
         """
         recomputes the basic WCS kw
         """
-        logger.info("\n\tStarting MakeWCS: %s" % time.asctime())
+        logger.debug("\n\tStarting MakeWCS: %s" % time.asctime())
         if not ext_wcs.idcmodel:
-            logger.info("IDC model not found, turning off Makewcs")
+            logger.debug("IDC model not found, turning off Makewcs")
             return {}
         ltvoff, offshift = cls.getOffsets(ext_wcs)
 

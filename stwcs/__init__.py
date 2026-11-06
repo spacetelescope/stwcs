@@ -12,5 +12,10 @@ two subpackages:
   descriptions in the headers.
 
 """
+import logging
+
 from . import distortion  # noqa
 from .version import __version__
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())

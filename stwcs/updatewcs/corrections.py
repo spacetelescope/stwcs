@@ -66,7 +66,7 @@ class TDDCorr:
         - Calculates alpha and beta for ACS/WFC data.
         - Writes 2 new kw to the extension header: TDDALPHA and TDDBETA
         """
-        logger.info("\n\tStarting TDDCorr: %s" % time.asctime())
+        logger.debug("\n\tStarting TDDCorr: %s" % time.asctime())
         ext_wcs.idcmodel.ocx = copy.deepcopy(ext_wcs.idcmodel.cx)
         ext_wcs.idcmodel.ocy = copy.deepcopy(ext_wcs.idcmodel.cy)
 
@@ -101,7 +101,7 @@ class TDDCorr:
 
         elif ext_wcs.idcmodel.refpix['skew_coeffs'] is not None and \
                 ext_wcs.idcmodel.refpix['skew_coeffs']['TDD_CY_BETA'] is not None:
-            logger.info("Applying 2014-calibrated TDD: {0}".format(time.asctime()))
+            logger.debug("Applying 2014-calibrated TDD: {0}".format(time.asctime()))
             # We have 2014-calibrated TDD, not J.A.-style TDD
             cls.apply_tdd2idc2(ref_wcs)
             cls.apply_tdd2idc2(ext_wcs)
@@ -180,7 +180,7 @@ class TDDCorr:
         cy_beta = skew_coeffs['TDD_CY_BETA']
         cy_alpha = skew_coeffs['TDD_CY_ALPHA']
         delta_date = rday - skew_coeffs['TDD_DATE']
-        logger.info("DELTA_DATE: {0} based on rday: {1}, TDD_DATE: {2}".format(delta_date, rday,
+        logger.debug("DELTA_DATE: {0} based on rday: {1}, TDD_DATE: {2}".format(delta_date, rday,
                                                                                skew_coeffs['TDD_DATE']))
 
         if cy_alpha is None:
@@ -188,7 +188,7 @@ class TDDCorr:
         else:
             new_beta = cy_alpha + cy_beta * delta_date
             hwcs.idcmodel.cy[1, 1] = new_beta
-        logger.info("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1, 1],
+        logger.debug("CY11: {0} based on alpha: {1}, beta: {2}".format(hwcs.idcmodel.cy[1, 1],
                                                                       cy_alpha, cy_beta))
 
         cx_beta = skew_coeffs['TDD_CX_BETA']
@@ -196,7 +196,7 @@ class TDDCorr:
         if cx_alpha is not None:
             new_beta = cx_alpha + cx_beta * delta_date
             hwcs.idcmodel.cx[1, 1] = new_beta
-            logger.info("CX11: {0} based on alpha: {1}, beta: {2}".format(new_beta,
+            logger.debug("CX11: {0} based on alpha: {1}, beta: {2}".format(new_beta,
                                                                           cx_alpha, cx_beta))
 
     apply_tdd2idc2 = classmethod(apply_tdd2idc2)
@@ -254,7 +254,7 @@ class TDDCorr:
                 err_str += "         The pre-SM4 time-dependent skew solution will be used by default.\n"
                 err_str += "         Please update IDCTAB with new reference file from HST archive.   \n"
                 err_str += "------------------------------------------------------------------------  \n"
-                print(err_str)
+                logger.debug(err_str)
             # Using default pre-SM4 coefficients
             skew_coeffs = {'TDD_A': [0.095, 0.090 / 2.5],
                            'TDD_B': [-0.029, -0.030 / 2.5],
@@ -283,7 +283,7 @@ class VACorr:
 
     """
     def updateWCS(cls, ext_wcs, ref_wcs):
-        logger.info("Starting VACorr: %s" % time.asctime())
+        logger.debug("Starting VACorr: %s" % time.asctime())
         if ext_wcs.vafactor != 1:
             ext_wcs.wcs.cd = ext_wcs.wcs.cd * ext_wcs.vafactor
             crval0 = ref_wcs.wcs.crval[0] + ext_wcs.vafactor * diff_angles(ext_wcs.wcs.crval[0],
@@ -325,10 +325,10 @@ class CompSIP:
 
     """
     def updateWCS(cls, ext_wcs, ref_wcs):
-        logger.info("Starting CompSIP: {0}".format(time.asctime()))
+        logger.debug("Starting CompSIP: {0}".format(time.asctime()))
         kw2update = {}
         if not ext_wcs.idcmodel:
-            logger.info("IDC model not found, SIP coefficient will not be computed.")
+            logger.debug("IDC model not found, SIP coefficient will not be computed.")
             return kw2update
         order = ext_wcs.idcmodel.norder
         kw2update['A_ORDER'] = order, 'SIP polynomial order, axis 1, detector to sky'

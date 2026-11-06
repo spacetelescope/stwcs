@@ -1,4 +1,5 @@
 import os
+import logging
 
 from astropy.io import fits
 from stsci.tools import parseinput
@@ -6,6 +7,8 @@ from stsci.tools import fileutil
 from stsci.tools import teal
 from .. import __version__
 from .. import updatewcs
+
+logger = logging.getLogger(__name__)
 
 
 allowed_corr_dict = {'vacorr': 'VACorr', 'tddcorr': 'TDDCorr', 'npolcorr': 'NPOLCorr',
@@ -70,7 +73,7 @@ def run(configObj=None):
         # Check to insure that there is a valid reference file to be used
         idctab = fits.getval(file, 'idctab')
         if not os.path.exists(fileutil.osfn(idctab)):
-            print('No valid distortion reference file ', idctab, ' found in ', file, '!')
+            logger.debug('No valid distortion reference file %s found in %s !', idctab, file)
             raise ValueError
 
     # Re-define 'cdict' to only have switches for steps supported by that instrument

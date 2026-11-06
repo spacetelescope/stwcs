@@ -1,10 +1,13 @@
 import os
+import logging
 
 from stsci.tools import teal
 from stsci.tools import parseinput
 
 from .. import __version__
 from ..wcsutil import headerlet
+
+logger = logging.getLogger(__name__)
 
 __taskname__ = __name__.split('.')[-1] # needed for help string
 __package__ = headerlet.__name__
@@ -35,19 +38,19 @@ def getHelpAsString(docstring=False):
 def run(configObj=None):
     flist, oname = parseinput.parseinput(configObj['filename'])
     if len(flist) == 0:
-        print('=' * 60)
-        print('ERROR:')
-        print('    No valid "filename" parameter value provided!')
-        print('    Please check the working directory and restart this task.')
-        print('=' * 60)
+        logger.debug('=' * 60)
+        logger.debug('ERROR:')
+        logger.debug('    No valid "filename" parameter value provided!')
+        logger.debug('    Please check the working directory and restart this task.')
+        logger.debug('=' * 60)
         return
 
     if configObj['hdrname'] in ['', ' ', 'INDEF']:
-        print('=' * 60)
-        print('ERROR:')
-        print('    No valid "hdrname" parameter value provided!')
-        print('    Please restart this task and provide a value for this parameter.')
-        print('=' * 60)
+        logger.debug('=' * 60)
+        logger.debug('ERROR:')
+        logger.debug('    No valid "hdrname" parameter value provided!')
+        logger.debug('    Please restart this task and provide a value for this parameter.')
+        logger.debug('=' * 60)
         return
 
     if configObj['output'] in ['', ' ', 'INDEF']:

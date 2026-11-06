@@ -234,7 +234,7 @@ def build_d2imname(fobj, d2imfile=None):
 
 
 def remove_distortion(fname, dist_keyword):
-    logger.info("Removing distortion {0} from file {0}"
+    logger.debug("Removing distortion {0} from file {0}"
                 .format(dist_keyword, fname[0].header['rootname']))
     from ..wcsutil import altwcs
     if dist_keyword == "NPOLFILE":

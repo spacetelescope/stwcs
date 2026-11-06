@@ -1,4 +1,5 @@
 from astropy.io import fits
+import logging
 try:
     import stwcs
     from stwcs import wcsutil
@@ -6,6 +7,8 @@ except:
     stwcs = None
 
 from stsci.tools import fileutil
+
+logger = logging.getLogger(__name__)
 
 OPUS_WCSKEYS = ['OCRVAL1', 'OCRVAL2', 'OCRPIX1', 'OCRPIX2',
                 'OCD1_1', 'OCD1_2', 'OCD2_1', 'OCD2_2',
@@ -23,9 +26,9 @@ def archive_prefix_OPUS_WCS(fobj, extname='SCI'):
 
     """
     if stwcs is None:
-        print('=====================')
-        print('The STWCS package is needed to convert an old-style OPUS WCS to an alternate WCS')
-        print('=====================')
+        logger.debug('=====================')
+        logger.debug('The STWCS package is needed to convert an old-style OPUS WCS to an alternate WCS')
+        logger.debug('=====================')
         raise ImportError
 
     closefits = False
@@ -98,7 +101,7 @@ def create_prefix_OPUS_WCS(fobj, extname='SCI'):
     else:
         # check to make sure this FITS obj has been opened in update mode
         if fobj.fileinfo(0)['filemode'] != 'update':
-            print('File not opened with "mode=update". Quitting...')
+            logger.debug('File not opened with "mode=update". Quitting...')
             raise IOError
 
     # check for existance of O-prefix WCS

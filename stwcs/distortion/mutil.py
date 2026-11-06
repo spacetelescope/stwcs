@@ -1,6 +1,10 @@
+import logging
+
 from stsci.tools import fileutil
 import numpy as np
 import calendar
+
+logger = logging.getLogger(__name__)
 
 # This function read the IDC table and generates the two matrices with
 # the geometric correction coefficients.
@@ -28,7 +32,7 @@ def readIDCtab(tabname, chip=1, date=None, direction='forward',
     # Return a default geometry model if no IDCTAB filename
     # is given.  This model will not distort the data in any way.
     if tabname is None:
-        print('Warning: No IDCTAB specified! No distortion correction will be applied.')
+        logger.debug('Warning: No IDCTAB specified! No distortion correction will be applied.')
         return defaultModel()
 
     # Implement default values for filters here to avoid the default
@@ -174,8 +178,8 @@ def readIDCtab(tabname, chip=1, date=None, direction='forward',
         del ftab
         raise LookupError(err_str)
     else:
-        print('- IDCTAB: Distortion model from row', str(row + 1), 'for chip',
-              detchip, ':', filtstr)
+        logger.debug('- IDCTAB: Distortion model from row %s for chip %s : %s',
+                     str(row + 1), detchip, filtstr)
 
     # Read in V2REF and V3REF: this can either come from current table,
     # or from an OFFTAB if time-dependent (i.e., for WFPC2)
@@ -273,14 +277,14 @@ def read_tdd_coeffs(phdr, chip=1):
         # We have the 2015-calibrated TDD correction to apply
         # This correction is based on correcting the skew in the linear terms
         # not just set polynomial terms
-        print("Using 2015-calibrated VAFACTOR-corrected TDD correction...")
+        logger.debug("Using 2015-calibrated VAFACTOR-corrected TDD correction...")
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         for s in skew_terms:
             skew_coeffs[s] = phdr.get('{0}{1}'.format(s, ic), None)
 
     elif "TDD_CYB1" in phdr:
         # We have 2014-calibrated TDD correction to apply, not J.A.-derived values
-        print("Using 2014-calibrated TDD correction...")
+        logger.debug("Using 2014-calibrated TDD correction...")
         skew_coeffs['TDD_DATE'] = phdr['TDD_DATE']
         # Read coefficients for TDD Y coefficient
         cyb_kw = 'TDD_CYB{0}'.format(int(chip))
@@ -302,7 +306,7 @@ def read_tdd_coeffs(phdr, chip=1):
         if "TDDORDER" in phdr:
             n = int(phdr["TDDORDER"])
         else:
-            print('TDDORDER kw not present, using default TDD correction')
+            logger.debug('TDDORDER kw not present, using default TDD correction')
             return None
 
         a = np.zeros((n + 1,), np.float64)
@@ -311,7 +315,7 @@ def read_tdd_coeffs(phdr, chip=1):
             a[i] = phdr.get(("TDD_A%d" % i), 0.0)
             b[i] = phdr.get(("TDD_B%d" % i), 0.0)
         if (a == 0).all() and (b == 0).all():
-            print('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
+            logger.debug('Warning: TDD_A and TDD_B coeffiecients have values of 0, \n \
                    but TDDORDER is %d.' % n)
 
         skew_coeffs['TDDORDER'] = n
@@ -400,13 +404,13 @@ def readOfftab(offtab, date, chip=None):
     del ftab
 
     if row_start is None and row_end is None:
-        print('Row corresponding to DETCHIP of ', detchip, ' was not found!')
+        logger.debug('Row corresponding to DETCHIP of %s was not found!', detchip)
         raise LookupError
     elif row_start is None:
-        print('- OFFTAB: Offset defined by row', str(row_end + 1))
+        logger.debug('- OFFTAB: Offset defined by row %s', str(row_end + 1))
     else:
-        print('- OFFTAB: Offset interpolated from rows', str(row_start + 1),
-              'and', str(row_end + 1))
+        logger.debug('- OFFTAB: Offset interpolated from rows %s and %s',
+                     str(row_start + 1), str(row_end + 1))
 
     # Now, do the interpolation for v2ref, v3ref, and theta
     if row_start is None or row_end is row_start:

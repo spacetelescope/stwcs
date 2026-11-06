@@ -84,7 +84,7 @@ def setCorrections(fname, vacorr=True, tddcorr=True, npolcorr=True, d2imcorr=Tru
         d2imcorr = apply_d2im_correction(fname, d2imcorr)
         if not d2imcorr:
             acorr.remove('DET2IMCorr')
-    logger.info("Corrections to be applied to {0} {1}".format(fname, acorr))
+    logger.debug("Corrections to be applied to {0} {1}".format(fname, acorr))
     if toclose:
         fname.close()
     return acorr
@@ -205,7 +205,7 @@ def applyNpolCorr(fname, unpolcorr):
                 else:
                     msg = """\n\tNPOLEXT with the same value as NPOLFILE found in first extension.
                              NPOL correction will not be applied."""
-                    logger.info(msg)
+                    logger.debug(msg)
                     applyNPOLCorr = False
             else:
                 # npl file defined in first extension may not be found
@@ -217,7 +217,7 @@ def applyNpolCorr(fname, unpolcorr):
             # in first extension header
             applyNPOLCorr = True
     except KeyError:
-        logger.info('\n\t"NPOLFILE" keyword not found in primary header')
+        logger.debug('\n\t"NPOLFILE" keyword not found in primary header')
         applyNPOLCorr = False
         return applyNPOLCorr
 
@@ -281,13 +281,13 @@ def apply_d2im_correction(fname, d2imcorr):
 
     applyD2IMCorr = True
     if not d2imcorr:
-        logger.info("D2IM correction not requested - not applying it.")
+        logger.debug("D2IM correction not requested - not applying it.")
         return False
     # get D2IMFILE kw from primary header
     try:
         fd2im0 = fname[0].header['D2IMFILE']
     except KeyError:
-        logger.info("D2IMFILE keyword is missing - D2IM correction will not be applied.")
+        logger.debug("D2IMFILE keyword is missing - D2IM correction will not be applied.")
         return False
     if fd2im0 == 'N/A':
         utils.remove_distortion(fname, "D2IMFILE")
