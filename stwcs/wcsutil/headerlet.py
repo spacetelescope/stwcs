@@ -1070,7 +1070,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                 whdul[0].header.append(fobj[ext].header.cards['D2IMEXT'])
             except KeyError:
                 pass
-            whdul[0].header.extend(fobj[ext].header.cards['D2IMERR*'])
+            whdul[0].header.extend(fobj[ext].header.cards['D2IMERR*'], update=True)
             if 'D2IM1.EXTVER' in whdul[0].header:
                 try:
                     whdul[0].header['D2IM1.EXTVER'] = fobj[ext].header['D2IM1.EXTVER']
@@ -1085,7 +1085,7 @@ def create_headerlet(filename, sciext='SCI', hdrname=None, destim=None,
                     nd2i_extver += 1
 
         if hwcs.cpdis1 or hwcs.cpdis2:
-            whdul[0].header.extend(fobj[ext].header.cards['CPERR*'])
+            whdul[0].header.extend(fobj[ext].header.cards['CPERR*'], update=True)
             try:
                 whdul[0].header.append(fobj[ext].header.cards['NPOLEXT'])
             except KeyError:
@@ -2052,7 +2052,7 @@ class Headerlet(fits.HDUList):
             if sipwcs.det2im1 or sipwcs.det2im2:
                 try:
                     d2imerr = self[('SIPWCS', i)].header['D2IMERR*']
-                    priwcs[0].header.extend(d2imerr)
+                    priwcs[0].header.extend(d2imerr, update=True)
                 except KeyError:
                     pass
                 try:
@@ -2073,7 +2073,7 @@ class Headerlet(fits.HDUList):
             if sipwcs.cpdis1 or sipwcs.cpdis2:
                 try:
                     cperr = self[('SIPWCS', i)].header['CPERR*']
-                    priwcs[0].header.extend(cperr)
+                    priwcs[0].header.extend(cperr, update=True)
                 except KeyError:
                     pass
                 try:
