@@ -119,8 +119,8 @@ def make_orthogonal_cd(wcs):
         if hasattr(wcs, 'idcscale') and wcs.idcscale is not None:
             scale = (wcs.idcscale) / 3600.  # HST pixel scale provided
         else:
-            warnings.warn("IDCSCALE is missing, computing it from CD matrix.")
-            scale = np.sqrt(np.abs(det))  # find as sqrt(pixel area)
+            raise ValueError("IDCSCALE is missing. It is likely that updatewcs failed and "+
+                             "the alignment and distortion correction are of poor quality.")
     else:
 
         det = linalg.det(cd)
