@@ -1,3 +1,7 @@
+.. image:: images/stsci_pri_combo_mark_horizonal_white_bkgd.png
+   :width: 83%
+   :target: https://stsci.edu
+
 .. STWCS documentation master file, created by
    sphinx-quickstart on Thu Sep 23 09:18:47 2010.
    You can adapt this file completely to your liking, but it should at least
