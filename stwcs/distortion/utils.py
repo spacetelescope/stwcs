@@ -111,7 +111,7 @@ def make_orthogonal_cd(wcs):
             pv += wcs.idctheta
         cs = np.cos(np.deg2rad(pv))
         sn = np.sin(np.deg2rad(pv))
-        
+
         pvmat = np.dot(np.array([[cs, sn], [-sn, cs]]), wcs.parity)
         rot = np.arctan2(pvmat[0, 1], pvmat[1, 1])
 
