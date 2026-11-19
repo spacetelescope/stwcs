@@ -1,4 +1,4 @@
-.. image:: doc/source/images/stsci_pri_combo_mark_horizonal_white_bkgd.png
+.. image:: doc/source/images/stsci_pri_combo_mark_horizonal_light_bkgd.svg
    :width: 83%
    :target: https://stsci.edu
 
